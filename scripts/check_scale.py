@@ -11,6 +11,7 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,11 @@ from ppar.analytics.attribution import View
 from ppar.analytics.frequency import Frequency
 from ppar.axys import AxysData
 
+try:
+    from scripts import audit_scale_contract
+except ModuleNotFoundError:  # Direct ``python scripts/check_scale.py`` execution.
+    import audit_scale_contract  # type: ignore[no-redef]
+
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _ANALYTICS_TEMPLATE = (
@@ -32,7 +38,9 @@ _AUDIT_TEMPLATE = (
     _PROJECT_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )
 _BASELINE_TIMEOUT_SECONDS = 60
-_ALLOWED_LARGE_SITE_SCALES = tuple(range(10, 101, 10))
+_PERFORMANCE_TIMING_SAMPLES = 3
+_PROCESS_TIMEOUT_GRACE_SECONDS = 5.0
+_ALLOWED_LARGE_SITE_SCALES = (*range(10, 101, 10), 500)
 _SELECTED_WORKLOAD_SCALE = 10
 _LONG_HISTORY_SCALE = 5
 _HISTORY_BLOCK_YEARS = 5
@@ -40,6 +48,9 @@ _SCALING_WARNING_MULTIPLIER = 1.05
 _SCALING_FAILURE_MULTIPLIER = 1.10
 _ANALYTICS_SCALING_WARNING_RATIO = 1.05
 _ANALYTICS_SCALING_FAILURE_RATIO = 1.10
+# These Audit limits preserve the established 100x regression gate. A failure
+# requires performance investigation; new workload must not silently recalibrate
+# the limits upward.
 _AUDIT_LARGE_SITE_SCALE_DIVISOR = 4.0
 _AUDIT_HISTORY_WARNING_RATIO = 1.75
 _AUDIT_HISTORY_FAILURE_RATIO = 2.00
@@ -55,7 +66,10 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         type=int,
         choices=_ALLOWED_LARGE_SITE_SCALES,
         default=10,
-        help="Large-site multiplier from 10 through 100 in increments of 10.",
+        help=(
+            "Large-site multiplier from 10 through 100 in increments of 10, "
+            "or the 500x release-candidate stress level."
+        ),
     )
     return parser.parse_args(argv)
 
@@ -67,15 +81,41 @@ def _run(
 ) -> float:
     """Run one timed command and return elapsed seconds."""
     started = time.perf_counter()
-    subprocess.run(
-        [str(part) for part in command],
-        cwd=_PROJECT_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=timeout_seconds,
-    )
+    normalized_command = [str(part) for part in command]
+    try:
+        subprocess.run(
+            normalized_command,
+            cwd=_PROJECT_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.CalledProcessError as error:
+        details = (error.stderr or error.stdout or "No child-process output.").strip()
+        raise RuntimeError(
+            f"Command failed: {' '.join(normalized_command)}\n{details}"
+        ) from error
     return time.perf_counter() - started
+
+
+def _run_median_elapsed(
+    command: Sequence[str | Path],
+    *,
+    timeout_seconds: float = _BASELINE_TIMEOUT_SECONDS,
+) -> float:
+    """Return the median elapsed time from repeated short command runs.
+
+    Three samples keep the tight Analytics ratio gate from depending on one
+    unusually fast or slow process startup. Each sample still receives the
+    same safety timeout, and the unchanged performance ratio is applied to the
+    median after all samples complete.
+    """
+    samples = [
+        _run(command, timeout_seconds=timeout_seconds)
+        for _ in range(_PERFORMANCE_TIMING_SAMPLES)
+    ]
+    return statistics.median(samples)
 
 
 def _analytics_scaling_result(
@@ -171,7 +211,7 @@ def _audit_history_scaling_result(
     baseline_elapsed: float,
     scaled_elapsed: float,
 ) -> tuple[str, float, float, float]:
-    """Return fixed caps for the fivefold Audit long-history workload."""
+    """Return fixed caps for the complete fivefold Audit history workload."""
     if baseline_elapsed <= 0:
         raise ValueError("Audit long-history baseline time must be greater than zero.")
     ratio = scaled_elapsed / baseline_elapsed
@@ -192,8 +232,13 @@ def _audit_history_scaling_result(
 
 
 def _scaled_timeout(baseline_elapsed: float, error_ratio: float) -> float:
-    """Return the scaled subprocess timeout derived from its measured baseline."""
-    return baseline_elapsed * error_ratio
+    """Return a process-safety timeout beyond the performance failure boundary.
+
+    The grace interval allows the command to finish and report its measured
+    ratio normally. It does not change the performance threshold applied after
+    completion.
+    """
+    return baseline_elapsed * error_ratio + _PROCESS_TIMEOUT_GRACE_SECONDS
 
 
 # The explicit fields keep the scenario call sites and terminal output readable.
@@ -503,14 +548,32 @@ def _check_analytics(workspace: Path, scale: int) -> tuple[int, float]:
     _require_workspace_path(workspace, scaled_path)
     baseline_site, baseline_rows = _prepare_analytics(baseline_path, 1)
     scaled_site, row_count = _prepare_analytics(scaled_path, scale)
-    baseline_elapsed = _run([sys.executable, "-m", "ppar.cli", "analytics", baseline_site])
-    scaled_elapsed = _run(
-        [sys.executable, "-m", "ppar.cli", "analytics", scaled_site],
-        timeout_seconds=_scaled_timeout(
-            baseline_elapsed,
-            _ANALYTICS_SCALING_FAILURE_RATIO,
-        ),
+    baseline_command = [sys.executable, "-m", "ppar.cli", "analytics", baseline_site]
+    scaled_command = [sys.executable, "-m", "ppar.cli", "analytics", scaled_site]
+    baseline_elapsed = _run_median_elapsed(baseline_command)
+    timeout_seconds = _scaled_timeout(
+        baseline_elapsed,
+        _ANALYTICS_SCALING_FAILURE_RATIO,
     )
+    try:
+        scaled_elapsed = _run_median_elapsed(
+            scaled_command,
+            timeout_seconds=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as error:
+        _print_timeout_result(
+            "Analytics large-site",
+            scale,
+            baseline_rows,
+            row_count,
+            baseline_elapsed,
+            timeout_seconds,
+            _ANALYTICS_SCALING_WARNING_RATIO,
+            _ANALYTICS_SCALING_FAILURE_RATIO,
+        )
+        raise RuntimeError(
+            "Analytics large-site exceeded its process-safety timeout."
+        ) from error
     baseline_html = _html_outputs(baseline_site / "output")
     scaled_html = _html_outputs(scaled_site / "output")
     if not baseline_html or baseline_html != scaled_html:
@@ -564,16 +627,24 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
         raise RuntimeError(
             "Audit large-site exceeded its execution-time error cap."
         ) from error
-    for audit_site in (baseline_site, site):
-        for report_name in ("portfolio", "security"):
+    for report_name in ("portfolio", "security"):
+        baseline_report_path = baseline_site / "output" / report_name
+        scaled_report_path = site / "output" / report_name
+        for report_path in (baseline_report_path, scaled_report_path):
             _run(
                 [
                     sys.executable,
                     "-m",
                     "ppar.performance_comparison.cli.validate_bundle",
-                    audit_site / "output" / report_name,
+                    report_path,
                 ]
             )
+        audit_scale_contract.assert_scaled_audit_equivalent(
+            baseline_report_path,
+            scaled_report_path,
+            scale,
+        )
+        audit_scale_contract.print_output_metrics(report_name, scaled_report_path)
     status, _, warning_ratio, error_ratio = _audit_large_site_scaling_result(
         scale,
         baseline_elapsed,
@@ -626,13 +697,13 @@ def _check_long_history_audit(workspace: Path) -> tuple[int, float]:
                 report_path,
             ]
         )
-        findings = pl.read_csv(
-            report_path / "supporting_files" / "findings.csv",
-            try_parse_dates=True,
+        findings = audit_scale_contract.read_supporting_csv(
+            report_path,
+            "findings.csv",
         )
-        baseline_findings = pl.read_csv(
-            baseline_report_path / "supporting_files" / "findings.csv",
-            try_parse_dates=True,
+        baseline_findings = audit_scale_contract.read_supporting_csv(
+            baseline_report_path,
+            "findings.csv",
         )
         baseline_years = set(
             baseline_findings.get_column("from_date")

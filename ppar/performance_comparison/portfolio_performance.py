@@ -53,6 +53,14 @@ class PortfolioPerformanceLoader:
         path = self._portfolio_performance_path(snapshot_key)
         if not util.file_path_exists(path):
             raise PpaError(self._error_message(util.file_path_error(path)), 802)
+        cached = source_loader.cached_normalized_frame(
+            self._specification.path,
+            pc_cols.PORTFOLIO_PERFORMANCE,
+            snapshot_key,
+            path,
+        )
+        if cached is not None:
+            return cached
 
         frame = source_loader.read_schema_mapped_csv(
             path,
@@ -88,7 +96,13 @@ class PortfolioPerformanceLoader:
             path=path,
             specification_path=self._specification.path,
         )
-        return frame
+        return source_loader.cache_normalized_frame(
+            self._specification.path,
+            pc_cols.PORTFOLIO_PERFORMANCE,
+            snapshot_key,
+            path,
+            frame,
+        )
 
     def _portfolio_performance_path(self, snapshot_key: SnapshotKey) -> util.PathLike:
         """Return the resolved portfolio performance path for a snapshot."""

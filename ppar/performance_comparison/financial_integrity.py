@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 # Python imports
-from collections import Counter
 import math
 import re
 from typing import Final, TypeAlias, cast
@@ -24,6 +23,7 @@ from ppar.performance_comparison.portfolio_performance import (
     SnapshotKey,
 )
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
+from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.splits import SplitsLoader
 from ppar.performance_comparison.transactions import TransactionsLoader
@@ -66,6 +66,9 @@ def validate_financial_input_integrity(
         PpaError: If currency metadata is unsafe, monetary units conflict, or
             portfolio-scoped dated evidence cannot be assigned exactly once.
     """
+    if source_loader.financial_validation_is_cached(specification.path):
+        return
+
     portfolio_loader = PortfolioPerformanceLoader(specification)
     security_loader = SecurityPerformanceLoader(specification)
     holdings_loader = HoldingsLoader(specification)
@@ -109,6 +112,7 @@ def validate_financial_input_integrity(
         snapshots["a"],
         snapshots["b"],
     )
+    source_loader.cache_financial_validation(specification.path)
 
 
 def _validate_snapshot(
@@ -244,20 +248,71 @@ def _rows_not_identical_in_other_snapshot(
     if other_frame is None:
         return frame
     columns = sorted(set(frame.columns) | set(other_frame.columns))
-    other_counts = Counter(
-        tuple(row.get(column) for column in columns)
-        for row in other_frame.iter_rows(named=True)
+    row_index = "__ppar_integrity_row_index"
+    occurrence = "__ppar_integrity_occurrence"
+    normalized_frame = _integrity_comparison_columns(
+        frame,
+        other_frame,
+        columns,
+    ).with_row_index(row_index)
+    normalized_other = _integrity_comparison_columns(
+        other_frame,
+        frame,
+        columns,
     )
-    rows: list[dict[str, object]] = []
-    for row in frame.iter_rows(named=True):
-        fingerprint = tuple(row.get(column) for column in columns)
-        if other_counts[fingerprint]:
-            other_counts[fingerprint] -= 1
+    grouping_columns = list(columns)
+    normalized_frame = normalized_frame.with_columns(
+        pl.int_range(pl.len()).over(grouping_columns).alias(occurrence)
+    )
+    normalized_other = normalized_other.with_columns(
+        pl.int_range(pl.len()).over(grouping_columns).alias(occurrence)
+    )
+    unmatched_indexes = (
+        normalized_frame.join(
+            normalized_other.select(*grouping_columns, occurrence),
+            on=[*grouping_columns, occurrence],
+            how="anti",
+            nulls_equal=True,
+        )
+        .get_column(row_index)
+        .sort()
+    )
+    return frame[unmatched_indexes]
+
+
+def _integrity_comparison_columns(
+    frame: pl.DataFrame,
+    counterpart: pl.DataFrame,
+    columns: list[str],
+) -> pl.DataFrame:
+    """Return aligned columns for a multiset comparison between snapshots."""
+    expressions: list[pl.Expr] = []
+    for column in columns:
+        if (
+            column in frame.columns
+            and column in counterpart.columns
+            and frame.schema[column] == counterpart.schema[column]
+        ):
+            expressions.append(pl.col(column))
             continue
-        rows.append(dict(row))
-    if not rows:
-        return frame.head(0)
-    return pl.DataFrame(rows, schema=frame.schema)
+        if column in frame.columns:
+            data_type = frame.schema[column]
+            expressions.append(
+                pl.when(pl.col(column).is_null())
+                .then(pl.lit(None, dtype=pl.String))
+                .otherwise(
+                    pl.concat_str(
+                        pl.lit(f"{data_type}:"),
+                        pl.col(column).cast(pl.String),
+                    )
+                )
+                .alias(column)
+            )
+            continue
+        expressions.append(
+            pl.lit(None, dtype=pl.String).alias(column)
+        )
+    return frame.select(expressions)
 
 
 def _validate_split_assignments(

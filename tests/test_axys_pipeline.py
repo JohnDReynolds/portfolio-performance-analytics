@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 # Third-Party Imports
 import polars as pl
@@ -169,6 +170,21 @@ class TestAxysPipeline(unittest.TestCase):
 
             self.assertEqual(portfolio.portfolio_code, "P2")
             self.assertEqual(portfolio.portfolio_name, "P2 - Income")
+
+    def test_get_portfolios_scans_each_performance_source_once(self) -> None:
+        """A portfolio and benchmark share one scan of each performance CSV."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data = AxysData(_write_axys_inputs(Path(temp_dir)))
+            with mock.patch(
+                "ppar.axys.performance_sources.pl.scan_csv",
+                wraps=pl.scan_csv,
+            ) as scan_csv:
+                portfolios = data.get_portfolios(("P1", "P2"))
+
+        self.assertEqual(list(portfolios), ["P1", "P2"])
+        self.assertEqual(portfolios["P1"].portfolio_name, "P1 - Growth")
+        self.assertEqual(portfolios["P2"].portfolio_name, "P2 - Income")
+        self.assertEqual(scan_csv.call_count, 2)
 
     def test_performance_columns_can_be_inferred_from_standard_aliases(self) -> None:
         """Portfolio and security performance column mappings can be omitted."""

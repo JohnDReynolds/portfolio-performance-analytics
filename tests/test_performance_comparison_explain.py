@@ -409,6 +409,26 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(related_output_score_values, [])
         self.assertNotIn(TARGET_OUTPUT, ranking.get_column(EVIDENCE_ROLE).to_list())
 
+    def test_indexed_finding_rows_preserve_original_cross_key_order(self) -> None:
+        """Evidence row indexing preserves stable source order across period keys."""
+        findings = pl.DataFrame(
+            {
+                "period": ["dated", "undated", "dated"],
+                "identity": ["first", "second", "third"],
+            }
+        )
+
+        index = pc_explain._finding_row_index(findings, ("period",))
+        rows = pc_explain._indexed_finding_rows(
+            index,
+            (("dated",), ("undated",)),
+        )
+
+        self.assertEqual(
+            [row["identity"] for row in rows],
+            ["first", "second", "third"],
+        )
+
     def test_portfolio_period_contribution_candidates_estimates_contribution(
         self,
     ) -> None:
@@ -1282,6 +1302,22 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
     def test_rank_portfolio_period_evidence_returns_stable_empty_table(self) -> None:
         """No portfolio return deltas produce an empty ranking table."""
         findings = self._baseline()
+
+        ranking = rank_portfolio_period_evidence(findings)
+
+        self.assertTrue(ranking.is_empty())
+        self.assertEqual(
+            ranking.columns,
+            list(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS),
+        )
+
+    def test_rank_portfolio_period_evidence_target_only_is_stable_empty(self) -> None:
+        """A target without related evidence retains the stable empty schema."""
+        findings = self._restatement().filter(
+            (pl.col(FINDING_CODE) == PC_PORT_RET)
+            & (pl.col(DATASET) == pc_cols.PORTFOLIO_PERFORMANCE)
+            & (pl.col(SOURCE_COLUMN) == pc_cols.PORTFOLIO_RETURN)
+        )
 
         ranking = rank_portfolio_period_evidence(findings)
 

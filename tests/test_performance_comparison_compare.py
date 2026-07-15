@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 from typing import cast
 import unittest
+from unittest import mock
 
 # Third-party imports
 import polars as pl
@@ -762,6 +763,80 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertAlmostEqual(cast(float, return_findings[0][DELTA_B_MINUS_A]), 0.0005)
         self.assertEqual(len(end_mv_findings), 1)
         self.assertAlmostEqual(cast(float, end_mv_findings[0][DELTA_B_MINUS_A]), 500.0)
+
+    def test_changed_value_tolerances_are_resolved_once_per_column(self) -> None:
+        """One comparison resolves each shared field tolerance only once."""
+        comparison = PerformanceComparison(self._restatement_specification)
+        from_date = dt.date(2025, 1, 1)
+        thru_date = dt.date(2025, 1, 31)
+        snapshot_a = pl.DataFrame(
+            {
+                pc_cols.PORTFOLIO_ID: ["P1", "P2"],
+                pc_cols.FROM_DATE: [from_date, from_date],
+                pc_cols.THRU_DATE: [thru_date, thru_date],
+                pc_cols.PORTFOLIO_RETURN: [0.01, 0.02],
+                pc_cols.END_MARKET_VALUE: [100.0, 200.0],
+            }
+        )
+        snapshot_b = snapshot_a.with_columns(
+            (pl.col(pc_cols.PORTFOLIO_RETURN) + 0.01),
+            (pl.col(pc_cols.END_MARKET_VALUE) + 10.0),
+        )
+        compare_columns = {
+            pc_cols.PORTFOLIO_RETURN: PC_PORT_RET,
+            pc_cols.END_MARKET_VALUE: PC_PORT_MV,
+        }
+
+        with mock.patch.object(
+            comparison,
+            "_tolerance",
+            wraps=comparison._tolerance,
+        ) as tolerance:
+            findings = comparison._changed_value_findings(
+                snapshot_a,
+                snapshot_b,
+                compare_columns=compare_columns,
+            )
+
+        self.assertEqual(len(findings), 4)
+        self.assertEqual(
+            [finding.source_column for finding in findings],
+            [
+                pc_cols.PORTFOLIO_RETURN,
+                pc_cols.END_MARKET_VALUE,
+                pc_cols.PORTFOLIO_RETURN,
+                pc_cols.END_MARKET_VALUE,
+            ],
+        )
+        self.assertEqual(
+            tolerance.call_args_list,
+            [
+                mock.call(pc_cols.PORTFOLIO_RETURN),
+                mock.call(pc_cols.END_MARKET_VALUE),
+            ],
+        )
+
+    def test_non_transaction_estimates_skip_modified_dietz_eligibility(self) -> None:
+        """Unrelated fields do not run external-flow eligibility checks."""
+        comparison = PerformanceComparison(self._restatement_specification)
+
+        with mock.patch(
+            "ppar.performance_comparison.compare."
+            "_modified_dietz_external_flow_eligibility"
+        ) as eligibility:
+            estimate = comparison._transaction_impact_diagnostic_estimate(
+                {},
+                pc_cols.HOLDINGS,
+                pc_cols.MARKET_VALUE,
+                "P1",
+                dt.date(2025, 1, 1),
+                dt.date(2025, 1, 31),
+                100.0,
+                10.0,
+            )
+
+        self.assertIsNone(estimate)
+        eligibility.assert_not_called()
 
     def test_duplicate_portfolio_comparison_keys_raise_error_112(self) -> None:
         """Duplicate comparison keys are invalid because joins would multiply rows."""
@@ -2990,6 +3065,28 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(ambiguity["snapshot_a_value"], 2)
             self.assertEqual(ambiguity["snapshot_b_value"], 2)
             self.assertIn("ambiguous", str(ambiguity["message"]))
+
+    def test_duplicate_transaction_fallback_diagnostics_are_sorted(self) -> None:
+        """Ambiguity diagnostics remain deterministic across grouped input order."""
+        key_columns = (pc_cols.PORTFOLIO_ID, pc_cols.SECURITY_ID)
+        snapshot_a = pl.DataFrame(
+            {
+                pc_cols.PORTFOLIO_ID: ["PORT_B", "PORT_A", "PORT_B", "PORT_A"],
+                pc_cols.SECURITY_ID: ["SEC2", "SEC1", "SEC2", "SEC1"],
+            }
+        )
+        snapshot_b = snapshot_a.reverse()
+
+        duplicate_keys = PerformanceComparison._duplicate_transaction_fallback_keys(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+        )
+
+        self.assertEqual(
+            duplicate_keys.select(key_columns).rows(),
+            [("PORT_A", "SEC1"), ("PORT_B", "SEC2")],
+        )
 
     def test_duplicate_transaction_ids_still_fail_loudly(self) -> None:
         """Stable transaction IDs remain unique comparison keys."""

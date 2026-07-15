@@ -8,7 +8,7 @@ for a working example.
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 import datetime as dt
 from pathlib import Path
@@ -120,35 +120,75 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
                 portfolio returns, or if the requested classification source is
                 unknown or invalid.
         """
+        return self.get_portfolios(
+            (portfolio_code,),
+            from_date=from_date,
+            thru_date=thru_date,
+            classification_name=classification_name,
+        )[portfolio_code]
+
+    def get_portfolios(
+        self,
+        portfolio_codes: Sequence[str],
+        from_date: dt.date | None = None,
+        thru_date: dt.date | None = None,
+        classification_name: str | None = None,
+    ) -> dict[str, AxysPortfolio]:
+        """Return requested reconciled portfolios from one source scan per file.
+
+        Args:
+            portfolio_codes: Portfolio codes to load together.
+            from_date: Optional inclusive earliest from date to retain.
+            thru_date: Optional inclusive latest thru date to retain.
+            classification_name: Optional configured Axys classification to
+                attach to each returned portfolio.
+
+        Returns:
+            Reconciled portfolios keyed by requested portfolio code.
+
+        Raises:
+            PpaError: If any requested portfolio has no rows, common periods
+                cannot be found, security returns cannot be reconciled, or the
+                requested classification source is invalid.
+        """
+        requested_codes = (
+            (portfolio_codes,)
+            if isinstance(portfolio_codes, str)
+            else tuple(dict.fromkeys(portfolio_codes))
+        )
+        if not requested_codes:
+            return {}
         date_range = AxysDateRange(
             from_date or self._specification.default_from_date,
             thru_date or self._specification.default_thru_date,
         )
-        classification_name = (
+        resolved_classification_name = (
             classification_name or self._specification.default_classification_name
         )
-
-        portfolios = self._portfolio_loader(date_range).load((portfolio_code,))
-        if portfolio_code not in portfolios:
-            raise PpaError(
-                self._error_message(
-                    f"No portfolio performance rows for portfolio {portfolio_code!r}",
-                    portfolio_code,
-                    date_range.from_date,
-                    date_range.thru_date,
-                ),
-                504,
-            )
-        portfolio = portfolios[portfolio_code]
-        if classification_name is None:
-            return portfolio
-        return replace(
-            portfolio,
-            classification_sources=self.get_classification_sources(
-                classification_name,
+        portfolios = self._portfolio_loader(date_range).load(requested_codes)
+        for portfolio_code in requested_codes:
+            if portfolio_code not in portfolios:
+                raise PpaError(
+                    self._error_message(
+                        f"No portfolio performance rows for portfolio {portfolio_code!r}",
+                        portfolio_code,
+                        date_range.from_date,
+                        date_range.thru_date,
+                    ),
+                    504,
+                )
+        if resolved_classification_name is None:
+            return portfolios
+        return {
+            portfolio_code: replace(
                 portfolio,
-            ),
-        )
+                classification_sources=self.get_classification_sources(
+                    resolved_classification_name,
+                    portfolio,
+                ),
+            )
+            for portfolio_code, portfolio in portfolios.items()
+        }
 
     def get_classification_sources(
         self,

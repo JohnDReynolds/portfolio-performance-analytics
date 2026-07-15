@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 import json
 from pathlib import Path
+import shutil
 
 # Third-party imports
 import polars as pl
@@ -19,6 +20,7 @@ from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import lineage as _pc_lineage
+from ppar.performance_comparison import output_policy as _pc_output_policy
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import review_model as _pc_review_model
@@ -180,28 +182,33 @@ def _performance_comparison_html_report(
             _reconstruction_cache=_reconstruction_cache,
         )
     )
-    return "\n".join(
-        [
-            "<!DOCTYPE html>",
-            '<html lang="en">',
-            "<head>",
-            '<meta charset="utf-8"/>',
-            '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
-            f"<title>{_escape_html(title)}</title>",
-            _html_style_block(),
-            "</head>",
-            "<body>",
-            '<main class="pc-report">',
-            '<header class="pc-header">',
-            f"<h1>{_escape_html(title)}</h1>",
-            "</header>",
-            *[_html_workbook_sheet_section(sheet) for sheet in sheets],
-            "</main>",
-            "</body>",
-            "</html>",
-            "",
-        ]
-    )
+    return "\n".join(_html_document_parts(title, sheets))
+
+
+def _html_document_parts(
+    title: str,
+    sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
+) -> Iterator[str]:
+    """Yield a complete report in sections to bound peak output memory."""
+    yield "<!DOCTYPE html>"
+    yield '<html lang="en">'
+    yield "<head>"
+    yield '<meta charset="utf-8"/>'
+    yield '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    yield f"<title>{_escape_html(title)}</title>"
+    yield _html_style_block()
+    yield "</head>"
+    yield "<body>"
+    yield '<main class="pc-report">'
+    yield '<header class="pc-header">'
+    yield f"<h1>{_escape_html(title)}</h1>"
+    yield "</header>"
+    for sheet in sheets:
+        yield _html_workbook_sheet_section(sheet)
+    yield "</main>"
+    yield "</body>"
+    yield "</html>"
+    yield ""
 
 
 def _html_workbook_sheet_section(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
@@ -227,8 +234,11 @@ def _html_workbook_sheet_table(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
         )
         for column in columns
     ]
+    rendered_columns = tuple(
+        (column, _pc_rendering.html_column_class(column)) for column in columns
+    )
     body_rows = [
-        _html_workbook_body_row(row, columns)
+        _html_workbook_body_row(row, rendered_columns)
         for row in sheet.table.iter_rows(named=True)
     ]
     return "\n".join(
@@ -272,24 +282,68 @@ def _html_workbook_header_cell(*, column: str, label: str, tooltip: str) -> str:
     )
 
 
-def _html_workbook_body_row(row: Mapping[str, object], columns: Sequence[str]) -> str:
+def _html_workbook_body_row(
+    row: Mapping[str, object],
+    columns: Sequence[tuple[str, str]],
+) -> str:
     """Return one workbook-style HTML table row."""
-    cells = [_html_workbook_body_cell(row, column) for column in columns]
+    row_type = _format_value(row.get("row_type"))
+    review_status = _format_value(row.get("review_status"))
+    cells = [
+        _html_workbook_body_cell(
+            row,
+            column,
+            column_class=column_class,
+            row_type=row_type,
+            review_status=review_status,
+        )
+        for column, column_class in columns
+    ]
     return "<tr>" + "".join(cells) + "</tr>"
 
 
-def _html_workbook_body_cell(row: Mapping[str, object], column: str) -> str:
+def _html_workbook_body_cell(
+    row: Mapping[str, object],
+    column: str,
+    *,
+    column_class: str,
+    row_type: str,
+    review_status: str,
+) -> str:
     """Return one workbook-style HTML table cell with row-aware classes."""
     value = row[column]
     classes = " ".join(
         [
             _pc_rendering.html_cell_alignment(value),
-            _pc_rendering.html_column_class(column),
+            column_class,
             *_pc_rendering.html_value_classes(column, value),
-            *_pc_rendering.html_row_value_classes(row, column),
+            *_html_workbook_row_value_classes(row_type, review_status, column),
         ]
     )
     return f'<td class="{classes}">{_escape_html(_format_value(value))}</td>'
+
+
+def _html_workbook_row_value_classes(
+    row_type: str,
+    review_status: str,
+    column: str,
+) -> tuple[str, ...]:
+    """Return row-aware classes from values normalized once per table row."""
+    if row_type == "Explained Cause" and column in {
+        "row_type",
+        "estimated_impact",
+        "review_guidance",
+    }:
+        return ("pc-fill-explained-cause",)
+    if row_type == "Possible Cause" and column in {"row_type", "review_guidance"}:
+        return ("pc-fill-possible-cause",)
+    if review_status in {"Partly Explained", "Unexplained"} and column in {
+        "unexplained_change",
+        "review_status",
+        "review_note",
+    }:
+        return ("pc-fill-review-needed",)
+    return ()
 
 
 def _write_performance_comparison_html_report(
@@ -325,16 +379,22 @@ def _write_performance_comparison_html_report(
     """
     report_path = Path(output_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report = _performance_comparison_html_report(
-        findings,
-        title=title,
-        comparison_path=comparison_path,
-        comparison_level=comparison_level,
-        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-        _sheets=_sheets,
-        _reconstruction_cache=_reconstruction_cache,
+    sheets = _sheets or (
+        _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+            findings,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            _reconstruction_cache=_reconstruction_cache,
+        )
     )
-    report_path.write_text(report, encoding=util.ENCODING)
+    with report_path.open("w", encoding=util.ENCODING) as report_file:
+        first_part = True
+        for part in _html_document_parts(title, sheets):
+            if not first_part:
+                report_file.write("\n")
+            first_part = False
+            report_file.write(part)
     return report_path
 
 
@@ -345,12 +405,17 @@ def write_performance_comparison_report_bundle(
     title: str = "Performance Auditing Report",
     top_evidence_limit: int = 10,
     include_workbook: bool = False,
+    include_html_output: bool = True,
     require_complete_yaml_setup: bool = True,
     require_causal_attribution: bool = False,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    expand_all_supporting_files: bool = True,
     _x_ref_issues: pl.DataFrame | None = None,
+    _reconstruction_cache: (
+        _pc_workbook_tables.WorkbookReconstructionCache | None
+    ) = None,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
 
@@ -362,6 +427,8 @@ def write_performance_comparison_report_bundle(
         top_evidence_limit: Maximum number of top-evidence rows to include per
             portfolio period in ``top_evidence.csv``.
         include_workbook: Whether to include an XLSX review workbook.
+        include_html_output: Whether to include the browser HTML review report.
+            Defaults to true for public API compatibility.
         require_complete_yaml_setup: Whether every changed source-data field
             that ppar knows how to classify must have explicit additive,
             evidence-only, or suppression YAML before bundle artifacts are
@@ -378,10 +445,20 @@ def write_performance_comparison_report_bundle(
             ``Reconstruction Summary``, ``Return Reconstruction Checks``, and
             ``Security Return Checks`` workbook/report sections plus matching
             CSV artifacts.
+        expand_all_supporting_files: Whether to retain every supporting CSV and
+            JSON file in ``supporting_files``. When false, source detail is
+            promoted and the complete validated directory is stored in
+            ``audit_support.zip``. The public Python API retains its expanded
+            default for compatibility; user-facing commands default to compact
+            output.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
+
+    Raises:
+        PpaError: If report validation fails.
     """
+    csv_only_output = not include_workbook and not include_html_output
     if include_workbook:
         _pc_workbook.ensure_openpyxl_installed()
 
@@ -397,15 +474,9 @@ def write_performance_comparison_report_bundle(
     if require_causal_attribution:
         _pc_runner.validate_causal_attribution_ready(active_findings)
 
-    bundle_directory = Path(output_directory)
-    bundle_directory.mkdir(parents=True, exist_ok=True)
-    _remove_obsolete_report_files(bundle_directory)
-    supporting_files_directory = (
-        bundle_directory / _pc_bundle.SUPPORTING_FILES_DIRECTORY
-    )
-    supporting_files_directory.mkdir(parents=True, exist_ok=True)
-    reconstruction_cache = _pc_workbook_tables._WorkbookReconstructionCache(
-        comparison_path
+    reconstruction_cache = (
+        _reconstruction_cache
+        or _pc_workbook_tables.WorkbookReconstructionCache(comparison_path)
     )
     table_cache = _pc_workbook_tables._WorkbookTableCache(active_findings)
     workbook_sheets = (
@@ -417,7 +488,12 @@ def write_performance_comparison_report_bundle(
             _reconstruction_cache=reconstruction_cache,
             _table_cache=table_cache,
             _x_ref_issues=_x_ref_issues,
+            _finding_audit_trail=finding_audit_trail,
         )
+    )
+    _pc_output_policy.assert_review_output_row_limit(
+        workbook_sheets,
+        comparison_level=comparison_level,
     )
     tables = _report_bundle_tables(
         active_findings,
@@ -434,9 +510,23 @@ def write_performance_comparison_report_bundle(
         if sheet.artifact_name
         == _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT
     )
-    tables[_pc_review_model.CAUSE_LINEAGE_ARTIFACT] = cause_sheet.table
+    tables[_pc_review_model.CAUSE_LINEAGE_ARTIFACT] = _cause_lineage_export_table(
+        cause_sheet.table
+    )
     for sheet in workbook_sheets:
         tables[sheet.artifact_name] = sheet.table
+
+    bundle_directory = Path(output_directory)
+    bundle_directory.mkdir(parents=True, exist_ok=True)
+    _remove_obsolete_report_files(bundle_directory)
+    (bundle_directory / _pc_bundle.AUDIT_SUPPORT_ARCHIVE).unlink(missing_ok=True)
+    (bundle_directory / _pc_bundle.PROMOTED_SOURCE_DETAIL).unlink(missing_ok=True)
+    supporting_files_directory = (
+        bundle_directory / _pc_bundle.SUPPORTING_FILES_DIRECTORY
+    )
+    if supporting_files_directory.exists():
+        shutil.rmtree(supporting_files_directory)
+    supporting_files_directory.mkdir(parents=True, exist_ok=True)
     _remove_legacy_root_supporting_files(
         bundle_directory,
         table_names=tuple(tables.keys()),
@@ -447,17 +537,17 @@ def write_performance_comparison_report_bundle(
     review_workbook_file_name = _pc_review_model.review_workbook_file_name(
         comparison_level
     )
-    html_report_path = _write_performance_comparison_html_report(
-        findings,
-        bundle_directory / html_report_file_name,
-        title=title,
-        comparison_path=comparison_path,
-        comparison_level=comparison_level,
-        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-        _sheets=workbook_sheets,
-        _reconstruction_cache=reconstruction_cache,
-    )
-    paths["html_report"] = html_report_path
+    if include_html_output:
+        paths["html_report"] = _write_performance_comparison_html_report(
+            findings,
+            bundle_directory / html_report_file_name,
+            title=title,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            _sheets=workbook_sheets,
+            _reconstruction_cache=reconstruction_cache,
+        )
     paths["findings"] = _pc_bundle.write_csv_artifact(
         finding_audit_trail,
         supporting_files_directory / "findings.csv",
@@ -467,6 +557,14 @@ def write_performance_comparison_report_bundle(
             table,
             supporting_files_directory / f"{name}.csv",
         )
+    if csv_only_output:
+        for artifact_name in (
+            *_pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS,
+            "source_detail",
+        ):
+            promoted_path = bundle_directory / f"{artifact_name}.csv"
+            shutil.copy2(paths[artifact_name], promoted_path)
+            paths[artifact_name] = promoted_path
     if include_workbook:
         paths[_REVIEW_WORKBOOK_ARTIFACT] = _pc_workbook.write_review_workbook_sheets(
             workbook_sheets or (),
@@ -478,7 +576,9 @@ def write_performance_comparison_report_bundle(
         title=title,
         tables=tables,
         include_workbook=include_workbook,
+        include_html_output=include_html_output,
         comparison_level=comparison_level,
+        expand_all_supporting_files=expand_all_supporting_files,
     )
     manifest_path = supporting_files_directory / "manifest.json"
     paths["manifest"] = manifest_path
@@ -489,11 +589,15 @@ def write_performance_comparison_report_bundle(
         active_findings=active_findings,
         title=title,
         top_evidence_limit=top_evidence_limit,
+        include_workbook=include_workbook,
+        include_html_output=include_html_output,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        expand_all_supporting_files=expand_all_supporting_files,
         comparison_path=comparison_path,
         artifact_paths=paths,
         tables=tables,
         review_sheets=workbook_sheets,
+        finding_audit_trail=finding_audit_trail,
         bundle_root=bundle_directory,
     )
     manifest_data = json.loads(manifest_path.read_text(encoding=util.ENCODING))
@@ -502,13 +606,57 @@ def write_performance_comparison_report_bundle(
         paths["review_summary"],
         manifest=manifest,
     )
-    validation_issues = _pc_bundle.report_bundle_validation_issues(bundle_directory)
+    validation_issues = _pc_bundle.report_bundle_validation_issues(
+        bundle_directory,
+        include_output_parity=False,
+    )
     if validation_issues:
         raise PpaError(
             "Report bundle validation failed: " + "; ".join(validation_issues),
             None,
         )
+    if not expand_all_supporting_files:
+        promoted_file_names = (
+            (
+                *(f"{name}.csv" for name in _pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS),
+                _pc_bundle.PROMOTED_SOURCE_DETAIL,
+            )
+            if csv_only_output
+            else (_pc_bundle.PROMOTED_SOURCE_DETAIL,)
+        )
+        compact_paths = _pc_bundle.compact_supporting_files(
+            bundle_directory,
+            promoted_file_names=promoted_file_names,
+        )
+        paths = {
+            name: path
+            for name, path in paths.items()
+            if path.parent == bundle_directory
+        }
+        paths.update(compact_paths)
     return paths
+
+
+def _cause_lineage_export_table(causes: pl.DataFrame) -> pl.DataFrame:
+    """Return a compact, traceable projection of internal cause lineage."""
+    columns = (
+        pc_cols.PORTFOLIO_ID,
+        pc_cols.FROM_DATE,
+        pc_cols.THRU_DATE,
+        "as_of_date",
+        pc_cols.SECURITY_ID,
+        _pc_findings.DATASET,
+        _pc_findings.SOURCE_COLUMN,
+        _pc_findings.FINDING_CODE,
+        _pc_findings.SOURCE_RECORD_LOCATOR,
+        "estimated_impact",
+        _pc_lineage.SOURCE_LINEAGE_TYPE,
+        _pc_lineage.SOURCE_FINDING_FINGERPRINTS,
+        _pc_conservation.SAFETY_DISPOSITION,
+        _pc_conservation.ECONOMIC_EFFECT_ID,
+        _pc_conservation.COUNTED_CAUSE_OWNER,
+    )
+    return causes.select([column for column in columns if column in causes.columns])
 
 
 def _remove_legacy_root_supporting_files(
@@ -561,14 +709,20 @@ def _report_bundle_tables(
     reconstruction_cache = _reconstruction_cache or (
         _pc_workbook_tables._WorkbookReconstructionCache(comparison_path)
     )
-    portfolio_period_summary = _pc_explain.portfolio_period_summary(active_findings)
     table_cache = _table_cache or _pc_workbook_tables._WorkbookTableCache(
         active_findings
     )
+    portfolio_period_summary = table_cache.portfolio_period_summary()
+    cause_summary = table_cache.cause_summary(PORTFOLIO_COMPARISON_LEVEL)
     impact_coverage = table_cache.primary_coverage(PORTFOLIO_COMPARISON_LEVEL)
-    residual_status = _residual_status_table(active_findings)
     transaction_cross_checks = (
         _pc_explain.portfolio_period_transaction_cross_checks(active_findings)
+    )
+    residual_status = _residual_status_table(
+        active_findings,
+        periods=portfolio_period_summary,
+        causes=cause_summary,
+        cross_checks=transaction_cross_checks,
     )
     context_evidence = _context_evidence_table(active_findings)
     tables = {
@@ -581,10 +735,16 @@ def _report_bundle_tables(
             context=context_evidence,
         ),
         "portfolio_period_summary": portfolio_period_summary,
-        "cause_summary": table_cache.cause_summary(PORTFOLIO_COMPARISON_LEVEL),
-        "impact_estimates": _impact_estimate_summary_table(active_findings),
+        "cause_summary": cause_summary,
+        "impact_estimates": _impact_estimate_summary_table(
+            active_findings,
+            cause_summary=cause_summary,
+        ),
         "impact_coverage": impact_coverage,
-        "context_evidence_summary": _context_evidence_summary_table(active_findings),
+        "context_evidence_summary": _context_evidence_summary_table(
+            active_findings,
+            context_evidence=context_evidence,
+        ),
         "context_evidence": context_evidence,
         "source_detail": _pc_workbook_tables._workbook_raw_audit_trail_table(
             active_findings,
@@ -712,7 +872,7 @@ def _needs_review_summary_table(
         )
         for period in periods.iter_rows(named=True)
     ]
-    return pl.DataFrame(rows).select(_NEEDS_REVIEW_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(_NEEDS_REVIEW_COLUMNS)
 
 
 def _empty_needs_review_summary() -> pl.DataFrame:
@@ -951,24 +1111,19 @@ def _is_residual_withheld_status(value: object) -> bool:
     return isinstance(value, str) and value.startswith(_RESIDUAL_WITHHELD_PREFIX)
 
 
-def _period_cause_rows(
-    causes: pl.DataFrame,
-    period: dict[str, object],
-) -> list[dict[str, object]]:
-    """Return cause-summary rows matching one portfolio period."""
-    if causes.is_empty():
-        return []
-    period_causes = causes.filter(
-        (pl.col(_pc_findings.PORTFOLIO_ID) == period[_pc_findings.PORTFOLIO_ID])
-        & (pl.col(_pc_findings.FROM_DATE) == period[_pc_findings.FROM_DATE])
-        & (pl.col(_pc_findings.THRU_DATE) == period[_pc_findings.THRU_DATE])
-    )
-    return list(period_causes.iter_rows(named=True))
-
-
-def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
+def _residual_status_table(
+    findings: pl.DataFrame,
+    *,
+    periods: pl.DataFrame | None = None,
+    causes: pl.DataFrame | None = None,
+    cross_checks: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     """Return residual-status rows for portfolio-period return changes."""
-    periods = _pc_explain.portfolio_period_summary(findings)
+    periods = (
+        _pc_explain.portfolio_period_summary(findings)
+        if periods is None
+        else periods
+    )
     if periods.is_empty():
         return pl.DataFrame(
             schema={
@@ -983,14 +1138,23 @@ def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
             }
         )
 
-    causes = _pc_explain.portfolio_period_cause_summary(findings)
-    cross_checks = _pc_explain.portfolio_period_transaction_cross_checks(findings)
+    causes = (
+        _pc_explain.portfolio_period_cause_summary(findings)
+        if causes is None
+        else causes
+    )
+    cross_checks = (
+        _pc_explain.portfolio_period_transaction_cross_checks(findings)
+        if cross_checks is None
+        else cross_checks
+    )
+    causes_by_period = _period_rows_by_key(causes)
     cross_checks_by_period = _period_rows_by_key(cross_checks)
     return pl.DataFrame(
         [
             _residual_status_row(
                 period,
-                _period_cause_rows(causes, period),
+                causes_by_period.get(_period_key(period), []),
                 cross_checks_by_period.get(_period_key(period), []),
             )
             for period in periods.iter_rows(named=True)
@@ -1055,9 +1219,17 @@ def _residual_review_note(status: str) -> str:
     return "Residual status requires review before drawing conclusions."
 
 
-def _context_evidence_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
+def _context_evidence_summary_table(
+    findings: pl.DataFrame,
+    *,
+    context_evidence: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     """Return grouped context evidence counts and affected identifiers."""
-    context_evidence = _context_evidence_table(findings)
+    context_evidence = (
+        _context_evidence_table(findings)
+        if context_evidence is None
+        else context_evidence
+    )
     if context_evidence.is_empty():
         return _empty_context_evidence_summary_table()
 
@@ -1075,7 +1247,7 @@ def _context_evidence_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
         for key, rows_for_key in sorted(grouped_rows.items(), key=_context_summary_key)
     ]
     return (
-        pl.DataFrame(rows)
+        pl.DataFrame(rows, infer_schema_length=None)
         .with_columns(
             pl.col(_REVIEW_PRIORITY)
             .replace_strict({"high": 0, "medium": 1, "low": 2}, default=3)
@@ -1202,7 +1374,7 @@ def _context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
         for row in context_findings.iter_rows(named=True)
     ]
     return (
-        pl.DataFrame(rows)
+        pl.DataFrame(rows, infer_schema_length=None)
         .with_columns(
             pl.col(_REVIEW_PRIORITY)
             .replace_strict({"high": 0, "medium": 1, "low": 2}, default=3)
@@ -1293,9 +1465,17 @@ def _context_use(finding: Mapping[str, object]) -> str:
     return "review context"
 
 
-def _impact_estimate_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
+def _impact_estimate_summary_table(
+    findings: pl.DataFrame,
+    *,
+    cause_summary: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     """Return currently quantified cause-summary rows."""
-    summary = _pc_explain.portfolio_period_cause_summary(findings)
+    summary = (
+        _pc_explain.portfolio_period_cause_summary(findings)
+        if cause_summary is None
+        else cause_summary
+    )
     if summary.is_empty():
         return summary
     return summary.filter(pl.col(_pc_explain.ESTIMATED_RETURN_IMPACT).is_not_null())

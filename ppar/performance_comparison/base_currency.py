@@ -10,6 +10,10 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 import ppar.utilities as util
 
+_NORMALIZED_PORTFOLIO_ID = "_ppar_normalized_portfolio_id"
+_NORMALIZED_ROW_CURRENCY = "_ppar_normalized_row_currency"
+_AUTHORITATIVE_BASE_CURRENCY = "_ppar_authoritative_base_currency"
+
 
 def with_authoritative_base_currency(
     frame: pl.DataFrame,
@@ -55,27 +59,53 @@ def with_authoritative_base_currency(
     if not base_currency_by_portfolio:
         return frame
 
-    rows: list[dict[str, object]] = []
-    conflicts: list[str] = []
-    for row in frame.iter_rows(named=True):
-        updated_row = dict(row)
-        portfolio_id = _normalized_text(row.get(pc_cols.PORTFOLIO_ID))
-        authoritative_currency = base_currency_by_portfolio.get(portfolio_id)
-        if authoritative_currency is None:
-            rows.append(updated_row)
-            continue
-
-        row_currency = _normalized_currency(row.get(pc_cols.BASE_CURRENCY))
-        if row_currency is not None and row_currency != authoritative_currency:
-            conflicts.append(
-                f"portfolio_id={portfolio_id}, row={row_currency}, "
+    authoritative_currencies = pl.DataFrame(
+        {
+            _NORMALIZED_PORTFOLIO_ID: list(base_currency_by_portfolio),
+            _AUTHORITATIVE_BASE_CURRENCY: list(
+                base_currency_by_portfolio.values()
+            ),
+        }
+    )
+    row_currency = (
+        _normalized_currency_expression(pc_cols.BASE_CURRENCY)
+        if pc_cols.BASE_CURRENCY in frame.columns
+        else pl.lit(None, dtype=pl.String)
+    )
+    joined = (
+        frame.with_columns(
+            _normalized_text_expression(pc_cols.PORTFOLIO_ID).alias(
+                _NORMALIZED_PORTFOLIO_ID
+            ),
+            row_currency.alias(_NORMALIZED_ROW_CURRENCY),
+        )
+        .join(
+            authoritative_currencies,
+            on=_NORMALIZED_PORTFOLIO_ID,
+            how="left",
+            maintain_order="left",
+        )
+    )
+    conflicts = joined.filter(
+        pl.col(_AUTHORITATIVE_BASE_CURRENCY).is_not_null()
+        & pl.col(_NORMALIZED_ROW_CURRENCY).is_not_null()
+        & (
+            pl.col(_NORMALIZED_ROW_CURRENCY)
+            != pl.col(_AUTHORITATIVE_BASE_CURRENCY)
+        )
+    ).head(5)
+    if not conflicts.is_empty():
+        samples = "; ".join(
+            (
+                f"portfolio_id={portfolio_id}, row={row_currency_value}, "
                 f"portfolio={authoritative_currency}"
             )
-        updated_row[pc_cols.BASE_CURRENCY] = authoritative_currency
-        rows.append(updated_row)
-
-    if conflicts:
-        samples = "; ".join(conflicts[:5])
+            for portfolio_id, row_currency_value, authoritative_currency in conflicts.select(
+                _NORMALIZED_PORTFOLIO_ID,
+                _NORMALIZED_ROW_CURRENCY,
+                _AUTHORITATIVE_BASE_CURRENCY,
+            ).iter_rows()
+        )
         raise PpaError(
             (
                 f"{specification_path}: {dataset_name} file {path} contains "
@@ -85,13 +115,25 @@ def with_authoritative_base_currency(
             504,
         )
 
-    if pc_cols.BASE_CURRENCY in frame.columns:
-        return pl.DataFrame(rows, schema=frame.schema)
-    if frame.is_empty():
-        return frame.with_columns(
-            pl.lit(None, dtype=pl.String).alias(pc_cols.BASE_CURRENCY)
-        )
-    return pl.DataFrame(rows).select(*frame.columns, pc_cols.BASE_CURRENCY)
+    existing_currency = (
+        pl.col(pc_cols.BASE_CURRENCY)
+        if pc_cols.BASE_CURRENCY in frame.columns
+        else pl.lit(None, dtype=pl.String)
+    )
+    updated = joined.with_columns(
+        pl.when(pl.col(_AUTHORITATIVE_BASE_CURRENCY).is_not_null())
+        .then(pl.col(_AUTHORITATIVE_BASE_CURRENCY))
+        .otherwise(existing_currency)
+        .alias(pc_cols.BASE_CURRENCY)
+    ).drop(
+        _NORMALIZED_PORTFOLIO_ID,
+        _NORMALIZED_ROW_CURRENCY,
+        _AUTHORITATIVE_BASE_CURRENCY,
+    )
+    return updated.select(
+        *frame.columns,
+        *(() if pc_cols.BASE_CURRENCY in frame.columns else (pc_cols.BASE_CURRENCY,)),
+    )
 
 
 def _base_currency_by_portfolio(
@@ -100,26 +142,29 @@ def _base_currency_by_portfolio(
     specification_path: util.PathLike,
 ) -> dict[str, str]:
     """Return one authoritative base currency per portfolio."""
-    currencies: dict[str, set[str]] = {}
-    for row in portfolio_performance.select(
-        pc_cols.PORTFOLIO_ID,
-        pc_cols.BASE_CURRENCY,
-    ).iter_rows(named=True):
-        portfolio_id = _normalized_text(row.get(pc_cols.PORTFOLIO_ID))
-        base_currency = _normalized_currency(row.get(pc_cols.BASE_CURRENCY))
-        if not portfolio_id or base_currency is None:
-            continue
-        currencies.setdefault(portfolio_id, set()).add(base_currency)
-
-    conflicts = {
-        portfolio_id: values
-        for portfolio_id, values in currencies.items()
-        if len(values) > 1
-    }
-    if conflicts:
+    normalized = portfolio_performance.select(
+        _normalized_text_expression(pc_cols.PORTFOLIO_ID).alias(
+            pc_cols.PORTFOLIO_ID
+        ),
+        _normalized_currency_expression(pc_cols.BASE_CURRENCY).alias(
+            pc_cols.BASE_CURRENCY
+        ),
+    ).filter(
+        (pl.col(pc_cols.PORTFOLIO_ID) != "")
+        & pl.col(pc_cols.BASE_CURRENCY).is_not_null()
+    )
+    if normalized.is_empty():
+        return {}
+    currencies = normalized.group_by(pc_cols.PORTFOLIO_ID).agg(
+        pl.col(pc_cols.BASE_CURRENCY).unique().sort()
+    )
+    conflicts = currencies.filter(
+        pl.col(pc_cols.BASE_CURRENCY).list.len() > 1
+    ).sort(pc_cols.PORTFOLIO_ID)
+    if not conflicts.is_empty():
         samples = "; ".join(
-            f"portfolio_id={portfolio_id}, currencies={','.join(sorted(values))}"
-            for portfolio_id, values in sorted(conflicts.items())[:5]
+            f"portfolio_id={portfolio_id}, currencies={','.join(values)}"
+            for portfolio_id, values in conflicts.head(5).iter_rows()
         )
         raise PpaError(
             (
@@ -128,10 +173,26 @@ def _base_currency_by_portfolio(
             ),
             504,
         )
-    return {
-        portfolio_id: next(iter(values))
-        for portfolio_id, values in currencies.items()
-    }
+    return dict(
+        currencies.select(
+            pc_cols.PORTFOLIO_ID,
+            pl.col(pc_cols.BASE_CURRENCY).list.first(),
+        ).iter_rows()
+    )
+
+
+def _normalized_currency_expression(column: str) -> pl.Expr:
+    """Return an expression for normalized optional currency text."""
+    return (
+        _normalized_text_expression(column)
+        .str.to_uppercase()
+        .replace("", None)
+    )
+
+
+def _normalized_text_expression(column: str) -> pl.Expr:
+    """Return an expression matching normalized Python text conversion."""
+    return pl.col(column).cast(pl.String, strict=False).fill_null("").str.strip_chars()
 
 
 def _normalized_currency(value: object) -> str | None:

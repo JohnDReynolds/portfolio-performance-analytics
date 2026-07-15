@@ -46,7 +46,7 @@ operational demo derivation scripts. Refresh helpers live under
 not packaged demo inputs.
 
 When regenerating this dataset, follow
-[`docs/analytics_demo_refresh.md`](../../../docs/analytics_demo_refresh.md).
+[`docs/analytics_demo_refresh.md`](../../docs/analytics_demo_refresh.md).
 That guide covers candidate data generation, validation, promotion into this
 directory, README story updates, image regeneration with
 `scripts/render_readme_images.py`, and final test verification.

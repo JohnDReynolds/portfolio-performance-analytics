@@ -1,7 +1,7 @@
 """Tests for performance comparison command-line modules."""
 
 # Python imports
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 import io
 import json
 import os
@@ -11,10 +11,15 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+import zipfile
 
 # Third-party imports
 from openpyxl import load_workbook
 import yaml
+
+from ppar.errors import PpaError
+from ppar.performance_comparison.cli import site_report as _site_report
 
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
@@ -45,6 +50,28 @@ _DEMO_QUIET_PHRASES = (
 
 class TestPerformanceComparisonCli(unittest.TestCase):
     """Verify command-line report generation and validation commands."""
+
+    def test_site_audit_returns_nonzero_for_output_row_limit(self) -> None:
+        """The Audit CLI surfaces an oversized-report failure without success output."""
+        stderr = io.StringIO()
+        with mock.patch.object(
+            _site_report,
+            "run_report",
+            side_effect=PpaError(
+                "Audit output row limit exceeded. "
+                "No files were written for the oversized report.",
+                None,
+            ),
+        ):
+            with redirect_stderr(stderr):
+                exit_code = _site_report.main(["."], prog="ppar audit")
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Report failed: Audit output row limit exceeded", stderr.getvalue())
+        self.assertIn(
+            "No files were written for the oversized report",
+            stderr.getvalue(),
+        )
 
     def test_report_cli_modules_expose_help(self) -> None:
         """Report CLI modules expose consistent command-line help."""
@@ -627,7 +654,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "--title",
                 "Custom Audit",
                 "--exclude_suppressed",
-                "--no-xlsx",
+                "--no-xlsx-output",
                 "--include-reconstruction-diagnostics",
             ]
             subprocess.run(
@@ -676,6 +703,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     encoding="utf-8"
                 ),
             )
+            self.assertFalse(
+                (cli_advanced / "portfolio" / "portfolio_audit.xlsx").exists()
+            )
 
             audit_help = subprocess.run(
                 [sys.executable, str(script_audit / "run_audit.py"), "--help"],
@@ -687,7 +717,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "--report",
                 "--output",
                 "--title",
-                "--no-xlsx",
+                "--no-xlsx-output",
+                "--no-html-output",
                 "--exclude_suppressed",
                 "--include-reconstruction-diagnostics",
                 "--require-causal-attribution",
@@ -898,9 +929,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             ).stdout
             self.assertIn("--report", audit_help)
-            self.assertIn("--no-xlsx", audit_help)
+            self.assertIn("--no-xlsx-output", audit_help)
+            self.assertIn("--no-html-output", audit_help)
             self.assertIn(
-                "Use this for faster, lighter runs when HTML and CSV output are sufficient.",
+                "Supplying both options writes a CSV-only audit.",
                 audit_help,
             )
             self.assertIn(
@@ -952,8 +984,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertIn("output/portfolio/portfolio_audit.xlsx", result.stdout)
             self.assertIn("output/security/security_audit.xlsx", result.stdout)
-            self.assertNotIn("output/portfolio/portfolio_audit.html", result.stdout)
-            self.assertNotIn("output/security/security_audit.html", result.stdout)
+            self.assertIn("output/portfolio/portfolio_audit.html", result.stdout)
+            self.assertIn("output/security/security_audit.html", result.stdout)
             self.assertTrue((comparison_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (
@@ -979,6 +1011,126 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "security_audit.xlsx"
                 ).exists()
             )
+            self.assertTrue(
+                (
+                    comparison_directory
+                    / "output"
+                    / "security"
+                    / "security_audit.html"
+                ).exists()
+            )
+
+    def test_site_report_can_disable_html_output(self) -> None:
+        """The production report command can write an XLSX-only audit."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            comparison_directory = site_directory / "audit"
+
+            subprocess.run(
+                _module_command(
+                    _SITE_REPORT_MODULE,
+                    str(comparison_directory),
+                    "--report",
+                    "portfolio",
+                    "--no-html-output",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            output_directory = comparison_directory / "output" / "portfolio"
+            self.assertTrue((output_directory / "portfolio_audit.xlsx").exists())
+            self.assertFalse((output_directory / "portfolio_audit.html").exists())
+
+    def test_site_report_can_write_csv_only_output(self) -> None:
+        """Disabling XLSX and HTML promotes the canonical CSV review files."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            comparison_directory = site_directory / "audit"
+
+            result = subprocess.run(
+                _module_command(
+                    _SITE_REPORT_MODULE,
+                    str(comparison_directory),
+                    "--report",
+                    "portfolio",
+                    "--no-xlsx-output",
+                    "--no-html-output",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            output_directory = comparison_directory / "output" / "portfolio"
+            self.assertFalse((output_directory / "portfolio_audit.xlsx").exists())
+            self.assertFalse((output_directory / "portfolio_audit.html").exists())
+            for file_name in (
+                "performance_differences.csv",
+                "performance_difference_causes.csv",
+                "x_ref_issues.csv",
+                "source_detail.csv",
+            ):
+                with self.subTest(file_name=file_name):
+                    self.assertTrue((output_directory / file_name).is_file())
+            self.assertTrue((output_directory / "audit_support.zip").is_file())
+            self.assertIn("performance_differences.csv", result.stdout)
+            self.assertIn("performance_difference_causes.csv", result.stdout)
+            self.assertIn("x_ref_issues.csv", result.stdout)
+            self.assertNotIn("source_detail.csv", result.stdout)
+
+    def test_site_report_shares_reconstruction_cache_between_views(self) -> None:
+        """One Audit run reuses reconstruction inputs for both report levels."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            (site_directory / "ppar.yaml").touch()
+            comparison_views = mock.Mock()
+            comparison_views.findings.side_effect = [
+                mock.sentinel.portfolio_findings,
+                mock.sentinel.security_findings,
+            ]
+            with (
+                mock.patch.object(
+                    _site_report,
+                    "AuditComparisonViews",
+                    return_value=comparison_views,
+                ),
+                mock.patch.object(
+                    _site_report._pc_x_ref,
+                    "x_ref_issues_table",
+                    return_value=mock.sentinel.x_ref_issues,
+                ),
+                mock.patch.object(
+                    _site_report,
+                    "_write_report_bundle",
+                    side_effect=(
+                        [site_directory / "portfolio_audit.xlsx"],
+                        [site_directory / "security_audit.xlsx"],
+                    ),
+                ) as write_report_bundle,
+            ):
+                _site_report.run_report(site_directory)
+
+        portfolio_cache = write_report_bundle.call_args_list[0].kwargs[
+            "_reconstruction_cache"
+        ]
+        security_cache = write_report_bundle.call_args_list[1].kwargs[
+            "_reconstruction_cache"
+        ]
+        self.assertIs(portfolio_cache, security_cache)
 
     def test_portfolio_reports_skip_unavailable_security_performance(self) -> None:
         """Portfolio reports run without secperf; default output skips security."""
@@ -1036,6 +1188,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "portfolio_audit.xlsx"
                 ).exists()
             )
+            self.assertTrue(
+                (
+                    comparison_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.html"
+                ).exists()
+            )
             self.assertIn(
                 "output/portfolio/portfolio_audit.xlsx",
                 default_result.stdout,
@@ -1076,7 +1236,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 result.stdout,
             )
             self.assertIn("output/security/security_audit.xlsx", result.stdout)
-            self.assertNotIn("output/security/security_audit.html", result.stdout)
+            self.assertIn("output/security/security_audit.html", result.stdout)
             self.assertTrue(
                 (
                     comparison_directory
@@ -1315,7 +1475,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertIn("must be greater than or equal to 0", result.stderr)
 
     def test_bundle_cli_module_writes_report_bundle(self) -> None:
-        """The bundle CLI module writes HTML, CSV, and manifest artifacts."""
+        """The bundle CLI writes concise output with complete archived support."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -1339,12 +1499,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue((output_directory / "portfolio_audit.html").exists())
             self.assertFalse((output_directory / "report.md").exists())
             supporting_files = output_directory / "supporting_files"
-            self.assertTrue((supporting_files / "findings.csv").exists())
-            self.assertTrue((supporting_files / "context_evidence_summary.csv").exists())
-            self.assertTrue((supporting_files / "context_evidence.csv").exists())
-            self.assertTrue((supporting_files / "impact_coverage.csv").exists())
-            self.assertTrue((supporting_files / "manifest.json").exists())
-            self.assertTrue((supporting_files / "review_summary.json").exists())
+            self.assertFalse(supporting_files.exists())
+            self.assertTrue((output_directory / "source_detail.csv").exists())
+            archive_path = output_directory / "audit_support.zip"
+            self.assertTrue(archive_path.exists())
             report = (output_directory / "portfolio_audit.html").read_text(
                 encoding="utf-8"
             )
@@ -1352,9 +1510,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("Performance Differences", report)
             self.assertIn("Performance Difference Causes", report)
 
-            manifest = json.loads(
-                (supporting_files / "manifest.json").read_text(encoding="utf-8")
-            )
+            with zipfile.ZipFile(archive_path) as archive:
+                self.assertIn("supporting_files/findings.csv", archive.namelist())
+                manifest = json.loads(
+                    archive.read("supporting_files/manifest.json").decode("utf-8")
+                )
             self.assertEqual(manifest["counts"]["findings"], 13)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
@@ -1385,6 +1545,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     "--comparison-level",
                     "security",
                     "--include-workbook",
+                    "--expand-all-supporting-files",
                 ),
                 check=True,
                 capture_output=True,
@@ -1674,6 +1835,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 str(_RESTATEMENT_COMPARISON_PATH),
                 str(output_directory),
                 "--allow-incomplete-yaml",
+                "--expand-all-supporting-files",
             ),
             check=True,
             capture_output=True,

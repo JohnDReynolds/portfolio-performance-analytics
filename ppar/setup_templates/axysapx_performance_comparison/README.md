@@ -51,14 +51,14 @@ relationships.
 ## Details
 
 The packaged CSV files follow the
-[Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
+[Performance Comparison Demo Source Contract](../../../docs/performance_comparison_demo_source_contract.md).
 They are normalized demo extracts, not official Axys/APX native schemas.
 The audit YAML comments and extract-availability contract use three practical
 extraction labels: **Required**, **Required only when applicable**, and
 **Optional**. Required is intentionally narrow: data needed to make Fully
 Explained possible. For field-by-field requirements and IMEX/REP availability
 confidence, see
-[PPAR Axys/APX Extract Requirements and Source Guidance](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
+[PPAR Axys/APX Extract Requirements and Source Guidance](../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
 The demo includes normalized USD-base multi-currency examples: `SAP.DE` and
 `CASHEUR` in EUR, `SHEL.L` and `CASHGBP` in GBP, and `CASHUSD` in USD. Local
@@ -90,8 +90,8 @@ Output:
 
 - `my_ppar_data/audit/output/portfolio/portfolio_audit.xlsx`
 - `my_ppar_data/audit/output/portfolio/portfolio_audit.html`
-- `my_ppar_data/audit/output/portfolio/supporting_files/manifest.json`
-- `my_ppar_data/audit/output/portfolio/supporting_files/*.csv`
+- `my_ppar_data/audit/output/portfolio/source_detail.csv`
+- `my_ppar_data/audit/output/portfolio/audit_support.zip`
 
 Run only the security workbook:
 
@@ -103,21 +103,30 @@ Output:
 
 - `my_ppar_data/audit/output/security/security_audit.xlsx`
 - `my_ppar_data/audit/output/security/security_audit.html`
-- `my_ppar_data/audit/output/security/supporting_files/manifest.json`
-- `my_ppar_data/audit/output/security/supporting_files/*.csv`
+- `my_ppar_data/audit/output/security/source_detail.csv`
+- `my_ppar_data/audit/output/security/audit_support.zip`
 
-For a large site where HTML and CSV are sufficient, skip Excel creation:
+Generate HTML without XLSX:
 
 ```bash
-ppar audit ./my_ppar_data/audit --no-xlsx
+ppar audit ./my_ppar_data/audit --no-xlsx-output
 ```
 
-This retains the level-specific HTML audit and every supporting file while
-omitting the XLSX audit.
+Generate XLSX without HTML with `--no-html-output`. Supplying both options
+creates a CSV-only audit with `performance_differences.csv`,
+`performance_difference_causes.csv`, `x_ref_issues.csv`, and
+`source_detail.csv` promoted to each report directory.
 
-Open `portfolio_audit.xlsx` or `security_audit.xlsx` for review. Use the matching
-HTML audit for browser review, and keep
-the CSV artifacts for supporting detail and traceability. The
+Use `--expand-all-supporting-files` to expand every supporting CSV and JSON file
+when needed:
+
+```bash
+ppar audit ./my_ppar_data/audit --expand-all-supporting-files
+```
+
+Open `portfolio_audit.xlsx` or `security_audit.xlsx` for review, use the matching
+HTML audit for browser review, and keep the CSV artifacts for
+supporting detail and traceability. The
 report is designed for review, not for raw data export. It separates performance
 differences from identifiable input differences and other evidence:
 
@@ -143,15 +152,16 @@ differences from identifiable input differences and other evidence:
 - Optional reconstruction diagnostics can add `Reconstruction Summary`,
   `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
-- Review-only supporting rows remain in `supporting_files/source_detail.csv`. Transaction
+- Review-only supporting rows remain in `source_detail.csv`. Transaction
   quantity, price, and commission rows may also appear on
   `Performance Difference Causes` when they support a changed
   `transactions.amount`.
-- `supporting_files/source_detail.csv`: reviewer-friendly finding rows used to build the reports.
+- `source_detail.csv`: reviewer-friendly finding rows used to build the reports.
   Transaction match status appears here for audit and troubleshooting; the
   separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
   support rather than a main review sheet.
-- `supporting_files/cause_lineage.csv`: machine-readable trace from every
+- `audit_support.zip` contains `supporting_files/cause_lineage.csv`, the
+  machine-readable trace from every
   report cause back to its source finding fingerprint. This is primarily for
   integration and invariant validation, not normal reviewer workflow.
 
@@ -326,9 +336,9 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.base_market_value`, `holdings.accrued`, `holdings.base_accrued`, `transactions.amount`, `transactions.base_amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. An unqualified detailed value is counted only when its row currency equals base currency; otherwise its explicit `base_` counterpart is counted. |
-| `input_component` | `holdings.quantity`, `holdings.price`, `fx_rates.fx_rate`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `supporting_files/source_detail.csv` as support for the related performance input. |
+| `input_component` | `holdings.quantity`, `holdings.price`, `fx_rates.fx_rate`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `source_detail.csv` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Compared and kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | explicitly classified fields such as holding cost | Kept in `supporting_files/source_detail.csv` as review context. |
+| `context` | explicitly classified fields such as holding cost | Kept in `source_detail.csv` as review context. |
 
 An unknown compared field does not silently become context. PPAR stops until
 the field receives an explicit accounting role, and a YAML suppression cannot

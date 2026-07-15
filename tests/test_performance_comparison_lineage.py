@@ -98,6 +98,37 @@ class TestPerformanceComparisonLineage(unittest.TestCase):
         with self.assertRaisesRegex(PpaError, "SN-05 bidirectional-lineage"):
             lineage.cause_lineage_table(stripped, findings)
 
+    def test_source_cause_links_every_duplicate_finding_fingerprint(self) -> None:
+        """Repeated findings remain visible as sorted unique lineage identities."""
+        locator = "source:holdings:duplicate"
+        findings = pl.DataFrame(
+            {
+                pc_findings.FINDING_CODE: ["PC-HOLD-MV", "PC-HOLD-MV"],
+                pc_findings.DATASET: [pc_cols.HOLDINGS, pc_cols.HOLDINGS],
+                pc_findings.SOURCE_RECORD_LOCATOR: [locator, locator],
+            }
+        )
+        audit_trail = conservation.finding_audit_trail(findings)
+        causes = pl.DataFrame(
+            {
+                pc_findings.FINDING_CODE: ["PC-HOLD-MV"],
+                pc_findings.DATASET: [pc_cols.HOLDINGS],
+                pc_findings.SOURCE_COLUMN: [pc_cols.MARKET_VALUE],
+                pc_findings.SOURCE_RECORD_LOCATOR: [locator],
+            }
+        )
+
+        result = lineage.cause_lineage_table(
+            causes,
+            findings,
+            finding_audit_trail=audit_trail,
+        )
+
+        expected = "|".join(
+            sorted(audit_trail[conservation.FINDING_FINGERPRINT].to_list())
+        )
+        self.assertEqual(result[lineage.SOURCE_FINDING_FINGERPRINTS][0], expected)
+
     def test_persisted_cross_artifact_lineage_rejects_unknown_fingerprint(self) -> None:
         """Bundle lineage cannot reference a fingerprint absent from findings."""
         findings = compare_snapshots(_COMPARISON_PATH)

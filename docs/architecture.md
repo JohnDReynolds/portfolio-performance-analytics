@@ -62,6 +62,21 @@ snapshot_a CSVs + snapshot_b CSVs
   -> portfolio_audit.* or security_audit.*
 ```
 
+When one `ppar audit` run requests both report levels, holdings, FX rates,
+splits, and transactions are compared once as canonical shared-source
+findings. Portfolio performance and security performance remain separate
+calculations, and each report view applies its own transaction-impact policy
+and suppression rules to the shared findings. Return-reconstruction inputs are
+also cached across both report builds. A single-level run uses the same path
+without calculating the unused primary performance level.
+
+Within each report view, the workbook, HTML, and supporting CSV layers reuse
+one set of portfolio-period summaries, contribution candidates, Modified Dietz
+formula rows, and context-evidence tables. The explanation, lineage,
+conservation, and displayed-value reconciliation assertions run against those
+same cached tables; caching avoids reconstruction work but does not bypass a
+production safety check.
+
 The performance-comparison engine does not try to rebuild a full accounting
 ledger. It counts configured Modified Dietz formula inputs, shows supporting
 source-data evidence, and leaves unsupported or ambiguous rows as review
@@ -113,7 +128,11 @@ is:
 
 1. `Performance Differences`
 2. `Performance Difference Causes`
-3. `supporting_files/source_detail.csv`
+3. `source_detail.csv`
+
+The complete supporting evidence is stored compactly in `audit_support.zip` by
+default. `--expand-all-supporting-files` writes the same validated artifacts as
+individual files under `supporting_files/`.
 
 Optional reconstruction diagnostics are secondary. They help debug reported
 returns, but they should not become the first review surface for ordinary users.

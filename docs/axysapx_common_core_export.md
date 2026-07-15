@@ -28,7 +28,7 @@ the exact object/profile names, fields, parameters, and date/currency basis.
 | `transactions.csv` | IMEX transaction export first; REP/custom report fallback. | Are transaction code, amount, security, and economic date present? For ambiguous codes, are source/destination and special-security fields available? |
 | `fx_rates.csv` | Validated REP, FX/price, or other controlled local source. | What is the quote convention, effective date, source, rate type, portfolio base currency, and linked local exposure? |
 | `splits.csv` | `split.inf` or an equivalent local split-factor export. | Is the factor a multiplier or inverse? Which date is represented? |
-| `sec_ref.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
+| `secref.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
 
 ## Starter Field Reference
 
@@ -70,16 +70,16 @@ remain authoritative.
 
 | PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
-| `sec-ref` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| `sec-ref` | `DESC` | `security_description` | `DESCRIPTION`, `NAME`, `SEC_DESC` | High |
-| `sec-ref` | `CUSIP` | `cusip` | `CUSIP_NO`, `CUSIP_NUMBER` | High |
-| `sec-ref` | `SYMBOL` | `ticker_symbol` | `TICKER`, `TICKER_SYMBOL` | Medium |
-| `sec-ref` | `TYPE` | `security_type` | `SEC_TYPE`, `ASSET_TYPE`, `INV_TYPE` | Medium |
-| `sec-ref` | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `LOCAL_CCY` | Medium |
-| `sec-ref` | `COUNTRY` | `country` | `CNTRY`, `ISSUE_COUNTRY` | Medium |
-| `sec-ref` | `INDUSTRY` | `industry` | `IND`, `INDUSTRY_CODE`, `SECTOR` | Medium |
-| `sec-ref` | `MATURITY` | `maturity_date` | `MAT_DATE`, `MATURITY_DATE` | Medium |
-| `sec-ref` | `COUPON` | `coupon_rate` | `CPN`, `COUPON_RATE` | Medium |
+| `secref` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
+| `secref` | `DESC` | `security_description` | `DESCRIPTION`, `NAME`, `SEC_DESC` | High |
+| `secref` | `CUSIP` | `cusip` | `CUSIP_NO`, `CUSIP_NUMBER` | High |
+| `secref` | `SYMBOL` | `ticker_symbol` | `TICKER`, `TICKER_SYMBOL` | Medium |
+| `secref` | `TYPE` | `security_type` | `SEC_TYPE`, `ASSET_TYPE`, `INV_TYPE` | Medium |
+| `secref` | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `LOCAL_CCY` | Medium |
+| `secref` | `COUNTRY` | `country` | `CNTRY`, `ISSUE_COUNTRY` | Medium |
+| `secref` | `INDUSTRY` | `industry` | `IND`, `INDUSTRY_CODE`, `SECTOR` | Medium |
+| `secref` | `MATURITY` | `maturity_date` | `MAT_DATE`, `MATURITY_DATE` | Medium |
+| `secref` | `COUPON` | `coupon_rate` | `CPN`, `COUPON_RATE` | Medium |
 
 ### Transactions
 

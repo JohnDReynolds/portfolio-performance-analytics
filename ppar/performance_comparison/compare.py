@@ -4,8 +4,9 @@ from __future__ import annotations
 
 # Python imports
 import datetime as dt
+from dataclasses import replace
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, Final, cast
 
 # Third-party imports
@@ -208,6 +209,10 @@ _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
         pc_cols.HOLDINGS,
     }
 )
+_CHANGED_VALUE_ROW_ORDER: Final[str] = "__ppar_changed_value_row_order"
+_CHANGED_VALUE_COLUMN_ORDER: Final[str] = "__ppar_changed_value_column_order"
+_CHANGED_VALUE_SOURCE_COLUMN: Final[str] = "__ppar_changed_value_source_column"
+_CHANGED_VALUE_DELTA: Final[str] = "__ppar_changed_value_delta"
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
@@ -241,6 +246,58 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.BASE_AMOUNT: "market_value",
     pc_cols.COMMISSION: "market_value",
 }
+
+
+def _material_changed_value_rows(
+    snapshot_a: pl.DataFrame,
+    snapshot_b: pl.DataFrame,
+    key_columns: tuple[str, ...],
+    shared_columns: Sequence[str],
+    column_tolerances: Mapping[str, float],
+    dataset: str,
+) -> pl.DataFrame:
+    """Return matching rows and fields whose numeric changes exceed tolerance.
+
+    The complete candidate calculation stays in Polars so large unchanged
+    inputs do not cross the Python row boundary. Row and field order columns
+    preserve the existing deterministic finding order after the lazy branches
+    are combined.
+    """
+    joined = snapshot_a.with_row_index(_CHANGED_VALUE_ROW_ORDER).join(
+        snapshot_b,
+        on=list(key_columns),
+        how="inner",
+        suffix="_b",
+    )
+    candidate_frames: list[pl.LazyFrame] = []
+    for column_order, column in enumerate(shared_columns):
+        delta = (
+            pl.col(f"{column}_b").cast(pl.Float64, strict=False)
+            - pl.col(column).cast(pl.Float64, strict=False)
+        )
+        candidates = (
+            joined.lazy()
+            .with_columns(delta.alias(_CHANGED_VALUE_DELTA))
+            .filter(
+                pl.col(_CHANGED_VALUE_DELTA).is_not_null()
+                & (pl.col(_CHANGED_VALUE_DELTA).abs() > column_tolerances[column])
+            )
+        )
+        if dataset == pc_cols.TRANSACTIONS and column == pc_cols.BASE_AMOUNT:
+            candidates = candidates.filter(
+                ~pl.col(pc_cols.CURRENCY).eq_missing(pl.col(pc_cols.BASE_CURRENCY))
+            )
+        candidate_frames.append(
+            candidates.with_columns(
+                pl.lit(column_order).alias(_CHANGED_VALUE_COLUMN_ORDER),
+                pl.lit(column).alias(_CHANGED_VALUE_SOURCE_COLUMN),
+            )
+        )
+    return (
+        pl.concat(candidate_frames)
+        .sort(_CHANGED_VALUE_ROW_ORDER, _CHANGED_VALUE_COLUMN_ORDER)
+        .collect()
+    )
 
 
 class PerformanceComparison:
@@ -310,13 +367,81 @@ class PerformanceComparison:
             Findings for the configured primary performance-result dataset plus
             shared source-data findings.
         """
+        self.validate_inputs()
+        findings = self.compare_primary_performance()
+        findings.extend(self.compare_shared_sources())
+        return self.apply_view_rules(findings)
+
+    def validate_inputs(self) -> None:
+        """Validate financial relationships for this comparison specification."""
         validate_financial_input_integrity(self._specification)
-        findings = self._primary_performance_findings()
-        findings.extend(self.compare_holdings())
+
+    def compare_primary_performance(self) -> list[Finding]:
+        """Return findings for this view's primary performance-result layer."""
+        return self._primary_performance_findings()
+
+    def compare_shared_sources(self) -> list[Finding]:
+        """Compare source datasets shared by portfolio and security views."""
+        findings = self.compare_holdings()
         findings.extend(self.compare_fx_rates())
         findings.extend(self.compare_splits())
         findings.extend(self.compare_transactions())
-        return apply_suppressions(findings, self._specification)
+        return findings
+
+    def retarget_shared_findings(
+        self,
+        findings: Sequence[Finding],
+    ) -> list[Finding]:
+        """Return shared findings with transaction policies for this view.
+
+        Shared economic changes are calculated once. Only qualifying buy/sell
+        amount findings have a comparison-level-specific policy label.
+
+        Args:
+            findings: Unsuppressed shared-source findings from another view.
+
+        Returns:
+            Findings preserving all source and financial values while applying
+            this view's transaction policy label.
+        """
+        return [self._retarget_transaction_policy(finding) for finding in findings]
+
+    def apply_view_rules(self, findings: Sequence[Finding]) -> list[Finding]:
+        """Apply this comparison view's suppression rules to finding records."""
+        return apply_suppressions(list(findings), self._specification)
+
+    def _retarget_transaction_policy(self, finding: Finding) -> Finding:
+        """Return one finding with the policy required by this comparison level."""
+        if not self._uses_level_specific_security_flow_policy(finding):
+            return finding
+        target_policy = self._level_specific_transaction_policy_label()
+        if finding.transaction_impact_policy == target_policy:
+            return finding
+        return replace(finding, transaction_impact_policy=target_policy)
+
+    @staticmethod
+    def _uses_level_specific_security_flow_policy(finding: Finding) -> bool:
+        """Return whether a transaction finding changes policy between views."""
+        foreign_local_amount_policy = (
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.amount_row_currency"
+        )
+        return bool(
+            finding.dataset == pc_cols.TRANSACTIONS
+            and finding.source_column in {pc_cols.AMOUNT, pc_cols.BASE_AMOUNT}
+            and finding.transaction_category
+            in {TRANSACTION_CATEGORY_BUY, TRANSACTION_CATEGORY_SELL}
+            and finding.performance_flow_sign
+            == TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+            and finding.transaction_impact_policy != foreign_local_amount_policy
+        )
+
+    def _level_specific_transaction_policy_label(self) -> object | None:
+        """Return the buy/sell amount policy for this comparison view."""
+        if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
+            policy = self._security_return_impact_policies.get(pc_cols.TRANSACTIONS)
+        else:
+            policy = self._transaction_impact_policies.get(_PERFORMANCE_KEY)
+        return None if policy is None else policy.finding_label
 
     def _primary_performance_findings(self) -> list[Finding]:
         """Return findings for the configured primary performance-result layer."""
@@ -411,7 +536,7 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
-        portfolio_periods = self._portfolio_periods()
+        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
         return_denominators = self._portfolio_period_return_denominators()
         key_columns = self._optional_key_columns(
             snapshot_a,
@@ -1219,14 +1344,23 @@ class PerformanceComparison:
             return []
 
         source_file = self._source_file(dataset)
-        joined = snapshot_a.join(
+        column_tolerances = {
+            column: self._tolerance(column) for column in shared_columns
+        }
+        material_changes = _material_changed_value_rows(
+            snapshot_a,
             snapshot_b,
-            on=list(key_columns),
-            how="inner",
-            suffix="_b",
+            key_columns,
+            shared_columns,
+            column_tolerances,
+            dataset,
         )
         findings: list[Finding] = []
-        for row in joined.iter_rows(named=True):
+        for row in material_changes.iter_rows(named=True):
+            column = cast(str, row.pop(_CHANGED_VALUE_SOURCE_COLUMN))
+            delta = cast(float, row.pop(_CHANGED_VALUE_DELTA))
+            row.pop(_CHANGED_VALUE_ROW_ORDER)
+            row.pop(_CHANGED_VALUE_COLUMN_ORDER)
             finding_contexts = self._changed_value_contexts(
                 row,
                 dataset,
@@ -1234,133 +1368,121 @@ class PerformanceComparison:
                 security_periods,
                 transaction_fallback_periods,
             )
-            for column in shared_columns:
-                if (
-                    dataset == pc_cols.TRANSACTIONS
-                    and column == pc_cols.BASE_AMOUNT
-                    and row.get(pc_cols.CURRENCY) == row.get(pc_cols.BASE_CURRENCY)
-                ):
-                    continue
-                snapshot_a_value = row[column]
-                snapshot_b_value = row[f"{column}_b"]
-                delta = self._numeric_delta(snapshot_a_value, snapshot_b_value)
-                if delta is None:
-                    continue
-                if abs(delta) <= self._tolerance(column):
-                    continue
-                for portfolio_id, from_date, thru_date in finding_contexts:
-                    impact_policy = self._row_impact_policy(row, dataset, column)
-                    transaction_impact_policy = self._transaction_impact_policy(
-                        row,
-                        dataset,
-                        column,
-                    )
-                    return_denominator = self._return_denominator(
-                        row,
-                        dataset,
-                        portfolio_id,
-                        from_date,
-                        thru_date,
-                        return_denominators,
-                    )
-                    findings.append(
-                        Finding(
-                            code=compare_columns[column],
-                            severity=SEVERITY_MATERIAL,
-                            confidence=CONFIDENCE_HIGH,
-                            dataset=dataset,
-                            evidence_role=self._changed_value_evidence_role(
-                                compare_columns[column],
+            snapshot_a_value = row[column]
+            snapshot_b_value = row[f"{column}_b"]
+            for portfolio_id, from_date, thru_date in finding_contexts:
+                impact_policy = self._row_impact_policy(row, dataset, column)
+                transaction_impact_policy = self._transaction_impact_policy(
+                    row,
+                    dataset,
+                    column,
+                )
+                return_denominator = self._return_denominator(
+                    row,
+                    dataset,
+                    portfolio_id,
+                    from_date,
+                    thru_date,
+                    return_denominators,
+                )
+                findings.append(
+                    Finding(
+                        code=compare_columns[column],
+                        severity=SEVERITY_MATERIAL,
+                        confidence=CONFIDENCE_HIGH,
+                        dataset=dataset,
+                        evidence_role=self._changed_value_evidence_role(
+                            compare_columns[column],
+                            dataset,
+                            column,
+                            impact_policy,
+                            transaction_impact_policy,
+                        ),
+                        portfolio_id=portfolio_id,
+                        security_id=row.get(pc_cols.SECURITY_ID),
+                        from_date=from_date,
+                        thru_date=thru_date,
+                        input_date=self._input_date(row, dataset),
+                        source_file=source_file,
+                        source_record_locator=pc_lineage.source_record_locator(
+                            dataset,
+                            source_file,
+                            row,
+                            key_columns,
+                        ),
+                        source_column=column,
+                        from_currency=(
+                            row.get(pc_cols.FROM_CURRENCY)
+                            if dataset == pc_cols.FX_RATES
+                            else None
+                        ),
+                        to_currency=(
+                            row.get(pc_cols.TO_CURRENCY)
+                            if dataset == pc_cols.FX_RATES
+                            else None
+                        ),
+                        transaction_code=self._transaction_code(row, dataset),
+                        transaction_category=self._transaction_category(
+                            row,
+                            dataset,
+                        ),
+                        cash_flow_sign=self._transaction_cash_flow_sign(
+                            row,
+                            dataset,
+                        ),
+                        performance_flow_sign=(
+                            self._transaction_performance_flow_sign(row, dataset)
+                        ),
+                        transaction_semantics_source=(
+                            self._transaction_semantics_source(row, dataset)
+                        ),
+                        transaction_match_status=transaction_match_status,
+                        impact_policy=impact_policy,
+                        transaction_impact_policy=transaction_impact_policy,
+                        transaction_impact_diagnostic=(
+                            self._transaction_impact_diagnostic(
+                                row,
                                 dataset,
                                 column,
-                                impact_policy,
-                                transaction_impact_policy,
-                            ),
-                            portfolio_id=portfolio_id,
-                            security_id=row.get(pc_cols.SECURITY_ID),
-                            from_date=from_date,
-                            thru_date=thru_date,
-                            input_date=self._input_date(row, dataset),
-                            source_file=source_file,
-                            source_record_locator=pc_lineage.source_record_locator(
-                                dataset,
-                                source_file,
-                                row,
-                                key_columns,
-                            ),
-                            source_column=column,
-                            from_currency=(
-                                row.get(pc_cols.FROM_CURRENCY)
-                                if dataset == pc_cols.FX_RATES
-                                else None
-                            ),
-                            to_currency=(
-                                row.get(pc_cols.TO_CURRENCY)
-                                if dataset == pc_cols.FX_RATES
-                                else None
-                            ),
-                            transaction_code=self._transaction_code(row, dataset),
-                            transaction_category=self._transaction_category(
-                                row,
-                                dataset,
-                            ),
-                            cash_flow_sign=self._transaction_cash_flow_sign(
-                                row,
-                                dataset,
-                            ),
-                            performance_flow_sign=(
-                                self._transaction_performance_flow_sign(row, dataset)
-                            ),
-                            transaction_semantics_source=(
-                                self._transaction_semantics_source(row, dataset)
-                            ),
-                            transaction_match_status=transaction_match_status,
-                            impact_policy=impact_policy,
-                            transaction_impact_policy=transaction_impact_policy,
-                            transaction_impact_diagnostic=(
-                                self._transaction_impact_diagnostic(
-                                    row,
-                                    dataset,
-                                    column,
-                                    portfolio_id,
-                                    from_date,
-                                    thru_date,
-                                    return_denominator,
-                                )
-                            ),
-                            transaction_impact_diagnostic_estimate=(
-                                self._transaction_impact_diagnostic_estimate(
-                                    row,
-                                    dataset,
-                                    column,
-                                    portfolio_id,
-                                    from_date,
-                                    thru_date,
-                                    return_denominator,
-                                    delta,
-                                )
-                            ),
-                            snapshot_a_value=snapshot_a_value,
-                            snapshot_b_value=snapshot_b_value,
-                            delta_b_minus_a=delta,
-                            return_denominator=return_denominator,
-                            return_weight=self._return_weight(
-                                row,
-                                dataset,
                                 portfolio_id,
                                 from_date,
                                 thru_date,
-                                return_weights,
-                            ),
-                            impact_input_value=self._impact_input_value(
+                                return_denominator,
+                            )
+                        ),
+                        transaction_impact_diagnostic_estimate=(
+                            self._transaction_impact_diagnostic_estimate(
                                 row,
                                 dataset,
                                 column,
-                                impact_policy,
-                            ),
-                            message=f"{dataset} {column!r} changed.",
-                        )
+                                portfolio_id,
+                                from_date,
+                                thru_date,
+                                return_denominator,
+                                delta,
+                            )
+                        ),
+                        snapshot_a_value=snapshot_a_value,
+                        snapshot_b_value=snapshot_b_value,
+                        delta_b_minus_a=delta,
+                        return_denominator=return_denominator,
+                        return_weight=self._return_weight(
+                            row,
+                            dataset,
+                            portfolio_id,
+                            from_date,
+                            thru_date,
+                            return_weights,
+                        ),
+                        impact_input_value=self._impact_input_value(
+                            row,
+                            dataset,
+                            column,
+                            impact_policy,
+                        ),
+                        message=f"{dataset} {column!r} changed.",
                     )
+                )
         return findings
 
     @staticmethod
@@ -1494,7 +1616,10 @@ class PerformanceComparison:
         return duplicate_keys.with_columns(
             pl.col("snapshot_a_count").fill_null(0),
             pl.col("snapshot_b_count").fill_null(0),
-        ).filter((pl.col("snapshot_a_count") > 1) | (pl.col("snapshot_b_count") > 1))
+        ).filter(
+            (pl.col("snapshot_a_count") > 1)
+            | (pl.col("snapshot_b_count") > 1)
+        ).sort(list(key_columns), nulls_last=True)
 
     @staticmethod
     def _sortable_key(row_key: tuple[object, ...]) -> tuple[str, ...]:
@@ -1644,6 +1769,8 @@ class PerformanceComparison:
         delta: object | None,
     ) -> float | None:
         """Return a review-only Modified Dietz cross-check estimate."""
+        if dataset != pc_cols.TRANSACTIONS or column != pc_cols.AMOUNT:
+            return None
         policy = self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
         delta_float = _modified_dietz_float(delta)
         denominator_float = _modified_dietz_float(denominator)

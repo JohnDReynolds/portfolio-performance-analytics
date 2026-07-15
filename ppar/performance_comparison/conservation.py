@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping, Sequence
 import datetime as dt
 import hashlib
 import json
 import math
-from typing import Final
+from typing import Final, cast
 
 # Third-party imports
 import polars as pl
@@ -30,6 +30,9 @@ _ESTIMATED_IMPACT: Final[str] = "estimated_impact"
 _PORTFOLIO_LEVEL: Final[str] = "portfolio"
 _SECURITY_LEVEL: Final[str] = "security"
 _RECONSTRUCTION_FORMULA_CODE: Final[str] = "reconstruction_formula_input"
+_MAX_FINGERPRINT_VALUE_CACHE: Final[int] = 4_096
+_COMPACT_JSON_ENCODER = json.JSONEncoder(ensure_ascii=True, separators=(",", ":"))
+_EFFECT_KEY_PREFIX: Final[str] = "__ppar_effect_key_"
 
 
 def finding_audit_trail(findings: pl.DataFrame) -> pl.DataFrame:
@@ -53,21 +56,27 @@ def finding_audit_trail(findings: pl.DataFrame) -> pl.DataFrame:
             pl.Series(SAFETY_DISPOSITION, [], dtype=pl.String),
         )
 
+    fingerprint_columns = sorted(findings.columns)
     fingerprint_counts: dict[str, int] = {}
-    rows: list[dict[str, object]] = []
-    for sequence, finding in enumerate(findings.iter_rows(named=True), start=1):
-        base_fingerprint = _row_fingerprint(finding, findings.columns)
+    fingerprints: list[str] = []
+    for base_fingerprint in _finding_row_fingerprints(
+        findings,
+        fingerprint_columns,
+    ):
         occurrence = fingerprint_counts.get(base_fingerprint, 0) + 1
         fingerprint_counts[base_fingerprint] = occurrence
-        rows.append(
-            {
-                **finding,
-                FINDING_SEQUENCE: sequence,
-                FINDING_FINGERPRINT: f"{base_fingerprint}:{occurrence}",
-                SAFETY_DISPOSITION: DifferenceDisposition.REVIEW_EVIDENCE.value,
-            }
-        )
-    return pl.DataFrame(rows, infer_schema_length=None)
+        fingerprints.append(f"{base_fingerprint}:{occurrence}")
+    return findings.with_columns(
+        pl.Series(
+            FINDING_SEQUENCE,
+            range(1, findings.height + 1),
+            dtype=pl.Int64,
+        ),
+        pl.Series(FINDING_FINGERPRINT, fingerprints, dtype=pl.String),
+        pl.lit(DifferenceDisposition.REVIEW_EVIDENCE.value).alias(
+            SAFETY_DISPOSITION
+        ),
+    )
 
 
 def assert_complete_finding_audit_trail(
@@ -201,26 +210,29 @@ def cause_conservation_table(
             pl.Series(COUNTED_CAUSE_OWNER, [], dtype=pl.String),
         )
 
-    rows: list[dict[str, object]] = []
-    for row in causes.iter_rows(named=True):
-        impact = _number_or_none(row.get(_ESTIMATED_IMPACT))
-        disposition = (
-            DifferenceDisposition.COUNTED_CAUSE
-            if impact is not None
-            else DifferenceDisposition.REVIEW_EVIDENCE
-        )
-        effect_id = _economic_effect_id(row, comparison_level=comparison_level)
-        rows.append(
-            {
-                **row,
-                SAFETY_DISPOSITION: disposition.value,
-                ECONOMIC_EFFECT_ID: effect_id,
-                COUNTED_CAUSE_OWNER: (
-                    _counted_cause_owner(row) if impact is not None else None
-                ),
-            }
-        )
-    return pl.DataFrame(rows, infer_schema_length=None)
+    has_impact = _finite_impact_expr(causes)
+    result = _with_economic_effect_ids(
+        causes,
+        comparison_level=comparison_level,
+    ).with_columns(
+        pl.when(has_impact)
+        .then(pl.lit(DifferenceDisposition.COUNTED_CAUSE.value))
+        .otherwise(pl.lit(DifferenceDisposition.REVIEW_EVIDENCE.value))
+        .alias(SAFETY_DISPOSITION),
+        pl.when(has_impact)
+        .then(_counted_cause_owner_expr(causes))
+        .otherwise(pl.lit(None, dtype=pl.String))
+        .alias(COUNTED_CAUSE_OWNER),
+    )
+    output_columns = list(causes.columns)
+    for column_name in (
+        SAFETY_DISPOSITION,
+        ECONOMIC_EFFECT_ID,
+        COUNTED_CAUSE_OWNER,
+    ):
+        if column_name not in output_columns:
+            output_columns.append(column_name)
+    return result.select(output_columns)
 
 
 def assert_cause_conservation(
@@ -256,34 +268,36 @@ def assert_cause_conservation(
 
 def _assert_cause_dispositions(causes: pl.DataFrame) -> None:
     """Raise unless cause dispositions agree with their explained amounts."""
-    for row in causes.iter_rows(named=True):
-        impact = _number_or_none(row.get(_ESTIMATED_IMPACT))
-        disposition = row.get(SAFETY_DISPOSITION)
-        owner = row.get(COUNTED_CAUSE_OWNER)
-        effect_id = row.get(ECONOMIC_EFFECT_ID)
-        if not isinstance(effect_id, str) or not effect_id:
-            raise PpaError(
-                "SN-01 no-lost-differences invariant failed: a cause row has no "
-                "economic effect identifier.",
-                999,
-            )
-        if impact is None:
-            valid = (
-                disposition == DifferenceDisposition.REVIEW_EVIDENCE.value
-                and owner is None
-            )
-        else:
-            valid = (
-                disposition == DifferenceDisposition.COUNTED_CAUSE.value
-                and isinstance(owner, str)
-                and bool(owner)
-            )
-        if not valid:
-            raise PpaError(
-                "SN-01 no-lost-differences invariant failed: cause disposition "
-                "does not agree with Performance Difference Explained.",
-                999,
-            )
+    if _has_invalid_string(causes, ECONOMIC_EFFECT_ID):
+        raise PpaError(
+            "SN-01 no-lost-differences invariant failed: a cause row has no "
+            "economic effect identifier.",
+            999,
+        )
+    has_impact = _finite_impact_expr(causes)
+    owner_is_null = pl.col(COUNTED_CAUSE_OWNER).is_null()
+    owner_is_present = _present_string_expr(causes, COUNTED_CAUSE_OWNER)
+    valid = (
+        (~has_impact)
+        & (
+            pl.col(SAFETY_DISPOSITION)
+            == DifferenceDisposition.REVIEW_EVIDENCE.value
+        )
+        & owner_is_null
+    ) | (
+        has_impact
+        & (
+            pl.col(SAFETY_DISPOSITION)
+            == DifferenceDisposition.COUNTED_CAUSE.value
+        )
+        & owner_is_present
+    )
+    if not causes.filter(~valid.fill_null(False)).is_empty():
+        raise PpaError(
+            "SN-01 no-lost-differences invariant failed: cause disposition "
+            "does not agree with Performance Difference Explained.",
+            999,
+        )
 
 
 def _assert_counted_representations(causes: pl.DataFrame) -> None:
@@ -291,19 +305,21 @@ def _assert_counted_representations(causes: pl.DataFrame) -> None:
     counted = causes.filter(
         pl.col(SAFETY_DISPOSITION) == DifferenceDisposition.COUNTED_CAUSE.value
     )
-    for row in counted.iter_rows(named=True):
-        dataset = row.get(pc_findings.DATASET)
-        source_column = row.get(pc_findings.SOURCE_COLUMN)
-        code = row.get(pc_findings.FINDING_CODE)
-        if code == _RECONSTRUCTION_FORMULA_CODE:
-            continue
-        if dataset == pc_cols.TRANSACTIONS and source_column not in {
-            pc_cols.AMOUNT,
-            pc_cols.BASE_AMOUNT,
-        }:
-            _raise_ineligible_owner(row)
-        if dataset in {pc_cols.FX_RATES, pc_cols.SPLITS}:
-            _raise_ineligible_owner(row)
+    if counted.is_empty():
+        return
+    is_formula = pl.col(pc_findings.FINDING_CODE) == _RECONSTRUCTION_FORMULA_CODE
+    ineligible = (~is_formula.fill_null(False)) & (
+        (
+            (pl.col(pc_findings.DATASET) == pc_cols.TRANSACTIONS)
+            & ~pl.col(pc_findings.SOURCE_COLUMN).is_in(
+                [pc_cols.AMOUNT, pc_cols.BASE_AMOUNT]
+            )
+        )
+        | pl.col(pc_findings.DATASET).is_in([pc_cols.FX_RATES, pc_cols.SPLITS])
+    )
+    invalid = counted.filter(ineligible.fill_null(False)).head(1)
+    if not invalid.is_empty():
+        _raise_ineligible_owner(invalid.row(0, named=True))
 
 
 def _assert_counted_period_boundaries(causes: pl.DataFrame) -> None:
@@ -311,24 +327,30 @@ def _assert_counted_period_boundaries(causes: pl.DataFrame) -> None:
     counted = causes.filter(
         pl.col(SAFETY_DISPOSITION) == DifferenceDisposition.COUNTED_CAUSE.value
     )
-    for row in counted.iter_rows(named=True):
-        dataset = row.get(pc_findings.DATASET)
-        input_date = _date_or_none(row.get(_AS_OF_DATE))
-        from_date = _date_or_none(row.get(pc_findings.FROM_DATE))
-        thru_date = _date_or_none(row.get(pc_findings.THRU_DATE))
-        if input_date is None or from_date is None or thru_date is None:
-            continue
-        permitted = from_date <= input_date <= thru_date
-        if dataset in {pc_cols.HOLDINGS, pc_cols.FX_RATES}:
-            permitted = permitted or input_date == from_date - dt.timedelta(days=1)
-        if permitted:
-            continue
-        raise PpaError(
-            "SN-07 period-boundary invariant failed: counted cause "
-            f"{dataset}.{row.get(pc_findings.SOURCE_COLUMN)} dated {input_date} "
-            f"is outside performance period {from_date}..{thru_date}.",
-            999,
-        )
+    if counted.is_empty() or not _date_columns_are_temporal(counted):
+        return
+    input_date = pl.col(_AS_OF_DATE).cast(pl.Date)
+    from_date = pl.col(pc_findings.FROM_DATE).cast(pl.Date)
+    thru_date = pl.col(pc_findings.THRU_DATE).cast(pl.Date)
+    dates_present = input_date.is_not_null() & from_date.is_not_null() & thru_date.is_not_null()
+    permitted = input_date.is_between(from_date, thru_date, closed="both") | (
+        pl.col(pc_findings.DATASET).is_in([pc_cols.HOLDINGS, pc_cols.FX_RATES])
+        & (input_date == from_date.dt.offset_by("-1d"))
+    )
+    invalid = counted.filter(dates_present & ~permitted.fill_null(False)).head(1)
+    if invalid.is_empty():
+        return
+    row = invalid.row(0, named=True)
+    dataset = row.get(pc_findings.DATASET)
+    input_value = _date_or_none(row.get(_AS_OF_DATE))
+    from_value = _date_or_none(row.get(pc_findings.FROM_DATE))
+    thru_value = _date_or_none(row.get(pc_findings.THRU_DATE))
+    raise PpaError(
+        "SN-07 period-boundary invariant failed: counted cause "
+        f"{dataset}.{row.get(pc_findings.SOURCE_COLUMN)} dated {input_value} "
+        f"is outside performance period {from_value}..{thru_value}.",
+        999,
+    )
 
 
 def _assert_single_effect_owners(
@@ -371,6 +393,143 @@ def _raise_ineligible_owner(row: Mapping[str, object]) -> None:
         f"{dataset_field} owns Performance Difference Explained.",
         999,
     )
+
+
+def _with_economic_effect_ids(
+    causes: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Append exact effect identifiers after hashing distinct payloads once."""
+    payload_columns = (
+        pc_findings.PORTFOLIO_ID,
+        pc_findings.FROM_DATE,
+        pc_findings.THRU_DATE,
+        pc_findings.SECURITY_ID,
+        _AS_OF_DATE,
+        pc_findings.DATASET,
+        pc_findings.SOURCE_COLUMN,
+        pc_findings.TRANSACTION_CODE,
+        pc_findings.TRANSACTION_CATEGORY,
+        pc_findings.SNAPSHOT_A_VALUE,
+        pc_findings.SNAPSHOT_B_VALUE,
+    )
+    key_columns = tuple(
+        f"{_EFFECT_KEY_PREFIX}{index}" for index in range(len(payload_columns))
+    )
+    keyed_causes = causes.with_columns(
+        *(
+            (
+                pl.col(column_name)
+                if column_name in causes.columns
+                else pl.lit(None)
+            ).alias(key_name)
+            for column_name, key_name in zip(
+                payload_columns,
+                key_columns,
+                strict=True,
+            )
+        )
+    )
+    distinct_keys = keyed_causes.select(key_columns).unique(maintain_order=True)
+    effect_ids = [
+        _economic_effect_id(
+            dict(zip(payload_columns, values, strict=True)),
+            comparison_level=comparison_level,
+        )
+        for values in distinct_keys.iter_rows()
+    ]
+    effect_map = distinct_keys.with_columns(
+        pl.Series(ECONOMIC_EFFECT_ID, effect_ids, dtype=pl.String)
+    )
+    return keyed_causes.join(
+        effect_map,
+        on=list(key_columns),
+        how="left",
+        nulls_equal=True,
+        maintain_order="left",
+    ).drop(key_columns)
+
+
+def _finite_impact_expr(causes: pl.DataFrame) -> pl.Expr:
+    """Return a Boolean expression matching finite Python numeric impacts."""
+    dtype = causes.schema.get(_ESTIMATED_IMPACT)
+    if dtype is None or dtype == pl.Boolean or not dtype.is_numeric():
+        return pl.lit(False)
+    return pl.col(_ESTIMATED_IMPACT).cast(pl.Float64).is_finite().fill_null(False)
+
+
+def _counted_cause_owner_expr(causes: pl.DataFrame) -> pl.Expr:
+    """Return the existing human-readable owner label as a Polars expression."""
+    dataset_field = pl.concat_str(
+        _column_text_expr(causes, pc_findings.DATASET, null_text="None"),
+        pl.lit("."),
+        _column_text_expr(causes, pc_findings.SOURCE_COLUMN, null_text="None"),
+    )
+    suffix = pl.concat_str(
+        *(
+            pl.when(
+                _column_text_expr(causes, column_name).is_not_null()
+                & (_column_text_expr(causes, column_name) != "")
+            )
+            .then(_column_text_expr(causes, column_name))
+            .otherwise(pl.lit(None, dtype=pl.String))
+            for column_name in (
+                pc_findings.SECURITY_ID,
+                _AS_OF_DATE,
+                pc_findings.TRANSACTION_CODE,
+            )
+        ),
+        separator=":",
+        ignore_nulls=True,
+    )
+    return pl.when(suffix == "").then(dataset_field).otherwise(
+        pl.concat_str(dataset_field, pl.lit("@"), suffix)
+    )
+
+
+def _column_text_expr(
+    table: pl.DataFrame,
+    column_name: str,
+    *,
+    null_text: str | None = None,
+) -> pl.Expr:
+    """Return one optional column cast to its Python-string representation."""
+    if column_name not in table.columns:
+        return pl.lit(null_text, dtype=pl.String)
+    result = pl.col(column_name).cast(pl.String)
+    return result.fill_null(null_text) if null_text is not None else result
+
+
+def _present_string_expr(table: pl.DataFrame, column_name: str) -> pl.Expr:
+    """Return whether a column contains the nonempty strings required by SN-01."""
+    if table.schema.get(column_name) != pl.String:
+        return pl.lit(False)
+    return pl.col(column_name).is_not_null() & (pl.col(column_name) != "")
+
+
+def _has_invalid_string(table: pl.DataFrame, column_name: str) -> bool:
+    """Return whether any row lacks a required nonempty Python string."""
+    if table.schema.get(column_name) != pl.String:
+        return not table.is_empty()
+    return not table.filter(
+        pl.col(column_name).is_null() | (pl.col(column_name) == "")
+    ).is_empty()
+
+
+def _date_columns_are_temporal(table: pl.DataFrame) -> bool:
+    """Return whether all SN-07 date columns retain Python date semantics."""
+    for column_name in (
+        _AS_OF_DATE,
+        pc_findings.FROM_DATE,
+        pc_findings.THRU_DATE,
+    ):
+        dtype = table.schema.get(column_name)
+        if dtype is None or not (
+            dtype == pl.Date or dtype.base_type() == pl.Datetime
+        ):
+            return False
+    return True
 
 
 def _economic_effect_id(
@@ -443,11 +602,130 @@ def _counted_cause_owner(row: Mapping[str, object]) -> str:
     return dataset_field if not suffix else f"{dataset_field}@{suffix}"
 
 
-def _row_fingerprint(row: Mapping[str, object], columns: list[str]) -> str:
-    """Return a deterministic fingerprint for one complete finding row."""
-    payload = {column: _json_value(row.get(column)) for column in columns}
-    encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+def _finding_row_fingerprints(
+    findings: pl.DataFrame,
+    columns: Sequence[str],
+) -> list[str]:
+    """Return exact persisted fingerprints without per-row JSON dictionaries.
+
+    Notes:
+        Fingerprint bytes are a persisted compatibility contract. The compiled
+        encoders below reproduce ``json.dumps(..., ensure_ascii=True)`` exactly,
+        including Unicode escaping, negative zero, non-finite floats, and ISO
+        dates. Bounded per-column caches accelerate repeated categorical values
+        without allowing memory use to grow with high-cardinality site data.
+    """
+    prefixes = tuple(
+        ("{" if index == 0 else ",")
+        + json.encoder.encode_basestring_ascii(column)
+        + ":"
+        for index, column in enumerate(columns)
+    )
+    value_encoders = tuple(
+        _fingerprint_value_encoder(findings.schema[column], prefix)
+        for column, prefix in zip(columns, prefixes, strict=True)
+    )
+    fingerprints: list[str] = []
+    for values in findings.select(columns).iter_rows():
+        encoded = (
+            "".join(
+                [
+                    encoder(value)
+                    for encoder, value in zip(value_encoders, values, strict=True)
+                ]
+            )
+            + "}"
+        )
+        fingerprints.append(hashlib.sha256(encoded.encode("utf-8")).hexdigest())
+    return fingerprints
+
+
+def _fingerprint_value_encoder(
+    dtype: pl.DataType,
+    prefix: str,
+) -> Callable[[object], str]:
+    """Return an exact JSON scalar encoder with its object-key prefix."""
+    encoded_null = prefix + "null"
+    if dtype == pl.String:
+        encoder = _cached_fingerprint_value_encoder(
+            prefix,
+            lambda value: json.encoder.encode_basestring_ascii(
+                cast(str, value)
+            ),
+        )
+    elif dtype == pl.Boolean:
+        def encode_boolean(value: object) -> str:
+            return (
+                encoded_null
+                if value is None
+                else prefix + ("true" if bool(value) else "false")
+            )
+
+        encoder = encode_boolean
+    elif dtype == pl.Date or dtype.base_type() == pl.Datetime:
+        encoder = _cached_fingerprint_value_encoder(
+            prefix,
+            lambda value: json.encoder.encode_basestring_ascii(
+                cast(dt.date | dt.datetime, value).isoformat()
+            ),
+        )
+    elif dtype.is_float():
+        encoder = _fingerprint_float_encoder(prefix)
+    elif dtype.is_integer():
+        def encode_integer(value: object) -> str:
+            return encoded_null if value is None else prefix + str(value)
+
+        encoder = encode_integer
+    elif dtype == pl.Null:
+        def encode_null(_value: object) -> str:
+            return encoded_null
+
+        encoder = encode_null
+    else:
+        encoder = _cached_fingerprint_value_encoder(
+            prefix,
+            lambda value: _COMPACT_JSON_ENCODER.encode(_json_value(value)),
+        )
+    return encoder
+
+
+def _fingerprint_float_encoder(prefix: str) -> Callable[[object], str]:
+    """Return an exact JSON encoder for nullable floating-point values."""
+    encoded_null = prefix + "null"
+
+    def encode(value: object) -> str:
+        if value is None:
+            return encoded_null
+        numeric_value = cast(float, value)
+        if math.isnan(numeric_value):
+            return prefix + '"NaN"'
+        if math.isinf(numeric_value):
+            return prefix + ('"Infinity"' if numeric_value > 0 else '"-Infinity"')
+        return prefix + repr(numeric_value)
+
+    return encode
+
+
+def _cached_fingerprint_value_encoder(
+    prefix: str,
+    encode_value: Callable[[object], str],
+) -> Callable[[object], str]:
+    """Return a bounded exact encoder for repeated nullable scalar values."""
+    cache: dict[object, str] = {None: prefix + "null"}
+
+    def encode(value: object) -> str:
+        try:
+            return cache[value]
+        except (KeyError, TypeError):
+            encoded = prefix + encode_value(value)
+        if len(cache) < _MAX_FINGERPRINT_VALUE_CACHE:
+            try:
+                cache[value] = encoded
+            except TypeError:
+                pass
+        return encoded
+
+    return encode
 
 
 def _json_value(value: object) -> object:

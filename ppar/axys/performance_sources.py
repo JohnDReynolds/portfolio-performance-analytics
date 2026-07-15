@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 # Python imports
+from collections.abc import Sequence
 from typing import Final, Literal
 
 # Third-party imports
@@ -116,7 +117,7 @@ class AxysPerformanceSourceLoader:
         self,
         file_path: util.PathLike,
         column_name_mappings_name: PerformanceSourceType,
-        portfolio_code: str | None = None,
+        portfolio_code: str | Sequence[str] | None = None,
     ) -> pl.DataFrame:
         """Load a performance CSV with normalized columns and date filters.
 
@@ -124,7 +125,8 @@ class AxysPerformanceSourceLoader:
             file_path: Path to the portfolio- or security-performance CSV.
             column_name_mappings_name: Specification section defining the
                 source-to-package column mapping.
-            portfolio_code: Optional portfolio code used to filter source rows.
+            portfolio_code: Optional portfolio code or codes used to filter
+                source rows.
 
         Returns:
             Normalized performance rows containing the columns required for the
@@ -158,8 +160,12 @@ class AxysPerformanceSourceLoader:
                 pl.col(cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             )
         )
-        if portfolio_code is not None:
+        if isinstance(portfolio_code, str):
             lazy_frame = lazy_frame.filter(pl.col(cols.PORTFOLIO_CODE) == portfolio_code)
+        elif portfolio_code is not None:
+            lazy_frame = lazy_frame.filter(
+                pl.col(cols.PORTFOLIO_CODE).is_in(portfolio_code)
+            )
         return self._date_range.filter_performance(lazy_frame).collect()
 
     def _csv_to_internal_mappings(

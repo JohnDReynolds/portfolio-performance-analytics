@@ -8,6 +8,7 @@ import unittest
 # Third-party imports
 import polars as pl
 import yaml
+from polars.testing import assert_frame_equal
 
 # Project imports
 from ppar.errors import PpaError
@@ -16,6 +17,9 @@ from ppar.performance_comparison import (
     HoldingsLoader,
 )
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison.base_currency import (
+    with_authoritative_base_currency,
+)
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 
@@ -107,6 +111,38 @@ class TestHoldingsLoader(unittest.TestCase):
 
         assert frame is not None
         self.assertEqual(frame[pc_cols.BASE_CURRENCY].to_list(), ["USD"])
+
+    def test_authoritative_currency_preserves_row_order_schema_and_unmatched_values(
+        self,
+    ) -> None:
+        """Vectorized currency enforcement changes only authoritative rows."""
+        frame = pl.DataFrame(
+            {
+                pc_cols.PORTFOLIO_ID: [" P2 ", "P3", "P1"],
+                pc_cols.SECURITY_ID: ["S2", "S3", "S1"],
+                pc_cols.BASE_CURRENCY: [None, "cad", "usd"],
+                pc_cols.MARKET_VALUE: [2.0, 3.0, 1.0],
+            }
+        )
+        portfolio_performance = pl.DataFrame(
+            {
+                pc_cols.PORTFOLIO_ID: ["P1", "P2"],
+                pc_cols.BASE_CURRENCY: [" usd ", "gbp"],
+            }
+        )
+        expected = frame.with_columns(
+            pl.Series(pc_cols.BASE_CURRENCY, ["GBP", "cad", "USD"])
+        )
+
+        actual = with_authoritative_base_currency(
+            frame,
+            portfolio_performance,
+            dataset_name=pc_cols.HOLDINGS,
+            path="holdings.csv",
+            specification_path="comparison.yaml",
+        )
+
+        assert_frame_equal(actual, expected)
 
     def test_base_accrued_alias_loads_as_base_currency_value(self) -> None:
         """Foreign accrued income can supply an explicit base counterpart."""

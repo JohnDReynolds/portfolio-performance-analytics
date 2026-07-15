@@ -59,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
             include_reconstruction_diagnostics=(
                 args.include_reconstruction_diagnostics
             ),
+            expand_all_supporting_files=args.expand_all_supporting_files,
         )
     except PpaError as error:
         print(f"Report bundle failed: {error}", file=sys.stderr)
@@ -71,8 +72,12 @@ def main(argv: list[str] | None = None) -> int:
             f"{bundle_paths[_pc_review_model.REVIEW_WORKBOOK_ARTIFACT]}"
         )
     print(f"HTML report written to: {bundle_paths['html_report']}")
-    print(f"Needs review summary written to: {bundle_paths['needs_review_summary']}")
-    print(f"Manifest written to: {bundle_paths['manifest']}")
+    if "audit_support" in bundle_paths:
+        print(f"Source detail written to: {bundle_paths['source_detail']}")
+        print(f"Audit support written to: {bundle_paths['audit_support']}")
+    else:
+        print(f"Needs review summary written to: {bundle_paths['needs_review_summary']}")
+        print(f"Manifest written to: {bundle_paths['manifest']}")
     return 0
 
 
@@ -126,6 +131,14 @@ def _argument_parser() -> argparse.ArgumentParser:
         help=(
             "Add optional Reconstruction Summary, Return Reconstruction Checks, "
             "and Security Return Checks sheets plus matching CSV artifacts."
+        ),
+    )
+    parser.add_argument(
+        "--expand-all-supporting-files",
+        action="store_true",
+        help=(
+            "Write every supporting CSV and JSON file under supporting_files "
+            "instead of the default audit_support.zip archive."
         ),
     )
     parser.add_argument(

@@ -18,7 +18,7 @@ Files:
   validation scenarios and compatibility columns
 - secperf.csv: security-level monthly performance/contribution rows, merged
   with validation scenarios and compatibility columns
-- sec_ref.csv: security master/reference data, merged with validation
+- secref.csv: security master/reference data, merged with validation
   classification columns
 - classification_lookup.csv: lookup-table classification source
 - unreachable_target_secperf.csv: intentionally unreconcilable validation rows

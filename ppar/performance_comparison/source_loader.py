@@ -24,9 +24,19 @@ import ppar.utilities as util
 
 ColumnAliases: TypeAlias = dict[str, tuple[str, ...]]
 _SourceFrameCache: TypeAlias = dict[Path, pl.DataFrame]
+_NormalizedFrameKey: TypeAlias = tuple[Path, str, str, Path]
+_NormalizedFrameCache: TypeAlias = dict[_NormalizedFrameKey, pl.DataFrame]
 
 _SOURCE_FRAME_CACHE: ContextVar[_SourceFrameCache | None] = ContextVar(
     "performance_comparison_source_frame_cache",
+    default=None,
+)
+_NORMALIZED_FRAME_CACHE: ContextVar[_NormalizedFrameCache | None] = ContextVar(
+    "performance_comparison_normalized_frame_cache",
+    default=None,
+)
+_FINANCIAL_VALIDATION_CACHE: ContextVar[set[Path] | None] = ContextVar(
+    "performance_comparison_financial_validation_cache",
     default=None,
 )
 
@@ -61,11 +71,12 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
 
 @contextmanager
 def source_frame_cache() -> Iterator[None]:
-    """Reuse each raw CSV frame within one performance-comparison run.
+    """Reuse raw and normalized frames within one performance-comparison run.
 
     Nested scopes share their parent's cache. The cache owns only untouched raw
-    CSV frames; callers continue to apply their own aliases, projections,
-    validation, and business rules to derived frames.
+    CSV frames and fully validated normalized frames. Polars operations return
+    new frames, so callers can safely derive later tables without mutating the
+    cached source objects.
 
     Yields:
         Control to the report or script run using the cache.
@@ -75,11 +86,108 @@ def source_frame_cache() -> Iterator[None]:
         yield
         return
 
-    token = _SOURCE_FRAME_CACHE.set({})
+    source_token = _SOURCE_FRAME_CACHE.set({})
+    normalized_token = _NORMALIZED_FRAME_CACHE.set({})
+    validation_token = _FINANCIAL_VALIDATION_CACHE.set(set())
     try:
         yield
     finally:
-        _SOURCE_FRAME_CACHE.reset(token)
+        _FINANCIAL_VALIDATION_CACHE.reset(validation_token)
+        _NORMALIZED_FRAME_CACHE.reset(normalized_token)
+        _SOURCE_FRAME_CACHE.reset(source_token)
+
+
+def cached_normalized_frame(
+    specification_path: util.PathLike,
+    dataset_name: str,
+    snapshot_key: str,
+    source_path: util.PathLike,
+) -> pl.DataFrame | None:
+    """Return a validated normalized frame cached for this Audit run.
+
+    Args:
+        specification_path: Comparison YAML controlling normalization.
+        dataset_name: Normalized dataset name.
+        snapshot_key: Snapshot side, normally ``"a"`` or ``"b"``.
+        source_path: Physical source file used by the loader.
+
+    Returns:
+        The cached frame, or ``None`` outside a cache scope or before the first
+        successful load.
+    """
+    cache = _NORMALIZED_FRAME_CACHE.get()
+    if cache is None:
+        return None
+    return cache.get(
+        _normalized_frame_key(
+            specification_path,
+            dataset_name,
+            snapshot_key,
+            source_path,
+        )
+    )
+
+
+def cache_normalized_frame(
+    specification_path: util.PathLike,
+    dataset_name: str,
+    snapshot_key: str,
+    source_path: util.PathLike,
+    frame: pl.DataFrame,
+) -> pl.DataFrame:
+    """Cache and return one fully validated normalized source frame.
+
+    Args:
+        specification_path: Comparison YAML controlling normalization.
+        dataset_name: Normalized dataset name.
+        snapshot_key: Snapshot side, normally ``"a"`` or ``"b"``.
+        source_path: Physical source file used by the loader.
+        frame: Fully normalized and validated frame.
+
+    Returns:
+        ``frame`` unchanged.
+    """
+    cache = _NORMALIZED_FRAME_CACHE.get()
+    if cache is not None:
+        cache[
+            _normalized_frame_key(
+                specification_path,
+                dataset_name,
+                snapshot_key,
+                source_path,
+            )
+        ] = frame
+    return frame
+
+
+def _normalized_frame_key(
+    specification_path: util.PathLike,
+    dataset_name: str,
+    snapshot_key: str,
+    source_path: util.PathLike,
+) -> _NormalizedFrameKey:
+    """Return the run-scoped normalized-frame cache key."""
+    return (
+        Path(specification_path).expanduser().resolve(),
+        dataset_name,
+        snapshot_key,
+        Path(source_path).expanduser().resolve(),
+    )
+
+
+def financial_validation_is_cached(specification_path: util.PathLike) -> bool:
+    """Return whether financial inputs passed validation in this audit run."""
+    cache = _FINANCIAL_VALIDATION_CACHE.get()
+    if cache is None:
+        return False
+    return Path(specification_path).expanduser().resolve() in cache
+
+
+def cache_financial_validation(specification_path: util.PathLike) -> None:
+    """Record successful financial-input validation in this audit run."""
+    cache = _FINANCIAL_VALIDATION_CACHE.get()
+    if cache is not None:
+        cache.add(Path(specification_path).expanduser().resolve())
 
 
 def _read_source_csv(path: util.PathLike) -> pl.DataFrame:

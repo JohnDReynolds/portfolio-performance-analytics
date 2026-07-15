@@ -161,11 +161,15 @@ my_ppar_data/
       holdings.csv
       transactions.csv
       secperf.csv
+      fx_rates.csv
+      splits.csv
     snapshot_b/
       portperf.csv
       holdings.csv
       transactions.csv
       secperf.csv
+      fx_rates.csv
+      splits.csv
   analytics/
     ppar.yaml
     portperf.csv
@@ -184,13 +188,16 @@ The source-data files are typically IMEX-style CSV exports:
 - security performance
 - holdings
 - transactions
+- FX rates
+- split factors
 
 Performance Auditing uses two source-data snapshots, usually an older/original
 snapshot and a newer/restated snapshot.
 
-Performance Analytics uses portfolio performance and security performance exports.
+Performance Analytics uses portfolio performance, security performance, and security
+reference exports.
 
-PPAR normalizes those files through YAML, so each site can configure its own
+PPAR normalizes those files through YAML, so that each site can configure its own
 local field names, transaction-code treatment, and report assumptions.
 
 ---
@@ -199,13 +206,32 @@ local field names, transaction-code treatment, and report assumptions.
 
 Performance Auditing writes review packages:
 
+To prevent unusably large report artifacts, Audit stops with a nonzero exit code
+before writing a report when any primary review table would exceed 100,000 rows.
+The error identifies the oversized table and its largest contributors so the user
+can narrow the portfolio/date scope or correct the upstream differences.
+
 ```text
 audit/output/
-  portfolio/portfolio_audit.xlsx
-  portfolio/portfolio_audit.html
-  security/security_audit.xlsx
-  security/security_audit.html
+  portfolio/
+    portfolio_audit.xlsx
+    portfolio_audit.html
+    source_detail.csv
+    audit_support.zip
+  security/
+    security_audit.xlsx
+    security_audit.html
+    source_detail.csv
+    audit_support.zip
 ```
+
+Use `--no-xlsx-output` for HTML-only output or `--no-html-output` for XLSX-only
+output. Supplying both options writes a CSV-only audit and promotes
+`performance_differences.csv`, `performance_difference_causes.csv`,
+`x_ref_issues.csv`, and `source_detail.csv` to each report directory.
+
+Use `--expand-all-supporting-files` to replace each `audit_support.zip` with an
+expanded `supporting_files/` directory.
 
 Performance Analytics writes attribution and ex-post risk reports and chart images:
 

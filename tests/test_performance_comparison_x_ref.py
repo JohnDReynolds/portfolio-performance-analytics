@@ -3,17 +3,65 @@
 from __future__ import annotations
 
 # Python imports
+import datetime as dt
 from pathlib import Path
 import tempfile
 import textwrap
 import unittest
 
+# Third-party imports
+import polars as pl
+
 # Project imports
+from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import x_ref
 
 
 class TestPerformanceComparisonXRefIssues(unittest.TestCase):
     """Validate source-data consistency checks used by the Data Audit Issues sheet."""
+
+    def test_continuity_respects_adjacency_and_combined_tolerance(self) -> None:
+        """Continuity flags only adjacent periods beyond absolute and percent limits."""
+        frame = pl.DataFrame(
+            {
+                x_ref.SNAPSHOT: ["Snapshot A"] * 6,
+                pc_cols.PORTFOLIO_ID: ["P1", "P1", "P2", "P2", "P3", "P3"],
+                pc_cols.FROM_DATE: [
+                    dt.date(2026, 1, 1),
+                    dt.date(2026, 2, 2),
+                    dt.date(2026, 1, 1),
+                    dt.date(2026, 2, 1),
+                    dt.date(2026, 1, 1),
+                    dt.date(2026, 2, 1),
+                ],
+                pc_cols.THRU_DATE: [
+                    dt.date(2026, 1, 31),
+                    dt.date(2026, 2, 28),
+                    dt.date(2026, 1, 31),
+                    dt.date(2026, 2, 28),
+                    dt.date(2026, 1, 31),
+                    dt.date(2026, 2, 28),
+                ],
+                pc_cols.BEGIN_MARKET_VALUE: [900.0, 500.0, 900.0, 989.0, 1900.0, 1985.0],
+                pc_cols.END_MARKET_VALUE: [1000.0, 600.0, 1000.0, 1100.0, 2000.0, 2100.0],
+            }
+        )
+        config = {
+            x_ref.ISSUE_PORTFOLIO_MV_CONTINUITY: {
+                "absolute_tolerance": 10.0,
+                "percent_tolerance": 1.0,
+            }
+        }
+
+        issues = x_ref._market_value_continuity_issues(
+            (frame,),
+            config,
+            dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
+        )
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0][pc_cols.PORTFOLIO_ID], "P2")
+        self.assertEqual(issues[0][x_ref.DIFFERENCE], -11.0)
 
     def test_packaged_demo_includes_every_x_ref_issue_type(self) -> None:
         """The Axys/APX demo keeps one visible example of every X-Ref issue type."""
@@ -141,6 +189,7 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
         self.assertIn("missing_dividend", issue_types)
         self.assertIn("pa_sa_rate", issue_types)
         self.assertIn("holdings_accrued_rate", issue_types)
+        self.assertEqual(missing_dividends.height, 4)
         self.assertEqual(missing_portfolios, {"P2", "P3"})
         self.assertEqual(
             missing_explanations,

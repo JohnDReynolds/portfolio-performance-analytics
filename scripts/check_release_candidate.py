@@ -339,6 +339,11 @@ def _run_project_checks(
     runner.run(command)
 
 
+def _run_scale_regression_check(runner: ReleaseCandidateRunner) -> None:
+    """Run the hard 500x Analytics and Audit release-candidate scale gate."""
+    runner.run([_VENV_PYTHON, "scripts/check_scale.py", "--scale", "500"])
+
+
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments.
 
@@ -462,9 +467,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         runner.skip("README release-asset refresh; use --refresh-images.")
 
-    runner.phase(8, "Run temporary large-site scale checks")
-    runner.run([_VENV_PYTHON, "scripts/check_scale.py", "--scale", "10"])
-    runner.complete("Analytics/Audit large-site checks at 10x")
+    runner.phase(8, "Run release-candidate scale regression checks")
+    _run_scale_regression_check(runner)
+    runner.complete("Analytics/Audit scale regression checks at 500x")
 
     runner.phase(9, "Run project checks")
     if not args.skip_project_check:

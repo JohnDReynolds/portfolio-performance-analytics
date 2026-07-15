@@ -296,13 +296,13 @@ def _last_replaceable_identifier_index(
 
 def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Return Axys/APX-style CSV frames from compact performance rows."""
-    sec_ref = _security_master(performance)
+    secref = _security_master(performance)
     secperf = _security_performance(performance)
     portperf = _portfolio_performance(performance)
     holdings = _positions(performance)
     transactions = _transactions(performance)
     return {
-        "sec_ref": sec_ref,
+        "secref": secref,
         "secperf": secperf,
         "portperf": portperf,
         "holdings": holdings,

@@ -21,6 +21,22 @@ Apply these conventions when modifying or creating code in this project.
 - Keep code free of `pylint` and `pyright` errors. Evaluate warnings case by case.
 - Prefer small, behavior-preserving changes unless a broader refactor has clear value.
 
+## Test-Gate Integrity
+
+- Never raise, relax, disable, or bypass a test, benchmark, warning threshold, failure
+  threshold, invariant, or release gate merely because it is failing.
+- Treat an unexpected gate failure as evidence of a possible product regression and
+  investigate the implementation first.
+- Obtain the user's explicit approval before intentionally changing an established
+  gate or threshold. State the current value, proposed value, evidence, and tradeoff.
+- Keep the 500x scale check in the core release-candidate workflow. Run it after major
+  cross-cutting, reporting, audit, safety-net, or performance changes even when the
+  complete release-candidate sequence is not otherwise required.
+- Keep inexpensive financial, conservation, lineage, and explanation-reconciliation
+  invariants enabled in production runs. Put redundant full-artifact reparsing or
+  similarly expensive independent verification in test and release-candidate checks
+  when running it in production would materially degrade performance.
+
 ## Typing And Naming
 
 - Annotate public parameters, public return values, class attributes, and non-obvious

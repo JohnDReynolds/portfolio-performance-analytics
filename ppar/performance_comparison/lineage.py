@@ -29,6 +29,9 @@ REPORT_DISPOSITION_LINEAGE: Final[str] = "report_disposition"
 _RECONSTRUCTION_FORMULA_CODE: Final[str] = "reconstruction_formula_input"
 _NO_UNDERLYING_CAUSE_DATASET: Final[str] = "no_underlying_causes_found"
 _RECONSTRUCTION_COMPONENTS: Final[str] = "_workbook_reconstruction_components"
+_LINEAGE_ROW_INDEX: Final[str] = "__ppar_lineage_row_index"
+_DERIVED_LOCATOR: Final[str] = "__ppar_derived_locator"
+_FINGERPRINT_LOCATOR: Final[str] = "__ppar_fingerprint_locator"
 
 
 def source_record_locator(
@@ -101,12 +104,18 @@ def assert_finding_source_lineage(findings: pl.DataFrame) -> None:
         )
 
 
-def cause_lineage_table(causes: pl.DataFrame, findings: pl.DataFrame) -> pl.DataFrame:
+def cause_lineage_table(
+    causes: pl.DataFrame,
+    findings: pl.DataFrame,
+    *,
+    finding_audit_trail: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     """Return cause rows with explicit backward lineage to source findings.
 
     Args:
         causes: Internal Performance Difference Causes table.
         findings: Active source findings used to build the cause table.
+        finding_audit_trail: Optional precomputed complete finding audit trail.
 
     Returns:
         Cause rows with lineage type, stable locator, and source-finding
@@ -116,85 +125,223 @@ def cause_lineage_table(causes: pl.DataFrame, findings: pl.DataFrame) -> pl.Data
     Raises:
         PpaError: If a source-backed cause cannot be traced to a finding.
     """
-    audit_trail = pc_conservation.finding_audit_trail(findings)
-    fingerprints_by_locator: dict[str, list[str]] = {}
-    if not audit_trail.is_empty():
-        for finding in audit_trail.iter_rows(named=True):
-            locator = finding.get(pc_findings.SOURCE_RECORD_LOCATOR)
-            fingerprint = finding.get(pc_conservation.FINDING_FINGERPRINT)
-            if isinstance(locator, str) and isinstance(fingerprint, str):
-                fingerprints_by_locator.setdefault(locator, []).append(fingerprint)
-
-    rows: list[dict[str, object]] = []
-    for cause in causes.iter_rows(named=True):
-        code = cause.get(pc_findings.FINDING_CODE)
-        dataset = cause.get(pc_findings.DATASET)
-        locator = cause.get(pc_findings.SOURCE_RECORD_LOCATOR)
-        if code == _RECONSTRUCTION_FORMULA_CODE:
-            lineage_type = DERIVED_FORMULA_LINEAGE
-            locator = _derived_record_locator(cause, lineage_type)
-            fingerprints: list[str] = []
-            if not cause.get(_RECONSTRUCTION_COMPONENTS):
-                raise PpaError(
-                    "SN-05 bidirectional-lineage invariant failed: a derived "
-                    "formula cause has no reconstruction component provenance.",
-                    999,
-                )
-        elif dataset == _NO_UNDERLYING_CAUSE_DATASET:
-            lineage_type = REPORT_DISPOSITION_LINEAGE
-            locator = _derived_record_locator(cause, lineage_type)
-            fingerprints = []
-        else:
-            lineage_type = SOURCE_FINDING_LINEAGE
-            if not isinstance(locator, str) or not locator:
-                raise PpaError(
-                    "SN-05 bidirectional-lineage invariant failed: a report "
-                    f"cause for {dataset}.{cause.get(pc_findings.SOURCE_COLUMN)} "
-                    "has no source-record locator.",
-                    999,
-                )
-            fingerprints = fingerprints_by_locator.get(locator, [])
-            if not fingerprints:
-                raise PpaError(
-                    "SN-05 bidirectional-lineage invariant failed: report cause "
-                    f"locator {locator!r} does not trace back to a source finding.",
-                    999,
-                )
-        rows.append(
-            {
-                **cause,
-                pc_findings.SOURCE_RECORD_LOCATOR: locator,
-                SOURCE_LINEAGE_TYPE: lineage_type,
-                SOURCE_FINDING_FINGERPRINTS: "|".join(sorted(set(fingerprints))) or None,
-            }
-        )
-    if rows:
-        result = pl.DataFrame(rows, infer_schema_length=None)
-    else:
+    audit_trail = (
+        pc_conservation.finding_audit_trail(findings)
+        if finding_audit_trail is None
+        else finding_audit_trail
+    )
+    if causes.is_empty():
         result = causes.with_columns(
             pl.Series(SOURCE_LINEAGE_TYPE, [], dtype=pl.String),
             pl.Series(SOURCE_FINDING_FINGERPRINTS, [], dtype=pl.String),
         )
-    assert_bidirectional_report_lineage(findings, result)
+    else:
+        result = _cause_lineage_rows(causes, audit_trail)
+    assert_bidirectional_report_lineage(
+        findings,
+        result,
+        finding_audit_trail=audit_trail,
+    )
     return result
+
+
+def _cause_lineage_rows(
+    causes: pl.DataFrame,
+    audit_trail: pl.DataFrame,
+) -> pl.DataFrame:
+    """Add cause lineage in bulk while preserving exact cryptographic locators."""
+    code = _optional_column(causes, pc_findings.FINDING_CODE)
+    dataset = _optional_column(causes, pc_findings.DATASET)
+    lineage_type = (
+        pl.when(code == _RECONSTRUCTION_FORMULA_CODE)
+        .then(pl.lit(DERIVED_FORMULA_LINEAGE))
+        .when(dataset == _NO_UNDERLYING_CAUSE_DATASET)
+        .then(pl.lit(REPORT_DISPOSITION_LINEAGE))
+        .otherwise(pl.lit(SOURCE_FINDING_LINEAGE))
+    )
+    working = causes.with_row_index(_LINEAGE_ROW_INDEX)
+    if pc_findings.SOURCE_RECORD_LOCATOR not in working.columns:
+        working = working.with_columns(
+            pl.lit(None, dtype=pl.String).alias(
+                pc_findings.SOURCE_RECORD_LOCATOR
+            )
+        )
+    working = working.with_columns(lineage_type.alias(SOURCE_LINEAGE_TYPE))
+
+    invalid_formula = working.filter(
+        (pl.col(SOURCE_LINEAGE_TYPE) == DERIVED_FORMULA_LINEAGE)
+        & _missing_reconstruction_components_expr(working)
+    )
+    if not invalid_formula.is_empty():
+        raise PpaError(
+            "SN-05 bidirectional-lineage invariant failed: a derived "
+            "formula cause has no reconstruction component provenance.",
+            999,
+        )
+
+    source_causes = working.filter(
+        pl.col(SOURCE_LINEAGE_TYPE) == SOURCE_FINDING_LINEAGE
+    )
+    invalid_locator = _invalid_source_locator_rows(source_causes)
+    if not invalid_locator.is_empty():
+        row = invalid_locator.row(0, named=True)
+        raise PpaError(
+            "SN-05 bidirectional-lineage invariant failed: a report "
+            f"cause for {row.get(pc_findings.DATASET)}."
+            f"{row.get(pc_findings.SOURCE_COLUMN)} has no source-record locator.",
+            999,
+        )
+
+    fingerprint_map = _fingerprints_by_locator(audit_trail)
+    working = working.join(
+        fingerprint_map,
+        left_on=pc_findings.SOURCE_RECORD_LOCATOR,
+        right_on=_FINGERPRINT_LOCATOR,
+        how="left",
+        maintain_order="left",
+    )
+    untraceable = working.filter(
+        (pl.col(SOURCE_LINEAGE_TYPE) == SOURCE_FINDING_LINEAGE)
+        & pl.col(SOURCE_FINDING_FINGERPRINTS).is_null()
+    )
+    if not untraceable.is_empty():
+        locator = untraceable[pc_findings.SOURCE_RECORD_LOCATOR][0]
+        raise PpaError(
+            "SN-05 bidirectional-lineage invariant failed: report cause "
+            f"locator {locator!r} does not trace back to a source finding.",
+            999,
+        )
+
+    derived_rows = working.filter(
+        pl.col(SOURCE_LINEAGE_TYPE) != SOURCE_FINDING_LINEAGE
+    )
+    derived_locator_map = pl.DataFrame(
+        {
+            _LINEAGE_ROW_INDEX: derived_rows[_LINEAGE_ROW_INDEX],
+            _DERIVED_LOCATOR: [
+                _derived_record_locator(row, str(row[SOURCE_LINEAGE_TYPE]))
+                for row in derived_rows.iter_rows(named=True)
+            ],
+        },
+        schema={_LINEAGE_ROW_INDEX: pl.UInt32, _DERIVED_LOCATOR: pl.String},
+    )
+    working = working.join(
+        derived_locator_map,
+        on=_LINEAGE_ROW_INDEX,
+        how="left",
+        maintain_order="left",
+    ).with_columns(
+        pl.when(pl.col(SOURCE_LINEAGE_TYPE) == SOURCE_FINDING_LINEAGE)
+        .then(pl.col(pc_findings.SOURCE_RECORD_LOCATOR))
+        .otherwise(pl.col(_DERIVED_LOCATOR))
+        .alias(pc_findings.SOURCE_RECORD_LOCATOR),
+        pl.when(pl.col(SOURCE_LINEAGE_TYPE) == SOURCE_FINDING_LINEAGE)
+        .then(pl.col(SOURCE_FINDING_FINGERPRINTS))
+        .otherwise(pl.lit(None, dtype=pl.String))
+        .alias(SOURCE_FINDING_FINGERPRINTS),
+    )
+    output_columns = list(causes.columns)
+    if pc_findings.SOURCE_RECORD_LOCATOR not in output_columns:
+        output_columns.append(pc_findings.SOURCE_RECORD_LOCATOR)
+    for column_name in (SOURCE_LINEAGE_TYPE, SOURCE_FINDING_FINGERPRINTS):
+        if column_name not in output_columns:
+            output_columns.append(column_name)
+    return working.select(output_columns)
+
+
+def _fingerprints_by_locator(audit_trail: pl.DataFrame) -> pl.DataFrame:
+    """Return sorted unique finding fingerprints for each valid locator."""
+    locator = pc_findings.SOURCE_RECORD_LOCATOR
+    fingerprint = pc_conservation.FINDING_FINGERPRINT
+    if audit_trail.is_empty() or not {locator, fingerprint}.issubset(
+        audit_trail.columns
+    ):
+        return pl.DataFrame(
+            schema={
+                _FINGERPRINT_LOCATOR: pl.String,
+                SOURCE_FINDING_FINGERPRINTS: pl.String,
+            }
+        )
+    return (
+        audit_trail.select(locator, fingerprint)
+        .filter(
+            pl.col(locator).is_not_null()
+            & pl.col(fingerprint).is_not_null()
+        )
+        .group_by(locator, maintain_order=True)
+        .agg(
+            pl.col(fingerprint)
+            .unique()
+            .sort()
+            .str.join("|")
+            .alias(SOURCE_FINDING_FINGERPRINTS)
+        )
+        .rename({locator: _FINGERPRINT_LOCATOR})
+    )
+
+
+def _invalid_source_locator_rows(source_causes: pl.DataFrame) -> pl.DataFrame:
+    """Return source-backed rows whose locator is not a nonempty string."""
+    locator = pc_findings.SOURCE_RECORD_LOCATOR
+    if source_causes.is_empty():
+        return source_causes
+    if source_causes.schema.get(locator) != pl.String:
+        return source_causes
+    return source_causes.filter(pl.col(locator).is_null() | (pl.col(locator) == ""))
+
+
+def _missing_reconstruction_components_expr(causes: pl.DataFrame) -> pl.Expr:
+    """Return the existing falsey-component test as a Polars expression."""
+    dtype = causes.schema.get(_RECONSTRUCTION_COMPONENTS)
+    if dtype is None:
+        return pl.lit(True)
+    if dtype == pl.String:
+        return pl.col(_RECONSTRUCTION_COMPONENTS).is_null() | (
+            pl.col(_RECONSTRUCTION_COMPONENTS) == ""
+        )
+    if dtype == pl.Boolean:
+        return pl.col(_RECONSTRUCTION_COMPONENTS).is_null() | ~pl.col(
+            _RECONSTRUCTION_COMPONENTS
+        )
+    if dtype.is_numeric():
+        return pl.col(_RECONSTRUCTION_COMPONENTS).is_null() | (
+            pl.col(_RECONSTRUCTION_COMPONENTS) == 0
+        )
+    return pl.col(_RECONSTRUCTION_COMPONENTS).is_null()
+
+
+def _optional_column(table: pl.DataFrame, column_name: str) -> pl.Expr:
+    """Return an optional column expression with absent values as null."""
+    return (
+        pl.col(column_name)
+        if column_name in table.columns
+        else pl.lit(None)
+    )
 
 
 def assert_bidirectional_report_lineage(
     findings: pl.DataFrame,
     causes: pl.DataFrame,
+    *,
+    finding_audit_trail: pl.DataFrame | None = None,
 ) -> None:
     """Raise unless source findings and report causes retain valid lineage.
 
     Args:
         findings: Active source findings used by the report.
         causes: Cause table returned by :func:`cause_lineage_table`.
+        finding_audit_trail: Optional precomputed complete finding audit trail.
 
     Raises:
         PpaError: If source-record identity is missing or a source-backed cause
             lacks backward finding fingerprints.
     """
     assert_finding_source_lineage(findings)
-    finding_audit = pc_conservation.finding_audit_trail(findings)
+    finding_audit = (
+        pc_conservation.finding_audit_trail(findings)
+        if finding_audit_trail is None
+        else finding_audit_trail
+    )
     pc_conservation.assert_complete_finding_audit_trail(findings, finding_audit)
     available_fingerprints = set(
         finding_audit[pc_conservation.FINDING_FINGERPRINT].drop_nulls().to_list()

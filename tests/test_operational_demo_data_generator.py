@@ -100,7 +100,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertGreater(float(axys["holdings"]["ACCRUED"].max()), 0.0)
         self.assertIn("CASHUSD", set(axys["holdings"]["SEC"]))
         self.assertGreater(len(axys["transactions"]), 0)
-        self.assertIn("91282Y2Y1", set(axys["sec_ref"]["SECURITY_ID"]))
+        self.assertIn("91282Y2Y1", set(axys["secref"]["SECURITY_ID"]))
 
     def test_restatement_snapshot_contains_controlled_differences(self) -> None:
         """Snapshot B includes source-data differences across key datasets."""

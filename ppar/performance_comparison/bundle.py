@@ -5,6 +5,9 @@ from __future__ import annotations
 # Python imports
 import datetime as dt
 import json
+import shutil
+import tempfile
+import zipfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
@@ -44,8 +47,9 @@ __all__ = [
 ]
 
 SUPPORTING_FILES_DIRECTORY = "supporting_files"
+AUDIT_SUPPORT_ARCHIVE = "audit_support.zip"
+PROMOTED_SOURCE_DETAIL = "source_detail.csv"
 REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
-    "html_report",
     "readme",
     "manifest",
     "review_summary",
@@ -69,7 +73,12 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "transaction_matching_diagnostics",
     "top_evidence",
 )
-_REPORT_BUNDLE_MANIFEST_VERSION = 3
+_CSV_PRIMARY_REVIEW_ARTIFACTS = (
+    _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
+    _pc_review_model.X_REF_ISSUES_ARTIFACT,
+)
+_REPORT_BUNDLE_MANIFEST_VERSION = 4
 _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "bundle_type",
     "manifest_version",
@@ -179,7 +188,24 @@ def report_bundle_contract() -> dict[str, object]:
                 SECURITY_COMPARISON_LEVEL,
             )
         },
+        "supporting_files_packaging": {
+            "default_archive": AUDIT_SUPPORT_ARCHIVE,
+            "promoted_reviewer_files": {
+                "normal": [PROMOTED_SOURCE_DETAIL],
+                "csv_only": [
+                    *(f"{name}.csv" for name in _CSV_PRIMARY_REVIEW_ARTIFACTS),
+                    PROMOTED_SOURCE_DETAIL,
+                ],
+            },
+            "expanded_directory": SUPPORTING_FILES_DIRECTORY,
+            "expand_option": "--expand-all-supporting-files",
+        },
         "required_artifacts": list(REPORT_BUNDLE_REQUIRED_ARTIFACTS),
+        "primary_review_artifact_modes": {
+            "xlsx": _pc_review_model.REVIEW_WORKBOOK_ARTIFACT,
+            "html": _pc_review_model.HTML_REPORT_ARTIFACT,
+            "csv": list(_CSV_PRIMARY_REVIEW_ARTIFACTS),
+        },
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
         "normalization_version": _pc_output_integrity.NORMALIZATION_VERSION,
         "volatile_metadata": list(_pc_output_integrity.VOLATILE_METADATA),
@@ -209,12 +235,74 @@ def write_csv_artifact(table: pl.DataFrame, output_path: Path) -> Path:
     return output_path
 
 
+def compact_supporting_files(
+    bundle_directory: Path,
+    *,
+    promoted_file_names: Sequence[str] = (PROMOTED_SOURCE_DETAIL,),
+) -> dict[str, Path]:
+    """Promote reviewer files and archive a validated supporting directory.
+
+    Args:
+        bundle_directory: Root of a fully written, expanded report bundle.
+        promoted_file_names: Supporting filenames to copy to the bundle root
+            before archiving the complete supporting directory.
+
+    Returns:
+        Paths to the promoted reviewer files and complete supporting ZIP archive.
+
+    Raises:
+        FileNotFoundError: If the expanded supporting directory or a requested
+            promoted artifact is missing.
+    """
+    supporting_directory = bundle_directory / SUPPORTING_FILES_DIRECTORY
+    if not supporting_directory.is_dir():
+        raise FileNotFoundError(f"{supporting_directory} is missing")
+    promoted_paths: dict[str, Path] = {}
+    for file_name in promoted_file_names:
+        supporting_path = supporting_directory / file_name
+        if not supporting_path.is_file():
+            raise FileNotFoundError(f"{supporting_path} is missing")
+        promoted_path = bundle_directory / file_name
+        shutil.copy2(supporting_path, promoted_path)
+        promoted_paths[Path(file_name).stem] = promoted_path
+    archive_path = bundle_directory / AUDIT_SUPPORT_ARCHIVE
+    temporary_archive = archive_path.with_suffix(".zip.tmp")
+    temporary_archive.unlink(missing_ok=True)
+    supporting_paths = sorted(
+        path for path in supporting_directory.rglob("*") if path.is_file()
+    )
+    expected_members = [
+        path.relative_to(bundle_directory).as_posix()
+        for path in supporting_paths
+    ]
+    with zipfile.ZipFile(
+        temporary_archive,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+        compresslevel=1,
+    ) as archive:
+        for path, member_name in zip(
+            supporting_paths,
+            expected_members,
+            strict=True,
+        ):
+            archive.write(path, member_name)
+    with zipfile.ZipFile(temporary_archive) as archive:
+        if archive.namelist() != expected_members:
+            raise OSError("Compact audit archive member inventory does not match")
+    temporary_archive.replace(archive_path)
+    shutil.rmtree(supporting_directory)
+    return {**promoted_paths, "audit_support": archive_path}
+
+
 def write_report_bundle_readme(
     output_path: Path,
     *,
     title: str,
     tables: Mapping[str, pl.DataFrame],
     include_workbook: bool,
+    include_html_output: bool = True,
+    expand_all_supporting_files: bool = False,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> Path:
     """Write a portable report-bundle README.
@@ -224,6 +312,10 @@ def write_report_bundle_readme(
         title: Report title to show as the README heading.
         tables: Named CSV helper tables included in the bundle.
         include_workbook: Whether the bundle includes the XLSX review workbook.
+        include_html_output: Whether the bundle includes the browser HTML
+            review report.
+        expand_all_supporting_files: Whether supporting artifacts are written as
+            individual files instead of a compact ZIP archive.
         comparison_level: Primary performance-result level for presentation.
 
     Returns:
@@ -234,14 +326,42 @@ def write_report_bundle_readme(
     review_workbook_file_name = _pc_review_model.review_workbook_file_name(
         comparison_level
     )
-    first_review_step = (
-        f"1. Open `{review_workbook_file_name}` when present; use "
-        f"`{html_report_file_name}` for browser "
-        f"review. Start with {primary_sheet}."
-        if include_workbook
-        else f"1. Open `{html_report_file_name}`. Start with {primary_sheet}."
-    )
+    csv_only_output = not include_workbook and not include_html_output
+    if include_workbook and include_html_output:
+        first_review_step = (
+            f"1. Open `{review_workbook_file_name}`; use "
+            f"`{html_report_file_name}` for browser review. Start with "
+            f"{primary_sheet}."
+        )
+    elif include_workbook:
+        first_review_step = (
+            f"1. Open `{review_workbook_file_name}`. Start with {primary_sheet}."
+        )
+    elif include_html_output:
+        first_review_step = (
+            f"1. Open `{html_report_file_name}`. Start with {primary_sheet}."
+        )
+    else:
+        first_review_step = (
+            "1. Open `performance_differences.csv` first, then use "
+            "`performance_difference_causes.csv` for the additive explanation."
+        )
     review_unit = _readme_review_unit(comparison_level)
+    source_detail_path = (
+        PROMOTED_SOURCE_DETAIL
+        if csv_only_output or not expand_all_supporting_files
+        else f"{SUPPORTING_FILES_DIRECTORY}/source_detail.csv"
+    )
+    causes_review_artifact = (
+        "`performance_difference_causes.csv`"
+        if csv_only_output
+        else _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
+    )
+    x_ref_review_artifact = (
+        "`x_ref_issues.csv`"
+        if csv_only_output
+        else _pc_review_model.X_REF_ISSUES_SHEET
+    )
     lines = [
         f"# {_escape_readme_text(title)}",
         "",
@@ -250,16 +370,68 @@ def write_report_bundle_readme(
         "## Recommended Review Order",
         "",
         first_review_step,
-        f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
-        f"source-data differences additively explain each {review_unit}.",
+        f"2. Use {causes_review_artifact} "
+        f"to see which source-data differences additively explain each {review_unit}.",
         "   It includes explained causes plus supporting evidence, possible causes, "
         "and Modified Dietz inputs used to review the performance difference.",
-        "   Yellow cells are included in explained performance difference. Gold "
-        "cells are possible causes for remaining unexplained differences.",
-        f"3. Use {_pc_review_model.X_REF_ISSUES_SHEET} to review cross-reference "
+        *(
+            []
+            if csv_only_output
+            else [
+                "   Yellow cells are included in explained performance difference. "
+                "Gold cells are possible causes for remaining unexplained "
+                "differences."
+            ]
+        ),
+        f"3. Use {x_ref_review_artifact} to review cross-reference "
         "consistency checks across the union of Snapshot A and Snapshot B.",
-        f"4. Use `{SUPPORTING_FILES_DIRECTORY}/source_detail.csv` for audit and "
+        f"4. Use `{source_detail_path}` for audit and "
         "troubleshooting; it is the reviewer-friendly finding-level audit trail.",
+    ]
+    if expand_all_supporting_files:
+        lines.extend(_expanded_supporting_files_readme_lines(tables, review_unit))
+    else:
+        lines.extend(
+            _archived_supporting_files_readme_lines(
+                csv_only_output=csv_only_output,
+            )
+        )
+    output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
+    return output_path
+
+
+def _archived_supporting_files_readme_lines(
+    *,
+    csv_only_output: bool,
+) -> list[str]:
+    """Return concise README guidance for the default compact bundle."""
+    lines = [
+        "5. The complete machine-readable audit trail is preserved in "
+        f"`{AUDIT_SUPPORT_ARCHIVE}`.",
+        "",
+        "## Supporting Audit Evidence",
+        "",
+        f"- `{PROMOTED_SOURCE_DETAIL}`: reviewer-friendly finding-level audit trail.",
+        f"- `{AUDIT_SUPPORT_ARCHIVE}`: complete validated supporting bundle, including "
+        "findings, lineage, diagnostics, manifest, and review-handoff metadata.",
+        "- Regenerate with `--expand-all-supporting-files` when individual supporting "
+        "CSV and JSON files are needed.",
+    ]
+    if csv_only_output:
+        lines[4:4] = [
+            "- `performance_differences.csv`, "
+            "`performance_difference_causes.csv`, and `x_ref_issues.csv`: "
+            "primary CSV review files.",
+        ]
+    return lines
+
+
+def _expanded_supporting_files_readme_lines(
+    tables: Mapping[str, pl.DataFrame],
+    review_unit: str,
+) -> list[str]:
+    """Return detailed README guidance for an expanded supporting bundle."""
+    return [
         f"5. Use the `review_key` column to follow a {review_unit} across the "
         f"`{SUPPORTING_FILES_DIRECTORY}/` CSV artifacts.",
         f"6. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv`, "
@@ -267,13 +439,11 @@ def write_report_bundle_readme(
         f"`{SUPPORTING_FILES_DIRECTORY}/flow_cross_check_reconciliation.csv` for "
         "supplementary transaction and external-flow diagnostics.",
         f"   Use `{SUPPORTING_FILES_DIRECTORY}/transaction_matching_diagnostics.csv` "
-        "only when auditing "
-        "transaction row-identity evidence; it reports conservative matching "
-        "status and does not imply fuzzy transaction linkage.",
+        "only when auditing transaction row-identity evidence; it reports "
+        "conservative matching status and does not imply fuzzy transaction linkage.",
         f"7. Use `{SUPPORTING_FILES_DIRECTORY}/review_summary.json` when handing the "
         "bundle to another reviewer or automation. It names the Modified Dietz "
-        "vocabulary, entrypoints, source context, and transaction-semantics "
-        "summary in one compact file.",
+        "vocabulary, entrypoints, source context, and transaction-semantics summary.",
         "",
         "## Audit/Export Files",
         "",
@@ -281,16 +451,13 @@ def write_report_bundle_readme(
         "comparison output, including suppressed rows and explicit safety "
         "dispositions.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/source_detail.csv`: reviewer-friendly "
-        "finding-level audit trail formerly rendered in HTML and XLSX.",
+        "finding-level audit trail.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/manifest.json`: machine-readable artifact "
         "map, source context, transaction semantics summary, and row-count metadata.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/review_summary.json`: compact reviewer "
-        "handoff summary with Modified Dietz vocabulary, entrypoints, source "
-        "context, counts, and transaction semantics.",
+        "handoff summary.",
         *_report_bundle_readme_table_lines(tables),
     ]
-    output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
-    return output_path
 
 
 def _readme_review_unit(comparison_level: str) -> str:
@@ -313,11 +480,15 @@ def write_report_bundle_manifest(
     active_findings: pl.DataFrame,
     title: str,
     top_evidence_limit: int,
+    include_workbook: bool = False,
+    include_html_output: bool = True,
     include_reconstruction_diagnostics: bool = False,
+    expand_all_supporting_files: bool = True,
     comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
     review_sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
+    finding_audit_trail: pl.DataFrame | None = None,
     bundle_root: Path | None = None,
 ) -> Path:
     """Write a report-bundle JSON manifest.
@@ -328,15 +499,20 @@ def write_report_bundle_manifest(
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
         top_evidence_limit: Maximum number of evidence rows shown per period.
+        include_workbook: Whether the XLSX primary review artifact is included.
+        include_html_output: Whether the HTML primary review artifact is included.
         include_reconstruction_diagnostics: Whether optional return
             reconstruction diagnostic sections and CSV artifacts are included in
             the bundle.
+        expand_all_supporting_files: Whether the persisted supporting artifacts
+            remain expanded after validation.
         comparison_path: Optional comparison YAML path used to generate the
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
         review_sheets: Canonical internal tables shared by HTML, XLSX, and the
             review-sheet CSV artifacts.
+        finding_audit_trail: Optional precomputed complete finding audit trail.
         bundle_root: Report bundle root directory used for manifest-relative
             artifact references. Defaults to the manifest output directory.
 
@@ -348,11 +524,15 @@ def write_report_bundle_manifest(
         active_findings=active_findings,
         title=title,
         top_evidence_limit=top_evidence_limit,
+        include_workbook=include_workbook,
+        include_html_output=include_html_output,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        expand_all_supporting_files=expand_all_supporting_files,
         comparison_path=comparison_path,
         artifact_paths=artifact_paths,
         tables=tables,
         review_sheets=review_sheets,
+        finding_audit_trail=finding_audit_trail,
         bundle_root=bundle_root or output_path.parent,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -420,11 +600,15 @@ def report_bundle_manifest(
     active_findings: pl.DataFrame,
     title: str,
     top_evidence_limit: int,
+    include_workbook: bool = False,
+    include_html_output: bool = True,
     include_reconstruction_diagnostics: bool = False,
+    expand_all_supporting_files: bool = True,
     comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
     review_sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
+    finding_audit_trail: pl.DataFrame | None = None,
     bundle_root: Path | None = None,
 ) -> dict[str, object]:
     """Return JSON-serializable metadata for a report bundle.
@@ -434,13 +618,18 @@ def report_bundle_manifest(
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
         top_evidence_limit: Maximum number of evidence rows shown per period.
+        include_workbook: Whether the XLSX primary review artifact is included.
+        include_html_output: Whether the HTML primary review artifact is included.
         include_reconstruction_diagnostics: Whether interim reconstruction
             diagnostics are included in the bundle.
+        expand_all_supporting_files: Whether supporting artifacts remain expanded
+            instead of being stored in the compact archive.
         comparison_path: Optional comparison YAML path used to generate the
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
         review_sheets: Canonical internal tables shared by review formats.
+        finding_audit_trail: Optional precomputed complete finding audit trail.
         bundle_root: Report bundle root directory used for manifest-relative
             artifact references. Defaults to the current directory.
 
@@ -452,7 +641,11 @@ def report_bundle_manifest(
         artifact_paths,
         bundle_root=bundle_root or Path("."),
     )
-    persisted_findings = _pc_conservation.finding_audit_trail(findings)
+    persisted_findings = (
+        _pc_conservation.finding_audit_trail(findings)
+        if finding_audit_trail is None
+        else finding_audit_trail
+    )
     manifest = {
         "bundle_type": "performance_comparison_report",
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
@@ -460,7 +653,10 @@ def report_bundle_manifest(
         "title": title,
         "options": {
             "top_evidence_limit": top_evidence_limit,
+            "include_workbook": include_workbook,
+            "include_html_output": include_html_output,
             "include_reconstruction_diagnostics": include_reconstruction_diagnostics,
+            "expand_all_supporting_files": expand_all_supporting_files,
         },
         "source_context": _report_bundle_source_context(comparison_path),
         "counts": {
@@ -569,11 +765,18 @@ def _report_bundle_review_entrypoints(
         )
         if name in artifacts
     ]
+    primary_review: object = artifacts.get(
+        _pc_review_model.REVIEW_WORKBOOK_ARTIFACT,
+        artifacts.get(_pc_review_model.HTML_REPORT_ARTIFACT),
+    )
+    if primary_review is None:
+        primary_review = [
+            artifacts[name]
+            for name in _CSV_PRIMARY_REVIEW_ARTIFACTS
+            if name in artifacts
+        ]
     entrypoints: dict[str, object] = {
-        "primary_review": artifacts.get(
-            _pc_review_model.REVIEW_WORKBOOK_ARTIFACT,
-            artifacts.get("html_report"),
-        ),
+        "primary_review": primary_review,
         "period_triage": artifacts.get("needs_review_summary"),
         "formula_input_causes": artifacts.get("cause_summary"),
         "supporting_context": artifacts.get("context_evidence_summary"),
@@ -594,11 +797,20 @@ def _report_bundle_review_entrypoints(
     return entrypoints
 
 
-def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str]:
+def report_bundle_validation_issues(
+    bundle_directory: util.PathLike,
+    *,
+    include_output_parity: bool = True,
+) -> list[str]:
     """Return validation issues for a generated report bundle.
 
     Args:
         bundle_directory: Directory containing a generated report bundle.
+        include_output_parity: Whether to independently reparse every persisted
+            CSV, HTML table, and XLSX sheet. Generation can disable this expensive
+            cross-format pass because it already enforces financial and workbook
+            invariants before serialization. Standalone validation retains the
+            complete parity pass by default.
 
     Returns:
         Human-readable validation issues. An empty list means validation passed.
@@ -606,7 +818,118 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
     bundle_path = Path(bundle_directory)
     manifest_path = bundle_path / SUPPORTING_FILES_DIRECTORY / "manifest.json"
     if not manifest_path.exists():
-        return [f"{SUPPORTING_FILES_DIRECTORY}/manifest.json is missing"]
+        archive_path = bundle_path / AUDIT_SUPPORT_ARCHIVE
+        if not archive_path.is_file():
+            return [
+                f"{SUPPORTING_FILES_DIRECTORY}/manifest.json and "
+                f"{AUDIT_SUPPORT_ARCHIVE} are missing"
+            ]
+        return _archived_report_bundle_validation_issues(
+            bundle_path,
+            archive_path,
+            include_output_parity=include_output_parity,
+        )
+
+    return _expanded_report_bundle_validation_issues(
+        bundle_path,
+        manifest_path,
+        include_output_parity=include_output_parity,
+    )
+
+
+def _archived_report_bundle_validation_issues(
+    bundle_path: Path,
+    archive_path: Path,
+    *,
+    include_output_parity: bool,
+) -> list[str]:
+    """Validate a compact bundle through a safely expanded temporary copy."""
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            expanded_path = Path(directory)
+            with zipfile.ZipFile(archive_path) as archive:
+                unsafe_member = next(
+                    (
+                        member.filename
+                        for member in archive.infolist()
+                        if not _safe_supporting_archive_member(member.filename)
+                    ),
+                    None,
+                )
+                if unsafe_member is not None:
+                    return [
+                        f"{AUDIT_SUPPORT_ARCHIVE} contains unsafe path "
+                        f"{unsafe_member!r}"
+                    ]
+                archive.extractall(expanded_path)
+            for path in bundle_path.iterdir():
+                if path.is_file() and path.name != AUDIT_SUPPORT_ARCHIVE:
+                    shutil.copy2(path, expanded_path / path.name)
+            manifest_path = (
+                expanded_path / SUPPORTING_FILES_DIRECTORY / "manifest.json"
+            )
+            if not manifest_path.is_file():
+                return [
+                    f"{AUDIT_SUPPORT_ARCHIVE} does not contain "
+                    f"{SUPPORTING_FILES_DIRECTORY}/manifest.json"
+                ]
+            if not (bundle_path / PROMOTED_SOURCE_DETAIL).is_file():
+                return [f"promoted {PROMOTED_SOURCE_DETAIL} is missing"]
+            promoted_issues = _promoted_csv_archive_issues(
+                bundle_path,
+                expanded_path,
+            )
+            if promoted_issues:
+                return promoted_issues
+            return _expanded_report_bundle_validation_issues(
+                expanded_path,
+                manifest_path,
+                include_output_parity=include_output_parity,
+            )
+    except (OSError, zipfile.BadZipFile) as error:
+        return [f"{AUDIT_SUPPORT_ARCHIVE} cannot be read: {error}"]
+
+
+def _promoted_csv_archive_issues(
+    bundle_path: Path,
+    expanded_path: Path,
+) -> list[str]:
+    """Return parity issues between promoted CSVs and their archived copies."""
+    for promoted_path in sorted(bundle_path.glob("*.csv")):
+        archived_path = (
+            expanded_path / SUPPORTING_FILES_DIRECTORY / promoted_path.name
+        )
+        if not archived_path.is_file():
+            return [
+                f"{AUDIT_SUPPORT_ARCHIVE} does not contain "
+                f"{SUPPORTING_FILES_DIRECTORY}/{promoted_path.name}"
+            ]
+        if promoted_path.read_bytes() != archived_path.read_bytes():
+            return [
+                f"promoted {promoted_path.name} does not match "
+                f"{AUDIT_SUPPORT_ARCHIVE}"
+            ]
+    return []
+
+
+def _safe_supporting_archive_member(member_name: str) -> bool:
+    """Return whether a ZIP member stays within ``supporting_files``."""
+    path = Path(member_name)
+    return (
+        not path.is_absolute()
+        and ".." not in path.parts
+        and bool(path.parts)
+        and path.parts[0] == SUPPORTING_FILES_DIRECTORY
+    )
+
+
+def _expanded_report_bundle_validation_issues(
+    bundle_path: Path,
+    manifest_path: Path,
+    *,
+    include_output_parity: bool = True,
+) -> list[str]:
+    """Return validation issues for an expanded report bundle."""
 
     manifest = _read_report_bundle_manifest(manifest_path)
     if manifest is None:
@@ -617,6 +940,7 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
     artifacts = _manifest_mapping(manifest, "artifacts")
     tables = _manifest_mapping(manifest, "tables")
     issues.extend(_report_bundle_artifact_issues(bundle_path, artifacts))
+    issues.extend(_report_bundle_output_mode_issues(manifest, artifacts))
     issues.extend(_report_bundle_review_entrypoint_issues(manifest, artifacts))
     issues.extend(_report_bundle_source_context_issues(manifest))
     issues.extend(_report_bundle_transaction_semantics_issues(manifest))
@@ -624,14 +948,15 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
     issues.extend(_report_bundle_table_issues(bundle_path, artifacts, tables))
     issues.extend(_report_bundle_lineage_issues(bundle_path, artifacts))
     issues.extend(_report_bundle_workbook_issues(bundle_path, artifacts))
-    issues.extend(
-        _pc_output_integrity.report_bundle_output_integrity_issues(
-            bundle_path,
-            manifest,
-            artifacts,
-            tables,
+    if include_output_parity:
+        issues.extend(
+            _pc_output_integrity.report_bundle_output_integrity_issues(
+                bundle_path,
+                manifest,
+                artifacts,
+                tables,
+            )
         )
-    )
     return issues
 
 
@@ -718,6 +1043,63 @@ def _report_bundle_artifact_issues(
             continue
         if not (bundle_path / artifact_file).is_file():
             issues.append(f"artifact file {artifact_file!r} is missing")
+    return issues
+
+
+def _report_bundle_output_mode_issues(
+    manifest: Mapping[str, object],
+    artifacts: Mapping[str, object],
+) -> list[str]:
+    """Return manifest option and primary-artifact consistency issues."""
+    options = _manifest_mapping(manifest, "options")
+    issues: list[str] = []
+    resolved_modes: dict[str, bool] = {}
+    for option_name, artifact_name in (
+        ("include_workbook", _pc_review_model.REVIEW_WORKBOOK_ARTIFACT),
+        ("include_html_output", _pc_review_model.HTML_REPORT_ARTIFACT),
+    ):
+        option_value = options.get(option_name)
+        if not isinstance(option_value, bool):
+            issues.append(f"manifest option {option_name!r} is missing or malformed")
+            continue
+        resolved_modes[option_name] = option_value
+        artifact_is_declared = bool(artifacts.get(artifact_name))
+        if option_value != artifact_is_declared:
+            issues.append(
+                f"manifest option {option_name!r} does not match artifact "
+                f"{artifact_name!r}"
+            )
+    if len(resolved_modes) != 2:
+        return issues
+
+    include_workbook = resolved_modes["include_workbook"]
+    include_html_output = resolved_modes["include_html_output"]
+    entrypoints = _manifest_mapping(manifest, "review_entrypoints")
+    if include_workbook:
+        expected_primary_review: object = artifacts.get(
+            _pc_review_model.REVIEW_WORKBOOK_ARTIFACT
+        )
+    elif include_html_output:
+        expected_primary_review = artifacts.get(
+            _pc_review_model.HTML_REPORT_ARTIFACT
+        )
+    else:
+        expected_primary_review = [
+            f"{artifact_name}.csv"
+            for artifact_name in _CSV_PRIMARY_REVIEW_ARTIFACTS
+        ]
+        for artifact_name, expected_reference in zip(
+            (*_CSV_PRIMARY_REVIEW_ARTIFACTS, "source_detail"),
+            (*expected_primary_review, PROMOTED_SOURCE_DETAIL),
+            strict=True,
+        ):
+            if artifacts.get(artifact_name) != expected_reference:
+                issues.append(
+                    f"CSV-only artifact {artifact_name!r} must be promoted as "
+                    f"{expected_reference!r}"
+                )
+    if entrypoints.get("primary_review") != expected_primary_review:
+        issues.append("manifest primary_review does not match selected output modes")
     return issues
 
 

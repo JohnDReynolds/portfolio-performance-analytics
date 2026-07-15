@@ -51,6 +51,14 @@ class SplitsLoader:
         )
         if path is None or not util.file_path_exists(path):
             return None
+        cached = source_loader.cached_normalized_frame(
+            self._specification.path,
+            pc_cols.SPLITS,
+            snapshot_key,
+            path,
+        )
+        if cached is not None:
+            return cached
 
         frame = source_loader.read_mapped_csv(
             path,
@@ -62,10 +70,17 @@ class SplitsLoader:
         ).with_columns(
             pl.col(pc_cols.SPLIT_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
-        return source_loader.require_numeric_columns(
+        frame = source_loader.require_numeric_columns(
             frame,
             columns=(pc_cols.SPLIT_FACTOR,),
             dataset_name=pc_cols.SPLITS,
             path=path,
             specification_path=self._specification.path,
+        )
+        return source_loader.cache_normalized_frame(
+            self._specification.path,
+            pc_cols.SPLITS,
+            snapshot_key,
+            path,
+            frame,
         )

@@ -346,7 +346,8 @@ class TestPackageMetadata(unittest.TestCase):
         normalized_axys_readme = " ".join(axys_readme.split())
 
         self.assertIn("portfolio_audit.xlsx", root_readme)
-        self.assertIn("security_audit.html", root_readme)
+        self.assertIn("--no-xlsx-output", root_readme)
+        self.assertIn("--no-html-output", root_readme)
         self.assertNotIn("Open `portfolio_audit.xlsx` when present", root_readme)
         self.assertNotIn("CSV artifacts support audit traceability", root_readme)
         self.assertIn("html audit for browser review", axys_readme.lower())
@@ -680,7 +681,9 @@ class TestPackageMetadata(unittest.TestCase):
             "The YAML files are the main configuration and onboarding surface.",
             "`Performance Differences`",
             "`Performance Difference Causes`",
-            "`supporting_files/source_detail.csv`",
+            "`source_detail.csv`",
+            "`audit_support.zip`",
+            "`--expand-all-supporting-files`",
             "Keep new docs rare.",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -1798,6 +1801,7 @@ class TestPackageMetadata(unittest.TestCase):
             "--include-generic-data-generation",
             "--write-packaged-assets",
             "--verbose",
+            "500x Analytics/Audit scale regression",
             "`--build` adds a package-build check",
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
@@ -1817,7 +1821,9 @@ class TestPackageMetadata(unittest.TestCase):
             "package-root exports",
             "`Performance Differences`",
             "`Performance Difference Causes`",
-            "`supporting_files/source_detail.csv`",
+            "`source_detail.csv`",
+            "`audit_support.zip`",
+            "`--expand-all-supporting-files`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
@@ -1891,7 +1897,9 @@ class TestPackageMetadata(unittest.TestCase):
             "complete YAML treatment",
             "`Performance Differences` sheet",
             "`Performance Difference Causes` sheet",
-            "`supporting_files/source_detail.csv`",
+            "`source_detail.csv`",
+            "`audit_support.zip`",
+            "`--expand-all-supporting-files`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",

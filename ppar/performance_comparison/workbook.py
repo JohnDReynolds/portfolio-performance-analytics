@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 import datetime as dt
 import math
@@ -48,6 +48,54 @@ _DATE_COLUMNS = {
     "begin_value_date_b",
     "end_value_date_a",
     "end_value_date_b",
+}
+_NUMERIC_COLUMNS = {
+    pc_cols.PORTFOLIO_RETURN,
+    pc_cols.SECURITY_RETURN,
+    "change",
+    "difference",
+    "value_a",
+    "value_b",
+    "performance_change",
+    "estimated_cause_total",
+    "unexplained_change",
+    "estimated_impact",
+    _pc_findings.SNAPSHOT_A_VALUE,
+    _pc_findings.SNAPSHOT_B_VALUE,
+    _pc_findings.DELTA_B_MINUS_A,
+    _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
+    _pc_explain.PORTFOLIO_RETURN_DELTA,
+    _pc_explain.SECURITY_RETURN_DELTA,
+    _pc_explain.ESTIMATED_RETURN_IMPACT,
+    _pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL,
+    "reported_return_a",
+    "reported_return_b",
+    "reported_return_difference",
+    "derived_return_a",
+    "derived_return_b",
+    "derived_return_difference",
+    "reconstruction_difference",
+    "derived_numerator_a",
+    "derived_numerator_b",
+    "derived_numerator_difference",
+    "derived_denominator_a",
+    "derived_denominator_b",
+    "derived_denominator_difference",
+    "begin_value_a",
+    "begin_value_b",
+    "begin_value_difference",
+    "end_value_a",
+    "end_value_b",
+    "end_value_difference",
+    "net_flow_a",
+    "net_flow_b",
+    "net_flow_difference",
+    "weighted_flow_a",
+    "weighted_flow_b",
+    "weighted_flow_difference",
+    "income_a",
+    "income_b",
+    "income_difference",
 }
 _IDENTIFIER_COLUMNS = {
     "dataset_field",
@@ -445,6 +493,14 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
     )
 
 
+def _column_letter(column_number: int) -> str:
+    """Return an Excel column letter for the small review-sheet column range."""
+    if column_number <= 26:
+        return chr(ord("A") + column_number - 1)
+    quotient, remainder = divmod(column_number - 1, 26)
+    return f"{chr(ord('A') + quotient - 1)}{chr(ord('A') + remainder)}"
+
+
 def _add_workbook_sheet(
     workbook: Any,
     sheet: ReviewWorkbookSheet,
@@ -460,15 +516,12 @@ def _add_workbook_sheet(
         for column in columns
     ]
     worksheet.append(headers)
-    row_values: list[Mapping[str, object]] = []
-    for row in table.iter_rows(named=True):
-        row_values.append(row)
-        worksheet.append(
-            [
-                _workbook_cell_value(row[column], column_name=column)
-                for column in columns
-            ]
-        )
+    max_widths = _append_and_format_workbook_data_rows(
+        worksheet,
+        columns,
+        table.iter_rows(named=True),
+        styles,
+    )
 
     worksheet.freeze_panes = "A2"
     max_column_letter = worksheet.cell(row=1, column=len(columns)).column_letter
@@ -478,26 +531,7 @@ def _add_workbook_sheet(
         cell.fill = styles["header_fill"]
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
-    _format_workbook_data_cells(worksheet, columns, row_values, styles)
-    _format_data_audit_explanation(worksheet, columns, styles)
-    _format_workbook_columns(worksheet, columns, headers)
-
-
-def _format_data_audit_explanation(
-    worksheet: Any,
-    columns: Sequence[str],
-    styles: Mapping[str, Any],
-) -> None:
-    """Wrap the bounded Explanation column on the Data Audit Issues sheet."""
-    if worksheet.title != _pc_review_model.X_REF_ISSUES_SHEET:
-        return
-    explanation_column = _workbook_column_index(columns, "explanation")
-    if explanation_column is None:
-        return
-    for row_index in range(2, worksheet.max_row + 1):
-        worksheet.cell(row=row_index, column=explanation_column).alignment = styles[
-            "wrapped_alignment"
-        ]
+    _format_workbook_columns(worksheet, columns, headers, max_widths)
 
 
 def _workbook_sheet_columns(sheet: ReviewWorkbookSheet) -> tuple[str, ...]:
@@ -523,7 +557,7 @@ def _excel_header_label(header: str) -> str:
     return _EXCEL_HEADER_LINE_BREAKS.get(header, header)
 
 
-def _workbook_cell_value(value: object, *, column_name: str) -> object:
+def _workbook_cell_value(value: object) -> object:
     """Return a scalar value suitable for openpyxl cells."""
     if isinstance(value, bool) or value is None:
         return value
@@ -550,43 +584,90 @@ def _workbook_number_from_text(value: str) -> float | None:
         numeric_value = float(stripped_value)
     except ValueError:
         return None
-    if numeric_value in {float("inf"), float("-inf")} or numeric_value != numeric_value:
+    if not math.isfinite(numeric_value):
         return None
     return round(numeric_value, 6)
 
 
-def _format_workbook_data_cells(
+def _append_and_format_workbook_data_rows(
     worksheet: Any,
     columns: Sequence[str],
-    row_values: Sequence[Mapping[str, object]],
+    row_values: Iterable[Mapping[str, object]],
     styles: Mapping[str, Any],
-) -> None:
-    """Apply row-level emphasis for reviewer-facing workbook values."""
+) -> list[int]:
+    """Append and format data rows, returning maximum widths by column.
+
+    Notes:
+        Large audit workbooks can contain hundreds of thousands of cells. A
+        single pass avoids revisiting the entire worksheet after appending it.
+        Column roles are invariant, so they are resolved once per sheet rather
+        than once for every cell.
+    """
     explained_column = _workbook_column_index(columns, "estimated_impact")
     explanation_column = _workbook_column_index(columns, "review_guidance")
+    data_audit_explanation_column = (
+        _workbook_column_index(columns, "explanation")
+        if worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
+        else None
+    )
     review_needed_columns = tuple(
         column_index
         for column in _REVIEW_NEEDED_COLUMNS
         if (column_index := _workbook_column_index(columns, column)) is not None
     )
-    for row_offset, row in enumerate(row_values, start=2):
+    date_columns = tuple(
+        column_index
+        for column_index, column_name in enumerate(columns, start=1)
+        if _is_workbook_date_column(column_name)
+    )
+    numeric_columns = tuple(
+        column_index
+        for column_index, column_name in enumerate(columns, start=1)
+        if _is_workbook_numeric_column(column_name)
+    )
+    max_widths = [0] * len(columns)
+    for row_number, row in enumerate(row_values, start=2):
+        values = tuple(
+            _workbook_cell_value(row[column])
+            for column in columns
+        )
+        worksheet.append(values)
+        for column_offset, value in enumerate(values):
+            display_width = len(_format_value(value))
+            if display_width > max_widths[column_offset]:
+                max_widths[column_offset] = display_width
+        for column_index in date_columns:
+            worksheet.cell(row=row_number, column=column_index).number_format = (
+                "yyyy-mm-dd"
+            )
+        for column_index in numeric_columns:
+            if isinstance(values[column_index - 1], (int, float)):
+                worksheet.cell(row=row_number, column=column_index).number_format = (
+                    WORKBOOK_NUMBER_FORMAT
+                )
+        if data_audit_explanation_column is not None:
+            worksheet.cell(
+                row=row_number,
+                column=data_audit_explanation_column,
+            ).alignment = styles["wrapped_alignment"]
         row_type_value = row.get("row_type")
         if row_type_value == "Explained Cause":
             for column_index in (explained_column, explanation_column):
                 if column_index is not None:
-                    worksheet.cell(row=row_offset, column=column_index).fill = styles[
+                    worksheet.cell(row=row_number, column=column_index).fill = styles[
                         "explained_cause_fill"
                     ]
         elif row_type_value == "Possible Cause":
             if explanation_column is not None:
-                worksheet.cell(row=row_offset, column=explanation_column).fill = styles[
+                worksheet.cell(row=row_number, column=explanation_column).fill = styles[
                     "possible_cause_fill"
                 ]
         if row.get("review_status") in _REVIEW_NEEDED_STATUSES:
             for column_index in review_needed_columns:
-                worksheet.cell(row=row_offset, column=column_index).fill = styles[
+                worksheet.cell(row=row_number, column=column_index).fill = styles[
                     "explained_cause_fill"
                 ]
+    return max_widths
 
 
 def _workbook_column_index(
@@ -604,30 +685,14 @@ def _format_workbook_columns(
     worksheet: Any,
     columns: Sequence[str],
     headers: Sequence[str],
+    max_widths: Sequence[int],
 ) -> None:
-    """Apply readable widths and common number formats to a worksheet."""
-    for column_index, (column_name, header) in enumerate(zip(columns, headers), start=1):
-        column_letter = worksheet.cell(row=1, column=column_index).column_letter
-        max_width = 0
-        for row_index in range(2, worksheet.max_row + 1):
-            cell = worksheet.cell(row=row_index, column=column_index)
-            max_width = max(max_width, len(_format_value(cell.value)))
-            if column_name in {
-                _pc_findings.FROM_DATE,
-                _pc_findings.THRU_DATE,
-                _pc_findings.INPUT_DATE,
-                "as_of_date",
-                "begin_value_date_a",
-                "begin_value_date_b",
-                "end_value_date_a",
-                "end_value_date_b",
-            }:
-                cell.number_format = "yyyy-mm-dd"
-            elif _is_workbook_numeric_column(column_name) and isinstance(
-                cell.value,
-                (int, float),
-            ):
-                cell.number_format = WORKBOOK_NUMBER_FORMAT
+    """Apply readable widths calculated during the data-cell formatting pass."""
+    for column_index, (column_name, header, max_width) in enumerate(
+        zip(columns, headers, max_widths),
+        start=1,
+    ):
+        column_letter = _column_letter(column_index)
         if (
             worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
             and column_name == "explanation"
@@ -652,57 +717,14 @@ def _format_workbook_columns(
             )
 
 
+def _is_workbook_date_column(column_name: str) -> bool:
+    """Return whether a workbook column should use the ISO date format."""
+    return column_name in _DATE_COLUMNS
+
+
 def _is_workbook_numeric_column(column_name: str) -> bool:
     """Return whether a workbook column should use the general numeric format."""
-    normalized_name = column_name.lower()
-    return normalized_name in {
-        pc_cols.PORTFOLIO_RETURN,
-        pc_cols.SECURITY_RETURN,
-        "change",
-        "difference",
-        "value_a",
-        "value_b",
-        "performance_change",
-        "estimated_cause_total",
-        "unexplained_change",
-        "estimated_impact",
-        _pc_findings.SNAPSHOT_A_VALUE,
-        _pc_findings.SNAPSHOT_B_VALUE,
-        _pc_findings.DELTA_B_MINUS_A,
-        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
-        _pc_explain.PORTFOLIO_RETURN_DELTA,
-        _pc_explain.SECURITY_RETURN_DELTA,
-        _pc_explain.ESTIMATED_RETURN_IMPACT,
-        _pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL,
-        "reported_return_a",
-        "reported_return_b",
-        "reported_return_difference",
-        "derived_return_a",
-        "derived_return_b",
-        "derived_return_difference",
-        "reconstruction_difference",
-        "derived_numerator_a",
-        "derived_numerator_b",
-        "derived_numerator_difference",
-        "derived_denominator_a",
-        "derived_denominator_b",
-        "derived_denominator_difference",
-        "begin_value_a",
-        "begin_value_b",
-        "begin_value_difference",
-        "end_value_a",
-        "end_value_b",
-        "end_value_difference",
-        "net_flow_a",
-        "net_flow_b",
-        "net_flow_difference",
-        "weighted_flow_a",
-        "weighted_flow_b",
-        "weighted_flow_difference",
-        "income_a",
-        "income_b",
-        "income_difference",
-    }
+    return column_name.lower() in _NUMERIC_COLUMNS
 
 
 def _workbook_column_width_cap(column_name: str) -> int:

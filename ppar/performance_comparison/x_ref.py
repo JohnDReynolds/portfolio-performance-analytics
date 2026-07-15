@@ -9,7 +9,7 @@ of both snapshots.
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 import datetime as dt
 from typing import Any, Final
@@ -99,6 +99,13 @@ _ISSUE_SCHEMA: Final[dict[str, type[pl.DataType]]] = {
     REVIEW_KEY: pl.String,
 }
 
+_CONTINUITY_PRIOR_THRU_DATE: Final[str] = "__ppar_continuity_prior_thru_date"
+_CONTINUITY_PRIOR_END_VALUE: Final[str] = "__ppar_continuity_prior_end_value"
+_CONTINUITY_CURRENT_BEGIN_VALUE: Final[str] = (
+    "__ppar_continuity_current_begin_value"
+)
+_CONTINUITY_THRESHOLD: Final[str] = "__ppar_continuity_threshold"
+
 
 @dataclass(frozen=True)
 class _Tolerance:
@@ -129,6 +136,37 @@ class _Tolerance:
         if len(parts) == 1:
             return parts[0]
         return f"greater of {parts[0]} or {parts[1]}"
+
+
+@dataclass(frozen=True)
+class _RowFilter:
+    """Precompiled include/exclude filters for one data-audit check.
+
+    Attributes:
+        only: Filters that every row must match.
+        exclude: Filters where any match excludes the row.
+
+    Notes:
+        YAML filter normalization is invariant for a check. Compiling it once
+        avoids repeating that work for every source row at large sites.
+    """
+
+    only: tuple[tuple[str, frozenset[str]], ...]
+    exclude: tuple[tuple[str, frozenset[str]], ...]
+
+    def allows(self, row: Mapping[str, object]) -> bool:
+        """Return whether one row passes the compiled filters."""
+        if self.only and not all(
+            _text(row.get(column_name)).lower() in values
+            for column_name, values in self.only
+        ):
+            return False
+        if not self.exclude:
+            return True
+        return not any(
+            _text(row.get(column_name)).lower() in values
+            for column_name, values in self.exclude
+        )
 
 
 def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
@@ -176,12 +214,14 @@ def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     )
     if not _config_enabled(config):
         return _issues_table(rows)
-    rows.extend(_duplicate_transaction_issues(transactions, config))
-    rows.extend(_holding_price_range_issues(holdings, config))
-    rows.extend(_transaction_price_range_issues(transactions, config))
-    rows.extend(_same_day_rate_issues(transactions, holdings, config))
-    rows.extend(_missing_dividend_issues(holdings, transactions, config))
-    rows.extend(_holdings_accrued_rate_issues(holdings, config))
+    transaction_rows = _snapshot_rows(transactions)
+    holding_rows = _snapshot_rows(holdings)
+    rows.extend(_duplicate_transaction_issues(transaction_rows, config))
+    rows.extend(_holding_price_range_issues(holding_rows, config))
+    rows.extend(_transaction_price_range_issues(transaction_rows, config))
+    rows.extend(_same_day_rate_issues(transaction_rows, holding_rows, config))
+    rows.extend(_missing_dividend_issues(holding_rows, transaction_rows, config))
+    rows.extend(_holdings_accrued_rate_issues(holding_rows, config))
     return _issues_table(rows)
 
 
@@ -209,65 +249,125 @@ def _market_value_continuity_issues(
     if dataset_name == pc_cols.SECURITY_PERFORMANCE:
         grouping_columns.append(pc_cols.SECURITY_ID)
 
+    candidates = _market_value_continuity_candidates(
+        performance_frames,
+        grouping_columns,
+        tolerance,
+    )
     rows: list[dict[str, object]] = []
+    for current in candidates.iter_rows(named=True):
+        current_from = _date(current.get(pc_cols.FROM_DATE))
+        prior_end = _number(current.get(_CONTINUITY_PRIOR_END_VALUE))
+        current_begin = _number(current.get(_CONTINUITY_CURRENT_BEGIN_VALUE))
+        assert current_from is not None
+        assert prior_end is not None
+        assert current_begin is not None
+        difference = current_begin - prior_end
+        security_id = _text(current.get(pc_cols.SECURITY_ID))
+        scope = f"portfolio {current.get(pc_cols.PORTFOLIO_ID)}"
+        if security_id:
+            scope += f", security {security_id}"
+        rows.append(
+            _issue_row(
+                snapshot=_text(current.get(SNAPSHOT)),
+                portfolio_id=_text(current.get(pc_cols.PORTFOLIO_ID)),
+                as_of_date=current_from,
+                dataset_field=(
+                    f"{dataset_name}.end_market_value -> "
+                    f"{dataset_name}.begin_market_value"
+                ),
+                security_id=security_id,
+                issue_type=issue_type,
+                value_a=prior_end,
+                value_b=current_begin,
+                difference=difference,
+                tolerance=tolerance.description(),
+                explanation=(
+                    f"SN-04 continuity mismatch for {scope}: prior ending "
+                    f"market value {prior_end:,.2f} does not equal next "
+                    f"beginning market value {current_begin:,.2f}."
+                ),
+            )
+        )
+    return rows
+
+
+def _market_value_continuity_candidates(
+    performance_frames: Iterable[pl.DataFrame],
+    grouping_columns: Sequence[str],
+    tolerance: _Tolerance,
+) -> pl.DataFrame:
+    """Return consecutive-period market-value mismatches from one lazy plan."""
+    candidate_plans: list[pl.LazyFrame] = []
+    sort_columns = [
+        *grouping_columns,
+        pc_cols.FROM_DATE,
+        pc_cols.THRU_DATE,
+    ]
     for frame in performance_frames:
         if not {
             pc_cols.BEGIN_MARKET_VALUE,
             pc_cols.END_MARKET_VALUE,
         }.issubset(frame.columns):
             continue
-        groups = frame.partition_by(grouping_columns, maintain_order=True)
-        for group in groups:
-            ordered_rows = sorted(
-                group.iter_rows(named=True),
-                key=lambda row: (
-                    _date(row.get(pc_cols.FROM_DATE)) or dt.date.min,
-                    _date(row.get(pc_cols.THRU_DATE)) or dt.date.min,
-                ),
+        security_id = (
+            pl.col(pc_cols.SECURITY_ID)
+            if pc_cols.SECURITY_ID in frame.columns
+            else pl.lit(None, dtype=pl.String)
+        )
+        candidate_plans.append(
+            frame.lazy()
+            .sort(sort_columns, nulls_last=False)
+            .with_columns(
+                pl.col(pc_cols.THRU_DATE)
+                .shift(1)
+                .over(grouping_columns)
+                .alias(_CONTINUITY_PRIOR_THRU_DATE),
+                pl.col(pc_cols.END_MARKET_VALUE)
+                .shift(1)
+                .over(grouping_columns)
+                .cast(pl.Float64, strict=False)
+                .alias(_CONTINUITY_PRIOR_END_VALUE),
+                pl.col(pc_cols.BEGIN_MARKET_VALUE)
+                .cast(pl.Float64, strict=False)
+                .alias(_CONTINUITY_CURRENT_BEGIN_VALUE),
             )
-            for prior, current in zip(ordered_rows, ordered_rows[1:]):
-                prior_thru = _date(prior.get(pc_cols.THRU_DATE))
-                current_from = _date(current.get(pc_cols.FROM_DATE))
-                if (
-                    prior_thru is None
-                    or current_from is None
-                    or current_from != prior_thru + dt.timedelta(days=1)
-                ):
-                    continue
-                prior_end = _number(prior.get(pc_cols.END_MARKET_VALUE))
-                current_begin = _number(current.get(pc_cols.BEGIN_MARKET_VALUE))
-                if prior_end is None or current_begin is None:
-                    continue
-                difference = current_begin - prior_end
-                if abs(difference) <= tolerance.threshold(prior_end):
-                    continue
-                security_id = _text(current.get(pc_cols.SECURITY_ID))
-                scope = f"portfolio {current.get(pc_cols.PORTFOLIO_ID)}"
-                if security_id:
-                    scope += f", security {security_id}"
-                rows.append(
-                    _issue_row(
-                        snapshot=_text(current.get(SNAPSHOT)),
-                        portfolio_id=_text(current.get(pc_cols.PORTFOLIO_ID)),
-                        as_of_date=current_from,
-                        dataset_field=(
-                            f"{dataset_name}.end_market_value -> "
-                            f"{dataset_name}.begin_market_value"
-                        ),
-                        security_id=security_id,
-                        issue_type=issue_type,
-                        value_a=prior_end,
-                        value_b=current_begin,
-                        difference=difference,
-                        tolerance=tolerance.description(),
-                        explanation=(
-                            f"SN-04 continuity mismatch for {scope}: prior ending "
-                            f"market value {prior_end:,.2f} does not equal next "
-                            f"beginning market value {current_begin:,.2f}."
-                        ),
-                    )
+            .filter(
+                pl.col(_CONTINUITY_PRIOR_THRU_DATE).is_not_null()
+                & pl.col(pc_cols.FROM_DATE).is_not_null()
+                & (
+                    pl.col(pc_cols.FROM_DATE)
+                    == pl.col(_CONTINUITY_PRIOR_THRU_DATE).dt.offset_by("1d")
                 )
-    return rows
+                & pl.col(_CONTINUITY_PRIOR_END_VALUE).is_finite()
+                & pl.col(_CONTINUITY_CURRENT_BEGIN_VALUE).is_finite()
+            )
+            .with_columns(
+                (
+                    pl.col(_CONTINUITY_CURRENT_BEGIN_VALUE)
+                    - pl.col(_CONTINUITY_PRIOR_END_VALUE)
+                ).alias(DIFFERENCE),
+                pl.max_horizontal(
+                    pl.lit(tolerance.absolute),
+                    pl.col(_CONTINUITY_PRIOR_END_VALUE).abs()
+                    * tolerance.percent
+                    / 100.0,
+                ).alias(_CONTINUITY_THRESHOLD),
+            )
+            .filter(pl.col(DIFFERENCE).abs() > pl.col(_CONTINUITY_THRESHOLD))
+            .select(
+                SNAPSHOT,
+                pc_cols.PORTFOLIO_ID,
+                pc_cols.FROM_DATE,
+                pc_cols.THRU_DATE,
+                security_id.alias(pc_cols.SECURITY_ID),
+                _CONTINUITY_PRIOR_END_VALUE,
+                _CONTINUITY_CURRENT_BEGIN_VALUE,
+            )
+        )
+    if not candidate_plans:
+        return pl.DataFrame()
+    return pl.concat(candidate_plans).sort(sort_columns).collect()
 
 
 def _empty_issues_table() -> pl.DataFrame:
@@ -293,6 +393,13 @@ def _snapshot_frames(loader: Any, dataset_name: str) -> tuple[pl.DataFrame, ...]
         if frame is not None:
             frames.append(frame.with_columns(pl.lit(snapshot_label).alias(SNAPSHOT)))
     return tuple(frames)
+
+
+def _snapshot_rows(
+    frames: Iterable[pl.DataFrame],
+) -> tuple[dict[str, object], ...]:
+    """Materialize snapshot rows once for all enabled cross-reference checks."""
+    return tuple(row for frame in frames for row in frame.iter_rows(named=True))
 
 
 def _snapshot_labels() -> tuple[tuple[SnapshotKey, str], ...]:
@@ -364,7 +471,7 @@ def _format_tolerance_number(value: float) -> str:
 
 
 def _duplicate_transaction_issues(
-    transactions: Iterable[pl.DataFrame],
+    transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return exact duplicate transaction issues."""
@@ -372,22 +479,22 @@ def _duplicate_transaction_issues(
     if not _check_enabled(config, check_name):
         return []
 
+    row_filter = _row_filter(config, check_name)
     groups: dict[tuple[object, ...], list[Mapping[str, object]]] = {}
-    for frame in transactions:
-        for row in frame.iter_rows(named=True):
-            if not _row_allowed(row, config, check_name):
-                continue
-            key = (
-                _text(row.get(SNAPSHOT)),
-                _text(row.get(pc_cols.PORTFOLIO_ID)),
-                _date(row.get(pc_cols.TRANSACTION_DATE)),
-                _text(row.get(pc_cols.SECURITY_ID)),
-                _text(row.get(pc_cols.TRANSACTION_CODE)).lower(),
-                _number(row.get(pc_cols.AMOUNT)),
-                _number(row.get(pc_cols.QUANTITY)),
-                _number(row.get(pc_cols.PRICE)),
-            )
-            groups.setdefault(key, []).append(row)
+    for row in transactions:
+        if not row_filter.allows(row):
+            continue
+        key = (
+            _text(row.get(SNAPSHOT)),
+            _text(row.get(pc_cols.PORTFOLIO_ID)),
+            _date(row.get(pc_cols.TRANSACTION_DATE)),
+            _text(row.get(pc_cols.SECURITY_ID)),
+            _text(row.get(pc_cols.TRANSACTION_CODE)).lower(),
+            _number(row.get(pc_cols.AMOUNT)),
+            _number(row.get(pc_cols.QUANTITY)),
+            _number(row.get(pc_cols.PRICE)),
+        )
+        groups.setdefault(key, []).append(row)
 
     rows: list[dict[str, object]] = []
     for group_rows in groups.values():
@@ -417,7 +524,7 @@ def _duplicate_transaction_issues(
 
 
 def _holding_price_range_issues(
-    holdings: Iterable[pl.DataFrame],
+    holdings: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security holdings.price range issues."""
@@ -425,18 +532,18 @@ def _holding_price_range_issues(
     if not _check_enabled(config, check_name):
         return []
 
+    row_filter = _row_filter(config, check_name)
     groups: dict[tuple[str, dt.date, str], list[Mapping[str, object]]] = {}
-    for frame in holdings:
-        for row in frame.iter_rows(named=True):
-            if not _row_allowed(row, config, check_name):
-                continue
-            holding_date = _date(row.get(pc_cols.HOLDING_DATE))
-            security_id = _text(row.get(pc_cols.SECURITY_ID))
-            snapshot = _text(row.get(SNAPSHOT))
-            price = _number(row.get(pc_cols.PRICE))
-            if holding_date is None or price is None or not security_id:
-                continue
-            groups.setdefault((snapshot, holding_date, security_id), []).append(row)
+    for row in holdings:
+        if not row_filter.allows(row):
+            continue
+        holding_date = _date(row.get(pc_cols.HOLDING_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        snapshot = _text(row.get(SNAPSHOT))
+        price = _number(row.get(pc_cols.PRICE))
+        if holding_date is None or price is None or not security_id:
+            continue
+        groups.setdefault((snapshot, holding_date, security_id), []).append(row)
 
     return _price_range_issues(
         groups=groups,
@@ -450,7 +557,7 @@ def _holding_price_range_issues(
 
 
 def _transaction_price_range_issues(
-    transactions: Iterable[pl.DataFrame],
+    transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security transactions.price range issues."""
@@ -458,20 +565,20 @@ def _transaction_price_range_issues(
     if not _check_enabled(config, check_name):
         return []
 
+    row_filter = _row_filter(config, check_name)
     groups: dict[tuple[str, dt.date, str], list[Mapping[str, object]]] = {}
-    for frame in transactions:
-        for row in frame.iter_rows(named=True):
-            if not _row_allowed(row, config, check_name):
-                continue
-            transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
-            security_id = _text(row.get(pc_cols.SECURITY_ID))
-            snapshot = _text(row.get(SNAPSHOT))
-            price = _number(row.get(pc_cols.PRICE))
-            if transaction_date is None or price is None or not security_id:
-                continue
-            groups.setdefault((snapshot, transaction_date, security_id), []).append(
-                row
-            )
+    for row in transactions:
+        if not row_filter.allows(row):
+            continue
+        transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        snapshot = _text(row.get(SNAPSHOT))
+        price = _number(row.get(pc_cols.PRICE))
+        if transaction_date is None or price is None or not security_id:
+            continue
+        groups.setdefault((snapshot, transaction_date, security_id), []).append(
+            row
+        )
 
     return _price_range_issues(
         groups=groups,
@@ -530,41 +637,51 @@ def _price_range_issues(
 
 
 def _same_day_rate_issues(
-    transactions: Iterable[pl.DataFrame],
-    holdings: Iterable[pl.DataFrame],
+    transactions: Sequence[Mapping[str, object]],
+    holdings: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security transaction-rate issues."""
-    holding_rows = [row for frame in holdings for row in frame.iter_rows(named=True)]
+    enabled_checks = (
+        _check_enabled(config, "dividend_rate"),
+        _check_enabled(config, "pa_sa_rate"),
+    )
+    if not any(enabled_checks):
+        return []
+    holdings_by_key = _holdings_by_portfolio_security(holdings)
     rows: list[dict[str, object]] = []
-    rows.extend(
-        _transaction_rate_issues(
-            transactions,
-            holding_rows,
-            config,
-            check_name="dividend_rate",
-            transaction_codes=_DIVIDEND_CODES,
-            issue_type=ISSUE_DIVIDEND_RATE,
-            dataset_field="transactions.amount",
+    if enabled_checks[0]:
+        rows.extend(
+            _transaction_rate_issues(
+                transactions,
+                holdings_by_key,
+                config,
+                check_name="dividend_rate",
+                transaction_codes=_DIVIDEND_CODES,
+                issue_type=ISSUE_DIVIDEND_RATE,
+                dataset_field="transactions.amount",
+            )
         )
-    )
-    rows.extend(
-        _transaction_rate_issues(
-            transactions,
-            holding_rows,
-            config,
-            check_name="pa_sa_rate",
-            transaction_codes=_ACCRUAL_CODES,
-            issue_type=ISSUE_PA_SA_RATE,
-            dataset_field="transactions.amount",
+    if enabled_checks[1]:
+        rows.extend(
+            _transaction_rate_issues(
+                transactions,
+                holdings_by_key,
+                config,
+                check_name="pa_sa_rate",
+                transaction_codes=_ACCRUAL_CODES,
+                issue_type=ISSUE_PA_SA_RATE,
+                dataset_field="transactions.amount",
+            )
         )
-    )
     return rows
 
 
 def _transaction_rate_issues(
-    transactions: Iterable[pl.DataFrame],
-    holding_rows: Iterable[Mapping[str, object]],
+    transactions: Sequence[Mapping[str, object]],
+    holdings_by_key: Mapping[
+        tuple[str, str, str], tuple[Mapping[str, object], ...]
+    ],
     config: Mapping[str, object],
     *,
     check_name: str,
@@ -577,22 +694,21 @@ def _transaction_rate_issues(
         return []
 
     tolerance = _tolerance(config, check_name)
-    holdings_by_key = _holdings_by_portfolio_security(holding_rows)
+    row_filter = _row_filter(config, check_name)
     groups: dict[tuple[str, dt.date, str, str], list[Mapping[str, object]]] = {}
-    for frame in transactions:
-        for row in frame.iter_rows(named=True):
-            code = _text(row.get(pc_cols.TRANSACTION_CODE)).lower()
-            if code not in transaction_codes:
-                continue
-            if not _row_allowed(row, config, check_name):
-                continue
-            transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
-            security_id = _text(row.get(pc_cols.SECURITY_ID))
-            snapshot = _text(row.get(SNAPSHOT))
-            rate = _transaction_rate(row, holdings_by_key=holdings_by_key)
-            if rate is None or transaction_date is None or not security_id:
-                continue
-            groups.setdefault((snapshot, transaction_date, security_id, code), []).append(row)
+    for row in transactions:
+        code = _text(row.get(pc_cols.TRANSACTION_CODE)).lower()
+        if code not in transaction_codes:
+            continue
+        if not row_filter.allows(row):
+            continue
+        transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        snapshot = _text(row.get(SNAPSHOT))
+        rate = _transaction_rate(row, holdings_by_key=holdings_by_key)
+        if rate is None or transaction_date is None or not security_id:
+            continue
+        groups.setdefault((snapshot, transaction_date, security_id, code), []).append(row)
 
     rows: list[dict[str, object]] = []
     for (snapshot, transaction_date, security_id, code), group_rows in groups.items():
@@ -672,8 +788,8 @@ def _transaction_rate_quantity(
 
 
 def _missing_dividend_issues(
-    holdings: Iterable[pl.DataFrame],
-    transactions: Iterable[pl.DataFrame],
+    holdings: Sequence[Mapping[str, object]],
+    transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return portfolios that appear to be missing same-date dividends."""
@@ -681,17 +797,14 @@ def _missing_dividend_issues(
     if not _check_enabled(config, check_name):
         return []
 
-    holding_rows = [row for frame in holdings for row in frame.iter_rows(named=True)]
-    transaction_rows = [
-        row for frame in transactions for row in frame.iter_rows(named=True)
-    ]
+    row_filter = _row_filter(config, check_name)
     dividend_rows = [
         row
-        for row in transaction_rows
+        for row in transactions
         if _text(row.get(pc_cols.TRANSACTION_CODE)).lower() in _DIVIDEND_CODES
     ]
     holdings_by_security: dict[tuple[str, str], list[Mapping[str, object]]] = {}
-    for row in holding_rows:
+    for row in holdings:
         security_key = (
             _text(row.get(SNAPSHOT)),
             _text(row.get(pc_cols.SECURITY_ID)),
@@ -700,7 +813,7 @@ def _missing_dividend_issues(
     transactions_by_position: dict[
         tuple[str, str, str], list[Mapping[str, object]]
     ] = {}
-    for row in transaction_rows:
+    for row in transactions:
         position_key = (
             _text(row.get(SNAPSHOT)),
             _text(row.get(pc_cols.PORTFOLIO_ID)),
@@ -727,28 +840,37 @@ def _missing_dividend_issues(
             _text(row.get(pc_cols.PORTFOLIO_ID))
         )
 
-    rows: list[dict[str, object]] = []
-    held_portfolios_by_dividend: dict[
-        tuple[str, str, dt.date], tuple[str, ...]
+    dividend_rows_by_event: dict[
+        tuple[str, str, dt.date], list[Mapping[str, object]]
     ] = {}
     for dividend_row in dividend_rows:
-        if not _row_allowed(dividend_row, config, check_name):
+        if not row_filter.allows(dividend_row):
             continue
         snapshot = _text(dividend_row.get(SNAPSHOT))
         security_id = _text(dividend_row.get(pc_cols.SECURITY_ID))
         dividend_date = _date(dividend_row.get(pc_cols.TRANSACTION_DATE))
         if dividend_date is None or not security_id:
             continue
-        dividend_key = snapshot, security_id, dividend_date
-        if dividend_key not in held_portfolios_by_dividend:
-            held_portfolios_by_dividend[dividend_key] = _held_portfolios(
-                holdings_by_security.get((snapshot, security_id), ()),
-                transactions_by_position,
-                snapshot=snapshot,
-                security_id=security_id,
-                dividend_date=dividend_date,
-            )
-        for portfolio_id in held_portfolios_by_dividend[dividend_key]:
+        dividend_rows_by_event.setdefault(
+            (snapshot, security_id, dividend_date),
+            [],
+        ).append(dividend_row)
+
+    rows: list[dict[str, object]] = []
+    for dividend_key, event_rows in dividend_rows_by_event.items():
+        snapshot, security_id, dividend_date = dividend_key
+        representative_row = min(
+            event_rows,
+            key=lambda row: _text(row.get(pc_cols.PORTFOLIO_ID)),
+        )
+        held_portfolios = _held_portfolios(
+            holdings_by_security.get((snapshot, security_id), ()),
+            transactions_by_position,
+            snapshot=snapshot,
+            security_id=security_id,
+            dividend_date=dividend_date,
+        )
+        for portfolio_id in held_portfolios:
             if (
                 snapshot,
                 portfolio_id,
@@ -756,14 +878,12 @@ def _missing_dividend_issues(
                 dividend_date,
             ) in dividend_keys:
                 continue
-            if not _row_allowed(
+            if not row_filter.allows(
                 {
                     SNAPSHOT: snapshot,
                     pc_cols.PORTFOLIO_ID: portfolio_id,
                     pc_cols.SECURITY_ID: security_id,
-                },
-                config,
-                check_name,
+                }
             ):
                 continue
             rows.append(
@@ -774,7 +894,7 @@ def _missing_dividend_issues(
                     dataset_field="transactions.amount",
                     security_id=security_id,
                     issue_type=ISSUE_MISSING_DIVIDEND,
-                    value_a=_transaction_rate(dividend_row),
+                    value_a=_transaction_rate(representative_row),
                     value_b=None,
                     difference=None,
                     tolerance="same-date dividend present",
@@ -880,7 +1000,7 @@ def _missing_dividend_position_qualifies(
 
 
 def _holdings_accrued_rate_issues(
-    holdings: Iterable[pl.DataFrame],
+    holdings: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security holdings.accrued rate issues."""
@@ -889,18 +1009,18 @@ def _holdings_accrued_rate_issues(
         return []
 
     tolerance = _tolerance(config, check_name)
+    row_filter = _row_filter(config, check_name)
     groups: dict[tuple[str, dt.date, str], list[Mapping[str, object]]] = {}
-    for frame in holdings:
-        for row in frame.iter_rows(named=True):
-            if not _row_allowed(row, config, check_name):
-                continue
-            rate = _holdings_accrued_rate(row)
-            holding_date = _date(row.get(pc_cols.HOLDING_DATE))
-            security_id = _text(row.get(pc_cols.SECURITY_ID))
-            snapshot = _text(row.get(SNAPSHOT))
-            if rate is None or holding_date is None or not security_id:
-                continue
-            groups.setdefault((snapshot, holding_date, security_id), []).append(row)
+    for row in holdings:
+        if not row_filter.allows(row):
+            continue
+        rate = _holdings_accrued_rate(row)
+        holding_date = _date(row.get(pc_cols.HOLDING_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        snapshot = _text(row.get(SNAPSHOT))
+        if rate is None or holding_date is None or not security_id:
+            continue
+        groups.setdefault((snapshot, holding_date, security_id), []).append(row)
 
     rows: list[dict[str, object]] = []
     for (snapshot, holding_date, security_id), group_rows in groups.items():
@@ -1015,13 +1135,28 @@ def _row_allowed(
     check_name: str,
 ) -> bool:
     """Return whether one row passes a check's optional include/exclude filters."""
+    return _row_filter(config, check_name).allows(row)
+
+
+def _row_filter(config: Mapping[str, object], check_name: str) -> _RowFilter:
+    """Compile one check's row filters for reuse across all source rows."""
     check_config = _check_config(config, check_name)
-    only_config = check_config.get("only", {})
-    exclude_config = check_config.get("exclude", {})
-    return _matches_only(row, only_config) and not _matches_exclude(
-        row,
-        exclude_config,
+    return _RowFilter(
+        only=_compiled_filters(check_config.get("only", {})),
+        exclude=_compiled_filters(check_config.get("exclude", {})),
     )
+
+
+def _compiled_filters(
+    filter_config: object,
+) -> tuple[tuple[str, frozenset[str]], ...]:
+    """Normalize a YAML row-filter mapping once for repeated matching."""
+    compiled: list[tuple[str, frozenset[str]]] = []
+    for field_name, raw_values in _filter_mapping(filter_config):
+        values = _text_filter_values(raw_values)
+        if values:
+            compiled.append((_filter_column_name(field_name), values))
+    return tuple(compiled)
 
 
 def _matches_only(row: Mapping[str, object], filter_config: object) -> bool:

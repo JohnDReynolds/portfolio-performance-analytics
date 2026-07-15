@@ -5,6 +5,7 @@ from __future__ import annotations
 # Python imports
 from collections import Counter
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
 import datetime as dt
 
 # Third-party imports
@@ -427,26 +428,42 @@ def portfolio_period_summary(
         return _empty_portfolio_period_summary()
 
     rows: list[dict[str, object]] = []
-    active_index = _portfolio_period_index(active_findings)
-    all_index = _portfolio_period_index(findings)
+    active_index = _related_finding_count_index(
+        active_findings,
+        (PORTFOLIO_ID, FROM_DATE, THRU_DATE),
+    )
+    suppressed_keys = _suppressed_finding_keys(
+        findings,
+        (PORTFOLIO_ID, FROM_DATE, THRU_DATE),
+    )
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_portfolio_period_findings(active_findings, active_index, target)
-        related_all = _indexed_portfolio_period_findings(findings, all_index, target)
-        role_counts = _role_summary_counts(related_active)
-        dataset_counts = _column_counts(related_active, DATASET)
+        related_keys = _portfolio_related_keys(target)
+        related_counts = _combined_related_finding_counts(
+            active_index,
+            related_keys,
+        )
+        role_counts = _role_summary_counts_from_counter(related_counts.roles)
         rows.append(
             {
                 PORTFOLIO_ID: target[PORTFOLIO_ID],
                 FROM_DATE: target[FROM_DATE],
                 THRU_DATE: target[THRU_DATE],
                 PORTFOLIO_RETURN_DELTA: target[DELTA_B_MINUS_A],
-                FINDING_COUNT: related_active.height,
-                PORTFOLIO_FINDING_COUNT: dataset_counts.get(pc_cols.PORTFOLIO_PERFORMANCE, 0),
+                FINDING_COUNT: related_counts.total,
+                PORTFOLIO_FINDING_COUNT: related_counts.datasets.get(
+                    pc_cols.PORTFOLIO_PERFORMANCE,
+                    0,
+                ),
                 **role_counts,
-                FX_RATE_FINDING_COUNT: dataset_counts.get(pc_cols.FX_RATES, 0),
-                TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
-                HOLDING_FINDING_COUNT: dataset_counts.get(pc_cols.HOLDINGS, 0),
-                HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
+                FX_RATE_FINDING_COUNT: related_counts.datasets.get(pc_cols.FX_RATES, 0),
+                TRANSACTION_FINDING_COUNT: related_counts.datasets.get(
+                    pc_cols.TRANSACTIONS,
+                    0,
+                ),
+                HOLDING_FINDING_COUNT: related_counts.datasets.get(pc_cols.HOLDINGS, 0),
+                HAS_SUPPRESSED_FINDINGS: any(
+                    key in suppressed_keys for key in related_keys
+                ),
             }
         )
     return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_SUMMARY_COLUMNS)
@@ -523,13 +540,21 @@ def security_period_summary(
         return _empty_security_period_summary()
 
     rows: list[dict[str, object]] = []
-    active_index = _security_period_index(active_findings)
-    all_index = _security_period_index(findings)
+    active_index = _related_finding_count_index(
+        active_findings,
+        (SECURITY_ID, PORTFOLIO_ID, FROM_DATE, THRU_DATE),
+    )
+    suppressed_keys = _suppressed_finding_keys(
+        findings,
+        (SECURITY_ID, PORTFOLIO_ID, FROM_DATE, THRU_DATE),
+    )
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_security_period_findings(active_findings, active_index, target)
-        related_all = _indexed_security_period_findings(findings, all_index, target)
-        role_counts = _role_summary_counts(related_active)
-        dataset_counts = _column_counts(related_active, DATASET)
+        related_keys = _security_related_keys(target)
+        related_counts = _combined_related_finding_counts(
+            active_index,
+            related_keys,
+        )
+        role_counts = _role_summary_counts_from_counter(related_counts.roles)
         rows.append(
             {
                 PORTFOLIO_ID: target[PORTFOLIO_ID],
@@ -537,12 +562,20 @@ def security_period_summary(
                 FROM_DATE: target[FROM_DATE],
                 THRU_DATE: target[THRU_DATE],
                 SECURITY_RETURN_DELTA: target[DELTA_B_MINUS_A],
-                FINDING_COUNT: related_active.height,
-                SECURITY_FINDING_COUNT: dataset_counts.get(pc_cols.SECURITY_PERFORMANCE, 0),
+                FINDING_COUNT: related_counts.total,
+                SECURITY_FINDING_COUNT: related_counts.datasets.get(
+                    pc_cols.SECURITY_PERFORMANCE,
+                    0,
+                ),
                 **role_counts,
-                TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
-                HOLDING_FINDING_COUNT: dataset_counts.get(pc_cols.HOLDINGS, 0),
-                HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
+                TRANSACTION_FINDING_COUNT: related_counts.datasets.get(
+                    pc_cols.TRANSACTIONS,
+                    0,
+                ),
+                HOLDING_FINDING_COUNT: related_counts.datasets.get(pc_cols.HOLDINGS, 0),
+                HAS_SUPPRESSED_FINDINGS: any(
+                    key in suppressed_keys for key in related_keys
+                ),
             }
         )
     return pl.DataFrame(rows, infer_schema_length=None).select(SECURITY_PERIOD_SUMMARY_COLUMNS)
@@ -588,6 +621,289 @@ def security_period_evidence_breakdown(
     )
 
 
+_RANK_TARGET_ORDER = "__ppar_rank_target_order"
+_RANK_EVIDENCE_ORDER = "__ppar_rank_evidence_order"
+_RANK_TARGET_PORTFOLIO = "__ppar_rank_target_portfolio"
+_RANK_TARGET_SECURITY = "__ppar_rank_target_security"
+_RANK_TARGET_FROM_DATE = "__ppar_rank_target_from_date"
+_RANK_TARGET_THRU_DATE = "__ppar_rank_target_thru_date"
+_RANK_ROLE_SCORE = "__ppar_rank_role_score"
+_RANK_DATASET_SCORE = "__ppar_rank_dataset_score"
+_RANK_DELTA_SCORE = "__ppar_rank_delta_score"
+_RANK_ABSOLUTE_SORT = "__ppar_rank_absolute_sort"
+_RANK_STRING_SORT_COLUMNS = (
+    DATASET,
+    FINDING_CODE,
+    SECURITY_ID,
+    SOURCE_COLUMN,
+    MESSAGE,
+)
+
+
+def _rank_period_evidence(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool,
+    security_level: bool,
+) -> pl.DataFrame:
+    """Return portfolio- or security-period evidence ranked in Polars."""
+    if findings.is_empty():
+        return _empty_portfolio_period_evidence_ranking()
+
+    active_findings = _active_findings(findings, include_suppressed)
+    target_code = PC_SEC_RET if security_level else PC_PORT_RET
+    target_dataset = (
+        pc_cols.SECURITY_PERFORMANCE
+        if security_level
+        else pc_cols.PORTFOLIO_PERFORMANCE
+    )
+    target_source_column = (
+        pc_cols.SECURITY_RETURN if security_level else pc_cols.PORTFOLIO_RETURN
+    )
+    targets = active_findings.filter(
+        (pl.col(FINDING_CODE) == target_code)
+        & (pl.col(DATASET) == target_dataset)
+        & (pl.col(SOURCE_COLUMN) == target_source_column)
+    )
+    if targets.is_empty():
+        return _empty_portfolio_period_evidence_ranking()
+
+    target_rows = targets.with_row_index(_RANK_TARGET_ORDER).select(
+        pl.col(PORTFOLIO_ID).alias(_RANK_TARGET_PORTFOLIO),
+        pl.col(SECURITY_ID).alias(_RANK_TARGET_SECURITY),
+        pl.col(FROM_DATE).alias(_RANK_TARGET_FROM_DATE),
+        pl.col(THRU_DATE).alias(_RANK_TARGET_THRU_DATE),
+        _RANK_TARGET_ORDER,
+    )
+    evidence_rows = active_findings.filter(
+        pl.col(EVIDENCE_ROLE) != TARGET_OUTPUT
+    ).with_row_index(_RANK_EVIDENCE_ORDER)
+    relation = (
+        _security_evidence_relation(target_rows, evidence_rows)
+        if security_level
+        else _portfolio_evidence_relation(target_rows, evidence_rows)
+    )
+    delta_type = active_findings.schema.get(DELTA_B_MINUS_A, pl.Null)
+    absolute_delta = (
+        pl.col(DELTA_B_MINUS_A).cast(pl.Float64).abs()
+        if delta_type.is_numeric() and delta_type != pl.Boolean
+        else pl.lit(None, dtype=pl.Float64)
+    )
+    ranked = _rank_evidence_relation(relation, absolute_delta).collect()
+    if ranked.is_empty():
+        return _empty_portfolio_period_evidence_ranking()
+    return ranked
+
+
+def _portfolio_evidence_relation(
+    targets: pl.DataFrame,
+    evidence: pl.DataFrame,
+) -> pl.LazyFrame:
+    """Return exact-period and undated portfolio evidence relationships."""
+    target_rows = targets.lazy()
+    evidence_rows = evidence.lazy()
+    dated = target_rows.join(
+        evidence_rows,
+        left_on=[
+            _RANK_TARGET_PORTFOLIO,
+            _RANK_TARGET_FROM_DATE,
+            _RANK_TARGET_THRU_DATE,
+        ],
+        right_on=[PORTFOLIO_ID, FROM_DATE, THRU_DATE],
+        how="inner",
+    )
+    undated = target_rows.join(
+        evidence_rows.filter(
+            pl.col(FROM_DATE).is_null() & pl.col(THRU_DATE).is_null()
+        ),
+        left_on=_RANK_TARGET_PORTFOLIO,
+        right_on=PORTFOLIO_ID,
+        how="inner",
+    )
+    relations = [
+        _rank_evidence_projection(frame, security_level=False)
+        for frame in (dated, undated)
+    ]
+    return pl.concat(relations)
+
+
+def _security_evidence_relation(
+    targets: pl.DataFrame,
+    evidence: pl.DataFrame,
+) -> pl.LazyFrame:
+    """Return exact and portfolio-optional security evidence relationships."""
+    target_rows = targets.lazy()
+    evidence_rows = evidence.lazy()
+    exact_period = target_rows.join(
+        evidence_rows,
+        left_on=[
+            _RANK_TARGET_SECURITY,
+            _RANK_TARGET_PORTFOLIO,
+            _RANK_TARGET_FROM_DATE,
+            _RANK_TARGET_THRU_DATE,
+        ],
+        right_on=[SECURITY_ID, PORTFOLIO_ID, FROM_DATE, THRU_DATE],
+        how="inner",
+    )
+    portfolio_optional_period = target_rows.join(
+        evidence_rows.filter(pl.col(PORTFOLIO_ID).is_null()),
+        left_on=[
+            _RANK_TARGET_SECURITY,
+            _RANK_TARGET_FROM_DATE,
+            _RANK_TARGET_THRU_DATE,
+        ],
+        right_on=[SECURITY_ID, FROM_DATE, THRU_DATE],
+        how="inner",
+    )
+    exact_undated = target_rows.join(
+        evidence_rows.filter(
+            pl.col(FROM_DATE).is_null() & pl.col(THRU_DATE).is_null()
+        ),
+        left_on=[_RANK_TARGET_SECURITY, _RANK_TARGET_PORTFOLIO],
+        right_on=[SECURITY_ID, PORTFOLIO_ID],
+        how="inner",
+    )
+    portfolio_optional_undated = target_rows.join(
+        evidence_rows.filter(
+            pl.col(PORTFOLIO_ID).is_null()
+            & pl.col(FROM_DATE).is_null()
+            & pl.col(THRU_DATE).is_null()
+        ),
+        left_on=_RANK_TARGET_SECURITY,
+        right_on=SECURITY_ID,
+        how="inner",
+    )
+    relations = [
+        _rank_evidence_projection(frame, security_level=True)
+        for frame in (
+            exact_period,
+            portfolio_optional_period,
+            exact_undated,
+            portfolio_optional_undated,
+        )
+    ]
+    return pl.concat(relations)
+
+
+def _rank_evidence_projection(
+    relation: pl.LazyFrame,
+    *,
+    security_level: bool,
+) -> pl.LazyFrame:
+    """Project one relationship branch to a common evidence schema."""
+    evidence_columns = [
+        column
+        for column in PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS[6:]
+        if column != ABSOLUTE_DELTA
+    ]
+    projected_evidence = [
+        (
+            pl.col(_RANK_TARGET_SECURITY).alias(SECURITY_ID)
+            if security_level and column == SECURITY_ID
+            else pl.col(column)
+        )
+        for column in evidence_columns
+    ]
+    return relation.select(
+        _RANK_TARGET_PORTFOLIO,
+        _RANK_TARGET_SECURITY,
+        _RANK_TARGET_FROM_DATE,
+        _RANK_TARGET_THRU_DATE,
+        _RANK_TARGET_ORDER,
+        _RANK_EVIDENCE_ORDER,
+        *projected_evidence,
+    )
+
+
+def _rank_evidence_relation(
+    relation: pl.LazyFrame,
+    absolute_delta: pl.Expr,
+) -> pl.LazyFrame:
+    """Score, sort, and rank an evidence relationship in one lazy plan."""
+    role_text = pl.col(EVIDENCE_ROLE).cast(pl.String).fill_null("None")
+    dataset_text = pl.col(DATASET).cast(pl.String).fill_null("None")
+    role_score = role_text.replace_strict(
+        {
+            DIRECT_INPUT.value: 300,
+            RELATED_OUTPUT.value: 200,
+            CONTEXT.value: 100,
+            TARGET_OUTPUT.value: 0,
+        },
+        default=0,
+        return_dtype=pl.Int64,
+    )
+    dataset_score = dataset_text.replace_strict(
+        {
+            pc_cols.PORTFOLIO_PERFORMANCE: 40,
+            pc_cols.TRANSACTIONS: 35,
+            pc_cols.HOLDINGS: 35,
+            pc_cols.FX_RATES: 25,
+            pc_cols.SECURITY_PERFORMANCE: 10,
+        },
+        default=0,
+        return_dtype=pl.Int64,
+    )
+    scored = relation.with_columns(
+        absolute_delta.alias(ABSOLUTE_DELTA),
+        role_text.alias(EVIDENCE_ROLE),
+        dataset_text.alias(DATASET),
+        role_score.alias(_RANK_ROLE_SCORE),
+        dataset_score.alias(_RANK_DATASET_SCORE),
+    ).with_columns(
+        pl.when(pl.col(ABSOLUTE_DELTA).is_not_null())
+        .then(10)
+        .otherwise(0)
+        .cast(pl.Int64)
+        .alias(_RANK_DELTA_SCORE),
+        pl.col(ABSOLUTE_DELTA).fill_null(-1.0).alias(_RANK_ABSOLUTE_SORT),
+        *[
+            pl.col(column)
+            .cast(pl.String)
+            .fill_null("None")
+            .alias(f"__ppar_rank_sort_{column}")
+            for column in _RANK_STRING_SORT_COLUMNS
+        ],
+    )
+    scored = scored.with_columns(
+        (
+            pl.col(_RANK_ROLE_SCORE)
+            + pl.col(_RANK_DATASET_SCORE)
+            + pl.col(_RANK_DELTA_SCORE)
+        ).alias(PRIORITY_SCORE),
+        pl.format(
+            "role={}:{}; dataset={}:{}; numeric_delta={}",
+            EVIDENCE_ROLE,
+            _RANK_ROLE_SCORE,
+            DATASET,
+            _RANK_DATASET_SCORE,
+            _RANK_DELTA_SCORE,
+        ).alias(PRIORITY_REASON),
+    )
+    sort_columns = [
+        _RANK_TARGET_ORDER,
+        PRIORITY_SCORE,
+        _RANK_ABSOLUTE_SORT,
+        *[f"__ppar_rank_sort_{column}" for column in _RANK_STRING_SORT_COLUMNS],
+        _RANK_EVIDENCE_ORDER,
+    ]
+    ranked = scored.sort(
+        sort_columns,
+        descending=[False, True, True, False, False, False, False, False, False],
+    ).with_columns(
+        pl.col(_RANK_EVIDENCE_ORDER)
+        .cum_count()
+        .over(_RANK_TARGET_ORDER)
+        .cast(pl.Int64)
+        .alias(REVIEW_RANK)
+    )
+    return ranked.select(
+        pl.col(_RANK_TARGET_PORTFOLIO).alias(PORTFOLIO_ID),
+        pl.col(_RANK_TARGET_FROM_DATE).alias(FROM_DATE),
+        pl.col(_RANK_TARGET_THRU_DATE).alias(THRU_DATE),
+        *PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS[3:],
+    )
+
+
 def rank_portfolio_period_evidence(
     findings: pl.DataFrame,
     *,
@@ -606,38 +922,10 @@ def rank_portfolio_period_evidence(
         period. The score is a review-priority heuristic, not a causal
         contribution amount or explained return.
     """
-    if findings.is_empty():
-        return _empty_portfolio_period_evidence_ranking()
-
-    active_findings = _active_findings(findings, include_suppressed)
-    target_findings = active_findings.filter(
-        (pl.col(FINDING_CODE) == PC_PORT_RET)
-        & (pl.col(DATASET) == pc_cols.PORTFOLIO_PERFORMANCE)
-        & (pl.col(SOURCE_COLUMN) == pc_cols.PORTFOLIO_RETURN)
-    )
-    if target_findings.is_empty():
-        return _empty_portfolio_period_evidence_ranking()
-
-    rows: list[dict[str, object]] = []
-    active_index = _portfolio_period_index(active_findings)
-    for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_portfolio_period_findings(active_findings, active_index, target)
-        ranked_rows = sorted(
-            (
-                _ranked_evidence_row(target, finding)
-                for finding in related_active.iter_rows(named=True)
-                if finding[EVIDENCE_ROLE] != TARGET_OUTPUT
-            ),
-            key=_portfolio_period_evidence_sort_key,
-        )
-        for review_rank, row in enumerate(ranked_rows, start=1):
-            row[REVIEW_RANK] = review_rank
-            rows.append(row)
-
-    if not rows:
-        return _empty_portfolio_period_evidence_ranking()
-    return pl.DataFrame(rows, infer_schema_length=None).select(
-        PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS
+    return _rank_period_evidence(
+        findings,
+        include_suppressed=include_suppressed,
+        security_level=False,
     )
 
 
@@ -658,38 +946,10 @@ def rank_security_period_evidence(
         One row per related non-target finding, ranked within each security
         period. The score is a review-priority heuristic.
     """
-    if findings.is_empty():
-        return _empty_portfolio_period_evidence_ranking()
-
-    active_findings = _active_findings(findings, include_suppressed)
-    target_findings = active_findings.filter(
-        (pl.col(FINDING_CODE) == PC_SEC_RET)
-        & (pl.col(DATASET) == pc_cols.SECURITY_PERFORMANCE)
-        & (pl.col(SOURCE_COLUMN) == pc_cols.SECURITY_RETURN)
-    )
-    if target_findings.is_empty():
-        return _empty_portfolio_period_evidence_ranking()
-
-    rows: list[dict[str, object]] = []
-    active_index = _security_period_index(active_findings)
-    for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_security_period_findings(active_findings, active_index, target)
-        ranked_rows = sorted(
-            (
-                _ranked_evidence_row(target, finding)
-                for finding in related_active.iter_rows(named=True)
-                if finding[EVIDENCE_ROLE] != TARGET_OUTPUT
-            ),
-            key=_portfolio_period_evidence_sort_key,
-        )
-        for review_rank, row in enumerate(ranked_rows, start=1):
-            row[REVIEW_RANK] = review_rank
-            rows.append(row)
-
-    if not rows:
-        return _empty_portfolio_period_evidence_ranking()
-    return pl.DataFrame(rows, infer_schema_length=None).select(
-        PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS
+    return _rank_period_evidence(
+        findings,
+        include_suppressed=include_suppressed,
+        security_level=True,
     )
 
 
@@ -934,6 +1194,7 @@ def portfolio_period_impact_coverage_summary(
     *,
     include_suppressed: bool = False,
     _candidates: pl.DataFrame | None = None,
+    _periods: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Return estimate-coverage status for each changed portfolio period.
 
@@ -943,15 +1204,23 @@ def portfolio_period_impact_coverage_summary(
         include_suppressed: Whether suppressed findings should be included in
             the underlying portfolio-period, cause-area, and transaction
             summaries.
+        _candidates: Optional precomputed contribution candidates used by
+            internal report-table caches.
+        _periods: Optional precomputed portfolio-period summary used by
+            internal report-table caches.
 
     Returns:
         One row per changed portfolio period. Counts are cause-area based, not
         finding-row based, because impact estimates are currently aggregated at
         the cause-area level.
     """
-    periods = portfolio_period_summary(
-        findings,
-        include_suppressed=include_suppressed,
+    periods = (
+        portfolio_period_summary(
+            findings,
+            include_suppressed=include_suppressed,
+        )
+        if _periods is None
+        else _periods
     )
     if periods.is_empty():
         return _empty_portfolio_period_impact_coverage_summary()
@@ -1234,6 +1503,94 @@ def _active_findings(findings: pl.DataFrame, include_suppressed: bool) -> pl.Dat
     return findings.filter(~pl.col(SUPPRESSED))
 
 
+@dataclass
+class _RelatedFindingCounts:
+    """Mutable count accumulator for one indexed evidence relationship key."""
+
+    total: int = 0
+    roles: Counter[object] = field(default_factory=Counter)
+    datasets: Counter[object] = field(default_factory=Counter)
+
+    def add(self, evidence_role: object, dataset: object) -> None:
+        """Add one related finding without materializing a DataFrame slice."""
+        self.total += 1
+        self.roles[evidence_role] += 1
+        self.datasets[dataset] += 1
+
+    def merge(self, other: _RelatedFindingCounts) -> None:
+        """Merge one indexed key's counts into this accumulator."""
+        self.total += other.total
+        self.roles.update(other.roles)
+        self.datasets.update(other.datasets)
+
+
+def _related_finding_count_index(
+    findings: pl.DataFrame,
+    key_columns: tuple[str, ...],
+) -> dict[tuple[object, ...], _RelatedFindingCounts]:
+    """Index summary counts once without repeatedly gathering DataFrame rows."""
+    if findings.is_empty():
+        return {}
+    index: dict[tuple[object, ...], _RelatedFindingCounts] = {}
+    columns = findings.select(*key_columns, EVIDENCE_ROLE, DATASET)
+    for row in columns.iter_rows(named=True):
+        key = tuple(row[column] for column in key_columns)
+        counts = index.setdefault(key, _RelatedFindingCounts())
+        counts.add(row[EVIDENCE_ROLE], row[DATASET])
+    return index
+
+
+def _suppressed_finding_keys(
+    findings: pl.DataFrame,
+    key_columns: tuple[str, ...],
+) -> set[tuple[object, ...]]:
+    """Return relationship keys containing at least one suppressed finding."""
+    if findings.is_empty() or SUPPRESSED not in findings.columns:
+        return set()
+    suppressed = findings.filter(pl.col(SUPPRESSED)).select(*key_columns)
+    return set(suppressed.iter_rows())
+
+
+def _combined_related_finding_counts(
+    index: Mapping[tuple[object, ...], _RelatedFindingCounts],
+    related_keys: tuple[tuple[object, ...], ...],
+) -> _RelatedFindingCounts:
+    """Return combined counts for every relationship key of one target row."""
+    combined = _RelatedFindingCounts()
+    for key in related_keys:
+        counts = index.get(key)
+        if counts is not None:
+            combined.merge(counts)
+    return combined
+
+
+def _portfolio_related_keys(
+    target: Mapping[str, object],
+) -> tuple[tuple[object, ...], ...]:
+    """Return exact-period and undated portfolio evidence keys."""
+    portfolio_id = target[PORTFOLIO_ID]
+    return (
+        (portfolio_id, target[FROM_DATE], target[THRU_DATE]),
+        (portfolio_id, None, None),
+    )
+
+
+def _security_related_keys(
+    target: Mapping[str, object],
+) -> tuple[tuple[object, ...], ...]:
+    """Return exact and portfolio-optional security evidence keys."""
+    security_id = target[SECURITY_ID]
+    portfolio_id = target[PORTFOLIO_ID]
+    from_date = target[FROM_DATE]
+    thru_date = target[THRU_DATE]
+    return (
+        (security_id, portfolio_id, from_date, thru_date),
+        (security_id, None, from_date, thru_date),
+        (security_id, portfolio_id, None, None),
+        (security_id, None, None, None),
+    )
+
+
 def _has_suppressed_findings(findings: pl.DataFrame) -> bool:
     """Return whether a related finding set includes suppressed rows."""
     if findings.is_empty() or SUPPRESSED not in findings.columns:
@@ -1244,6 +1601,17 @@ def _has_suppressed_findings(findings: pl.DataFrame) -> bool:
 def _role_summary_counts(findings: pl.DataFrame) -> dict[str, int]:
     """Return standard role count fields for summary tables."""
     counts = _column_counts(findings, EVIDENCE_ROLE)
+    return {
+        DIRECT_INPUT_FINDING_COUNT: counts.get(DIRECT_INPUT, 0),
+        RELATED_OUTPUT_FINDING_COUNT: counts.get(RELATED_OUTPUT, 0),
+        CONTEXT_FINDING_COUNT: counts.get(CONTEXT, 0),
+    }
+
+
+def _role_summary_counts_from_counter(
+    counts: Mapping[object, int],
+) -> dict[str, int]:
+    """Return standard role fields from pre-indexed evidence counts."""
     return {
         DIRECT_INPUT_FINDING_COUNT: counts.get(DIRECT_INPUT, 0),
         RELATED_OUTPUT_FINDING_COUNT: counts.get(RELATED_OUTPUT, 0),
@@ -1269,6 +1637,31 @@ def _portfolio_period_index(
     for row_number, key in enumerate(columns.iter_rows()):
         index.setdefault(key, []).append(row_number)
     return index
+
+
+def _finding_row_index(
+    findings: pl.DataFrame,
+    key_columns: tuple[str, ...],
+) -> dict[tuple[object, ...], list[tuple[int, dict[str, object]]]]:
+    """Index complete finding rows once for repeated evidence ranking lookups."""
+    index: dict[
+        tuple[object, ...],
+        list[tuple[int, dict[str, object]]],
+    ] = {}
+    for row_number, row in enumerate(findings.iter_rows(named=True)):
+        key = tuple(row[column] for column in key_columns)
+        index.setdefault(key, []).append((row_number, row))
+    return index
+
+
+def _indexed_finding_rows(
+    index: dict[tuple[object, ...], list[tuple[int, dict[str, object]]]],
+    keys: tuple[tuple[object, ...], ...],
+) -> list[dict[str, object]]:
+    """Return indexed rows in their original finding-table order."""
+    indexed_rows = [indexed_row for key in keys for indexed_row in index.get(key, ())]
+    indexed_rows.sort(key=lambda indexed_row: indexed_row[0])
+    return [row for _, row in indexed_rows]
 
 
 def _indexed_portfolio_period_findings(

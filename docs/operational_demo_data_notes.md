@@ -44,7 +44,7 @@ The generator currently:
   and `91282Y5Y1` operational securities;
 - creates the ALPHA, BALANCED, and INCOME portfolio variants from the same
   security universe;
-- creates Axys/APX-style `portperf`, `secperf`, `sec_ref`, holdings, and
+- creates Axys/APX-style `portperf`, `secperf`, `secref`, holdings, and
   transactions CSVs;
 - writes `summary.json` for quick inspection.
 
@@ -106,7 +106,7 @@ data. Snapshot B introduces controlled changes that produce:
   `by`/`pa` and `sl`/`sa` rows, quantity-driven holding value/accrual evidence,
   and reviewer triage for incomplete or overlapping estimates;
 - related holding-component examples where quantity rows sit beside selected
-  market-value rows and cost remains in `supporting_files/source_detail.csv`;
+  market-value rows and cost remains in the promoted `source_detail.csv`;
 - matching security-level examples for AAPL and 91282Y2Y1;
 - transaction-rule YAML plus default field-role treatment for performance
   inputs, input components, reported-performance diagnostics, and context fields.

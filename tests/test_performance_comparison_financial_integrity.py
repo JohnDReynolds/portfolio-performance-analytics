@@ -16,8 +16,10 @@ import yaml
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import conservation
+from ppar.performance_comparison import financial_integrity
 from ppar.performance_comparison import findings as pc_findings
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
+from ppar.performance_comparison.period_linking import validate_portfolio_periods
 from ppar.performance_comparison.runner import compare_snapshots
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison import x_ref
@@ -25,6 +27,32 @@ from ppar.performance_comparison import x_ref
 
 class TestPerformanceComparisonFinancialIntegrity(unittest.TestCase):
     """Enforce SN-04, SN-06, and SN-07 at their intended boundaries."""
+
+    def test_changed_evidence_multiset_preserves_unmatched_duplicate_rows(self) -> None:
+        """Changed-row detection conserves duplicate multiplicity and null values."""
+        frame = pl.DataFrame(
+            {
+                "key": ["A", "A", "B", "C"],
+                "value": [1.0, 1.0, None, 3.0],
+            }
+        )
+        counterpart = pl.DataFrame(
+            {
+                "key": ["A", "B", "D"],
+                "value": [1.0, None, 4.0],
+            }
+        )
+
+        changed = financial_integrity._rows_not_identical_in_other_snapshot(
+            frame,
+            counterpart,
+        )
+
+        assert changed is not None
+        self.assertEqual(
+            changed.to_dicts(),
+            [{"key": "A", "value": 1.0}, {"key": "C", "value": 3.0}],
+        )
 
     def test_continuity_mismatch_is_visible_even_when_data_audit_is_disabled(self) -> None:
         """SN-04 cannot be hidden by disabling optional Data Audit checks."""
@@ -65,6 +93,36 @@ class TestPerformanceComparisonFinancialIntegrity(unittest.TestCase):
 
             with self.assertRaisesRegex(PpaError, "SN-07.*overlapping periods"):
                 PortfolioPerformanceLoader(specification).load("a")
+
+    def test_security_period_validation_keeps_duplicates_and_scopes_independent(
+        self,
+    ) -> None:
+        """SN-07 leaves duplicate-key handling to Error 112 and scopes securities."""
+        periods = pl.DataFrame(
+            {
+                pc_cols.PORTFOLIO_ID: ["P1", "P1", "P1", "P1"],
+                pc_cols.SECURITY_ID: ["S1", "S1", "S2", "S1"],
+                pc_cols.FROM_DATE: [
+                    dt.date(2026, 1, 1),
+                    dt.date(2026, 1, 1),
+                    dt.date(2026, 1, 15),
+                    dt.date(2026, 2, 1),
+                ],
+                pc_cols.THRU_DATE: [
+                    dt.date(2026, 1, 31),
+                    dt.date(2026, 1, 31),
+                    dt.date(2026, 2, 15),
+                    dt.date(2026, 2, 28),
+                ],
+            }
+        )
+
+        validate_portfolio_periods(
+            periods,
+            dataset_name=pc_cols.SECURITY_PERFORMANCE,
+            path="secperf.csv",
+            specification_path="comparison.yaml",
+        )
 
     def test_foreign_countable_value_requires_explicit_base_value(self) -> None:
         """SN-06 rejects a foreign holding value with no base-currency counterpart."""

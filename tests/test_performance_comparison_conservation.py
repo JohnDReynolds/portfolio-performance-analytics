@@ -77,6 +77,63 @@ class TestPerformanceComparisonConservation(unittest.TestCase):
             [],
         )
 
+    def test_finding_fingerprint_bytes_and_occurrences_are_stable(self) -> None:
+        """Column-wise metadata construction preserves persisted SHA-256 identities."""
+        findings = pl.DataFrame(
+            {
+                "code": ["PC-ONE", "PC-ONE"],
+                "dataset": ["holdings", "holdings"],
+                "source_record_locator": [
+                    "source:holdings:one",
+                    "source:holdings:one",
+                ],
+                "suppressed": [False, False],
+            }
+        )
+
+        trail = _conservation.finding_audit_trail(findings)
+
+        self.assertEqual(
+            trail[_conservation.FINDING_FINGERPRINT].to_list(),
+            [
+                "9193989520a945810c5e35861a95bd35edc2bc489563cccef35053b68c0a22ef:1",
+                "9193989520a945810c5e35861a95bd35edc2bc489563cccef35053b68c0a22ef:2",
+            ],
+        )
+        self.assertEqual(trail.schema[_conservation.FINDING_SEQUENCE], pl.Int64)
+
+    def test_finding_fingerprint_scalar_encoding_remains_compatible(self) -> None:
+        """Fingerprint bytes preserve JSON edge-case representations."""
+        findings = pl.DataFrame(
+            {
+                "text": ["caf\u00e9\n", 'quote " slash \\', "emoji \U0001f600", "plain"],
+                "date": [dt.date(2026, 1, 2)] * 4,
+                "timestamp": [dt.datetime(2026, 1, 2, 3, 4, 5, 6789)] * 4,
+                "number": [0.0, -0.0, float("nan"), float("inf")],
+                "count": [1, -2, 0, 42],
+                "flag": [True, False, True, False],
+                "empty": [None] * 4,
+                "source_record_locator": ["source:test:1"] * 4,
+            },
+            schema_overrides={
+                "date": pl.Date,
+                "timestamp": pl.Datetime,
+                "empty": pl.Null,
+            },
+        )
+
+        trail = _conservation.finding_audit_trail(findings)
+
+        self.assertEqual(
+            trail[_conservation.FINDING_FINGERPRINT].to_list(),
+            [
+                "68afb1df199d4802afe9e05a6d93ae8062ad2e8e2a7adc52f0d5ba7db8e1f72f:1",
+                "f423595cd834e88e0139f52d25a68c8948010191dcedda904645986a5d72f258:1",
+                "90aed75d890f47950de0ba1b4b6a38028cd831faa84ca9ac00457903498db17f:1",
+                "9188e6f80092b0464ba808e3c7a6e7cf1d7ce65fb9fc015616e41dfa5efaeeae:1",
+            ],
+        )
+
     def test_no_lost_findings_rejects_a_removed_row(self) -> None:
         """SN-01 raises if disposition processing removes a source finding."""
         findings = pl.DataFrame({"code": ["PC-ONE", "PC-TWO"]})
@@ -148,6 +205,41 @@ class TestPerformanceComparisonConservation(unittest.TestCase):
         )
         self.assertIsNotNone(causes[_conservation.COUNTED_CAUSE_OWNER][0])
         self.assertIsNone(causes[_conservation.COUNTED_CAUSE_OWNER][1])
+
+    def test_nonfinite_impacts_remain_review_evidence(self) -> None:
+        """NaN and infinite estimates cannot become counted cause owners."""
+        original = pl.DataFrame(
+            [
+                _cause_row(
+                    source_column=pc_cols.MARKET_VALUE,
+                    estimated_impact=float("nan"),
+                ),
+                _cause_row(
+                    source_column=pc_cols.PRICE,
+                    estimated_impact=float("inf"),
+                ),
+            ],
+            infer_schema_length=None,
+        )
+
+        causes = _conservation.cause_conservation_table(
+            original,
+            comparison_level="portfolio",
+        )
+        _conservation.assert_cause_conservation(
+            original,
+            causes,
+            comparison_level="portfolio",
+        )
+
+        self.assertEqual(
+            causes[_conservation.SAFETY_DISPOSITION].to_list(),
+            [DifferenceDisposition.REVIEW_EVIDENCE.value] * 2,
+        )
+        self.assertEqual(
+            causes[_conservation.COUNTED_CAUSE_OWNER].null_count(),
+            2,
+        )
 
     def test_no_double_counting_rejects_two_owners_for_one_effect(self) -> None:
         """SN-02 raises when market value and price both own one holding effect."""

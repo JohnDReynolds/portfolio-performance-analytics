@@ -298,52 +298,69 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
                 found, or security returns cannot be reconciled to portfolio
                 returns.
         """
-        if not portfolio_codes:
-            portfolio_performance = self._loader.load(
-                self._portfolio_performance_path,
-                "portfolio_performance_columns",
-            )
-            portfolio_codes = tuple(
+        requested_codes = tuple(dict.fromkeys(portfolio_codes or ()))
+        portfolio_performance = self._loader.load(
+            self._portfolio_performance_path,
+            "portfolio_performance_columns",
+            requested_codes or None,
+        )
+        if not requested_codes:
+            requested_codes = tuple(
                 portfolio_performance[cols.PORTFOLIO_CODE].unique().sort().to_list()
             )
+        available_codes = set(
+            portfolio_performance[cols.PORTFOLIO_CODE].unique().to_list()
+        )
+        load_codes = tuple(
+            portfolio_code
+            for portfolio_code in requested_codes
+            if portfolio_code in available_codes
+        )
+        if not load_codes:
+            return {}
+        security_performance = self._loader.load(
+            self._security_performance_path,
+            "security_performance_columns",
+            load_codes,
+        )
 
         return {
-            portfolio.portfolio_code: portfolio
-            for portfolio_code in portfolio_codes
-            if (portfolio := self._load_one(portfolio_code)) is not None
+            portfolio_code: self._reconcile_one(
+                portfolio_code,
+                portfolio_performance.filter(
+                    pl.col(cols.PORTFOLIO_CODE) == portfolio_code
+                ),
+                security_performance.filter(
+                    pl.col(cols.PORTFOLIO_CODE) == portfolio_code
+                ),
+            )
+            for portfolio_code in load_codes
         }
 
-    def _load_one(self, portfolio_code: str) -> AxysPortfolio | None:
-        """Return one reconciled portfolio, or ``None`` when it has no rows.
+    def _reconcile_one(
+        self,
+        portfolio_code: str,
+        portfolio_performance: pl.DataFrame,
+        security_performance: pl.DataFrame,
+    ) -> AxysPortfolio:
+        """Return one reconciled portfolio from already filtered source rows.
 
         Args:
-            portfolio_code: Portfolio code to load.
+            portfolio_code: Portfolio code represented by both source frames.
+            portfolio_performance: Portfolio-level rows for ``portfolio_code``.
+            security_performance: Security-level rows for ``portfolio_code``.
 
         Returns:
-            Reconciled portfolio output, or ``None`` when no portfolio rows
-            match the requested code.
+            Reconciled portfolio output.
 
         Raises:
             PpaError: If common periods cannot be found or security returns
                 cannot be reconciled to portfolio returns.
         """
-        portfolio_performance = self._loader.load(
-            self._portfolio_performance_path,
-            "portfolio_performance_columns",
-            portfolio_code,
-        )
-        if portfolio_performance.is_empty():
-            return None
-
         def portfolio_error_message(message: str) -> str:
             """Return an error message scoped to the current portfolio code."""
             return self._error_message(message, portfolio_code)
 
-        security_performance = self._loader.load(
-            self._security_performance_path,
-            "security_performance_columns",
-            portfolio_code,
-        )
         portfolio_performance, security_performance = reconciliation.filter_to_common_periods(
             portfolio_performance,
             security_performance,

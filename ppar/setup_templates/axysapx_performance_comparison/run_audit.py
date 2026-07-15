@@ -80,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
     # compare_snapshots() is the main calculation boundary. It reads ppar.yaml,
     # loads Snapshot A and Snapshot B, applies comparison/audit policy, and
     # returns one normalized findings table for the selected review level.
-    workbook_paths: list[Path] = []
+    review_paths: list[Path] = []
     security_skipped = False
     for report in selected_reports:
         try:
@@ -94,14 +94,15 @@ def main(argv: list[str] | None = None) -> int:
             # -------------------------------------------------------------
             # 3. Turn findings into the portable review bundle
             # -------------------------------------------------------------
-            # This writes level-specific audit XLSX/HTML files, supporting CSVs, a
-            # manifest, and bundle guidance. Edit the call below when building
-            # a custom reporting or downstream-review workflow.
+            # This writes the level-specific audit workbook, optional HTML,
+            # supporting CSVs, a manifest, and bundle guidance. Edit the call
+            # below when building a custom reporting or downstream-review workflow.
             bundle_paths = write_performance_comparison_report_bundle(
                 findings,
                 settings.output_directory / report.comparison_level,
                 title=settings.title or report.title,
                 include_workbook=settings.include_workbook,
+                include_html_output=settings.include_html_output,
                 require_complete_yaml_setup=not settings.allow_incomplete_yaml,
                 require_causal_attribution=settings.require_causal_attribution,
                 comparison_path=SPECIFICATIONS_PATH,
@@ -109,9 +110,22 @@ def main(argv: list[str] | None = None) -> int:
                 include_reconstruction_diagnostics=(
                     settings.include_reconstruction_diagnostics
                 ),
+                expand_all_supporting_files=settings.expand_all_supporting_files,
             )
-            review_path = bundle_paths.get("review_workbook") or bundle_paths["html_report"]
-            workbook_paths.append(review_path)
+            presentation_artifacts = tuple(
+                artifact_name
+                for artifact_name in ("review_workbook", "html_report")
+                if artifact_name in bundle_paths
+            )
+            primary_artifacts = presentation_artifacts or (
+                "performance_differences",
+                "performance_difference_causes",
+                "x_ref_issues",
+            )
+            for artifact_name in primary_artifacts:
+                review_path = bundle_paths.get(artifact_name)
+                if review_path is not None:
+                    review_paths.append(review_path)
         except PpaError as error:
             # The default "both" run remains useful for portfolio-only sites.
             if settings.report == "both" and is_missing_security_data(error):
@@ -124,8 +138,8 @@ def main(argv: list[str] | None = None) -> int:
     # 4. Hand the primary review files back to the user
     # ---------------------------------------------------------------------
     print("Open these files to review Performance Auditing output:")
-    for workbook_path in workbook_paths:
-        print(f"  {workbook_path}")
+    for review_path in review_paths:
+        print(f"  {review_path}")
     if security_skipped:
         print()
         print("Security output skipped because files.security_performance is not available.")

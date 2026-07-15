@@ -157,6 +157,14 @@ class FxRatesLoader:
         )
         if path is None or not util.file_path_exists(path):
             return None
+        cached = source_loader.cached_normalized_frame(
+            self._specification.path,
+            pc_cols.FX_RATES,
+            snapshot_key,
+            path,
+        )
+        if cached is not None:
+            return cached
 
         frame = source_loader.read_mapped_csv(
             path,
@@ -183,4 +191,10 @@ class FxRatesLoader:
             specification_path=self._specification.path,
         )
         _validate_unique_rows(frame, path=path)
-        return frame
+        return source_loader.cache_normalized_frame(
+            self._specification.path,
+            pc_cols.FX_RATES,
+            snapshot_key,
+            path,
+            frame,
+        )

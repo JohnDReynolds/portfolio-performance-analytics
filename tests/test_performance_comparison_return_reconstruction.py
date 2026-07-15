@@ -7,6 +7,7 @@ import datetime as dt
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 # Third-party imports
 import polars as pl
@@ -14,6 +15,7 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
+from ppar.performance_comparison import return_reconstruction as _reconstruction
 from ppar.performance_comparison.return_reconstruction import (
     BEGIN_VALUE_B,
     DERIVED_DENOMINATOR_B,
@@ -369,6 +371,27 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         self.assertTrue(checks.is_empty())
         self.assertTrue(security_checks.is_empty())
         self.assertTrue(summary.is_empty())
+
+    def test_shared_input_cache_builds_each_snapshot_index_once(self) -> None:
+        """Portfolio and security checks reuse the same snapshot input indexes."""
+        input_cache = _reconstruction._SnapshotDataIndexCache()
+        index_builder = _reconstruction._snapshot_data_index
+
+        with mock.patch.object(
+            _reconstruction,
+            "_snapshot_data_index",
+            wraps=index_builder,
+        ) as index_builder_spy:
+            portfolio_return_reconstruction_checks(
+                _PORTFOLIO_COMPARISON_PATH,
+                _input_cache=input_cache,
+            )
+            security_return_reconstruction_checks(
+                _PORTFOLIO_COMPARISON_PATH,
+                _input_cache=input_cache,
+            )
+
+        self.assertEqual(index_builder_spy.call_count, 2)
 
     def test_demo_reconstruction_checks_show_review_statuses(self) -> None:
         """Packaged demo reconstruction only differs for named residual examples."""

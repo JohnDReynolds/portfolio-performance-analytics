@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 import datetime as dt
 import hashlib
 from html.parser import HTMLParser
+import io
 import json
 from pathlib import Path
 from typing import Any, TypeGuard
@@ -46,9 +47,7 @@ def table_manifest_metadata(table: pl.DataFrame) -> dict[str, object]:
         "rows": table.height,
         "columns": list(table.columns),
         "column_types": column_types,
-        _SEMANTIC_HASH: _payload_hash(
-            _generic_table_payload(table, column_types=column_types)
-        ),
+        _SEMANTIC_HASH: _generic_table_hash(table, column_types),
     }
 
 
@@ -67,13 +66,12 @@ def review_sheet_manifest_metadata(
     for sheet in sheets:
         columns = _review_sheet_columns(sheet)
         headers = _review_sheet_headers(sheet, columns)
-        payload = _display_table_payload(sheet.table, columns, headers)
         metadata[sheet.artifact_name] = {
             "sheet_name": sheet.sheet_name,
             "rows": sheet.table.height,
             "internal_columns": list(columns),
             "display_headers": headers,
-            _DISPLAY_HASH: _payload_hash(payload),
+            _DISPLAY_HASH: _display_table_hash(sheet.table, columns, headers),
         }
     return metadata
 
@@ -222,9 +220,7 @@ def _persisted_csv_semantic_issues(
             table = pl.read_csv(csv_path, infer_schema=False)
         except (OSError, pl.exceptions.PolarsError):
             continue
-        actual_hash = _payload_hash(
-            _generic_table_payload(table, column_types=column_types)
-        )
+        actual_hash = _generic_table_hash(table, column_types)
         if table.columns != expected_columns:
             issues.append(f"table {table_name!r} ordered columns do not match manifest")
         if actual_hash != expected_hash:
@@ -346,58 +342,82 @@ def _review_sheet_headers(
     return [labels.get(column, _pc_rendering.display_header(column)) for column in columns]
 
 
-def _generic_table_payload(
+def _generic_table_hash(
     table: pl.DataFrame,
-    *,
-    column_types: Sequence[str] | None = None,
-) -> dict[str, object]:
-    """Return normalized lossless-enough CSV table semantics."""
-    kinds = list(column_types or (_dtype_kind(data_type) for data_type in table.dtypes))
-    return {
-        "columns": list(table.columns),
-        "column_types": kinds,
-        "rows": [
-            [
-                _generic_value(value, kind=kind)
-                for value, kind in zip(row, kinds, strict=True)
-            ]
-            for row in table.iter_rows()
-        ],
-    }
+    column_types: Sequence[str],
+) -> str:
+    """Return a vectorized semantic hash stable across CSV serialization."""
+    normalized_columns: list[pl.Expr] = []
+    for column, kind in zip(table.columns, column_types, strict=True):
+        value = pl.col(column)
+        if kind == "boolean":
+            normalized = value.cast(pl.String).str.strip_chars().str.to_lowercase()
+        elif kind == "float":
+            numeric = value.cast(pl.Float64, strict=False)
+            normalized = (
+                pl.when(numeric == 0)
+                .then(pl.lit("0.0"))
+                .otherwise(numeric.cast(pl.String))
+            )
+        elif kind == "integer":
+            normalized = (
+                value.cast(pl.Float64, strict=False)
+                .cast(pl.Int64, strict=False)
+                .cast(pl.String)
+            )
+        else:
+            normalized = value.cast(pl.String)
+        normalized_columns.append(normalized.fill_null("").alias(column))
+
+    normalized_table = table.select(normalized_columns)
+    serialized = io.BytesIO()
+    normalized_table.write_csv(serialized, include_header=False)
+    digest = hashlib.sha256()
+    digest.update(
+        json.dumps(
+            {
+                "columns": list(table.columns),
+                "column_types": list(column_types),
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    )
+    digest.update(b"\n")
+    digest.update(serialized.getbuffer())
+    return digest.hexdigest()
 
 
-def _display_table_payload(
+def _display_table_hash(
     table: pl.DataFrame,
     columns: Sequence[str],
     headers: Sequence[str],
-) -> dict[str, object]:
-    """Return normalized reviewer-visible table semantics."""
-    return {
-        "columns": list(headers),
-        "rows": [
-            [_display_value(row[column]) for column in columns]
-            for row in table.iter_rows(named=True)
-        ],
+) -> str:
+    """Return the display hash without materializing a second full table copy.
+
+    Notes:
+        The byte stream is identical to hashing the canonical ``columns`` and
+        ``rows`` payload as one JSON object. Streaming rows prevents manifest
+        creation from retaining every reviewer-visible cell again at large sites.
+    """
+    json_settings = {
+        "ensure_ascii": False,
+        "separators": (",", ":"),
+        "sort_keys": True,
     }
-
-
-def _generic_value(value: object, *, kind: str) -> str:
-    """Return a stable scalar representation across internal and CSV values."""
-    if value is None or value == "":
-        normalized = ""
-    elif kind == "boolean":
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-        else:
-            normalized = "true" if bool(value) else "false"
-    elif kind == "float":
-        numeric_value = float(str(value))
-        normalized = "0.0" if numeric_value == 0 else str(numeric_value)
-    elif kind == "integer":
-        normalized = str(int(float(str(value))))
-    else:
-        normalized = str(value)
-    return normalized
+    digest = hashlib.sha256()
+    digest.update(b'{"columns":')
+    digest.update(json.dumps(list(headers), **json_settings).encode("utf-8"))
+    digest.update(b',"rows":[')
+    first_row = True
+    for row in table.iter_rows(named=True):
+        if not first_row:
+            digest.update(b",")
+        first_row = False
+        values = [_display_value(row[column]) for column in columns]
+        digest.update(json.dumps(values, **json_settings).encode("utf-8"))
+    digest.update(b"]}")
+    return digest.hexdigest()
 
 
 def _dtype_kind(data_type: pl.DataType) -> str:

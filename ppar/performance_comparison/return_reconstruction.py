@@ -213,6 +213,27 @@ class _SnapshotDataIndex:
         return None
 
 
+class _SnapshotDataIndexCache:
+    """Cache reconstruction input indexes for one comparison run."""
+
+    def __init__(self) -> None:
+        self._indexes: dict[str, _SnapshotDataIndex] = {}
+
+    def index(
+        self,
+        snapshot_key: str,
+        holdings: pl.DataFrame,
+        transactions: pl.DataFrame,
+    ) -> _SnapshotDataIndex:
+        """Return one cached snapshot index, building it when first requested."""
+        if snapshot_key not in self._indexes:
+            self._indexes[snapshot_key] = _snapshot_data_index(
+                holdings,
+                transactions,
+            )
+        return self._indexes[snapshot_key]
+
+
 def _snapshot_data_index(
     holdings: pl.DataFrame,
     transactions: pl.DataFrame,
@@ -270,12 +291,15 @@ def _snapshot_data_index(
 
 def portfolio_return_reconstruction_checks(
     comparison_path: util.PathLike | None,
+    *,
+    _input_cache: _SnapshotDataIndexCache | None = None,
 ) -> pl.DataFrame:
     """Return portfolio return-reconstruction diagnostics for a comparison YAML.
 
     Args:
         comparison_path: Path to a performance comparison YAML file. ``None``
             returns an empty table because reconstruction needs source-data.
+        _input_cache: Optional package-internal cache shared by report views.
 
     Returns:
         Stable Polars table with one row per portfolio-period that can be
@@ -294,7 +318,11 @@ def portfolio_return_reconstruction_checks(
     if reconstruction is None:
         return _empty_portfolio_return_reconstruction_checks()
 
-    engine = _PortfolioReturnReconstructionEngine(specification, reconstruction)
+    engine = _PortfolioReturnReconstructionEngine(
+        specification,
+        reconstruction,
+        input_cache=_input_cache,
+    )
     return engine.checks()
 
 
@@ -302,6 +330,7 @@ def security_return_reconstruction_checks(
     comparison_path: util.PathLike | None,
     *,
     active_keys: Iterable[tuple[str, str, dt.date, dt.date]] | None = None,
+    _input_cache: _SnapshotDataIndexCache | None = None,
 ) -> pl.DataFrame:
     """Return security return-reconstruction diagnostics for a comparison YAML.
 
@@ -310,6 +339,7 @@ def security_return_reconstruction_checks(
             returns an empty table because reconstruction needs source-data.
         active_keys: Optional portfolio/security/period keys to check. When
             omitted, all configured security performance rows are checked.
+        _input_cache: Optional package-internal cache shared by report views.
 
     Returns:
         Stable Polars table with one row per portfolio-security-period that can
@@ -328,25 +358,36 @@ def security_return_reconstruction_checks(
     if reconstruction is None:
         return _empty_security_return_reconstruction_checks()
 
-    engine = _SecurityReturnReconstructionEngine(specification, reconstruction)
+    engine = _SecurityReturnReconstructionEngine(
+        specification,
+        reconstruction,
+        input_cache=_input_cache,
+    )
     return engine.checks(active_keys=active_keys)
 
 
 def return_reconstruction_summary(
     comparison_path: util.PathLike | None,
+    *,
+    _input_cache: _SnapshotDataIndexCache | None = None,
 ) -> pl.DataFrame:
     """Return summary counts for available return-reconstruction diagnostics.
 
     Args:
         comparison_path: Path to a performance comparison YAML file. ``None``
             returns an empty summary.
+        _input_cache: Optional package-internal cache shared by report views.
 
     Returns:
         Stable summary table grouped by reconstruction check type, status, and
         diagnostic category. Empty when neither reconstruction check is enabled.
     """
     tables = []
-    portfolio_checks = portfolio_return_reconstruction_checks(comparison_path)
+    input_cache = _input_cache or _SnapshotDataIndexCache()
+    portfolio_checks = portfolio_return_reconstruction_checks(
+        comparison_path,
+        _input_cache=input_cache,
+    )
     if not portfolio_checks.is_empty():
         tables.append(
             _summary_counts(
@@ -354,7 +395,10 @@ def return_reconstruction_summary(
                 check_type=RECONSTRUCTION_CHECK_TYPE_PORTFOLIO,
             )
         )
-    security_checks = security_return_reconstruction_checks(comparison_path)
+    security_checks = security_return_reconstruction_checks(
+        comparison_path,
+        _input_cache=input_cache,
+    )
     if not security_checks.is_empty():
         tables.append(
             _summary_counts(
@@ -374,9 +418,12 @@ class _PortfolioReturnReconstructionEngine:
         self,
         specification: PerformanceComparisonSpecification,
         reconstruction: PortfolioReturnReconstruction,
+        *,
+        input_cache: _SnapshotDataIndexCache | None = None,
     ) -> None:
         self._specification = specification
         self._reconstruction = reconstruction
+        self._input_cache = input_cache or _SnapshotDataIndexCache()
         self._portfolio_loader = PortfolioPerformanceLoader(specification)
         self._holdings_loader = HoldingsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
@@ -393,8 +440,8 @@ class _PortfolioReturnReconstructionEngine:
         rows = []
         periods_a = _portfolio_rows_by_key(portfolio_a)
         periods_b = _portfolio_rows_by_key(portfolio_b)
-        inputs_a_index = _snapshot_data_index(holdings_a, transactions_a)
-        inputs_b_index = _snapshot_data_index(holdings_b, transactions_b)
+        inputs_a_index = self._input_cache.index("a", holdings_a, transactions_a)
+        inputs_b_index = self._input_cache.index("b", holdings_b, transactions_b)
         for key in sorted(set(periods_a) | set(periods_b)):
             period_a = periods_a.get(key)
             period_b = periods_b.get(key)
@@ -536,9 +583,12 @@ class _SecurityReturnReconstructionEngine:
         self,
         specification: PerformanceComparisonSpecification,
         reconstruction: SecurityReturnReconstruction,
+        *,
+        input_cache: _SnapshotDataIndexCache | None = None,
     ) -> None:
         self._specification = specification
         self._reconstruction = reconstruction
+        self._input_cache = input_cache or _SnapshotDataIndexCache()
         self._security_loader = SecurityPerformanceLoader(specification)
         self._holdings_loader = HoldingsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
@@ -559,8 +609,8 @@ class _SecurityReturnReconstructionEngine:
         rows = []
         periods_a = _security_rows_by_key(security_a)
         periods_b = _security_rows_by_key(security_b)
-        inputs_a_index = _snapshot_data_index(holdings_a, transactions_a)
-        inputs_b_index = _snapshot_data_index(holdings_b, transactions_b)
+        inputs_a_index = self._input_cache.index("a", holdings_a, transactions_a)
+        inputs_b_index = self._input_cache.index("b", holdings_b, transactions_b)
         keys = set(periods_a) | set(periods_b)
         if active_keys is not None:
             keys &= set(active_keys)

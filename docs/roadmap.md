@@ -3417,10 +3417,11 @@ Status: complete for the `0.1.5` release-candidate artifact boundary.
 
 Portfolio and security review entrypoints now identify their review level:
 
-- portfolio bundles write `portfolio_audit.html` and, by default,
-  `portfolio_audit.xlsx`;
-- security bundles write `security_audit.html` and, by default,
-  `security_audit.xlsx`; and
+- portfolio Audit bundles write `portfolio_audit.xlsx` and
+  `portfolio_audit.html` by default;
+- security Audit bundles write `security_audit.xlsx` and
+  `security_audit.html` by default; `--no-xlsx-output` and `--no-html-output`
+  independently suppress those formats, while both select CSV-only output; and
 - rebuilding a bundle removes stale generic `report.*` files and wrong-level
   audit files from the reused output directory.
 

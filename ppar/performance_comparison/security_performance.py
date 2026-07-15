@@ -63,6 +63,14 @@ class SecurityPerformanceLoader:
             if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
                 raise PpaError(self._error_message(util.file_path_error(path or "")), 802)
             return None
+        cached = source_loader.cached_normalized_frame(
+            self._specification.path,
+            pc_cols.SECURITY_PERFORMANCE,
+            snapshot_key,
+            path,
+        )
+        if cached is not None:
+            return cached
 
         frame = source_loader.read_schema_mapped_csv(
             path,
@@ -99,16 +107,22 @@ class SecurityPerformanceLoader:
             path=path,
             specification_path=self._specification.path,
         )
-        if pc_cols.PORTFOLIO_PERFORMANCE not in self._specification.files:
-            return frame
-        return normalize_currency_columns(
-            with_authoritative_base_currency(
-                frame,
-                PortfolioPerformanceLoader(self._specification).load(snapshot_key),
-                dataset_name=pc_cols.SECURITY_PERFORMANCE,
-                path=path,
-                specification_path=self._specification.path,
+        if pc_cols.PORTFOLIO_PERFORMANCE in self._specification.files:
+            frame = normalize_currency_columns(
+                with_authoritative_base_currency(
+                    frame,
+                    PortfolioPerformanceLoader(self._specification).load(snapshot_key),
+                    dataset_name=pc_cols.SECURITY_PERFORMANCE,
+                    path=path,
+                    specification_path=self._specification.path,
+                )
             )
+        return source_loader.cache_normalized_frame(
+            self._specification.path,
+            pc_cols.SECURITY_PERFORMANCE,
+            snapshot_key,
+            path,
+            frame,
         )
 
     def _error_message(self, message: str) -> str:

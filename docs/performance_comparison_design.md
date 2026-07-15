@@ -1862,8 +1862,13 @@ emitting a numeric residual. Report helper tables include a
 be interpreted as a calculated residual.
 
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
-The bundle contains the HTML report, raw findings, current report helper tables
-as CSV files, a short `README.md`, a compact `review_summary.json`, and a JSON
+The public bundle API retains HTML output by default for compatibility. The
+user-facing `ppar audit` command defaults to XLSX plus HTML. `--no-xlsx-output`
+selects HTML-only output, `--no-html-output` selects XLSX-only output, and both
+options select promoted CSV-only review output. Every bundle therefore contains
+primary review artifacts, raw findings, current
+report helper tables as CSV files, a short `README.md`, a compact
+`review_summary.json`, and a JSON
 manifest with options, counts, artifact names, typed semantic fingerprints, and
 canonical review-sheet display fingerprints. This makes reviewer handoffs
 reproducible without coupling the comparison engine to a future
@@ -1912,13 +1917,19 @@ section. The CSV artifacts remain in the bundle because they make handoffs,
 automation, validation, and troubleshooting reproducible; they are not meant to
 replace the first-stop workbook/report review flow.
 
+User-facing commands package those artifacts in `audit_support.zip` by default
+and promote `source_detail.csv` to the report root. The
+`--expand-all-supporting-files` option retains the equivalent individual files
+under `supporting_files/` for integrations and detailed troubleshooting.
+
 The `ppar.performance_comparison.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
 `ppar.performance_comparison.cli.validate_bundle`, which verifies required
 artifacts, manifest metadata, typed CSV content, canonical HTML/XLSX review
-content, empty-table headers, and the optional XLSX workbook when the manifest
-includes one. Manifest version 3 excludes only its generation timestamp and
+content, empty-table headers, and whichever HTML/XLSX primary artifacts the
+manifest includes. Manifest version 4 records the selected output modes and
+excludes only its generation timestamp and
 XLSX creation/package timestamps from normalized repeatability; statuses,
 financial values, labels, causes, evidence rows, and ordering remain covered.
 Packaged demo scenario coverage can be checked with
@@ -2086,12 +2097,13 @@ ambiguous. Report bundles include this table as
 in the source detail, but the normal workbook and HTML review flow do not
 surface a standalone transaction-match section.
 
-Report bundles include a level-specific HTML audit as the browser view of the
-same review model used by its XLSX counterpart. The HTML artifact is intentionally conservative:
+Report bundles can include a level-specific HTML audit as the browser view of
+the same review model used by its XLSX counterpart. The HTML artifact is
+intentionally conservative:
 it uses the same workbook table model, section ordering, column labels, and
 column tooltips as the workbook, with lightweight CSS and accessible table
 captions for browser review rather than separate HTML-specific analytics logic.
-The bundle writer is the only user-facing report path; standalone HTML
+The bundle writer is the only report path; standalone HTML
 rendering helpers remain internal implementation details.
 
 ## Historical Near-Term Roadmap

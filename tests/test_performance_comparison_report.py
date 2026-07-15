@@ -11,9 +11,11 @@ import tempfile
 from typing import Any, cast
 import unittest
 from unittest import mock
+import zipfile
 
 # Third-party imports
 import polars as pl
+from polars.testing import assert_frame_equal
 
 # Project imports
 from ppar.errors import PpaError
@@ -30,6 +32,11 @@ from ppar.performance_comparison import (
     write_performance_comparison_review_workbook,
 )
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison import explain as _pc_explain
+from ppar.performance_comparison import output_policy as _pc_output_policy
+from ppar.performance_comparison import report as _pc_report
+from ppar.performance_comparison import review_model as _pc_review_model
+from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     PC_PORT_MV,
@@ -41,10 +48,13 @@ from ppar.performance_comparison.transaction_summary import (
     transaction_semantics_summary,
 )
 from ppar.performance_comparison.workbook_tables import (
+    _workbook_changed_item_row,
     _workbook_portfolio_changes_table,
     _workbook_raw_audit_trail_table,
+    _workbook_row_kind,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
+    _workbook_with_primary_review_key,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
@@ -395,6 +405,147 @@ def _entrypoint_files(entrypoints: Mapping[str, object]) -> set[str]:
 class TestPerformanceComparisonReport(unittest.TestCase):
     """Verify report rendering and artifact generation for comparison findings."""
 
+    def test_primary_review_row_limit_allows_100000_and_stops_at_100001(self) -> None:
+        """The output ceiling has an exact, protected 100,000-row boundary."""
+        table = pl.DataFrame({"row": range(100_001)}).with_columns(
+            pl.lit("P1").alias(pc_cols.PORTFOLIO_ID),
+            pl.lit("2026-01-01").alias(pc_cols.FROM_DATE),
+            pl.lit("2026-01-31").alias(pc_cols.THRU_DATE),
+            pl.lit("holdings.market_value").alias("dataset_field"),
+        )
+        allowed_sheet = _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=(
+                _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT
+            ),
+            sheet_name=_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
+            table=table.head(100_000),
+        )
+        _pc_output_policy.assert_review_output_row_limit(
+            (allowed_sheet,),
+            comparison_level="portfolio",
+        )
+
+        oversized_sheet = _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=allowed_sheet.artifact_name,
+            sheet_name=allowed_sheet.sheet_name,
+            table=table,
+        )
+        with self.assertRaisesRegex(
+            PpaError,
+            r"Performance Difference Causes would contain 100,001 rows.*"
+            r"portfolios: P1 \(100,001\).*"
+            r"dataset.fields: holdings.market_value \(100,001\)",
+        ):
+            _pc_output_policy.assert_review_output_row_limit(
+                (oversized_sheet,),
+                comparison_level="portfolio",
+            )
+
+    def test_oversized_review_table_writes_no_report_files(self) -> None:
+        """An oversized bundle fails before its destination directory is created."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        oversized_table = pl.DataFrame({"row": range(100_001)}).with_columns(
+            pl.lit("P1").alias(pc_cols.PORTFOLIO_ID)
+        )
+        oversized_sheet = _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=_pc_review_model.X_REF_ISSUES_ARTIFACT,
+            sheet_name=_pc_review_model.X_REF_ISSUES_SHEET,
+            table=oversized_table,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "oversized_bundle"
+            with mock.patch(
+                "ppar.performance_comparison.workbook_tables."
+                "performance_comparison_review_workbook_sheets",
+                return_value=(oversized_sheet,),
+            ):
+                with self.assertRaisesRegex(
+                    PpaError,
+                    "No files were written for the oversized report",
+                ):
+                    write_performance_comparison_report_bundle(
+                        findings,
+                        output_directory,
+                        require_complete_yaml_setup=False,
+                    )
+
+            self.assertFalse(output_directory.exists())
+
+    def test_context_evidence_schema_inference_includes_late_security_ids(self) -> None:
+        """Large context tables accept strings after an initial null-only window."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        context_row = findings.filter(pl.col("evidence_role") == "context").head(1)
+        self.assertFalse(context_row.is_empty())
+        blank_security_row = context_row.with_columns(
+            pl.lit(None, dtype=pl.String).alias(pc_cols.SECURITY_ID)
+        )
+        security_row = context_row.with_columns(
+            pl.lit("CVNA").alias(pc_cols.SECURITY_ID)
+        )
+        scaled_findings = pl.concat(
+            [blank_security_row] * 101 + [security_row],
+            how="vertical",
+        )
+
+        context_evidence = _pc_report._context_evidence_table(scaled_findings)
+
+        self.assertIn("CVNA", context_evidence[pc_cols.SECURITY_ID].to_list())
+
+    def test_compact_report_bundle_promotes_detail_and_archives_full_support(self) -> None:
+        """Compact output remains complete, validated, and reviewer friendly."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                require_complete_yaml_setup=False,
+                expand_all_supporting_files=False,
+            )
+
+            self.assertEqual(
+                set(paths),
+                {"html_report", "readme", "source_detail", "audit_support"},
+            )
+            self.assertFalse((output_directory / "supporting_files").exists())
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
+            with zipfile.ZipFile(paths["audit_support"]) as archive:
+                self.assertIn("supporting_files/manifest.json", archive.namelist())
+                self.assertIn("supporting_files/cause_lineage.csv", archive.namelist())
+                archived_source_detail = archive.read(
+                    "supporting_files/source_detail.csv"
+                )
+            self.assertEqual(paths["source_detail"].read_bytes(), archived_source_detail)
+            readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertIn("`source_detail.csv`", readme)
+            self.assertIn("`audit_support.zip`", readme)
+            self.assertIn("`--expand-all-supporting-files`", readme)
+
+            paths["source_detail"].write_text("changed\n", encoding="utf-8")
+            self.assertEqual(
+                report_bundle_validation_issues(output_directory),
+                ["promoted source_detail.csv does not match audit_support.zip"],
+            )
+
+    def test_generation_defers_deep_reparse_to_standalone_validation(self) -> None:
+        """Audit generation keeps assertions on while deep artifact parity is separate."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch(
+                "ppar.performance_comparison.output_integrity."
+                "report_bundle_output_integrity_issues",
+                return_value=[],
+            ) as deep_validation:
+                write_performance_comparison_report_bundle(
+                    findings,
+                    directory,
+                    require_complete_yaml_setup=False,
+                )
+                deep_validation.assert_not_called()
+
+                self.assertEqual(report_bundle_validation_issues(directory), [])
+                deep_validation.assert_called_once()
+
     def test_report_bundle_contract_snapshot(self) -> None:
         """The public report-bundle contract exposes reviewer handoff shape."""
         self.assertEqual(
@@ -411,7 +562,21 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                         "review_workbook": "security_audit.xlsx",
                     },
                 },
-                "manifest_version": 3,
+                "supporting_files_packaging": {
+                    "default_archive": "audit_support.zip",
+                    "promoted_reviewer_files": {
+                        "normal": ["source_detail.csv"],
+                        "csv_only": [
+                            "performance_differences.csv",
+                            "performance_difference_causes.csv",
+                            "x_ref_issues.csv",
+                            "source_detail.csv",
+                        ],
+                    },
+                    "expanded_directory": "supporting_files",
+                    "expand_option": "--expand-all-supporting-files",
+                },
+                "manifest_version": 4,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -420,7 +585,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "xlsx.zip_entry_timestamps",
                 ],
                 "required_artifacts": [
-                    "html_report",
                     "readme",
                     "manifest",
                     "review_summary",
@@ -444,6 +608,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "transaction_matching_diagnostics",
                     "top_evidence",
                 ],
+                "primary_review_artifact_modes": {
+                    "xlsx": "review_workbook",
+                    "html": "html_report",
+                    "csv": [
+                        "performance_differences",
+                        "performance_difference_causes",
+                        "x_ref_issues",
+                    ],
+                },
                 "required_manifest_keys": [
                     "bundle_type",
                     "manifest_version",
@@ -525,7 +698,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         required_manifest_keys = cast(list[str], contract["required_manifest_keys"])
         required_entrypoints = cast(list[str], contract["required_review_entrypoints"])
         required_summary_keys = cast(list[str], contract["required_review_summary_keys"])
-        expected_keys = set(required_artifacts)
+        expected_keys = {*required_artifacts, "html_report"}
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -559,6 +732,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Performance Differences", html_report)
             self.assertIn("Performance Difference Causes", html_report)
             self.assertNotIn("<h2>Source Detail</h2>", html_report)
+
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
@@ -912,6 +1086,70 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
+    def test_raw_audit_trail_preserves_non_presentation_source_columns(self) -> None:
+        """Bulk source-column projection preserves every raw finding value."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        keyed_findings = _workbook_with_primary_review_key(
+            findings,
+            _pc_workbook_tables.PORTFOLIO_COMPARISON_LEVEL,
+        )
+        first_row = keyed_findings.row(0, named=True)
+        presentation_columns = set(_workbook_changed_item_row(first_row))
+        raw_columns = [
+            column
+            for column in keyed_findings.columns
+            if column not in presentation_columns
+        ]
+
+        raw_audit_trail = _workbook_raw_audit_trail_table(findings)
+        source_columns = ["review_key", *raw_columns]
+        expected = keyed_findings.select(source_columns).sort(source_columns)
+        actual = raw_audit_trail.select(source_columns).sort(source_columns)
+
+        assert_frame_equal(actual, expected)
+
+    def test_changed_item_row_classifies_finding_once(self) -> None:
+        """Changed-item construction reuses one presentation classification."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        row = findings.row(0, named=True)
+        classify = _workbook_row_kind
+
+        with mock.patch(
+            "ppar.performance_comparison.workbook_tables._workbook_row_kind",
+            wraps=classify,
+        ) as classify_spy:
+            changed_item = _workbook_changed_item_row(row)
+
+        self.assertEqual(classify_spy.call_count, 1)
+        self.assertEqual(changed_item["portfolio_id"], row["portfolio_id"])
+
+    def test_raw_audit_trail_reuses_wording_without_losing_identity(self) -> None:
+        """Repeated presentation inputs retain row-specific audit identities."""
+        source = compare_snapshots(_RESTATEMENT_COMPARISON_PATH).head(1)
+        duplicate = source.with_columns(
+            pl.lit("SECOND_PORTFOLIO").alias("portfolio_id"),
+            pl.lit("source:second-portfolio").alias("source_record_locator"),
+        )
+        findings = pl.concat([source, duplicate])
+
+        with mock.patch.object(
+            _pc_workbook_tables,
+            "_workbook_changed_item_row",
+            wraps=_workbook_changed_item_row,
+        ) as changed_item_spy:
+            raw_audit_trail = _workbook_raw_audit_trail_table(findings)
+
+        self.assertEqual(changed_item_spy.call_count, 1)
+        self.assertEqual(
+            set(raw_audit_trail["portfolio_id"].to_list()),
+            {source["portfolio_id"][0], "SECOND_PORTFOLIO"},
+        )
+        self.assertIn(
+            "source:second-portfolio",
+            raw_audit_trail["source_record_locator"].to_list(),
+        )
+        self.assertEqual(raw_audit_trail["review_key"].n_unique(), 2)
+
     def test_write_report_bundle_reuses_workbook_sheets_for_html_and_xlsx(self) -> None:
         """Bundle generation avoids rebuilding workbook-style tables twice."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
@@ -933,6 +1171,94 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("html_report", paths)
         self.assertIn("review_workbook", paths)
         self.assertEqual(wrapped_sheet_builder.call_count, 1)
+
+    def test_workbook_sheets_reuse_reconstruction_formula_rows(self) -> None:
+        """One report view derives each Modified Dietz formula row set once."""
+        cases = (
+            (
+                "portfolio",
+                _pc_workbook_tables._workbook_portfolio_reconstruction_formula_rows,
+            ),
+            (
+                "security",
+                _pc_workbook_tables._workbook_security_reconstruction_formula_rows,
+            ),
+        )
+        for comparison_level, formula_builder in cases:
+            with self.subTest(comparison_level=comparison_level):
+                findings = compare_snapshots(
+                    _PORTFOLIO_COMPARISON_PATH,
+                    comparison_level=comparison_level,
+                )
+                with mock.patch.object(
+                    _pc_workbook_tables,
+                    formula_builder.__name__,
+                    wraps=formula_builder,
+                ) as wrapped_formula_builder:
+                    _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+                        findings,
+                        comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                        comparison_level=comparison_level,
+                    )
+
+                self.assertEqual(wrapped_formula_builder.call_count, 1)
+
+    def test_formula_allocation_searches_candidates_once_per_input(self) -> None:
+        """Cause allocation and visibility share one source-candidate search."""
+        for comparison_level in ("portfolio", "security"):
+            with self.subTest(comparison_level=comparison_level):
+                findings = compare_snapshots(
+                    _PORTFOLIO_COMPARISON_PATH,
+                    comparison_level=comparison_level,
+                )
+                active_findings = _pc_workbook_tables._active_findings(findings)
+                table_cache = _pc_workbook_tables._WorkbookTableCache(
+                    active_findings
+                )
+                reconstruction_cache = (
+                    _pc_workbook_tables.WorkbookReconstructionCache(
+                        _PORTFOLIO_COMPARISON_PATH
+                    )
+                )
+                formula_rows = table_cache.reconstruction_formula_rows(
+                    comparison_level,
+                    comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                    reconstruction_cache=reconstruction_cache,
+                )
+                candidate_search = (
+                    _pc_workbook_tables._workbook_formula_source_candidates
+                )
+
+                with mock.patch.object(
+                    _pc_workbook_tables,
+                    "_workbook_formula_source_candidates",
+                    wraps=candidate_search,
+                ) as candidate_search_spy:
+                    _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+                        findings,
+                        comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                        comparison_level=comparison_level,
+                        _reconstruction_cache=reconstruction_cache,
+                        _table_cache=table_cache,
+                    )
+
+                self.assertEqual(candidate_search_spy.call_count, len(formula_rows))
+
+    def test_workbook_table_cache_reuses_portfolio_period_summary(self) -> None:
+        """Coverage and supporting tables share one portfolio-period summary."""
+        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        table_cache = _pc_workbook_tables._WorkbookTableCache(findings)
+        summary_builder = _pc_explain.portfolio_period_summary
+
+        with mock.patch.object(
+            _pc_explain,
+            "portfolio_period_summary",
+            wraps=summary_builder,
+        ) as wrapped_summary_builder:
+            table_cache.primary_coverage("portfolio")
+            table_cache.portfolio_period_summary()
+
+        self.assertEqual(wrapped_summary_builder.call_count, 1)
 
     def test_write_report_bundle_manifest_includes_source_context(self) -> None:
         """Report bundle manifests summarize comparison and extract-contract context."""
@@ -1403,7 +1729,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             self.assertEqual(
                 set(paths),
-                {*REPORT_BUNDLE_REQUIRED_ARTIFACTS, "review_workbook"},
+                {
+                    *REPORT_BUNDLE_REQUIRED_ARTIFACTS,
+                    "html_report",
+                    "review_workbook",
+                },
             )
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(
@@ -1414,8 +1744,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertNotIn("Open `portfolio_audit.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
             self.assertIn(
-                "1. Open `portfolio_audit.xlsx` when present; use "
-                "`portfolio_audit.html` for "
+                "1. Open `portfolio_audit.xlsx`; use `portfolio_audit.html` for "
                 "browser review.",
                 readme,
             )
@@ -1428,6 +1757,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "`supporting_files/source_detail.csv` for audit and troubleshooting",
                 readme,
             )
+
             self.assertIn("reviewer-friendly finding-level audit trail", readme)
             self.assertIn(
                 "follow a performance period across the `supporting_files/` "
@@ -1653,6 +1983,170 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(underlying_causes_sheet.max_column, 11)
 
             self.assertNotIn("Source Detail", workbook.sheetnames)
+
+    def test_write_report_bundle_supports_workbook_only_output(self) -> None:
+        """An XLSX-only bundle is complete and removes stale browser output."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+            initial_paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                require_complete_yaml_setup=False,
+            )
+            self.assertTrue(initial_paths["html_report"].exists())
+
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                include_workbook=True,
+                include_html_output=False,
+                require_complete_yaml_setup=False,
+            )
+
+            self.assertNotIn("html_report", paths)
+            self.assertFalse((output_directory / "portfolio_audit.html").exists())
+            self.assertTrue(paths["review_workbook"].exists())
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            self.assertTrue(manifest["options"]["include_workbook"])
+            self.assertFalse(manifest["options"]["include_html_output"])
+            self.assertEqual(
+                manifest["review_entrypoints"]["primary_review"],
+                "portfolio_audit.xlsx",
+            )
+            self.assertNotIn("html_report", manifest["artifacts"])
+            readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertIn("1. Open `portfolio_audit.xlsx`", readme)
+            self.assertNotIn("portfolio_audit.html", readme)
+
+            manifest["options"]["include_html_output"] = True
+            paths["manifest"].write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            self.assertIn(
+                "manifest option 'include_html_output' does not match artifact "
+                "'html_report'",
+                report_bundle_validation_issues(output_directory),
+            )
+
+    def test_write_report_bundle_supports_csv_only_output(self) -> None:
+        """Disabling XLSX and HTML promotes complete canonical CSV review output."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                include_workbook=False,
+                include_html_output=False,
+                require_complete_yaml_setup=False,
+                expand_all_supporting_files=False,
+            )
+
+            self.assertEqual(
+                set(paths),
+                {
+                    "performance_differences",
+                    "performance_difference_causes",
+                    "x_ref_issues",
+                    "source_detail",
+                    "readme",
+                    "audit_support",
+                },
+            )
+            self.assertFalse((output_directory / "portfolio_audit.xlsx").exists())
+            self.assertFalse((output_directory / "portfolio_audit.html").exists())
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
+            with zipfile.ZipFile(paths["audit_support"]) as archive:
+                manifest = json.loads(
+                    archive.read("supporting_files/manifest.json").decode("utf-8")
+                )
+                for artifact_name in (
+                    "performance_differences",
+                    "performance_difference_causes",
+                    "x_ref_issues",
+                    "source_detail",
+                ):
+                    self.assertEqual(
+                        paths[artifact_name].read_bytes(),
+                        archive.read(f"supporting_files/{artifact_name}.csv"),
+                    )
+            self.assertFalse(manifest["options"]["include_workbook"])
+            self.assertFalse(manifest["options"]["include_html_output"])
+            self.assertEqual(
+                manifest["review_entrypoints"]["primary_review"],
+                [
+                    "performance_differences.csv",
+                    "performance_difference_causes.csv",
+                    "x_ref_issues.csv",
+                ],
+            )
+            readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertIn("Open `performance_differences.csv` first", readme)
+            self.assertNotIn("Yellow cells", readme)
+
+            paths["performance_differences"].write_text(
+                "changed\n",
+                encoding="utf-8",
+            )
+            self.assertIn(
+                "promoted performance_differences.csv does not match "
+                "audit_support.zip",
+                report_bundle_validation_issues(output_directory),
+            )
+
+            rebuilt_paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                include_workbook=True,
+                include_html_output=True,
+                require_complete_yaml_setup=False,
+                expand_all_supporting_files=False,
+            )
+            self.assertIn("review_workbook", rebuilt_paths)
+            self.assertIn("html_report", rebuilt_paths)
+            for stale_file_name in (
+                "performance_differences.csv",
+                "performance_difference_causes.csv",
+                "x_ref_issues.csv",
+            ):
+                self.assertFalse((output_directory / stale_file_name).exists())
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
+
+    def test_write_report_bundle_supports_expanded_csv_only_output(self) -> None:
+        """Expanded CSV-only output keeps primary copies at the bundle root."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                include_workbook=False,
+                include_html_output=False,
+                require_complete_yaml_setup=False,
+                expand_all_supporting_files=True,
+            )
+
+            for artifact_name in (
+                "performance_differences",
+                "performance_difference_causes",
+                "x_ref_issues",
+                "source_detail",
+            ):
+                with self.subTest(artifact_name=artifact_name):
+                    self.assertEqual(paths[artifact_name].parent, output_directory)
+                    self.assertTrue(
+                        (
+                            output_directory
+                            / "supporting_files"
+                            / f"{artifact_name}.csv"
+                        ).is_file()
+                    )
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
     def test_write_review_workbook_reports_missing_openpyxl(self) -> None:
         """Workbook export fails clearly when the workbook dependency is absent."""

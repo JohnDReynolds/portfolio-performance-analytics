@@ -3,6 +3,10 @@
 # Python imports
 from pathlib import Path
 import unittest
+from unittest import mock
+
+# Third-party imports
+from polars.testing import assert_frame_equal
 
 # Project imports
 from ppar.performance_comparison import (
@@ -10,6 +14,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     summarize_findings,
 )
+from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
@@ -32,6 +37,7 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     THRU_DATE,
 )
+from ppar.performance_comparison.runner import AuditComparisonViews
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
@@ -39,6 +45,10 @@ _RESTATEMENT_COMPARISON_PATH = Path(
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
+)
+_PACKAGED_COMPARISON_PATH = Path(
+    "ppar/setup_templates/axysapx_performance_comparison/"
+    "axysapx_performance_comparison.yaml"
 )
 _COMPACT_FINDING_COLUMNS = [
     FINDING_CODE,
@@ -83,6 +93,73 @@ class TestPerformanceComparisonRunner(unittest.TestCase):
                 PC_TXN_PRICE,
             }.issubset(finding_codes)
         )
+
+    def test_audit_views_exactly_match_independent_comparisons(self) -> None:
+        """Canonical shared findings preserve both independent result views."""
+        views = AuditComparisonViews(_PACKAGED_COMPARISON_PATH)
+
+        for comparison_level in ("portfolio", "security"):
+            with self.subTest(comparison_level=comparison_level):
+                expected = compare_snapshots(
+                    _PACKAGED_COMPARISON_PATH,
+                    comparison_level=comparison_level,
+                )
+                assert_frame_equal(views.findings(comparison_level), expected)
+
+    def test_audit_views_are_order_independent(self) -> None:
+        """Either result level can provide the canonical shared findings."""
+        views = AuditComparisonViews(_PACKAGED_COMPARISON_PATH)
+
+        security_findings = views.findings("security")
+        portfolio_findings = views.findings("portfolio")
+
+        assert_frame_equal(
+            security_findings,
+            compare_snapshots(
+                _PACKAGED_COMPARISON_PATH,
+                comparison_level="security",
+            ),
+        )
+        assert_frame_equal(
+            portfolio_findings,
+            compare_snapshots(
+                _PACKAGED_COMPARISON_PATH,
+                comparison_level="portfolio",
+            ),
+        )
+
+    def test_audit_views_preserve_level_specific_suppressions(self) -> None:
+        """Each derived view applies its own suppression rules before filtering."""
+        views = AuditComparisonViews(
+            _SUPPRESSED_COMPARISON_PATH,
+            include_suppressed=False,
+        )
+
+        for comparison_level in ("portfolio", "security"):
+            with self.subTest(comparison_level=comparison_level):
+                expected = compare_snapshots(
+                    _SUPPRESSED_COMPARISON_PATH,
+                    comparison_level=comparison_level,
+                    include_suppressed=False,
+                )
+                assert_frame_equal(views.findings(comparison_level), expected)
+
+    def test_audit_views_compare_shared_sources_once(self) -> None:
+        """Repeated portfolio/security views reuse one shared-source comparison."""
+        original = PerformanceComparison.compare_shared_sources
+        with mock.patch.object(
+            PerformanceComparison,
+            "compare_shared_sources",
+            autospec=True,
+        ) as compare_shared_sources:
+            compare_shared_sources.side_effect = original
+            views = AuditComparisonViews(_PACKAGED_COMPARISON_PATH)
+
+            views.findings("portfolio")
+            views.findings("security")
+            views.findings("portfolio")
+
+        self.assertEqual(compare_shared_sources.call_count, 1)
 
     def test_summarize_findings_counts_by_code_dataset_and_suppression(self) -> None:
         """Finding summaries count rows by code, dataset, and suppression."""

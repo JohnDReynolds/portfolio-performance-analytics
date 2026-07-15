@@ -89,8 +89,9 @@ Phase 4 enforces source lineage and fail-closed policy coverage:
   they were built;
 - formula-derived rows and explicit no-cause dispositions have distinct lineage
   types instead of pretending to be source records;
-- bundles persist both `findings.csv` and `cause_lineage.csv`, and validation
-  rejects missing or invalid lineage metadata;
+- bundles persist both `findings.csv` and `cause_lineage.csv` inside the default
+  supporting archive or expanded directory, and validation rejects missing or
+  invalid lineage metadata;
 - every field on a comparison surface must have an explicit accounting role;
 - fields with `performance_input` or `input_component` roles derive their YAML
   policy requirement from that role; and
@@ -136,7 +137,8 @@ Phase 6 makes the generated bundle a fail-closed semantic contract:
   `x_ref_issues.csv`;
 - post-write validation compares CSV content to its typed internal fingerprint
   and HTML/XLSX content to its canonical display fingerprint;
-- manifest version 3 records a normalized bundle fingerprint and explicitly
+- manifest version 4 records the selected primary-output modes plus a normalized
+  bundle fingerprint and explicitly
   excludes only `manifest.created_at`, XLSX core created/modified timestamps,
   and XLSX ZIP-entry timestamps; and
 - mutation tests prove same-row-count content drift is detected, while a

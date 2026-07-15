@@ -27,9 +27,13 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     THRU_DATE,
     TRANSACTION_IMPACT_POLICY,
+    Finding,
     findings_to_polars,
 )
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.specification import (
+    COMPARISON_LEVELS,
+    PerformanceComparisonSpecification,
+)
 import ppar.performance_comparison.schema as pc_cols
 from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
@@ -43,6 +47,105 @@ __all__ = [
     "validate_causal_attribution_ready",
     "validate_yaml_setup_complete",
 ]
+
+
+class AuditComparisonViews:
+    """Compute shared Audit findings once and expose level-specific views.
+
+    Attributes:
+        specification_path: Comparison YAML used by every requested view.
+        include_suppressed: Whether returned tables retain suppressed findings.
+        require_causal_attribution: Whether each requested view must pass
+            supported causal-attribution readiness validation.
+
+    Notes:
+        Portfolio and security performance are genuinely different targets and
+        remain separate calculations. Holdings, FX rates, splits, and
+        transactions describe the same economic changes and are calculated
+        once, then given the transaction-policy label appropriate to each view.
+    """
+
+    def __init__(
+        self,
+        specification_path: util.PathLike,
+        *,
+        include_suppressed: bool = True,
+        require_causal_attribution: bool = False,
+    ) -> None:
+        """Initialize one lazy, canonical comparison run.
+
+        Args:
+            specification_path: Path to a performance comparison YAML file.
+            include_suppressed: Whether returned views include suppressed rows.
+            require_causal_attribution: Whether returned views must have all
+                setup needed by supported causal-attribution methods.
+        """
+        self.specification_path = specification_path
+        self.include_suppressed = include_suppressed
+        self.require_causal_attribution = require_causal_attribution
+        self._comparisons: dict[str, PerformanceComparison] = {}
+        self._view_tables: dict[str, pl.DataFrame] = {}
+        self._shared_findings: list[Finding] | None = None
+        self._financial_inputs_validated = False
+
+    def findings(self, comparison_level: str) -> pl.DataFrame:
+        """Return a cached portfolio- or security-level findings view.
+
+        Args:
+            comparison_level: Requested primary performance-result level.
+
+        Returns:
+            Complete findings table for the requested review level.
+
+        Raises:
+            PpaError: If the level is unsupported or its required inputs and
+                policies are unavailable.
+        """
+        if comparison_level not in COMPARISON_LEVELS:
+            allowed_values = ", ".join(sorted(COMPARISON_LEVELS))
+            raise PpaError(
+                f"comparison_level must be one of: {allowed_values}.",
+                504,
+            )
+        cached = self._view_tables.get(comparison_level)
+        if cached is not None:
+            return cached
+
+        comparison = self._comparison(comparison_level)
+        if not self._financial_inputs_validated:
+            comparison.validate_inputs()
+            self._financial_inputs_validated = True
+        primary_findings = comparison.compare_primary_performance()
+        if self._shared_findings is None:
+            self._shared_findings = comparison.compare_shared_sources()
+            shared_findings = self._shared_findings
+        else:
+            shared_findings = comparison.retarget_shared_findings(
+                self._shared_findings
+            )
+        findings = comparison.apply_view_rules(
+            [*primary_findings, *shared_findings]
+        )
+        findings_table = findings_to_polars(findings)
+        _pc_lineage.assert_finding_source_lineage(findings_table)
+        if not self.include_suppressed:
+            findings_table = findings_table.filter(~pl.col(SUPPRESSED))
+        if self.require_causal_attribution:
+            validate_causal_attribution_ready(findings_table)
+        self._view_tables[comparison_level] = findings_table
+        return findings_table
+
+    def _comparison(self, comparison_level: str) -> PerformanceComparison:
+        """Return the cached comparison engine for one result level."""
+        if comparison_level not in self._comparisons:
+            specification = PerformanceComparisonSpecification(
+                self.specification_path,
+                comparison_level=comparison_level,
+            )
+            self._comparisons[comparison_level] = PerformanceComparison(
+                specification
+            )
+        return self._comparisons[comparison_level]
 
 
 def compare_snapshots(

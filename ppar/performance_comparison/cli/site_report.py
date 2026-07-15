@@ -9,15 +9,19 @@ from pathlib import Path
 import sys
 from typing import Any, Final
 
+# Third-party imports
+import polars as pl
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import (
-    compare_snapshots,
     write_performance_comparison_report_bundle,
 )
 from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import source_loader
+from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
 from ppar.performance_comparison import x_ref as _pc_x_ref
+from ppar.performance_comparison.runner import AuditComparisonViews
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
@@ -30,6 +34,11 @@ _REPORT_CHOICES: Final[tuple[str, ...]] = (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
     "both",
+)
+_CSV_REVIEW_ARTIFACTS: Final[tuple[str, ...]] = (
+    _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
+    _pc_review_model.X_REF_ISSUES_ARTIFACT,
 )
 
 
@@ -45,6 +54,8 @@ class AuditRunSettings:
     require_causal_attribution: bool
     allow_incomplete_yaml: bool
     include_workbook: bool
+    include_html_output: bool
+    expand_all_supporting_files: bool
 
 
 def main(
@@ -71,8 +82,10 @@ def main(
             exclude_suppressed=args.exclude_suppressed,
             include_reconstruction_diagnostics=args.include_reconstruction_diagnostics,
             require_causal_attribution=args.require_causal_attribution,
-        allow_incomplete_yaml=args.allow_incomplete_yaml,
-        include_workbook=not args.no_xlsx,
+            allow_incomplete_yaml=args.allow_incomplete_yaml,
+            include_workbook=not args.no_xlsx_output,
+            include_html_output=not args.no_html_output,
+            expand_all_supporting_files=args.expand_all_supporting_files,
         )
     except PpaError as error:
         print(f"Report failed: {error}", file=sys.stderr)
@@ -95,6 +108,8 @@ def run_report(
     require_causal_attribution: bool = False,
     allow_incomplete_yaml: bool = False,
     include_workbook: bool = True,
+    include_html_output: bool = True,
+    expand_all_supporting_files: bool = False,
 ) -> dict[str, Any]:
     """Write one or more report bundles for a configured site folder.
 
@@ -113,8 +128,12 @@ def run_report(
             must be complete.
         allow_incomplete_yaml: Whether diagnostic output may bypass the complete
             YAML setup guardrail.
-        include_workbook: Whether to write the level-specific XLSX audit in
-            addition to HTML and supporting files.
+        include_workbook: Whether to write the level-specific XLSX audit.
+        include_html_output: Whether to write the browser HTML review report.
+            When both primary presentation formats are disabled, Audit promotes
+            its canonical CSV review tables instead.
+        expand_all_supporting_files: Whether to retain individual supporting
+            CSV and JSON files instead of the default compact ZIP archive.
 
     Returns:
         Paths for the site folder, config file, and generated review artifacts.
@@ -148,35 +167,49 @@ def run_report(
     }
     output_root = output_directory or site_path / _OUTPUT_DIR
     x_ref_issues = _pc_x_ref.x_ref_issues_table(config_path)
+    comparison_views = AuditComparisonViews(
+        config_path,
+        include_suppressed=not exclude_suppressed,
+        require_causal_attribution=require_causal_attribution,
+    )
+    reconstruction_cache = _pc_workbook_tables.WorkbookReconstructionCache(
+        config_path
+    )
     if report in ("both", PORTFOLIO_COMPARISON_LEVEL):
         result["portfolio_report_paths"] = _write_report_bundle(
             config_path,
+            comparison_views.findings(PORTFOLIO_COMPARISON_LEVEL),
             output_root / PORTFOLIO_COMPARISON_LEVEL,
             comparison_level=PORTFOLIO_COMPARISON_LEVEL,
             title=title,
             top_evidence_limit=top_evidence_limit,
-            exclude_suppressed=exclude_suppressed,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
             require_causal_attribution=require_causal_attribution,
             allow_incomplete_yaml=allow_incomplete_yaml,
             _x_ref_issues=x_ref_issues,
             include_workbook=include_workbook,
+            include_html_output=include_html_output,
+            expand_all_supporting_files=expand_all_supporting_files,
+            _reconstruction_cache=reconstruction_cache,
         )
         result["review_paths"].extend(result["portfolio_report_paths"])
     if report in ("both", SECURITY_COMPARISON_LEVEL):
         try:
             result["security_report_paths"] = _write_report_bundle(
                 config_path,
+                comparison_views.findings(SECURITY_COMPARISON_LEVEL),
                 output_root / SECURITY_COMPARISON_LEVEL,
                 comparison_level=SECURITY_COMPARISON_LEVEL,
                 title=title,
                 top_evidence_limit=top_evidence_limit,
-                exclude_suppressed=exclude_suppressed,
                 include_reconstruction_diagnostics=include_reconstruction_diagnostics,
                 require_causal_attribution=require_causal_attribution,
                 allow_incomplete_yaml=allow_incomplete_yaml,
                 _x_ref_issues=x_ref_issues,
                 include_workbook=include_workbook,
+                include_html_output=include_html_output,
+                expand_all_supporting_files=expand_all_supporting_files,
+                _reconstruction_cache=reconstruction_cache,
             )
             result["review_paths"].extend(result["security_report_paths"])
         except PpaError as error:
@@ -235,13 +268,11 @@ def _argument_parser(
         help="Visible report title. Defaults to the standard portfolio/security title.",
     )
     parser.add_argument(
-        "--no-xlsx",
+        "--no-xlsx-output",
         action="store_true",
         help=(
-            "Skip the level-specific XLSX audit and write HTML plus supporting "
-            "files. "
-            "Use this for faster, lighter runs when HTML and CSV output are "
-            "sufficient. Disabled by default."
+            "Do not write the level-specific XLSX audit. HTML remains enabled "
+            "unless --no-html-output is also supplied."
         ),
     )
     parser.add_argument(
@@ -260,6 +291,23 @@ def _argument_parser(
             "Add detailed return-reconstruction checks to the audit workbook, HTML "
             "report, and supporting CSVs. Useful for investigating how holdings and "
             "flows reproduce reported returns. Disabled by default."
+        ),
+    )
+    parser.add_argument(
+        "--no-html-output",
+        action="store_true",
+        help=(
+            "Do not write the browser HTML audit. XLSX remains enabled unless "
+            "--no-xlsx-output is also supplied. Supplying both options writes "
+            "a CSV-only audit."
+        ),
+    )
+    parser.add_argument(
+        "--expand-all-supporting-files",
+        action="store_true",
+        help=(
+            "Write every supporting CSV and JSON file under supporting_files "
+            "instead of the default audit_support.zip archive."
         ),
     )
     parser.add_argument(
@@ -310,7 +358,9 @@ def script_run_settings(
         ),
         require_causal_attribution=arguments.require_causal_attribution,
         allow_incomplete_yaml=arguments.allow_incomplete_yaml,
-        include_workbook=not arguments.no_xlsx,
+        include_workbook=not arguments.no_xlsx_output,
+        include_html_output=not arguments.no_html_output,
+        expand_all_supporting_files=arguments.expand_all_supporting_files,
     )
 
 
@@ -321,25 +371,22 @@ def is_missing_security_data(error: PpaError) -> bool:
 
 def _write_report_bundle(
     config_path: Path,
+    findings: pl.DataFrame,
     output_directory: Path,
     *,
     comparison_level: str,
     title: str | None,
     top_evidence_limit: int,
-    exclude_suppressed: bool,
     include_reconstruction_diagnostics: bool,
     require_causal_attribution: bool,
     allow_incomplete_yaml: bool,
     _x_ref_issues: Any,
     include_workbook: bool,
+    include_html_output: bool,
+    expand_all_supporting_files: bool,
+    _reconstruction_cache: _pc_workbook_tables.WorkbookReconstructionCache,
 ) -> list[Path]:
-    """Write one report bundle and return the primary workbook path."""
-    findings = compare_snapshots(
-        config_path,
-        include_suppressed=not exclude_suppressed,
-        require_causal_attribution=require_causal_attribution,
-        comparison_level=comparison_level,
-    )
+    """Write one report bundle and return its primary review paths."""
     report_title = title or (
         "Portfolio Performance Auditing Report"
         if comparison_level == PORTFOLIO_COMPARISON_LEVEL
@@ -351,28 +398,48 @@ def _write_report_bundle(
         title=report_title,
         top_evidence_limit=top_evidence_limit,
         include_workbook=include_workbook,
+        include_html_output=include_html_output,
         require_complete_yaml_setup=not allow_incomplete_yaml,
         require_causal_attribution=require_causal_attribution,
         comparison_path=config_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         _x_ref_issues=_x_ref_issues,
+        _reconstruction_cache=_reconstruction_cache,
+        expand_all_supporting_files=expand_all_supporting_files,
     )
-    workbook = paths.get("review_workbook")
+    review_paths: list[Path] = []
+    workbook = paths.get(_pc_review_model.REVIEW_WORKBOOK_ARTIFACT)
     if include_workbook and workbook is None:
         workbook_name = _pc_review_model.review_workbook_file_name(comparison_level)
         raise PpaError(
             f"Report bundle did not write {workbook_name} in {output_directory}.",
             999,
         )
-    html_report = paths.get("html_report")
-    if html_report is None:
+    if workbook is not None:
+        review_paths.append(workbook)
+    html_report = paths.get(_pc_review_model.HTML_REPORT_ARTIFACT)
+    if include_html_output and html_report is None:
         html_name = _pc_review_model.html_report_file_name(comparison_level)
         raise PpaError(
             f"Report bundle did not write {html_name} in {output_directory}.",
             999,
         )
-    return [workbook] if workbook is not None else [html_report]
+    if html_report is not None:
+        review_paths.append(html_report)
+    if not include_workbook and not include_html_output:
+        for artifact_name in _CSV_REVIEW_ARTIFACTS:
+            csv_path = paths.get(artifact_name)
+            if csv_path is None:
+                raise PpaError(
+                    f"CSV-only report bundle did not write {artifact_name}.csv "
+                    f"in {output_directory}.",
+                    999,
+                )
+            review_paths.append(csv_path)
+    if review_paths:
+        return review_paths
+    raise PpaError("Report bundle did not write primary review output.", 999)
 
 
 def _is_missing_security_data(error: PpaError) -> bool:

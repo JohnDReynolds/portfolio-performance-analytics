@@ -15,6 +15,9 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import source_loader
+from ppar.performance_comparison.portfolio_performance import (
+    PortfolioPerformanceLoader,
+)
 from ppar.performance_comparison.specification import ComparisonSnapshot
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
@@ -65,6 +68,44 @@ class TestSourceLoader(unittest.TestCase):
 
             self.assertEqual(read_csv.call_count, 2)
             self.assertEqual(frame.to_dicts(), [{"security_id": "S1"}])
+
+    def test_financial_validation_cache_is_scoped_to_one_audit_run(self) -> None:
+        """Successful financial validation is reused only inside one run scope."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = Path(temp_dir) / "comparison.yaml"
+            self.assertFalse(
+                source_loader.financial_validation_is_cached(specification_path)
+            )
+
+    def test_normalized_frame_cache_validates_once_per_snapshot(self) -> None:
+        """One Audit scope reuses a fully validated normalized dataset."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_source_loader_specification(directory)
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            with mock.patch.object(
+                source_loader,
+                "require_numeric_columns",
+                wraps=source_loader.require_numeric_columns,
+            ) as require_numeric:
+                with source_loader.source_frame_cache():
+                    first = PortfolioPerformanceLoader(specification).load("a")
+                    second = PortfolioPerformanceLoader(specification).load("a")
+
+                third = PortfolioPerformanceLoader(specification).load("a")
+
+            self.assertIs(first, second)
+            self.assertIsNot(first, third)
+            self.assertEqual(require_numeric.call_count, 2)
+            with source_loader.source_frame_cache():
+                source_loader.cache_financial_validation(specification_path)
+                self.assertTrue(
+                    source_loader.financial_validation_is_cached(specification_path)
+                )
+            self.assertFalse(
+                source_loader.financial_validation_is_cached(specification_path)
+            )
 
     def test_schema_mapping_overrides_default_aliases(self) -> None:
         """Referenced schema mappings are honored before built-in defaults."""

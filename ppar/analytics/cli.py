@@ -142,18 +142,14 @@ def run_analytics(
         currency_symbol=currency_symbol,
     )
     axys_data = AxysData(config_path)
-    portfolio = axys_data.get_portfolio(
-        settings.portfolio_code,
+    portfolios = axys_data.get_portfolios(
+        (settings.portfolio_code, settings.benchmark_code),
         from_date=settings.from_date,
         thru_date=settings.thru_date,
         classification_name=settings.classification_name,
     )
-    benchmark = axys_data.get_portfolio(
-        settings.benchmark_code,
-        from_date=settings.from_date,
-        thru_date=settings.thru_date,
-        classification_name=settings.classification_name,
-    )
+    portfolio = portfolios[settings.portfolio_code]
+    benchmark = portfolios[settings.benchmark_code]
     analytics = portfolio.to_analytics(
         benchmark,
         frequency=settings.frequency,

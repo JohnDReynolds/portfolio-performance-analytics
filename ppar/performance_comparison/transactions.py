@@ -363,6 +363,14 @@ class TransactionsLoader:
         )
         if path is None or not util.file_path_exists(path):
             return None
+        cached = source_loader.cached_normalized_frame(
+            self._specification.path,
+            pc_cols.TRANSACTIONS,
+            snapshot_key,
+            path,
+        )
+        if cached is not None:
+            return cached
 
         frame = source_loader.read_mapped_csv(
             path,
@@ -408,7 +416,7 @@ class TransactionsLoader:
             path=path,
             specification_path=self._specification.path,
         )
-        return normalize_currency_columns(
+        frame = normalize_currency_columns(
             with_authoritative_base_currency(
                 frame,
                 PortfolioPerformanceLoader(self._specification).load(snapshot_key),
@@ -416,6 +424,13 @@ class TransactionsLoader:
                 path=path,
                 specification_path=self._specification.path,
             )
+        )
+        return source_loader.cache_normalized_frame(
+            self._specification.path,
+            pc_cols.TRANSACTIONS,
+            snapshot_key,
+            path,
+            frame,
         )
 
     def _transaction_rules(self) -> dict[str, tuple[_TransactionRule, ...]]:
