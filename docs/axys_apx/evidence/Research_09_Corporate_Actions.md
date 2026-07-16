@@ -1,7 +1,7 @@
 # Research Notes: Corporate Actions
 
-**Repository area:** `docs/axys-apx-reference/evidence/`  
-**Target chapter:** `docs/axys-apx-reference/reference/Chapter_09_Corporate_Actions.md`  
+**Repository area:** `docs/axys_apx/evidence/`
+**Target chapter:** `docs/axys_apx/reference/Chapter_09_Corporate_Actions.md`
 **Systems:** SS&C Advent Axys; SS&C Advent Portfolio Exchange (APX)  
 **Prepared:** 2026-06-29  
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0

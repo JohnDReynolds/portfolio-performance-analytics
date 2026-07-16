@@ -1,7 +1,7 @@
 # Chapter 17 — Multi-Currency
 
 **Repository:** AXYS / APX Reference Repository  
-**Chapter:** `docs/axys-apx-reference/reference/Chapter_17_Multi_Currency.md`  
+**Chapter:** `docs/axys_apx/reference/Chapter_17_Multi_Currency.md`
 **Prepared:** 2026-07-13  
 **Evidence:** `../evidence/Research_17_Multi_Currency.md` and
 `../evidence/Research_17A_Multi_Currency_Cash_Provenance.md`

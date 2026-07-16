@@ -13,7 +13,7 @@ same portfolio and period changed between two source-data extraction dates.
 
 This document is the deep design/reference note. Active forward-looking work is
 tracked in the central
-[`PPAR Roadmap`](roadmap.md).
+[`PPAR Roadmap`](../roadmap.md).
 The maintainer-facing safety guarantees and their audited enforcement baseline
 are defined in
 [`Performance Auditing Safety Invariants`](performance_comparison_safety_invariants.md).
@@ -171,7 +171,7 @@ Future workbook vocabulary:
   guardrails.
 - `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
   command for validating packaged scenario coverage.
-- [Axys/APX Common-Core Export Reference](axysapx_common_core_export.md): starter
+- [Axys/APX Common-Core Export Reference](../axys_apx/axysapx_common_core_export.md): starter
   export shape for Axys/APX-oriented source-data.
 
 This checkpoint is still a comparison and evidence organization layer. It is
@@ -1172,7 +1172,7 @@ shared, source-agnostic sections for files, tolerances, materiality, and
 suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
-See [Axys/APX Common-Core Export Reference](axysapx_common_core_export.md) for an
+See [Axys/APX Common-Core Export Reference](../axys_apx/axysapx_common_core_export.md) for an
 operational Axys/APX export template and starter field-reference tables. Those
 tables are guidance only; explicit local schema mappings remain authoritative.
 
@@ -2110,7 +2110,7 @@ rendering helpers remain internal implementation details.
 
 This section records the earlier near-term plan that led to the current
 implementation checkpoint. For current next work, use the central
-[`PPAR Roadmap`](roadmap.md).
+[`PPAR Roadmap`](../roadmap.md).
 
 The design work should continue to move slowly and favor reviewer clarity over
 broad new machinery.
@@ -2271,5 +2271,5 @@ transaction quantity, price, and commission.
 Treat the current comparison engine, evidence layer, report bundle, return
 reconstruction checks, and workbook model as the baseline. Current next work
 should be tracked in
-[`roadmap.md`](roadmap.md), not
+[`roadmap.md`](../roadmap.md), not
 added here as a competing roadmap.

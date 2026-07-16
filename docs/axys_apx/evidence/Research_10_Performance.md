@@ -1,7 +1,7 @@
 # Research Notes: Performance
 
 **Repository chapter target:** `../reference/Chapter_10_Performance.md`  
-**Research file:** `docs/axys-apx-reference/evidence/Research_10_Performance.md`  
+**Research file:** `docs/axys_apx/evidence/Research_10_Performance.md`
 **Prepared under:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
 **Purpose:** Collect factual, implementation-oriented research for documenting Axys and APX performance behavior.
 

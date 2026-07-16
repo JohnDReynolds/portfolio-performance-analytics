@@ -1,8 +1,8 @@
 # Research Notes: Security Master
 
-Repository area: `docs/axys-apx-reference/evidence/`  
+Repository area: `docs/axys_apx/evidence/`
 Prepared: 2026-06-29  
-Target chapter: `docs/axys-apx-reference/reference/Chapter_04_Security_Master.md`  
+Target chapter: `docs/axys_apx/reference/Chapter_04_Security_Master.md`
 Scope: Axys, APX, IMEX, REP, field names, report names, processing behavior, version differences, implementation quirks, examples, references.
 
 ## Governing specification

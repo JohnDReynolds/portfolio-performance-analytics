@@ -507,6 +507,46 @@ class TestScaleCheck(unittest.TestCase):
             ]
         )
 
+    def test_release_build_refreshes_product_overview_pdf(self) -> None:
+        """Release builds cannot leave PPAR.pdf behind the current README."""
+        self.assertEqual(
+            check_release_candidate._release_asset_refresh_scope(
+                build=False,
+                refresh_images=False,
+            ),
+            (False, False),
+        )
+        self.assertEqual(
+            check_release_candidate._release_asset_refresh_scope(
+                build=True,
+                refresh_images=False,
+            ),
+            (False, True),
+        )
+        self.assertEqual(
+            check_release_candidate._release_asset_refresh_scope(
+                build=False,
+                refresh_images=True,
+            ),
+            (True, True),
+        )
+
+        runner = mock.create_autospec(
+            check_release_candidate.ReleaseCandidateRunner,
+            instance=True,
+        )
+        check_release_candidate._run_readme_asset_refresh(
+            runner,
+            refresh_images=False,
+        )
+
+        runner.run.assert_called_once_with(
+            [
+                check_release_candidate._VENV_PYTHON,
+                "scripts/render_readme_pdf.py",
+            ]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

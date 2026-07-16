@@ -1,8 +1,8 @@
 # Research Notes: Holdings
 
 Repository: AXYS / APX Reference Repository  
-Research file: `docs/axys-apx-reference/evidence/Research_06_Holdings.md`  
-Target chapter: `docs/axys-apx-reference/reference/Chapter_06_Holdings.md`  
+Research file: `docs/axys_apx/evidence/Research_06_Holdings.md`
+Target chapter: `docs/axys_apx/reference/Chapter_06_Holdings.md`
 Prepared: 2026-06-29  
 Governing spec: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

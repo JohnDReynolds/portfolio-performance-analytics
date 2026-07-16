@@ -1,8 +1,8 @@
 # Research Notes: Pricing
 
-Repository area: `docs/axys-apx-reference/evidence/`  
+Repository area: `docs/axys_apx/evidence/`
 Prepared: 2026-06-29  
-Target chapter: `docs/axys-apx-reference/reference/Chapter_08_Pricing.md`  
+Target chapter: `docs/axys_apx/reference/Chapter_08_Pricing.md`
 Scope: Axys, APX, IMEX, REP, field names, report names, processing behavior, version differences, implementation quirks, examples, references.
 
 ## Governing specification

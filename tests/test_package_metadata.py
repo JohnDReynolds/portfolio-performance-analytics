@@ -564,7 +564,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_common_core_export_reference_avoids_unverified_imex_recipes(self) -> None:
         """The export-planning note does not present invented native profiles."""
-        reference = Path("docs/axysapx_common_core_export.md").read_text(
+        reference = Path("docs/axys_apx/axysapx_common_core_export.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -631,7 +631,7 @@ class TestPackageMetadata(unittest.TestCase):
         demo_data_readme = Path("ppar/setup_templates/README.md").read_text(
             encoding=util.ENCODING
         )
-        refresh_guide = Path("docs/analytics_demo_refresh.md").read_text(
+        refresh_guide = Path("docs/analytics/analytics_demo_refresh.md").read_text(
             encoding=util.ENCODING
         )
         repository_guide = Path("docs/repository_guide.md").read_text(
@@ -690,6 +690,30 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, normalized_architecture)
 
+    def test_documentation_is_partitioned_by_product(self) -> None:
+        """Product documentation has durable Audit and Analytics homes."""
+        documentation_index = Path("docs/README.md").read_text(
+            encoding=util.ENCODING
+        )
+        expected_paths = (
+            Path("docs/audit/performance_comparison_design.md"),
+            Path("docs/audit/performance_comparison_safety_invariants.md"),
+            Path("docs/audit/performance_comparison_demo_source_contract.md"),
+            Path("docs/analytics/analytics_demo_refresh.md"),
+            Path("docs/axys_apx/axysapx_common_core_export.md"),
+        )
+        retired_root_paths = (
+            Path("docs/performance_comparison_design.md"),
+            Path("docs/performance_comparison_safety_invariants.md"),
+            Path("docs/performance_comparison_demo_source_contract.md"),
+            Path("docs/analytics_demo_refresh.md"),
+        )
+
+        self.assertIn("PPAR Audit", documentation_index)
+        self.assertIn("PPAR Analytics", documentation_index)
+        self.assertTrue(all(path.is_file() for path in expected_paths))
+        self.assertFalse(any(path.exists() for path in retired_root_paths))
+
     def test_repository_readme_image_references_exist(self) -> None:
         """The marketing README only embeds checked-in README image artifacts."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
@@ -702,8 +726,10 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
-        template_path = Path("docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml")
-        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        template_path = Path("docs/axys_apx/contracts/templates/site_extract_contract.yaml")
+        source_contract = Path(
+            "docs/audit/performance_comparison_demo_source_contract.md"
+        )
         demo_readme = Path("ppar/setup_templates/axysapx_performance_comparison/README.md")
 
         self.assertTrue(template_path.exists())
@@ -712,25 +738,27 @@ class TestPackageMetadata(unittest.TestCase):
             demo_readme.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "axys-apx-reference/contracts/templates/site_extract_contract.yaml",
+            "axys_apx/contracts/templates/site_extract_contract.yaml",
             source_contract.read_text(encoding=util.ENCODING),
         )
 
     def test_transaction_semantics_matrix_is_documented(self) -> None:
         """The Axys transaction semantics matrix remains linked from workflow docs."""
         matrix_path = Path(
-            "docs/axys-apx-reference/contracts/transaction_semantics_matrix.md"
+            "docs/axys_apx/contracts/transaction_semantics_matrix.md"
         )
         matrix_yaml_path = Path(
-            "docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml"
+            "docs/axys_apx/contracts/transaction_semantics_matrix.yaml"
         )
         boundary_snapshot_path = Path(
-            "docs/performance_comparison_transaction_boundary_snapshot.md"
+            "docs/audit/performance_comparison_transaction_boundary_snapshot.md"
         )
         evidence_pack_review_path = Path(
-            "docs/performance_comparison_evidence_pack_review.md"
+            "docs/audit/archive/performance_comparison_evidence_pack_review.md"
         )
-        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        source_contract = Path(
+            "docs/audit/performance_comparison_demo_source_contract.md"
+        )
         roadmap = Path("docs/roadmap.md")
 
         self.assertTrue(matrix_path.exists())
@@ -738,7 +766,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertTrue(boundary_snapshot_path.exists())
         self.assertTrue(evidence_pack_review_path.exists())
         self.assertIn(
-            "axys-apx-reference/contracts/transaction_semantics_matrix.md",
+            "axys_apx/contracts/transaction_semantics_matrix.md",
             source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
@@ -746,11 +774,11 @@ class TestPackageMetadata(unittest.TestCase):
             source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "performance_comparison_evidence_pack_review.md",
+            "archive/performance_comparison_evidence_pack_review.md",
             source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "axys-apx-reference/contracts/transaction_semantics_matrix.md",
+            "axys_apx/contracts/transaction_semantics_matrix.md",
             roadmap.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
@@ -758,7 +786,7 @@ class TestPackageMetadata(unittest.TestCase):
             roadmap.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "performance_comparison_evidence_pack_review.md",
+            "archive/performance_comparison_evidence_pack_review.md",
             roadmap.read_text(encoding=util.ENCODING),
         )
 
@@ -806,7 +834,7 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         source_contract = Path(
-            "docs/performance_comparison_demo_source_contract.md"
+            "docs/audit/performance_comparison_demo_source_contract.md"
         ).read_text(encoding=util.ENCODING)
 
         self.assertIn("Phase 8C: Fixed-Income Transaction Boundary Gate", roadmap)
@@ -876,7 +904,7 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
 
         self.assertIn(
@@ -914,14 +942,14 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_candidate_override_profiles_are_documented_as_test_only(self) -> None:
         """Candidate override profiles remain explicit onboarding examples."""
-        checklist = Path("docs/site_extract_readiness_checklist.md").read_text(
+        checklist = Path("docs/audit/site_extract_readiness_checklist.md").read_text(
             encoding=util.ENCODING
         )
         fixture_readme = Path("tests/data/axys/site_variants/README.md").read_text(
             encoding=util.ENCODING
         )
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         expected_profiles = {
             "ai": "site_variants/ai_margin_interest",
@@ -958,7 +986,7 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         snapshot = Path(
-            "docs/performance_comparison_transaction_boundary_snapshot.md"
+            "docs/audit/performance_comparison_transaction_boundary_snapshot.md"
         ).read_text(encoding=util.ENCODING)
 
         self.assertIn("Phase 13: Matrix Consolidation And Release Readiness", roadmap)
@@ -978,7 +1006,7 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         review_pack = Path(
-            "docs/performance_comparison_evidence_pack_review.md"
+            "docs/audit/archive/performance_comparison_evidence_pack_review.md"
         ).read_text(encoding=util.ENCODING)
 
         self.assertIn("Phase 14: Final Review Pack And Commit Preparation", roadmap)
@@ -1112,7 +1140,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("versioned Axys/APX preset seed", roadmap)
         self.assertIn("**Axys/APX blockers**", roadmap)
         self.assertIn(
-            "axys-apx-reference/reference/Chapter_01_Overview.md#axysapx-blockers",
+            "axys_apx/reference/Chapter_01_Overview.md#axysapx-blockers",
             roadmap,
         )
         self.assertIn("canonical Axys/APX blocker summary", roadmap)
@@ -1234,7 +1262,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_apx_reference_documents_blockers(self) -> None:
         """The Axys/APX reference keeps a single blocker summary discoverable."""
-        overview = Path("docs/axys-apx-reference/reference/Chapter_01_Overview.md").read_text(
+        overview = Path("docs/axys_apx/reference/Chapter_01_Overview.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -1258,7 +1286,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_vendor_preset_design_is_documented_without_runtime_commitment(self) -> None:
         """Vendor presets stay design-only, auditable, and multi-vendor friendly."""
-        design = Path("docs/performance_comparison_design.md").read_text(
+        design = Path("docs/audit/performance_comparison_design.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -1323,9 +1351,11 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_site_extract_readiness_checklist_is_documented(self) -> None:
         """The site extract readiness checklist remains linked from setup docs."""
-        checklist = Path("docs/site_extract_readiness_checklist.md")
-        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
-        template = Path("docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml")
+        checklist = Path("docs/audit/site_extract_readiness_checklist.md")
+        source_contract = Path(
+            "docs/audit/performance_comparison_demo_source_contract.md"
+        )
+        template = Path("docs/axys_apx/contracts/templates/site_extract_contract.yaml")
 
         self.assertTrue(checklist.exists())
         checklist_text = checklist.read_text(encoding=util.ENCODING)
@@ -1348,7 +1378,9 @@ class TestPackageMetadata(unittest.TestCase):
         readme = Path("tests/data/axys/site_variants/README.md").read_text(
             encoding=util.ENCODING
         )
-        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        source_contract = Path(
+            "docs/audit/performance_comparison_demo_source_contract.md"
+        )
         local_opt_out = Path(
             "tests/data/axys/site_variants/local_opt_out/ppar_performance_comparison.yaml"
         )
@@ -1376,10 +1408,10 @@ class TestPackageMetadata(unittest.TestCase):
     def test_transaction_semantics_matrix_yaml_matches_contract_codes(self) -> None:
         """The machine-readable transaction matrix stays aligned with the contract."""
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         contract_document = Path(
-            "docs/axys-apx-reference/contracts/transaction_semantics_matrix.md"
+            "docs/axys_apx/contracts/transaction_semantics_matrix.md"
         ).read_text(encoding=util.ENCODING)
 
         rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
@@ -1410,7 +1442,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_transaction_semantics_matrix_rows_have_coverage_rationale(self) -> None:
         """Each transaction matrix row explains its coverage or backlog status."""
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         coverage_statuses = set(
             _yaml_mapping(
@@ -1440,7 +1472,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_transaction_boundary_registry_matches_matrix_codes(self) -> None:
         """The boundary registry covers every matrix row and key overlap."""
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         matrix_codes = set(
             _yaml_string_list(
@@ -1494,7 +1526,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_demo_transaction_rules_are_known_to_semantics_matrix(self) -> None:
         """Packaged demo transaction rules cannot introduce undocumented codes."""
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         demo_yaml = _load_yaml(Path("ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"))
 
@@ -1511,7 +1543,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_transaction_semantics_coverage_claims_have_fixtures(self) -> None:
         """Coverage statuses in the machine-readable matrix point to real fixtures."""
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_codes = set(
             _yaml_mapping(
@@ -1575,7 +1607,7 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_rule_codes = set(
             _yaml_mapping(
@@ -1669,7 +1701,7 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         fixture = Path(
             "tests/data/axys/site_variants/review_only_actions/"
@@ -1698,7 +1730,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_transaction_semantics_matrix_matches_ambiguous_fixture_outputs(self) -> None:
         """Documented ambiguous-code semantics include IMEX-context fixture behavior."""
         matrix_yaml = _load_yaml(
-            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
         specification = PerformanceComparisonSpecification(
             Path(
@@ -1803,7 +1835,8 @@ class TestPackageMetadata(unittest.TestCase):
             "--write-packaged-assets",
             "--verbose",
             "500x Analytics/Audit scale regression",
-            "`--build` adds a package-build check",
+            "`--build` regenerates `PPAR.pdf`",
+            "`--refresh-images` regenerates the README PNG/JPG assets",
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
@@ -1913,7 +1946,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_design_notes_document_both_user_facing_comparison_demos(self) -> None:
         """Design docs keep portfolio and security demo paths in sync."""
-        design = Path("docs/performance_comparison_design.md").read_text(
+        design = Path("docs/audit/performance_comparison_design.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -2488,7 +2521,9 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_source_contract_documents_completion_gate(self) -> None:
         """The source contract defines when Axys/APX YAML can seed a vendor preset."""
-        contract_doc = Path("docs/performance_comparison_demo_source_contract.md").read_text(
+        contract_doc = Path(
+            "docs/audit/performance_comparison_demo_source_contract.md"
+        ).read_text(
             encoding=util.ENCODING
         )
 
@@ -2533,7 +2568,9 @@ class TestPackageMetadata(unittest.TestCase):
     def test_minimum_source_data_contract_is_documented(self) -> None:
         """The source-data contract helper and user-facing docs stay aligned."""
         root_readme = Path("README.md").read_text(encoding=util.ENCODING)
-        contract_doc = Path("docs/performance_comparison_demo_source_contract.md").read_text(
+        contract_doc = Path(
+            "docs/audit/performance_comparison_demo_source_contract.md"
+        ).read_text(
             encoding=util.ENCODING
         )
         contracts = performance_source_data_contract.source_data_contract()

@@ -46,7 +46,7 @@ _DEFAULT_SITE_VARIANTS_DIRECTORY = (
 _TRANSACTION_SEMANTICS_MATRIX_PATH = (
     _REPO_ROOT
     / "docs"
-    / "axys-apx-reference"
+    / "axys_apx"
     / "contracts"
     / "transaction_semantics_matrix.yaml"
 )

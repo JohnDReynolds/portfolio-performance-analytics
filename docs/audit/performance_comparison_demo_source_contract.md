@@ -17,19 +17,19 @@ The demo is formula-focused; it is not a full accounting-system export.
 
 Use the Axys/APX reference chapters as evidence boundaries:
 
-- [`Chapter_05_Transactions.md`](axys-apx-reference/reference/Chapter_05_Transactions.md)
-- [`Chapter_06_Holdings.md`](axys-apx-reference/reference/Chapter_06_Holdings.md)
-- [`Chapter_07_Cash.md`](axys-apx-reference/reference/Chapter_07_Cash.md)
-- [`Chapter_10_Performance.md`](axys-apx-reference/reference/Chapter_10_Performance.md)
-- [`Chapter_15_Data_Dictionary.md`](axys-apx-reference/reference/Chapter_15_Data_Dictionary.md)
-- [`contracts/demo_extract_availability.md`](axys-apx-reference/contracts/demo_extract_availability.md)
+- [`Chapter_05_Transactions.md`](../axys_apx/reference/Chapter_05_Transactions.md)
+- [`Chapter_06_Holdings.md`](../axys_apx/reference/Chapter_06_Holdings.md)
+- [`Chapter_07_Cash.md`](../axys_apx/reference/Chapter_07_Cash.md)
+- [`Chapter_10_Performance.md`](../axys_apx/reference/Chapter_10_Performance.md)
+- [`Chapter_15_Data_Dictionary.md`](../axys_apx/reference/Chapter_15_Data_Dictionary.md)
+- [`contracts/demo_extract_availability.md`](../axys_apx/contracts/demo_extract_availability.md)
   for field-by-field IMEX/REP availability confidence.
-- [`contracts/transaction_semantics_matrix.md`](axys-apx-reference/contracts/transaction_semantics_matrix.md)
+- [`contracts/transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md)
   for implementation-facing transaction-code treatment, required evidence, and
   coverage status.
 - [Boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
   for the current reviewer-facing coverage and backlog summary.
-- [Evidence-pack review](performance_comparison_evidence_pack_review.md)
+- [Evidence-pack review](archive/performance_comparison_evidence_pack_review.md)
   for the current commit-preparation inventory.
 
 When those references strongly imply common transaction-code meaning, the demo
@@ -59,7 +59,7 @@ User-facing extraction guidance uses only three labels:
 
 The exhaustive field checklist lives in comments under `files:` in the
 packaged comparison YAML and in the generated
-[PPAR Axys/APX Extract Requirements and Source Guidance](axys-apx-reference/contracts/demo_extract_availability.md).
+[PPAR Axys/APX Extract Requirements and Source Guidance](../axys_apx/contracts/demo_extract_availability.md).
 Internal scenario/rebuild fields are a fixture-maintenance boundary, not a
 fourth extraction category. They must not leak into user-facing extracts.
 
@@ -400,7 +400,7 @@ ambiguous rows may classify from YAML only when the site explicitly accepts that
 local risk.
 
 Use
-[`axys-apx-reference/contracts/templates/site_extract_contract.yaml`](axys-apx-reference/contracts/templates/site_extract_contract.yaml)
+[`axys_apx/contracts/templates/site_extract_contract.yaml`](../axys_apx/contracts/templates/site_extract_contract.yaml)
 as the starter. Copy it beside the comparison YAML, remove fields the local
 extract does not expose, and keep only fields validated from IMEX, REP, a custom
 report, or another reviewed source.
@@ -433,11 +433,11 @@ Use this onboarding sequence:
    list, including source/destination, special-security, and report-semantic
    fields when available.
 2. Compare that list to the template profiles:
-   - [`site_extract_contract_imex_context.yaml`](axys-apx-reference/contracts/templates/site_extract_contract_imex_context.yaml)
+   - [`site_extract_contract_imex_context.yaml`](../axys_apx/contracts/templates/site_extract_contract_imex_context.yaml)
      when IMEX exposes source/destination and special-security context;
-   - [`site_extract_contract_rep_semantics.yaml`](axys-apx-reference/contracts/templates/site_extract_contract_rep_semantics.yaml)
+   - [`site_extract_contract_rep_semantics.yaml`](../axys_apx/contracts/templates/site_extract_contract_rep_semantics.yaml)
      when REP or a custom report exposes reviewed category/sign semantics;
-   - [`site_extract_contract.yaml`](axys-apx-reference/contracts/templates/site_extract_contract.yaml)
+   - [`site_extract_contract.yaml`](../axys_apx/contracts/templates/site_extract_contract.yaml)
      as the broad starter before trimming fields to the local extract.
 3. Keep only fields the local extract really contains, then reference the
    contract from comparison YAML with `extract_contract.path`.
@@ -452,7 +452,7 @@ non-external transfer, sweep, fee/expense, income, corporate-action,
 correction/cancellation, and review-only cases.
 
 Use
-[`axys-apx-reference/contracts/transaction_semantics_matrix.md`](axys-apx-reference/contracts/transaction_semantics_matrix.md)
+[`axys_apx/contracts/transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md)
 as the checklist for expanding that coverage. Use
 [boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
 as the compact release-readiness view of the same boundary.

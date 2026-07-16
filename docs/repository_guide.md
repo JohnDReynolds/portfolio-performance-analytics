@@ -8,15 +8,16 @@ many disconnected entry points.
 
 | Need | Start With | Why |
 | --- | --- | --- |
+| Documentation map | [`docs/README.md`](README.md) | Routes maintainers to PPAR Audit, PPAR Analytics, shared integration material, and shared platform documentation. |
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and user-facing outputs. |
 | Architecture map | [`docs/architecture.md`](architecture.md) | Compact map of the installed command surface, package boundaries, data flow, setup data, and report boundary. |
-| Performance Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
+| Performance Analytics demo refresh | [`docs/analytics/analytics_demo_refresh.md`](analytics/analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
 | PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
-| Performance Auditing concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep notes for the Performance Comparison engine inside Performance Auditing, including YAML vocabulary, report bundle structure, and implementation status. |
-| Axys/APX export shape | [`docs/axysapx_common_core_export.md`](axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
+| Performance Auditing concepts | [`docs/audit/performance_comparison_design.md`](audit/performance_comparison_design.md) | Deep notes for the Performance Comparison engine inside Performance Auditing, including YAML vocabulary, report bundle structure, and implementation status. |
+| Axys/APX export shape | [`docs/axys_apx/axysapx_common_core_export.md`](axys_apx/axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
 | Packaged Axys/APX demos | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | User-facing Axys/APX Performance Auditing and Performance Analytics demo inputs. |
 | Test Axys/APX configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys/APX snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
-| Historical checkpoint notes | [`docs/performance_comparison_checkpoint_notes.md`](performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
+| Historical checkpoint notes | [`docs/audit/archive/performance_comparison_checkpoint_notes.md`](audit/archive/performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
 
 ## Directory Map
 
@@ -32,6 +33,9 @@ many disconnected entry points.
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
 | `scripts/` | Repository-maintenance helpers; internal Performance Auditing commands live under `ppar.performance_comparison.cli`. |
 | `docs/` | Durable project documentation and design notes. |
+| `docs/audit/` | PPAR Audit product planning, implementation contracts, evidence review, and operational maintenance notes. |
+| `docs/analytics/` | PPAR Analytics product and demo-maintenance documentation. |
+| `docs/axys_apx/` | Shared Axys/APX research, contracts, reference chapters, and common-core export guidance. |
 | `docs/images/` | Durable documentation images. README-rendered analytics assets live under `docs/images/readme/`. |
 | `_demo_output/` | Generated demo/report output. This is intentionally ignored by Git. |
 
@@ -41,9 +45,9 @@ many disconnected entry points.
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users | Package overview, installation, public setup commands, and user-facing outputs. |
 | [`docs/architecture.md`](architecture.md) | Maintainers | Compact architecture map for commands, package boundaries, data flow, setup data, and report boundaries. |
-| [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Performance Analytics demo data-generation, story, and README image refresh workflow. |
+| [`docs/analytics/analytics_demo_refresh.md`](analytics/analytics_demo_refresh.md) | Maintainers | Performance Analytics demo data-generation, story, and README image refresh workflow. |
 | [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
-| [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
+| [`docs/audit/performance_comparison_design.md`](audit/performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
 | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, setup-installed Python runners, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys/APX snapshots, test-only comparison YAML files, and validation matrix fixtures. |
 | Snapshot README files under `tests/data/axys/snapshots/*/README.md` | Test authors | Small notes about individual synthetic snapshot directories. |
@@ -234,6 +238,8 @@ Use these opt-in switches only when the intent is explicit:
 ```bash
 ./.venv/bin/python scripts/check_release_candidate.py --build
 
+./.venv/bin/python scripts/check_release_candidate.py --refresh-images
+
 ./.venv/bin/python scripts/check_release_candidate.py \
   --include-generic-data-generation
 
@@ -241,8 +247,11 @@ Use these opt-in switches only when the intent is explicit:
   --write-packaged-assets
 ```
 
-`--build` adds a package-build check. `--include-generic-data-generation` runs
-the Yahoo-dependent generic analytics candidate-data generator.
+`--build` regenerates `PPAR.pdf` from the current `README.md` before adding a
+package-build check, so a release artifact cannot retain stale overview text.
+`--refresh-images` regenerates the README PNG/JPG assets as well as `PPAR.pdf`.
+`--include-generic-data-generation` runs the Yahoo-dependent generic analytics
+candidate-data generator.
 `--write-packaged-assets` lets the operational performance-comparison rebuild
 script update tracked packaged CSV assets after intentional demo-data edits.
 
@@ -497,9 +506,9 @@ Before moving files, prefer clarifying the map:
 2. Keep detailed packaged demo instructions in `ppar/setup_templates/axysapx_performance_comparison/README.md`.
 3. Keep future performance-comparison plans in
    `docs/roadmap.md`.
-4. Keep deep design rationale in `docs/performance_comparison_design.md`.
+4. Keep deep design rationale in `docs/audit/performance_comparison_design.md`.
 5. Keep checkpoint/session notes in
-   `docs/performance_comparison_checkpoint_notes.md`, but treat them as
+   `docs/audit/archive/performance_comparison_checkpoint_notes.md`, but treat them as
    temporary working context.
 6. Add new scripts only when they serve automation or a distinct workflow.
    Otherwise, prefer improving this guide or the existing script help text.

@@ -313,9 +313,38 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
         )
 
 
-def _run_readme_asset_refresh(runner: ReleaseCandidateRunner) -> None:
-    """Refresh README images and the product-overview PDF."""
-    runner.run([_VENV_PYTHON, "scripts/render_readme_images.py"])
+def _release_asset_refresh_scope(
+    *,
+    build: bool,
+    refresh_images: bool,
+) -> tuple[bool, bool]:
+    """Return whether a release-candidate run refreshes images and the PDF.
+
+    Args:
+        build: Whether distributable package artifacts will be built.
+        refresh_images: Whether the caller explicitly requested README images.
+
+    Returns:
+        A tuple of ``(refresh_images, refresh_pdf)``. A release build always
+        refreshes the PDF so the product overview cannot lag behind README.md.
+    """
+    return refresh_images, build or refresh_images
+
+
+def _run_readme_asset_refresh(
+    runner: ReleaseCandidateRunner,
+    *,
+    refresh_images: bool,
+) -> None:
+    """Refresh selected README assets and always refresh the product PDF.
+
+    Args:
+        runner: Release-candidate command runner.
+        refresh_images: Whether to regenerate README PNG and JPG assets before
+            regenerating the PDF.
+    """
+    if refresh_images:
+        runner.run([_VENV_PYTHON, "scripts/render_readme_images.py"])
     runner.run([_VENV_PYTHON, "scripts/render_readme_pdf.py"])
 
 
@@ -380,7 +409,10 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--refresh-images",
         action="store_true",
-        help="Refresh tracked README images and the root PPAR.pdf.",
+        help=(
+            "Refresh tracked README images and the root PPAR.pdf. Release builds "
+            "refresh PPAR.pdf even when this option is omitted."
+        ),
     )
     parser.add_argument(
         "--quick",
@@ -390,7 +422,9 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--build",
         action="store_true",
-        help="Include the final wheel/sdist build check.",
+        help=(
+            "Refresh PPAR.pdf and include the final wheel/sdist build check."
+        ),
     )
     parser.add_argument(
         "--skip-project-check",
@@ -457,15 +491,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     runner.run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
     runner.complete("Scenario matrix")
 
-    runner.phase(7, "Optional README release-asset refresh")
-    if args.refresh_images:
-        _run_readme_asset_refresh(runner)
-        runner.asset_note(
-            "README images under docs/images/readme and PPAR.pdf may have been refreshed."
-        )
-        runner.complete("README images and product-overview PDF")
+    runner.phase(7, "Release-asset refresh")
+    refresh_images, refresh_pdf = _release_asset_refresh_scope(
+        build=args.build,
+        refresh_images=args.refresh_images,
+    )
+    if refresh_pdf:
+        _run_readme_asset_refresh(runner, refresh_images=refresh_images)
+        if refresh_images:
+            runner.asset_note(
+                "README images under docs/images/readme and PPAR.pdf may have been "
+                "refreshed."
+            )
+            runner.complete("README images and product-overview PDF")
+        else:
+            runner.asset_note("PPAR.pdf was refreshed from the current README.md.")
+            runner.complete("Product-overview PDF")
     else:
-        runner.skip("README release-asset refresh; use --refresh-images.")
+        runner.skip(
+            "Release-asset refresh; --build refreshes PPAR.pdf and "
+            "--refresh-images refreshes both images and PDF."
+        )
 
     runner.phase(8, "Run release-candidate scale regression checks")
     _run_scale_regression_check(runner)

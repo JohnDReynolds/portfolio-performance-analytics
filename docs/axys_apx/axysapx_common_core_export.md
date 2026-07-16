@@ -4,7 +4,7 @@ This note sketches a PPAR-normalized Axys/APX extract shape for analytics and
 performance auditing. It is an extraction-planning aid, not an official
 Axys/APX schema, executable export recipe, or generic implementation contract.
 
-See [Performance Comparison Design Notes](performance_comparison_design.md) for
+See [Performance Comparison Design Notes](../audit/performance_comparison_design.md) for
 the broader comparison model, implemented checkpoint, YAML semantics, and report
 bundle workflow that can consume these normalized export shapes.
 

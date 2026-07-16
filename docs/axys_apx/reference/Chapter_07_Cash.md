@@ -1,7 +1,7 @@
 # Chapter 07 — Cash
 
 **Repository:** AXYS / APX Reference Repository
-**Chapter:** `docs/axys-apx-reference/reference/Chapter_07_Cash.md`
+**Chapter:** `docs/axys_apx/reference/Chapter_07_Cash.md`
 **Status:** Technical reference chapter based only on supplied research/source material
 **Prepared:** 2026-06-29
 

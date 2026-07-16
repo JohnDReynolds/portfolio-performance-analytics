@@ -1,7 +1,7 @@
 # Chapter 11 — Classifications
 
 Repository: AXYS / APX Reference Repository
-Chapter: `docs/axys-apx-reference/reference/Chapter_11_Classifications.md`
+Chapter: `docs/axys_apx/reference/Chapter_11_Classifications.md`
 Prepared from supplied research material: 2026-06-29
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

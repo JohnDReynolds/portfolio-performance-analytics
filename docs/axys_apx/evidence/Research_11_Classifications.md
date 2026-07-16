@@ -1,8 +1,8 @@
 # Research Notes: Classifications
 
 Repository: AXYS / APX Reference Repository  
-Research file: `docs/axys-apx-reference/evidence/Research_11_Classifications.md`  
-Target chapter: `docs/axys-apx-reference/reference/Chapter_11_Classifications.md`  
+Research file: `docs/axys_apx/evidence/Research_11_Classifications.md`
+Target chapter: `docs/axys_apx/reference/Chapter_11_Classifications.md`
 Prepared: 2026-06-29  
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

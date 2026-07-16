@@ -2,7 +2,7 @@
 
 **Repository:** AXYS / APX Reference Repository  
 **Chapter target:** `../reference/Chapter_03_APX_Architecture.md`  
-**Research file:** `docs/axys-apx-reference/evidence/Research_03_APX_Architecture.md`  
+**Research file:** `docs/axys_apx/evidence/Research_03_APX_Architecture.md`
 **Prepared:** 2026-06-29  
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

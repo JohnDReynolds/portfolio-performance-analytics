@@ -64,7 +64,12 @@ _PACKAGED_COMPARISON_PATH = (
     / "axysapx_performance_comparison"
     / "axysapx_performance_comparison.yaml"
 )
-_DEMO_SOURCE_CONTRACT_PATH = _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
+_DEMO_SOURCE_CONTRACT_PATH = (
+    _REPO_ROOT
+    / "docs"
+    / "audit"
+    / "performance_comparison_demo_source_contract.md"
+)
 _PACKAGED_AXYS_DIRECTORY = (
     _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )

@@ -40,7 +40,7 @@ Primary local references:
 - [`Chapter_07_Cash.md`](../reference/Chapter_07_Cash.md)
 - [`evidence/Research_07_Cash.md`](../evidence/Research_07_Cash.md)
 - [`demo_extract_availability.md`](demo_extract_availability.md)
-- [`performance_comparison_demo_source_contract.md`](../../performance_comparison_demo_source_contract.md)
+- [`performance_comparison_demo_source_contract.md`](../../audit/performance_comparison_demo_source_contract.md)
 
 Important boundary rules:
 

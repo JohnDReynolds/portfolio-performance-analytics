@@ -1,7 +1,7 @@
 # Chapter 09 — Corporate Actions
 
 Repository: AXYS / APX Reference Repository
-Chapter: `docs/axys-apx-reference/reference/Chapter_09_Corporate_Actions.md`
+Chapter: `docs/axys_apx/reference/Chapter_09_Corporate_Actions.md`
 Prepared: 2026-06-29
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

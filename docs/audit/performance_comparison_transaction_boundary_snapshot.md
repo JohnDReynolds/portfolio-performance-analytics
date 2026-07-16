@@ -2,7 +2,7 @@
 
 This snapshot summarizes the current transaction-semantics coverage boundary.
 It is a review aid for the machine-readable matrix in
-[`axys-apx-reference/contracts/transaction_semantics_matrix.yaml`](axys-apx-reference/contracts/transaction_semantics_matrix.yaml);
+[`axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml);
 the matrix remains the implementation contract.
 
 ## Covered Formula Inputs

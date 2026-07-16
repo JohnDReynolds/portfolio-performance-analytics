@@ -17,7 +17,9 @@ from ppar.performance_comparison.safety_invariants import (
     safety_invariant,
 )
 
-_SAFETY_DOCUMENT = Path("docs/performance_comparison_safety_invariants.md")
+_SAFETY_DOCUMENT = Path(
+    "docs/audit/performance_comparison_safety_invariants.md"
+)
 
 
 class TestPerformanceComparisonSafetyInvariants(unittest.TestCase):

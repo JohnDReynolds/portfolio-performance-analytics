@@ -1,6 +1,6 @@
 # Chapter 05 — Transactions
 
-> **Repository chapter:** `docs/axys-apx-reference/reference/Chapter_05_Transactions.md`\
+> **Repository chapter:** `docs/axys_apx/reference/Chapter_05_Transactions.md`\
 > **Status:** Technical reference chapter based only on supplied research
 > material.\
 > **Evidence standard:** Facts are marked as Verified, High Confidence,

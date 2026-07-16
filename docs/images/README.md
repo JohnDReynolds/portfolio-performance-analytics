@@ -12,7 +12,14 @@ Regenerate the root `PPAR.pdf` from the current root `README.md` with:
 ./.venv/bin/python scripts/render_readme_pdf.py
 ```
 
-The release-candidate workflow can refresh and validate both sets of assets with
-`./.venv/bin/python scripts/check_release_candidate.py --refresh-images`.
+The release-preparation command automatically regenerates `PPAR.pdf` before it
+builds distributable artifacts:
+
+```bash
+./.venv/bin/python scripts/check_release_candidate.py --build
+```
+
+Use `--refresh-images` when the README PNG/JPG assets also need regeneration. That
+option refreshes the images and then rebuilds `PPAR.pdf` from the current README.
 
 Generated demo/report outputs belong under `_demo_output/`, not here.

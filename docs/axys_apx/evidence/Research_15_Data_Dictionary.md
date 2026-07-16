@@ -5,7 +5,7 @@
 | Item | Value |
 |---|---|
 | Repository chapter supported | `../reference/Chapter_15_Data_Dictionary.md` |
-| Research file | `docs/axys-apx-reference/evidence/Research_15_Data_Dictionary.md` |
+| Research file | `docs/axys_apx/evidence/Research_15_Data_Dictionary.md` |
 | Governing specification | `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 |
 | Research basis | Supplied blueprint only |
 | External vendor documentation supplied | No |

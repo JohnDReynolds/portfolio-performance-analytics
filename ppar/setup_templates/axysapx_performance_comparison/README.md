@@ -51,14 +51,14 @@ relationships.
 ## Details
 
 The packaged CSV files follow the
-[Performance Comparison Demo Source Contract](../../../docs/performance_comparison_demo_source_contract.md).
+[Performance Comparison Demo Source Contract](../../../docs/audit/performance_comparison_demo_source_contract.md).
 They are normalized demo extracts, not official Axys/APX native schemas.
 The audit YAML comments and extract-availability contract use three practical
 extraction labels: **Required**, **Required only when applicable**, and
 **Optional**. Required is intentionally narrow: data needed to make Fully
 Explained possible. For field-by-field requirements and IMEX/REP availability
 confidence, see
-[PPAR Axys/APX Extract Requirements and Source Guidance](../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
+[PPAR Axys/APX Extract Requirements and Source Guidance](../../../docs/axys_apx/contracts/demo_extract_availability.md).
 
 The demo includes normalized USD-base multi-currency examples: `SAP.DE` and
 `CASHEUR` in EUR, `SHEL.L` and `CASHGBP` in GBP, and `CASHUSD` in USD. Local
@@ -359,7 +359,7 @@ Tests can still cover narrow edge cases, but the packaged demos should stay
 focused on reviewer-facing workflows.
 
 The supported string vocabulary is summarized in
-`docs/performance_comparison_design.md`. The package code backs those strings
+`docs/audit/performance_comparison_design.md`. The package code backs those strings
 with enums, but YAML examples intentionally show the plain string values users
 edit.
 
@@ -396,7 +396,7 @@ Current public YAML targets are intentionally narrow:
   used by runtime guards. The default packaged contract enforces context-field
   presence before ambiguous Axys/APX `li`, `lo`, `dp`, or `wd` rows can be
   classified by YAML rules. Use
-  `docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml` as a starter
+  `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starter
   when a real site needs a local contract.
 - `transaction_rules`: classifies transaction codes for amount attribution.
   Ambiguous Axys/APX-style `li`, `lo`, `dp`, and `wd` examples require matching

@@ -22,8 +22,8 @@ default or future core `vendor: axys` preset.
 
 The `imex_context` and `rep_semantics` contract files intentionally match the
 documented onboarding profiles in
-`docs/axys-apx-reference/contracts/templates/site_extract_contract_imex_context.yaml` and
-`docs/axys-apx-reference/contracts/templates/site_extract_contract_rep_semantics.yaml`.
+`docs/axys_apx/contracts/templates/site_extract_contract_imex_context.yaml` and
+`docs/axys_apx/contracts/templates/site_extract_contract_rep_semantics.yaml`.
 
 For all candidate override profiles, cost basis, principal, factor, and
 amortization details are best-efforts demo-construction context unless a future

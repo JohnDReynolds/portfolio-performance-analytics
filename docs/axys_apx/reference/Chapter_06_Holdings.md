@@ -1,7 +1,7 @@
 # Chapter 06 — Holdings
 
 Repository: AXYS / APX Reference Repository
-Chapter file: `docs/axys-apx-reference/reference/Chapter_06_Holdings.md`
+Chapter file: `docs/axys_apx/reference/Chapter_06_Holdings.md`
 Prepared: 2026-06-29
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

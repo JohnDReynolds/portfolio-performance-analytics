@@ -5,16 +5,16 @@ performance auditing, onboarding, user-facing documentation, report evolution,
 data auditing, and demo-data guardrails.
 
 Detailed design reference remains in
-[`performance_comparison_design.md`](performance_comparison_design.md).
+[`performance_comparison_design.md`](audit/performance_comparison_design.md).
 The packaged-demo source boundary is defined in
-[`performance_comparison_demo_source_contract.md`](performance_comparison_demo_source_contract.md).
+[`performance_comparison_demo_source_contract.md`](audit/performance_comparison_demo_source_contract.md).
 Historical demo-generation notes remain in
-[`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
+[`operational_demo_data_notes.md`](audit/archive/operational_demo_data_notes.md) and
 [`../scripts/generic_analytics_demo_data/GENERATION_NOTES.md`](../scripts/generic_analytics_demo_data/GENERATION_NOTES.md).
 The active safety-net program and audited enforcement baseline are defined in
-the [safety invariant catalog](performance_comparison_safety_invariants.md).
+the [safety invariant catalog](audit/performance_comparison_safety_invariants.md).
 
-[axys-apx-blockers]: axys-apx-reference/reference/Chapter_01_Overview.md#axysapx-blockers
+[axys-apx-blockers]: axys_apx/reference/Chapter_01_Overview.md#axysapx-blockers
 
 ## How To Read This Roadmap
 
@@ -149,7 +149,7 @@ period boundaries. Phase 4 adds stable logical source-record locators,
 bidirectional cause lineage, and role-derived fail-closed policy coverage. It lives in
 `ppar.performance_comparison.safety_invariants`; the design and implementation
 sequence live in
-[`performance_comparison_safety_invariants.md`](performance_comparison_safety_invariants.md).
+[`performance_comparison_safety_invariants.md`](audit/performance_comparison_safety_invariants.md).
 Phase 5 adds a validated demo-story contract: actual source periods, expected
 report outcomes, independent economic-change IDs, and explicit carry-forward
 effects now fail closed when fixtures drift.
@@ -233,7 +233,7 @@ useful before, after, or apart from a specific performance restatement review.
 | --- | --- | --- |
 | Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys/APX demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
 | Multi-currency expansion | Extend the implemented USD-base EUR/GBP demo only after validating additional quote conventions, portfolio currencies, and source mappings. | Reports continue to separate FX/rate effects from cash-flow and valuation effects without implying unevidenced vendor methodology. |
-| Broader extract discovery | Review `docs/axys-apx-reference` for Axys/APX fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
+| Broader extract discovery | Review `docs/axys_apx` for Axys/APX fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
 
 ### Eventual Deliverables
 
@@ -258,7 +258,7 @@ The Axys/APX extract guardrails now have a single review path:
 ```text
 ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml
   -> scripts/render_demo_extract_availability.py
-  -> docs/axys-apx-reference/contracts/demo_extract_availability.md
+  -> docs/axys_apx/contracts/demo_extract_availability.md
   -> ppar/performance_comparison/extract_contract.py
   -> ppar/performance_comparison/transactions.py
 ```
@@ -835,9 +835,9 @@ raw audit evidence.
 
 Useful Axys/APX transaction references:
 
-- [`Chapter_05_Transactions.md`](axys-apx-reference/reference/Chapter_05_Transactions.md):
+- [`Chapter_05_Transactions.md`](axys_apx/reference/Chapter_05_Transactions.md):
   draft transaction reference with evidence boundaries and confidence levels.
-- [`Research_05_Transactions.md`](axys-apx-reference/evidence/Research_05_Transactions.md):
+- [`Research_05_Transactions.md`](axys_apx/evidence/Research_05_Transactions.md):
   consolidated research reference for transaction workflows, code evidence,
   dependencies, audit rules, contradictions, and known unknowns.
 
@@ -937,7 +937,7 @@ Implemented guardrail:
   define `datasets.transactions.csv.columns`, use supported transaction column
   aliases, and provide boolean `requires_context_for_semantics` and
   `blocking_if_missing` flags.
-- `docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml` is the starter
+- `docs/axys_apx/contracts/templates/site_extract_contract.yaml` is the starter
   template for site-specific contracts.
 - packaged demo-data audit tests now assert that the user-facing `wd` withdrawal
   rows resolve as external flows and the fee-like `dp` rows resolve as
@@ -969,15 +969,15 @@ Ongoing coverage requirement:
   Each observed or documented Axys/APX transaction type should have an explicit
   expected classification, even when the expected outcome is `transfer`,
   `corporate_action`, `unknown pending review`, or review-only evidence.
-- [`axys-apx-reference/contracts/transaction_semantics_matrix.md`](axys-apx-reference/contracts/transaction_semantics_matrix.md)
+- [`axys_apx/contracts/transaction_semantics_matrix.md`](axys_apx/contracts/transaction_semantics_matrix.md)
   is the implementation-facing seed matrix for that coverage. Future fixtures
   should either satisfy a row in that matrix or update the matrix with the new
   evidence and expected treatment.
-- `docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml` is the
+- `docs/axys_apx/contracts/transaction_semantics_matrix.yaml` is the
   machine-readable coverage contract. Coverage is complete only when every row
   has a non-backlog fixture or an explicit documented reason to remain
   review-only/unknown.
-- [Boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
+- [Boundary snapshot](audit/performance_comparison_transaction_boundary_snapshot.md)
   is the compact reviewer-facing view of the same coverage boundary.
 - Matrix rows and pair patterns now include machine-checked `coverage_notes`, so
   each covered, context-only, partial, or backlog entry carries a rationale
@@ -999,7 +999,7 @@ Ongoing coverage requirement:
 Status: complete for the current packaged performance-comparison demo fixture.
 
 The packaged demo source contract is documented in
-[`performance_comparison_demo_source_contract.md`](performance_comparison_demo_source_contract.md).
+[`performance_comparison_demo_source_contract.md`](audit/performance_comparison_demo_source_contract.md).
 It states that the packaged CSVs are normalized demo extracts, not official
 Axys/APX native schemas, and defines the narrow source-data fields ppar is
 allowed to use when explaining performance differences.
@@ -1260,7 +1260,7 @@ For any additional examples:
 Demo-data notes:
 
 - Current operational demo generation history lives in
-  [`operational_demo_data_notes.md`](operational_demo_data_notes.md).
+  [`operational_demo_data_notes.md`](audit/archive/operational_demo_data_notes.md).
 - Current analytics demo data generation history lives in
   [`../scripts/generic_analytics_demo_data/GENERATION_NOTES.md`](../scripts/generic_analytics_demo_data/GENERATION_NOTES.md).
 - Those files are historical/process notes; this file is the active roadmap.
@@ -1410,7 +1410,7 @@ configuration path.
 
 Status: complete for the current site-extract onboarding docs.
 
-[`site_extract_readiness_checklist.md`](site_extract_readiness_checklist.md)
+[`site_extract_readiness_checklist.md`](audit/site_extract_readiness_checklist.md)
 now gives operators a short setup checklist for:
 
 - IMEX extracts with context fields;
@@ -1769,7 +1769,7 @@ the matrix or fixtures do not support.
 
 Status: complete for the current release-readiness note.
 
-[Boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
+[Boundary snapshot](audit/performance_comparison_transaction_boundary_snapshot.md)
 summarizes the current covered, context-required, review-only, context-only,
 and backlog-gated transaction families. It is a reviewer aid; the YAML matrix
 remains the implementation contract.
@@ -1783,7 +1783,7 @@ surface.
 
 Status: complete for the current review pack.
 
-[Evidence-pack review](performance_comparison_evidence_pack_review.md)
+[Evidence-pack review](audit/archive/performance_comparison_evidence_pack_review.md)
 summarizes the work by theme: evidence-pack manifests, site extract readiness,
 transaction boundaries, test-only fixtures, validator coverage, and reviewer
 docs.
@@ -2495,7 +2495,7 @@ distribution audit was removed from the checkout.
 Status: complete for current blocker navigation.
 
 The Axys/APX reference now has a single `Axys/APX blockers` section in
-`docs/axys-apx-reference/reference/Chapter_01_Overview.md`. The roadmap points readers to
+`docs/axys_apx/reference/Chapter_01_Overview.md`. The roadmap points readers to
 that section as the canonical summary of evidence gaps that block broader
 Axys/APX-native automation, including native performance extract dictionaries,
 stored-versus-recalculated performance, security-performance footing,

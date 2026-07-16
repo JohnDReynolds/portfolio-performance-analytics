@@ -17,6 +17,9 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
    evidence, dated research notes, or unresolved open questions.
 4. Use the contracts and YAML files when implementing or validating ppar demo
    behavior.
+5. Use [axysapx_common_core_export.md](axysapx_common_core_export.md) as the
+   starter field-shape reference, subject to the confidence boundaries in the
+   chapters and contracts.
 
 ## File Roles
 
@@ -27,6 +30,7 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
 | `contracts/*.md` | Implementation aid | Cross-cutting contracts, generated summaries, and demo/test guidance. | A replacement for the chapters or official vendor documentation. |
 | `contracts/*.yaml` | Machine-readable contract | Validation, test fixtures, and structured implementation inputs. | Narrative explanation. |
 | `contracts/templates/*.yaml` | Site contract examples | Starting points for site-specific extract contracts. | Guaranteed Axys/APX schemas. |
+| `axysapx_common_core_export.md` | Starter export reference | Common field shapes and candidate aliases for integration planning. | An official or guaranteed Axys/APX export specification. |
 
 ## Where to Put New Information
 

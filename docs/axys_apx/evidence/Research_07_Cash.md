@@ -1,8 +1,8 @@
 # Research Notes: Cash
 
 **Repository:** AXYS / APX Reference Repository  
-**Research file:** `docs/axys-apx-reference/evidence/Research_07_Cash.md`  
-**Target chapter:** `docs/axys-apx-reference/reference/Chapter_07_Cash.md`  
+**Research file:** `docs/axys_apx/evidence/Research_07_Cash.md`
+**Target chapter:** `docs/axys_apx/reference/Chapter_07_Cash.md`
 **Prepared:** 2026-06-29  
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
 **Scope:** Cash behavior, cash-related transaction handling, cash fields, import/export considerations, reporting gaps, and known unknowns for SS&C Axys and SS&C APX.
@@ -516,7 +516,7 @@ until those are supported by direct source material.
 ## 17. Research Status
 
 This research is suitable as a starting file for
-`docs/axys-apx-reference/evidence/Research_07_Cash.md`.
+`docs/axys_apx/evidence/Research_07_Cash.md`.
 
 It is not sufficient by itself to write a fully authoritative
 `../reference/Chapter_07_Cash.md` chapter with complete IMEX and REP field

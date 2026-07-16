@@ -1,7 +1,7 @@
 # Research Notes: Reports
 
 **Repository chapter target:** `../reference/Chapter_14_Reports.md`  
-**Research file:** `docs/axys-apx-reference/evidence/Research_14_Reports.md`  
+**Research file:** `docs/axys_apx/evidence/Research_14_Reports.md`
 **Prepared:** 2026-06-29  
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

@@ -3,7 +3,7 @@
 These are historical checkpoint notes from earlier implementation sessions.
 They are useful for continuity, but they are not the active roadmap. Current
 future work belongs in
-[`roadmap.md`](roadmap.md).
+[`roadmap.md`](../../roadmap.md).
 
 ## Historical Checkpoint State
 
@@ -57,7 +57,7 @@ Source-checkout demo and smoke commands write artifacts under these directories
 and print the paths to review. They do not open browser windows automatically.
 
 The packaged performance comparison demo is documented in
-[`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md):
+[`ppar/setup_templates/axysapx_performance_comparison/README.md`](../../../ppar/setup_templates/axysapx_performance_comparison/README.md):
 
 The baseline, single-restatement, and transaction-rules YAML files remain
 validation fixtures. They are covered by the demo matrix validator and targeted

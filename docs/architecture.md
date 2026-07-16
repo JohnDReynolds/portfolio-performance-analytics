@@ -6,6 +6,11 @@ or deeper performance-comparison design notes.
 
 ## Product Surface
 
+PPAR presents two market-facing products—PPAR Audit and PPAR Analytics—that share
+one codebase, common command infrastructure, and integration support. The internal
+`performance_comparison` package remains the calculation and reporting engine behind
+PPAR Audit; its name does not define the marketed product boundary.
+
 The public installed command is:
 
 ```bash

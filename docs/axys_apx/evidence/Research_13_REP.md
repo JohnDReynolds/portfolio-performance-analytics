@@ -1,8 +1,8 @@
 # Research Notes: REP
 
 Repository: AXYS / APX Reference Repository  
-Target chapter: `docs/axys-apx-reference/reference/Chapter_13_Rep.md`  
-Research file: `docs/axys-apx-reference/evidence/Research_13_REP.md`  
+Target chapter: `docs/axys_apx/reference/Chapter_13_Rep.md`
+Research file: `docs/axys_apx/evidence/Research_13_REP.md`
 Prepared: 2026-06-29  
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
