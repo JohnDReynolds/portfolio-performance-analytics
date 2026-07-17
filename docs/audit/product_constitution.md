@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.3 |
+| Version | 1.4 |
 | Date | 2026-07-17 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
@@ -13,9 +13,19 @@
 | Specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
 | Preserved pre-split snapshot | [`archive/PPAR_Audit_Foundational_Product_Design_v0.10.md`](archive/PPAR_Audit_Foundational_Product_Design_v0.10.md) |
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Slice 2 Executive Summary implementation and review |
+| Next gate | Slice 2 Executive Summary usability acceptance |
 
 ## Change Log
+
+### Version 1.4 — 2026-07-17
+
+- Recorded completion of the bounded Slice 2 Executive Summary shared model.
+- Recorded founder rejection of its first jargon-heavy presentation and kept
+  Slice 2 open for a genuine 30-second first-view refinement.
+- Preserved the constitution's capability boundary and deferred product choices;
+  executable detail and acceptance remain owned by the active MVP plan.
+- The first additional Data Issues issue type remains sequenced after Slice 2
+  usability acceptance.
 
 ### Version 1.3 — 2026-07-17
 
@@ -330,19 +340,20 @@ remain subject to client validation.
 Current report bundles can include:
 
 - level-specific XLSX and HTML review reports;
-- the primary `Performance Differences`, `Performance Difference Causes`, and
-  `Data Issues` review surfaces;
+- the bounded first-view `Executive Summary` plus the unchanged primary
+  `Performance Differences`, `Performance Difference Causes`, and `Data Issues`
+  analytical surfaces;
 - complete `source_detail.csv` and `findings.csv` evidence;
 - primary and supporting CSV summaries and diagnostics;
 - `review_summary.json` handoff metadata;
-- `manifest.json` version 4;
+- `manifest.json` version 6;
 - cause lineage and typed semantic/display fingerprints; and
 - compact or expanded audit-support artifacts.
 
-The normal review path begins with performance differences and their supported
-causes, then independent Data Issues findings, then source detail and supporting
-diagnostics. Reconstruction and transaction-matching diagnostics remain
-secondary.
+The normal review path begins with the Executive Summary, then exact performance
+differences and their supported causes, independent Data Issues findings, source
+detail, and supporting diagnostics. Reconstruction and transaction-matching
+diagnostics remain secondary.
 
 ## 3.7 Current maturity summary
 
@@ -357,7 +368,7 @@ secondary.
 | Data Issues checks | CURRENT — DEMONSTRATED; value and noise require validation |
 | Technical preflight/readiness controls | CURRENT — DOCUMENTED; unified product experience remains APPROVED DIRECTION |
 | XLSX, HTML, CSV, manifest, and bundle output | CURRENT — DEMONSTRATED; management usability requires validation |
-| Executive Investigation Summary | APPROVED DIRECTION; not implemented as the intended first-view layer |
+| Executive Summary | CURRENT — UNDER USABILITY REFINEMENT; shared model implemented, first presentation rejected in founder review |
 | Persistent history, health dashboard, Operational Intelligence | APPROVED DIRECTION but implementation DEFERRED behind recurring-use evidence |
 | Managed human workflow | Distant evidence-gated possibility; not an assumed product layer |
 | Broad non-Axys/APX compatibility | CANDIDATE only after a documented, tested, supportable source contract |
@@ -539,9 +550,9 @@ The intended review hierarchy is:
 6. **Complete evidence** — findings, source detail, lineage, configuration/
    contract context, and supporting diagnostics.
 
-The approved Executive Investigation Summary should eventually become the first
-HTML section and first XLSX sheet while preserving existing analytical surfaces.
-It must derive from the same validated tables, not a separate calculation.
+The Executive Summary is the first HTML section and first XLSX sheet while
+preserving existing analytical surfaces. It derives from the same validated
+tables, not a separate calculation.
 
 ## 6.3 Presentation rules
 
@@ -583,7 +594,7 @@ Validation may conclude that PPAR should provide no managed workflow.
 | Performance Change Investigation | Current foundation and product center | Formula-bound, evidence-preserving, conservative, client validation required |
 | Performance Data Quality Audit | Current selected checks; approved strengthening | Findings remain independent of counted performance causes |
 | Audit Readiness | Current technical controls; APPROVED DIRECTION for unified experience | Ready/Qualified Ready/Blocked cannot waive safety; Diagnostic Only remains separate |
-| Executive Summary worksheet | APPROVED DIRECTION and required MVP gap | First XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
+| Executive Summary worksheet | CURRENT — UNDER USABILITY REFINEMENT | First XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
 | Data Issues issue-type expansion | APPROVED DIRECTION and required MVP gap | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
 | Cause/issue codification and YAML control | APPROVED DIRECTION and required MVP gap | Stable vocabulary and fail-closed configuration; user policy cannot redefine product arithmetic |
 | Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | Evidence-scoped scenarios, exact-case capability, source contracts, and staging controls must preserve posted-transaction boundaries |
@@ -729,7 +740,7 @@ Potential work includes:
 
 - repeatable onboarding and approved starter contracts;
 - better operator-facing readiness and remediation;
-- the approved Executive Investigation Summary;
+- validation-driven refinement of the current Executive Summary;
 - prioritized, reusable high-value rules;
 - accepted client regression cases;
 - packaging, deployment, update, and support hardening; and
@@ -765,9 +776,8 @@ The visionary product-design phase is complete and **good enough for now**. The
 active work is to define, implement, test, and demonstrate four bounded MVP
 capabilities:
 
-1. **Executive Summary:** add a concise first worksheet before Performance
-   Differences and an equivalent first HTML section, derived from existing
-   validated review tables.
+1. **Executive Summary:** retain the implemented concise first worksheet and
+   equivalent first HTML section derived from existing validated review tables.
 2. **Additional Data Issues issue types:** expand the current enumerated checks
    only where existing source-data supports transparent, high-signal logic and
    manageable false-positive controls.
@@ -787,9 +797,9 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## 9.8 Immediate priorities
 
-1. Implement the Executive Summary from the shared validated review model using
-   the approved fixed ten-row initial priority limit.
-2. Add approved high-value issue types one at a time with fixtures, YAML policy,
+1. Complete founder usability acceptance of the 30-second Executive Summary.
+2. Review and select the first approved high-value additional Data Issues issue
+   type, then implement it with fixtures, YAML policy,
    reviewer output, and false-positive tests.
 3. Implement the current-capability Axys/APX scenarios defined by the active MVP
    plan.

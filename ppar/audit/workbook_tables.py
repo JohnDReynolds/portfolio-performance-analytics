@@ -15,6 +15,7 @@ import ppar.utilities as util
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit import conservation as _pc_conservation
+from ppar.audit import executive_summary as _executive_summary
 from ppar.audit import field_roles as _field_roles
 from ppar.audit.performance_comparison import explain as _pc_explain
 from ppar.audit.performance_comparison import findings as _pc_findings
@@ -384,7 +385,29 @@ def audit_review_workbook_sheets(
         data_issues=_data_issues,
         finding_audit_trail=_finding_audit_trail,
     )
+    data_issues_sheet = next(
+        sheet
+        for sheet in detail_sheets
+        if sheet.artifact_name == _pc_review_model.DATA_ISSUES_ARTIFACT
+    )
+    executive_summary_sheet = _pc_workbook.ReviewWorkbookSheet(
+        artifact_name=_pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT,
+        sheet_name=_pc_review_model.EXECUTIVE_SUMMARY_SHEET,
+        table=_executive_summary.executive_summary_table(
+            primary_sheet.table,
+            table_cache.cause_summary(comparison_level),
+            data_issues_sheet.table,
+            table_cache.primary_coverage(comparison_level),
+            context=_executive_summary.executive_summary_context(
+                comparison_path,
+                comparison_level,
+            ),
+        ),
+        columns=_executive_summary.EXECUTIVE_SUMMARY_COLUMNS,
+        labels=_layout.workbook_column_labels(),
+    )
     return (
+        executive_summary_sheet,
         primary_sheet,
         *detail_sheets,
         *diagnostic_sheets,

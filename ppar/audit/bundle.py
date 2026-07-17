@@ -55,6 +55,7 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "review_summary",
     "findings",
     "source_detail",
+    _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
     _pc_review_model.DATA_ISSUES_ARTIFACT,
@@ -74,12 +75,13 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "top_evidence",
 )
 _CSV_PRIMARY_REVIEW_ARTIFACTS = (
+    _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
     _pc_review_model.DATA_ISSUES_ARTIFACT,
 )
 _REPORT_BUNDLE_TYPE = "audit_report"
-_REPORT_BUNDLE_MANIFEST_VERSION = 5
+_REPORT_BUNDLE_MANIFEST_VERSION = 6
 _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "bundle_type",
     "manifest_version",
@@ -322,7 +324,7 @@ def write_report_bundle_readme(
     Returns:
         Normalized destination path.
     """
-    primary_sheet = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
+    primary_sheet = _pc_review_model.EXECUTIVE_SUMMARY_SHEET
     html_report_file_name = _pc_review_model.html_report_file_name(comparison_level)
     review_workbook_file_name = _pc_review_model.review_workbook_file_name(
         comparison_level
@@ -344,7 +346,8 @@ def write_report_bundle_readme(
         )
     else:
         first_review_step = (
-            "1. Open `performance_differences.csv` first, then use "
+            "1. Open `executive_summary.csv` first, then use "
+            "`performance_differences.csv` for exact changed review units and "
             "`performance_difference_causes.csv` for the additive explanation."
         )
     review_unit = _readme_review_unit(comparison_level)
@@ -357,6 +360,11 @@ def write_report_bundle_readme(
         "`performance_difference_causes.csv`"
         if csv_only_output
         else _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
+    )
+    performance_review_artifact = (
+        "`performance_differences.csv`"
+        if csv_only_output
+        else _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
     )
     data_issues_review_artifact = (
         "`data_issues.csv`"
@@ -371,7 +379,8 @@ def write_report_bundle_readme(
         "## Recommended Review Order",
         "",
         first_review_step,
-        f"2. Use {causes_review_artifact} "
+        f"2. Use {performance_review_artifact} to review exact "
+        f"changed {review_unit}s, then use {causes_review_artifact} "
         f"to see which source-data differences additively explain each {review_unit}.",
         "   It includes explained causes plus supporting evidence, possible causes, "
         "and Modified Dietz inputs used to review the performance difference.",
@@ -420,7 +429,7 @@ def _archived_supporting_files_readme_lines(
     ]
     if csv_only_output:
         lines[4:4] = [
-            "- `performance_differences.csv`, "
+            "- `executive_summary.csv`, `performance_differences.csv`, "
             "`performance_difference_causes.csv`, and `data_issues.csv`: "
             "primary CSV review files.",
         ]
@@ -970,6 +979,9 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         ),
         "portfolio_period_summary": "portfolio-period return-change summary",
         "cause_summary": "cause-area summary with explained-change methods",
+        "executive_summary": (
+            "canonical CSV counterpart of the Executive Summary HTML/XLSX view"
+        ),
         "performance_differences": (
             "canonical CSV counterpart of the primary HTML/XLSX review sheet"
         ),

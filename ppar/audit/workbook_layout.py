@@ -10,6 +10,7 @@ import polars as pl
 
 # Project imports
 from ppar.audit.data_issues import checks as data_issue_checks
+from ppar.audit import executive_summary
 from ppar.audit.performance_comparison import explain
 from ppar.audit.performance_comparison import findings
 from ppar.audit.performance_comparison import return_reconstruction
@@ -215,6 +216,11 @@ def workbook_column_labels() -> dict[str, str]:
     """Return shared user-facing labels for review workbook columns."""
     return {
         REVIEW_KEY: "Review Key",
+        executive_summary.SUMMARY_SECTION: "Topic",
+        executive_summary.SUMMARY_ITEM: "Question",
+        executive_summary.SUMMARY_RESULT: "Answer",
+        executive_summary.SUMMARY_DETAIL: "Explanation",
+        executive_summary.REVIEW_DESTINATION: "Open Detail",
         findings.PORTFOLIO_ID: "Portfolio",
         findings.SECURITY_ID: "Security",
         data_issue_checks.SNAPSHOT: "Snapshot",
@@ -329,6 +335,19 @@ def workbook_column_tooltip(column: str) -> str:
     """
     tooltips = {
         REVIEW_KEY: "Stable performance-period key used to connect workbook rows.",
+        executive_summary.SUMMARY_SECTION: (
+            "Stable Executive Summary section for progressive review."
+        ),
+        executive_summary.SUMMARY_ITEM: "Summary measure or review cue.",
+        executive_summary.SUMMARY_RESULT: (
+            "Result derived from existing canonical review tables."
+        ),
+        executive_summary.SUMMARY_DETAIL: (
+            "Interpretation, limitation, or exact values supporting the result."
+        ),
+        executive_summary.REVIEW_DESTINATION: (
+            "Detailed review sheet containing the supporting evidence."
+        ),
         findings.PORTFOLIO_ID: (
             "Portfolio identifier from the compared source-data."
         ),

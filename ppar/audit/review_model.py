@@ -20,6 +20,7 @@ PORTFOLIO_AUDIT_FILE_STEM: Final[str] = "portfolio_audit"
 SECURITY_AUDIT_FILE_STEM: Final[str] = "security_audit"
 
 PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
+EXECUTIVE_SUMMARY_ARTIFACT: Final[str] = "executive_summary"
 PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT: Final[str] = "performance_difference_causes"
 CAUSE_LINEAGE_ARTIFACT: Final[str] = "cause_lineage"
 DATA_ISSUES_ARTIFACT: Final[str] = "data_issues"
@@ -34,6 +35,7 @@ SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT: Final[str] = (
 )
 
 PERFORMANCE_DIFFERENCES_SHEET: Final[str] = "Performance Differences"
+EXECUTIVE_SUMMARY_SHEET: Final[str] = "Executive Summary"
 RECONSTRUCTION_SUMMARY_SHEET: Final[str] = "Reconstruction Summary"
 RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Return Reconstruction Checks"
 SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Security Return Checks"
@@ -75,6 +77,7 @@ def review_workbook_file_name(comparison_level: str) -> str:
     return f"{audit_file_stem(comparison_level)}.xlsx"
 
 PRIMARY_REVIEW_SHEETS: Final[tuple[str, ...]] = (
+    EXECUTIVE_SUMMARY_SHEET,
     PERFORMANCE_DIFFERENCES_SHEET,
 )
 SHARED_REVIEW_SHEETS: Final[tuple[str, ...]] = (

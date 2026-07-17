@@ -1000,8 +1000,14 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("four additional product capabilities", plan)
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
-        self.assertIn("Slice 2 Executive Summary implementation and review", constitution)
-        self.assertIn("Slice 2 — Executive Summary shared model", plan)
+        self.assertIn(
+            "Slice 2 Executive Summary usability acceptance",
+            constitution,
+        )
+        self.assertIn(
+            "Slice 2 — Executive Summary shared model — Usability Refinement",
+            plan,
+        )
         self.assertIn("same commit whenever the number or identity", audit_index)
         self.assertIn("four founder-approved capability boundaries", portfolio_roadmap)
 

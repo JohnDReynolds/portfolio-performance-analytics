@@ -4,8 +4,8 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Slice 1 complete; Slice 2 is next |
-| Version | 0.6 |
+| Status | Active MVP implementation plan — Slice 1 complete; Slice 2 usability refinement underway |
+| Version | 0.7 |
 | Date | 2026-07-17 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
@@ -42,13 +42,16 @@ This is an implementation plan, not a new visionary product-design phase.
 
 The current ordinary workbook order is exactly:
 
-1. `Performance Differences`
-2. `Performance Difference Causes`
-3. `Data Issues`
+1. `Executive Summary`
+2. `Performance Differences`
+3. `Performance Difference Causes`
+4. `Data Issues`
 
-There is no `Executive Summary` worksheet or equivalent first HTML section.
-Both XLSX and HTML derive from the same ordered `ReviewWorkbookSheet` sequence,
-which provides a strong shared-model foundation for the new entrypoint.
+The equivalent HTML report begins with the same `Executive Summary`. Both
+formats and the canonical CSV derive from the same bounded summary table and
+are covered by bundle parity, determinism, and missing/stale-content checks.
+The summary adds presentation and navigation only; the three analytical sheets
+retain their prior relative order, schemas, and financial semantics.
 
 ## 2.2 Current Data Issues vocabulary
 
@@ -117,9 +120,11 @@ implementation order is:
 
 1. **Vocabulary and YAML contract foundation — complete.** Slice 1 implemented
    the behavior-preserving codification and strict configuration contract.
-2. **Executive Summary — next.** Build the visible entrypoint on stable product
-   vocabulary and shared validated tables after the remaining scope decisions.
-3. **Additional Data Issues checks** — add selected issue types one at a time
+2. **Executive Summary — usability refinement underway.** The shared, bounded
+   entrypoint is implemented, but founder review rejected its first presentation
+   as too jargon-heavy to satisfy the 30-second executive-summary goal.
+3. **Additional Data Issues checks — after Slice 2 acceptance** — add an approved
+   issue type one at a time
    through the new registry and YAML contract.
 4. **Axys/APX transaction semantics and demo coverage** — implement all Section
    7 requirements, keeping posted transactions, staging controls, and audit
@@ -529,13 +534,25 @@ Implemented on 2026-07-17 as a behavior-preserving code change:
 - expose enabled-check summary through config validation; and
 - prove current report artifacts remain semantically unchanged.
 
-## Slice 2 — Executive Summary shared model
+## Slice 2 — Executive Summary shared model — Usability Refinement
 
-- define the minimum canonical summary table/object;
-- add first-sheet/first-section rendering;
-- add evidence links and empty states;
-- extend bundle/parity/determinism contracts; and
-- update demo and user documentation.
+Implemented on 2026-07-17 as a bounded presentation and navigation change:
+
+- added one canonical summary table shared by CSV, XLSX, and HTML;
+- added the first ordinary worksheet and first ordinary HTML section;
+- capped deterministic priority review units at ten and added honest empty states;
+- linked summary destinations to the unchanged detailed analytical sheets;
+- included snapshot context, Modified Dietz basis, limitation, exact priority
+  values, cause-area counts, Data Issues type/category counts, mandatory
+  continuity attention, and deterministic next-review cues; and
+- extended manifest, bundle validation, parity, determinism, and documentation
+  contracts without adding financial calculations, issue types, or YAML controls.
+
+Founder review of the first generated workbook found that the initial flat
+summary table exposed too much internal vocabulary and did not provide a
+plain-English punch line within 30 seconds. Slice 2 remains open while the first
+view is refined around: bottom line, what changed, supported explanation,
+separate data-quality attention, next action, and deferred method context.
 
 ## Slice 3 — First approved additional issue type
 

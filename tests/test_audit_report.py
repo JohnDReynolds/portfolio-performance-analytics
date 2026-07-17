@@ -555,6 +555,7 @@ class TestAuditReport(unittest.TestCase):
                     "promoted_reviewer_files": {
                         "normal": ["source_detail.csv"],
                         "csv_only": [
+                            "executive_summary.csv",
                             "performance_differences.csv",
                             "performance_difference_causes.csv",
                             "data_issues.csv",
@@ -564,7 +565,7 @@ class TestAuditReport(unittest.TestCase):
                     "expanded_directory": "supporting_files",
                     "expand_option": "--expand-all-supporting-files",
                 },
-                "manifest_version": 5,
+                "manifest_version": 6,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -578,6 +579,7 @@ class TestAuditReport(unittest.TestCase):
                     "review_summary",
                     "findings",
                     "source_detail",
+                    "executive_summary",
                     "performance_differences",
                     "performance_difference_causes",
                     "data_issues",
@@ -600,6 +602,7 @@ class TestAuditReport(unittest.TestCase):
                     "xlsx": "review_workbook",
                     "html": "html_report",
                     "csv": [
+                        "executive_summary",
                         "performance_differences",
                         "performance_difference_causes",
                         "data_issues",
@@ -719,6 +722,9 @@ class TestAuditReport(unittest.TestCase):
             self.assertNotIn("Browser review surface", html_report)
             self.assertIn("Performance Differences", html_report)
             self.assertIn("Performance Difference Causes", html_report)
+            self.assertIn('class="pc-executive-callout"', html_report)
+            self.assertIn("Bottom line</span>", html_report)
+            self.assertNotIn("market_value_or_holding", html_report)
             self.assertNotIn("<h2>Source Detail</h2>", html_report)
 
             readme = paths["readme"].read_text(encoding="utf-8")
@@ -729,8 +735,8 @@ class TestAuditReport(unittest.TestCase):
             self.assertNotIn("same review model in a browser", readme)
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
-            self.assertIn("Start with Performance Differences", readme)
-            self.assertIn("Use Performance Difference Causes", readme)
+            self.assertIn("Start with Executive Summary", readme)
+            self.assertIn("then use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn(
                 "`supporting_files/source_detail.csv` for audit and troubleshooting",
@@ -886,6 +892,7 @@ class TestAuditReport(unittest.TestCase):
             self.assertEqual(
                 set(integrity["review_sheets"]),
                 {
+                    "executive_summary",
                     "performance_differences",
                     "performance_difference_causes",
                     "data_issues",
@@ -1662,11 +1669,24 @@ class TestAuditReport(unittest.TestCase):
             self.assertEqual(
                 workbook.sheetnames,
                 [
+                    "Executive Summary",
                     "Performance Differences",
                     "Performance Difference Causes",
                     "Data Issues",
                 ],
             )
+            self.assertEqual(
+                workbook["Executive Summary"]["E2"].hyperlink.target,
+                "#'Performance Differences'!A1",
+            )
+            self.assertEqual(
+                [
+                    _normalized_header(cell.value)
+                    for cell in workbook["Executive Summary"][1]
+                ],
+                ["Topic", "Question", "Answer", "Explanation", "Open Detail"],
+            )
+            self.assertEqual(workbook["Executive Summary"].row_dimensions[2].height, 54)
             self.assertTrue(
                 all(
                     workbook[sheet_name].row_dimensions[1].height is None
@@ -1933,6 +1953,7 @@ class TestAuditReport(unittest.TestCase):
             self.assertEqual(
                 set(paths),
                 {
+                    "executive_summary",
                     "performance_differences",
                     "performance_difference_causes",
                     "data_issues",
@@ -1949,6 +1970,7 @@ class TestAuditReport(unittest.TestCase):
                     archive.read("supporting_files/manifest.json").decode("utf-8")
                 )
                 for artifact_name in (
+                    "executive_summary",
                     "performance_differences",
                     "performance_difference_causes",
                     "data_issues",
@@ -1963,13 +1985,14 @@ class TestAuditReport(unittest.TestCase):
             self.assertEqual(
                 manifest["review_entrypoints"]["primary_review"],
                 [
+                    "executive_summary.csv",
                     "performance_differences.csv",
                     "performance_difference_causes.csv",
                     "data_issues.csv",
                 ],
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("Open `performance_differences.csv` first", readme)
+            self.assertIn("Open `executive_summary.csv` first", readme)
             self.assertNotIn("Yellow cells", readme)
 
             paths["performance_differences"].write_text(
@@ -2016,6 +2039,7 @@ class TestAuditReport(unittest.TestCase):
             )
 
             for artifact_name in (
+                "executive_summary",
                 "performance_differences",
                 "performance_difference_causes",
                 "data_issues",
@@ -2418,6 +2442,17 @@ class TestAuditReport(unittest.TestCase):
                 report_bundle_validation_issues(csv_bundle),
             )
 
+            missing_summary_bundle = root / "missing_summary"
+            shutil.copytree(baseline, missing_summary_bundle)
+            summary_path = missing_summary_bundle / paths["executive_summary"].relative_to(
+                baseline
+            )
+            summary_path.unlink()
+            self.assertIn(
+                "artifact file 'supporting_files/executive_summary.csv' is missing",
+                report_bundle_validation_issues(missing_summary_bundle),
+            )
+
             html_bundle = root / "html_mutation"
             shutil.copytree(baseline, html_bundle)
             html_path = html_bundle / paths["html_report"].relative_to(baseline)
@@ -2432,7 +2467,7 @@ class TestAuditReport(unittest.TestCase):
             self.assertEqual(replacement_count, 1)
             html_path.write_text(mutated_html, encoding="utf-8")
             self.assertIn(
-                "HTML review table 'Performance Differences' parity failed",
+                "HTML review table 'Executive Summary' parity failed",
                 report_bundle_validation_issues(html_bundle),
             )
 

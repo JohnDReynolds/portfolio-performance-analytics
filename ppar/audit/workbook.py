@@ -143,6 +143,13 @@ PRIMARY_DIFFERENCE_SHEETS = _pc_review_model.PRIMARY_REVIEW_SHEETS
 SHARED_REVIEW_SHEETS = _pc_review_model.SHARED_REVIEW_SHEETS
 EXPECTED_SHEETS = _pc_review_model.EXPECTED_REVIEW_SHEETS
 REQUIRED_HEADERS = {
+    _pc_review_model.EXECUTIVE_SUMMARY_SHEET: (
+        "Topic",
+        "Question",
+        "Answer",
+        "Explanation",
+        "Open Detail",
+    ),
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET: (
         "Portfolio",
         "From Date",
@@ -486,6 +493,14 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
                 start_color="FFFFE699",
                 end_color="FFFFE699",
             ),
+            "summary_headline_font": Font(bold=True, color="FFFFFF", size=12),
+            "summary_headline_fill": PatternFill(
+                fill_type="solid",
+                start_color="24596A",
+                end_color="24596A",
+            ),
+            "summary_topic_font": Font(bold=True, color="24596A"),
+            "summary_answer_font": Font(bold=True),
             "header_alignment": Alignment(wrap_text=True, vertical="top"),
             "wrapped_alignment": Alignment(wrap_text=True, vertical="top"),
             "comment_class": Comment,
@@ -522,6 +537,7 @@ def _add_workbook_sheet(
         table.iter_rows(named=True),
         styles,
     )
+    _add_review_destination_links(worksheet, columns)
 
     worksheet.freeze_panes = "A2"
     max_column_letter = worksheet.cell(row=1, column=len(columns)).column_letter
@@ -531,7 +547,59 @@ def _add_workbook_sheet(
         cell.fill = styles["header_fill"]
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
+    if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
+        _format_executive_summary_rows(worksheet, columns, styles)
     _format_workbook_columns(worksheet, columns, headers, max_widths)
+
+
+def _add_review_destination_links(worksheet: Any, columns: Sequence[str]) -> None:
+    """Link Executive Summary destinations to their detailed worksheets."""
+    if "review_destination" not in columns:
+        return
+    column_number = columns.index("review_destination") + 1
+    for row_number in range(2, worksheet.max_row + 1):
+        cell = worksheet.cell(row=row_number, column=column_number)
+        if not isinstance(cell.value, str) or not cell.value:
+            continue
+        escaped_sheet_name = cell.value.replace("'", "''")
+        cell.hyperlink = f"#'{escaped_sheet_name}'!A1"
+        cell.style = "Hyperlink"
+
+
+def _format_executive_summary_rows(
+    worksheet: Any,
+    columns: Sequence[str],
+    styles: Mapping[str, Any],
+) -> None:
+    """Give the Executive Summary a readable first-view hierarchy."""
+    if worksheet.max_row < 2:
+        return
+    for cell in worksheet[2]:
+        cell.fill = styles["summary_headline_fill"]
+        cell.font = styles["summary_headline_font"]
+        cell.alignment = styles["wrapped_alignment"]
+    worksheet.row_dimensions[2].height = 54
+
+    topic_column = _workbook_column_index(columns, "summary_section")
+    answer_column = _workbook_column_index(columns, "summary_result")
+    detail_column = _workbook_column_index(columns, "summary_detail")
+    previous_topic = ""
+    for row_number in range(3, worksheet.max_row + 1):
+        if topic_column is not None:
+            topic_cell = worksheet.cell(row=row_number, column=topic_column)
+            topic = str(topic_cell.value or "")
+            if topic != previous_topic:
+                topic_cell.font = styles["summary_topic_font"]
+            previous_topic = topic
+        if answer_column is not None:
+            worksheet.cell(row=row_number, column=answer_column).font = styles[
+                "summary_answer_font"
+            ]
+        for column_number in (answer_column, detail_column):
+            if column_number is not None:
+                worksheet.cell(row=row_number, column=column_number).alignment = styles[
+                    "wrapped_alignment"
+                ]
 
 
 def _workbook_sheet_columns(sheet: ReviewWorkbookSheet) -> tuple[str, ...]:
@@ -766,6 +834,11 @@ def _review_workbook_sheet_issues(workbook: Any, artifact_file: str) -> list[str
     """Return review workbook sheet and header validation issues."""
     issues: list[str] = []
     sheet_names = tuple(str(name) for name in workbook.sheetnames)
+    if not sheet_names or sheet_names[0] != _pc_review_model.EXECUTIVE_SUMMARY_SHEET:
+        issues.append(
+            f"{artifact_file} must begin with primary sheet "
+            f"{_pc_review_model.EXECUTIVE_SUMMARY_SHEET!r}"
+        )
     if _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET not in sheet_names:
         issues.append(
             f"{artifact_file} is missing primary sheet "

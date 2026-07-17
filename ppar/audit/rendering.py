@@ -493,6 +493,29 @@ body {
 .pc-section a {
   color: var(--pc-accent);
 }
+.pc-executive-callout {
+  background: #eef4f5;
+  border-left: 6px solid var(--pc-accent);
+  margin: 0 0 12px;
+  padding: 12px 14px;
+}
+.pc-executive-callout span {
+  color: var(--pc-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.pc-executive-callout strong {
+  display: block;
+  font-size: 19px;
+  line-height: 1.35;
+}
+.pc-executive-callout p {
+  color: var(--pc-muted);
+  margin: 6px 0 0;
+}
 .pc-card-row {
   display: grid;
   gap: 8px;

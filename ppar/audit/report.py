@@ -16,6 +16,7 @@ import ppar.utilities as util
 from ppar.errors import PpaError
 from ppar.audit import bundle as _pc_bundle
 from ppar.audit import conservation as _pc_conservation
+from ppar.audit import executive_summary as _executive_summary
 from ppar.audit import schema as pc_cols
 from ppar.audit.performance_comparison import explain as _pc_explain
 from ppar.audit.performance_comparison import findings as _pc_findings
@@ -215,9 +216,30 @@ def _html_document_parts(
 
 def _html_workbook_sheet_section(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
     """Return one HTML section matching a review workbook sheet."""
+    content = _html_workbook_sheet_table(sheet)
+    if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
+        content = "\n".join([_html_executive_callout(sheet), content])
     return _html_section(
         sheet.sheet_name,
-        _html_workbook_sheet_table(sheet),
+        content,
+    )
+
+
+def _html_executive_callout(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
+    """Return the Executive Summary bottom line before its supporting table."""
+    if sheet.table.is_empty():
+        return ""
+    first_row = sheet.table.row(0, named=True)
+    answer = first_row.get(_executive_summary.SUMMARY_RESULT, "")
+    detail = first_row.get(_executive_summary.SUMMARY_DETAIL, "")
+    return "\n".join(
+        [
+            '<div class="pc-executive-callout">',
+            "<span>Bottom line</span>",
+            f"<strong>{_escape_html(answer)}</strong>",
+            f"<p>{_escape_html(detail)}</p>",
+            "</div>",
+        ]
     )
 
 
@@ -322,7 +344,11 @@ def _html_workbook_body_cell(
             *_html_workbook_row_value_classes(row_type, review_status, column),
         ]
     )
-    return f'<td class="{classes}">{_escape_html(_format_value(value))}</td>'
+    rendered_value = _escape_html(_format_value(value))
+    if column == "review_destination" and rendered_value:
+        section_id = _pc_rendering.html_section_id(str(value))
+        rendered_value = f'<a href="#{section_id}">{rendered_value}</a>'
+    return f'<td class="{classes}">{rendered_value}</td>'
 
 
 def _html_workbook_row_value_classes(

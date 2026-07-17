@@ -247,6 +247,14 @@ def _html_review_parity_issues(
         return []
 
     issues: list[str] = []
+    if (
+        not parser.section_order
+        or parser.section_order[0] != _pc_review_model.EXECUTIVE_SUMMARY_SHEET
+    ):
+        issues.append(
+            "HTML report must begin with review section "
+            f"{_pc_review_model.EXECUTIVE_SUMMARY_SHEET!r}"
+        )
     for artifact_name, raw_metadata in review_sheets.items():
         metadata = _mapping(raw_metadata)
         sheet_name = metadata.get("sheet_name")
@@ -295,6 +303,14 @@ def _xlsx_review_parity_issues(
         return []
 
     issues: list[str] = []
+    if (
+        not workbook.sheetnames
+        or workbook.sheetnames[0] != _pc_review_model.EXECUTIVE_SUMMARY_SHEET
+    ):
+        issues.append(
+            "XLSX report must begin with review sheet "
+            f"{_pc_review_model.EXECUTIVE_SUMMARY_SHEET!r}"
+        )
     for raw_metadata in review_sheets.values():
         metadata = _mapping(raw_metadata)
         sheet_name = metadata.get("sheet_name")
@@ -501,6 +517,7 @@ class _ReviewHtmlParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.section_titles: set[str] = set()
+        self.section_order: list[str] = []
         self.tables: dict[str, dict[str, object]] = {}
         self._capture: str | None = None
         self._text: list[str] = []
@@ -537,6 +554,7 @@ class _ReviewHtmlParser(HTMLParser):
             value = "".join(self._text)
             if tag == "h2":
                 self.section_titles.add(value)
+                self.section_order.append(value)
             elif tag == "caption":
                 self._caption = value
             elif tag == "th":
