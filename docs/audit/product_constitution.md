@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-07-17 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
@@ -13,9 +13,20 @@
 | Specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
 | Preserved pre-split snapshot | [`archive/PPAR_Audit_Foundational_Product_Design_v0.10.md`](archive/PPAR_Audit_Foundational_Product_Design_v0.10.md) |
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Founder review of the Executive Summary scope and first additional Data Issues issue type |
+| Next gate | Slice 2 Executive Summary implementation and review |
 
 ## Change Log
+
+### Version 1.3 — 2026-07-17
+
+- Recorded the founder decision that bounded Axys/APX transaction-semantics,
+  exact-case, source-contract, and demo coverage is the fourth MVP capability
+  and is blocking for MVP completion.
+- Approved the Executive Summary scope and a fixed, version-controlled initial
+  limit of ten priority review units without YAML configuration.
+- Clarified that this constitution owns the MVP capability boundary while the
+  active MVP plan owns implementation sequence, detailed acceptance, and status.
+- Made no application-code or executable-contract change.
 
 ### Version 1.2 — 2026-07-17
 
@@ -575,6 +586,7 @@ Validation may conclude that PPAR should provide no managed workflow.
 | Executive Summary worksheet | APPROVED DIRECTION and required MVP gap | First XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
 | Data Issues issue-type expansion | APPROVED DIRECTION and required MVP gap | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
 | Cause/issue codification and YAML control | APPROVED DIRECTION and required MVP gap | Stable vocabulary and fail-closed configuration; user policy cannot redefine product arithmetic |
+| Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | Evidence-scoped scenarios, exact-case capability, source contracts, and staging controls must preserve posted-transaction boundaries |
 | Broad Audit Rules Library | Long-term APPROVED DIRECTION | Defer a broad catalog; MVP work is limited to the codification and checks above |
 | Repeated-restatement history | APPROVED DIRECTION but implementation DEFERRED | Requires recurring use, source-state identity, provenance, comparability, and local retention |
 | Audit Health Dashboard and Operational Intelligence | Founder-approved conditional design; implementation DEFERRED | No superficial one-run dashboard, composite score, blame, or cross-client aggregation |
@@ -750,8 +762,8 @@ These are not near-term commitments.
 ## 9.7 Active phase — MVP completion
 
 The visionary product-design phase is complete and **good enough for now**. The
-active work is to define, implement, test, and demonstrate three bounded MVP
-gaps:
+active work is to define, implement, test, and demonstrate four bounded MVP
+capabilities:
 
 1. **Executive Summary:** add a concise first worksheet before Performance
    Differences and an equivalent first HTML section, derived from existing
@@ -762,6 +774,10 @@ gaps:
 3. **Cause/issue codification and YAML control:** create stable product
    vocabulary and fail-closed configuration for supported user choices without
    allowing YAML to redefine analytical truth or safety invariants.
+4. **Axys/APX transaction semantics and demo coverage:** complete the
+   founder-approved, evidence-scoped scenarios, exact-case capability, normalized
+   source contracts, and staging controls defined by the active MVP plan without
+   turning site- or workflow-specific evidence into universal semantics.
 
 The active implementation plan is maintained in
 [`mvp_plan.md`](mvp_plan.md).
@@ -771,13 +787,16 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## 9.8 Immediate priorities
 
-1. Approve the concrete MVP acceptance boundary and implementation order.
-2. Codify the current issue/cause vocabulary and make Data Issues YAML validation
-   fail closed without changing current findings.
-3. Implement the Executive Summary from the shared validated review model.
-4. Add approved high-value issue types one at a time with fixtures, YAML policy,
+1. Implement the Executive Summary from the shared validated review model using
+   the approved fixed ten-row initial priority limit.
+2. Add approved high-value issue types one at a time with fixtures, YAML policy,
    reviewer output, and false-positive tests.
-5. Re-run report parity, determinism, financial invariants, demo coverage, and
+3. Implement the current-capability Axys/APX scenarios defined by the active MVP
+   plan.
+4. Implement the exact-case, normalized source-contract, and staging-control
+   work required by the active MVP plan.
+5. Complete remaining approved issue types and re-run report parity,
+   determinism, financial invariants, demo coverage, and
    the 500x release-candidate scale check after the cross-cutting MVP changes.
 6. Only then decide whether the product is ready for validation-partner planning.
 
@@ -808,9 +827,15 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 15. Product detail should stop at the evidence horizon.
 16. Product identity/roadmap and detailed specifications have separate document
     lifecycles.
-17. Visionary product design is good enough for now; MVP completion focuses on
-    the Executive Summary, additional Data Issues issue types, and stronger
-    cause/issue codification with bounded YAML control.
+17. Visionary product design is good enough for now; MVP completion requires
+    the Executive Summary, additional Data Issues issue types, stronger
+    cause/issue codification with bounded YAML control, and the evidence-scoped
+    Axys/APX transaction-semantics and demo work defined by the active MVP plan.
+18. Workstream D is blocking for MVP completion but remains sequenced after the
+    Executive Summary and first additional issue-type slices.
+19. The Executive Summary uses the approved Section 5 boundary and a fixed,
+    version-controlled initial limit of ten priority review units; YAML display
+    control is deferred.
 
 ## 10.2 Material open questions
 
@@ -841,10 +866,12 @@ When sources conflict, use this order:
    readable contracts
 2. Current safety-invariant catalog and maintainer contract
 3. Current README, setup documentation, and architecture document
-4. This document's current product status and roadmap, plus the active MVP plan
-5. Explicit current-checkpoint notes in the deep design reference
-6. Machine-readable transaction-semantics and extract contracts
-7. Founder decisions in this governing document
+4. This document's current product scope, status, boundaries, and founder
+   decisions
+5. The active MVP plan's implementation sequence, detailed acceptance, and
+   status
+6. Explicit current-checkpoint notes in the deep design reference
+7. Machine-readable transaction-semantics and extract contracts
 8. Approved detailed product specifications
 9. Historical journals, snapshots, and brainstorming material
 
@@ -857,7 +884,7 @@ product direction does not convert a future capability into current behavior.
 |---|---|
 | [`product_specifications_index.md`](product_specifications_index.md) | Compact index to approved historical Phase 2/3 detail and its current owners |
 | [`archive/PPAR_Audit_Foundational_Product_Design_v0.10.md`](archive/PPAR_Audit_Foundational_Product_Design_v0.10.md) | Preserved pre-split migration snapshot; historical, not maintained |
-| [`mvp_plan.md`](mvp_plan.md) | Active concrete MVP scope, current-state evidence, sequence, and acceptance gates |
+| [`mvp_plan.md`](mvp_plan.md) | Active implementation sequence, current-state evidence, detailed acceptance, and slice status within this constitution's MVP capability boundary |
 | [`safety_invariants.md`](safety_invariants.md) | Current safety guarantees and failure classes |
 | [`performance_comparison_design.md`](performance_comparison_design.md) | Deep current/historical implementation design reference |
 | [`../roadmap.md`](../roadmap.md) | Portfolio-level priorities, shared-platform work, and document ownership |
@@ -878,5 +905,10 @@ in this document or the active plan rather than expanding the index.
 
 Update executable contracts, tests, and implementation documentation with the
 code they govern. Link across documents instead of copying large sections.
+
+Any change to the number or identity of MVP capabilities must update this
+constitution and the active MVP plan in the same commit. The constitution owns
+the capability boundary; the plan owns sequence, detailed acceptance, and
+implementation status.
 
 When a polished idea conflicts with product truth, product truth wins.

@@ -35,15 +35,14 @@ override those sources.
 ### 1. Complete the PPAR Audit MVP
 
 The active product-development priority is the bounded Audit MVP described in
-the [MVP plan](audit/mvp_plan.md):
+the [MVP plan](audit/mvp_plan.md). The
+[Audit product constitution](audit/product_constitution.md) owns its four
+founder-approved capability boundaries, including the MVP-blocking Axys/APX
+transaction-semantics and demo work. The MVP plan owns their implementation
+sequence, detailed acceptance, and current slice status rather than duplicating
+that detail here.
 
-1. add the Executive Summary review entrypoint;
-2. add approved, evidence-supported Data Issues issue types; and
-3. strengthen cause and issue vocabulary with fail-closed YAML control.
-
-The Audit product constitution owns the product rationale and evidence gates.
-The MVP plan owns implementation scope and acceptance criteria. This portfolio
-roadmap should not restate either document in detail.
+This portfolio roadmap should not restate either document in detail.
 
 ### 2. Prepare for real-client validation
 

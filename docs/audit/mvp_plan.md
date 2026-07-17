@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Status | Active MVP implementation plan — Slice 1 complete; Slice 2 is next |
-| Version | 0.5 |
+| Version | 0.6 |
 | Date | 2026-07-17 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
@@ -22,8 +22,7 @@ evidence pack, and safety controls plus four additional product capabilities:
 
 1. an **Executive Summary** worksheet before `Performance Differences`, with an
    equivalent first HTML section;
-2. additional enumerated **Issue Type** values and checks for `Data Issues
-   Issues`; and
+2. additional enumerated **Issue Type** values and checks for `Data Issues`;
 3. stronger codification of causes and issues, with safe, understandable user
    control in YAML; and
 4. required Axys/APX transaction-semantics, exact-case, source-contract, and
@@ -242,6 +241,10 @@ Add `Executive Summary` as:
 It is a presentation and navigation layer over existing validated results. It
 must not introduce a second financial calculation.
 
+The founder approved this Section 5 boundary for Slice 2. The initial priority
+list is fixed, version-controlled product behavior capped at ten review units;
+it is not configurable through YAML.
+
 ## 5.2 Minimum content
 
 The first MVP version should show:
@@ -260,7 +263,7 @@ The first MVP version should show:
 - count of changed review units;
 - counts of Fully Explained, Partly Explained, and Unexplained review units;
 - count of residual-withheld or method-limited units where applicable; and
-- a bounded list of priority changed review units with exact performance,
+- a list of at most ten priority changed review units with exact performance,
   explained, and unexplained values.
 
 ### Cause overview
@@ -571,17 +574,17 @@ Implemented on 2026-07-17 as a behavior-preserving code change:
 
 # 10. Remaining Founder Decisions Before Further Application Changes
 
-1. **Executive Summary scope:** approve the minimum content and presentation
-   boundaries in Section 5. Recommended: approve.
-2. **First new issue types:** approve, revise, or replace the three candidates in
+The Executive Summary boundary in Section 5, its fixed ten-row initial limit,
+and Workstream D's MVP-blocking status are founder-approved. Workstream D remains
+sequenced after Slices 2 and 3; blocking MVP completion does not make it a Slice
+2 prerequisite.
+
+1. **First new issue types:** approve, revise, or replace the three candidates in
    Section 6.2 before their detection logic is implemented.
-3. **YAML priority:** confirm that `review_priority: high | normal | low` and
+2. **YAML priority:** confirm that `review_priority: high | normal | low` and
    comparable workflow/presentation policy are deferred. Recommended: defer
    until real usage establishes a need.
-4. **Summary display limits:** decide whether bounded row limits should be fixed
-   product behavior initially or configurable in YAML. Recommended: fixed,
-   version-controlled defaults for the MVP; add YAML only if real use requires
-   it.
+
 No further visionary product-design phase is required to make these decisions.
 
 ---

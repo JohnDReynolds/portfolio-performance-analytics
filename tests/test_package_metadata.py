@@ -977,6 +977,34 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertLess(len(portfolio_roadmap.splitlines()), 200)
         self.assertIn("**Archived implementation journal.**", archived_roadmap)
 
+    def test_audit_mvp_authorities_agree_on_scope_and_sequence(self) -> None:
+        """Current Audit authorities retain one approved MVP boundary and next slice."""
+        constitution = " ".join(
+            Path("docs/audit/product_constitution.md")
+            .read_text(encoding=util.ENCODING)
+            .split()
+        )
+        plan = " ".join(
+            Path("docs/audit/mvp_plan.md")
+            .read_text(encoding=util.ENCODING)
+            .split()
+        )
+        audit_index = " ".join(
+            Path("docs/audit/README.md").read_text(encoding=util.ENCODING).split()
+        )
+        portfolio_roadmap = " ".join(
+            Path("docs/roadmap.md").read_text(encoding=util.ENCODING).split()
+        )
+
+        self.assertIn("four bounded MVP capabilities", constitution)
+        self.assertIn("four additional product capabilities", plan)
+        self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
+        self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
+        self.assertIn("Slice 2 Executive Summary implementation and review", constitution)
+        self.assertIn("Slice 2 — Executive Summary shared model", plan)
+        self.assertIn("same commit whenever the number or identity", audit_index)
+        self.assertIn("four founder-approved capability boundaries", portfolio_roadmap)
+
     def test_axys_apx_reference_documents_blockers(self) -> None:
         """The Axys/APX reference keeps a single blocker summary discoverable."""
         overview = Path("docs/axys_apx/reference/Chapter_01_Overview.md").read_text(

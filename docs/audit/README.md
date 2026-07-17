@@ -9,8 +9,8 @@ the work currently in scope. Historical design material is retained under
 
 | Need | Document | Authority |
 | --- | --- | --- |
-| Understand the product, boundaries, and roadmap | [Product Constitution and Roadmap](product_constitution.md) | Current Audit product authority |
-| Understand active MVP work and acceptance gates | [MVP Completion Plan](mvp_plan.md) | Current Audit implementation plan |
+| Understand the product, approved MVP capability boundary, and roadmap | [Product Constitution and Roadmap](product_constitution.md) | Current Audit product and capability-scope authority |
+| Understand active MVP sequence, slice status, and acceptance gates | [MVP Completion Plan](mvp_plan.md) | Current Audit implementation-plan authority within the constitution's scope |
 | Locate approved historical requirements | [Product Specifications Index](product_specifications_index.md) | Index to retained founder-approved detail; not executable truth |
 | Understand the comparison engine | [Performance Comparison Design](performance_comparison_design.md) | Current technical reference, subordinate to executable behavior |
 | Understand source-data integrity checks | [Data Issues Design](data_issues_design.md) | Current Data Issues technical reference |
@@ -48,10 +48,12 @@ When documents disagree, use this order:
    contracts
 2. Current safety-invariant catalog and maintainer contract
 3. Current setup and user documentation
-4. Audit Product Constitution and active MVP plan
-5. Current technical reference sections
-6. Product Specifications Index and linked approved historical requirements
-7. Archived snapshots, checkpoints, prompts, and brainstorming material
+4. Audit Product Constitution for product scope, boundaries, and founder
+   decisions
+5. Active MVP plan for implementation sequence, detailed acceptance, and status
+6. Current technical reference sections
+7. Product Specifications Index and linked approved historical requirements
+8. Archived snapshots, checkpoints, prompts, and brainstorming material
 
 Product direction does not turn a proposed capability into implemented behavior,
 and historical implementation text does not override current contracts.
@@ -63,6 +65,9 @@ and historical implementation text does not override current contracts.
 - Link to product doctrine and contracts instead of copying them.
 - Put current product direction in the constitution and active work in the MVP
   plan.
+- Update the constitution and active plan in the same commit whenever the number
+  or identity of MVP capabilities changes; the plan must not expand the
+  constitution's capability boundary by itself.
 - Put executable policy in code or machine-readable contracts and explain it in
   the nearest owning technical document.
 - Move completed prompts, checkpoints, and superseded plans to `archive/`.
