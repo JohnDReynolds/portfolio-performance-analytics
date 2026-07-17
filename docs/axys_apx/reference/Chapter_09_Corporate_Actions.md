@@ -3,7 +3,7 @@
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys_apx/reference/Chapter_09_Corporate_Actions.md`
 Prepared: 2026-06-29
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -26,7 +26,7 @@ cost-basis/principal context.
 
 ## 1. Overview
 
-Corporate actions in Axys and APX can affect security reference data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.
+Corporate actions in Axys/APX can affect security reference data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.
 
 This chapter documents only behavior supported by the supplied research and source material. It intentionally preserves Unknowns where source material does not establish field names, object names, report names, transaction codes, schemas, or processing rules.
 
@@ -63,7 +63,7 @@ This chapter covers:
 | `split.inf` is identified in supplied research as the Axys securities splits file. | Yes | Unknown | High Confidence |
 | The strongest Axys split evidence points to central security-level split factors rather than ordinary portfolio transaction rows. | Yes | Unknown | High Confidence for Axys; Unknown for APX |
 | Third-party conversion tools may materialize split history from `SPLIT.INF` into explicit split transactions. | Yes, conversion context | Unclear | Medium Confidence |
-| ACA is verified as an Advent corporate-actions workflow for both Axys and APX at the vendor workflow/product-claim level. | Yes | Yes | Verified |
+| ACA is verified as an Advent corporate-actions workflow for both Axys/APX at the vendor workflow/product-claim level. | Yes | Yes | Verified |
 | In the ACA/Axys workflow, active holdings can be received by daily script, ACA reports and Automation Results email can be produced, simple/mandatory events can process to the Trade Blotter, and complex/option events require review. | Yes | N/A | Verified |
 | In the ACA/APX workflow, APX sends holdings to ACA, ACA creates action records, actions are reviewed/downloaded, APX Reorg Utility runs, and generated transactions post to APX Trade Blotter. | N/A | Yes | Verified |
 | `split.inf` and ACA are separate evidence surfaces; public sources do not prove whether ACA writes `split.inf`, writes Trade Blotter transactions only, writes both, or varies by event type. | Unknown | N/A | Unknown |
@@ -358,7 +358,7 @@ No supplied IMEX dictionary, sample IMEX export, import control file, or command
 
 | Question | Why It Matters | Status |
 |---|---|---:|
-| Which IMEX object exports posted transactions in Axys and APX? | Needed to audit dividend/reorg postings. | Unknown |
+| Which IMEX object exports posted transactions in Axys/APX? | Needed to audit dividend/reorg postings. | Unknown |
 | Which IMEX object exports Trade Blotter rows before posting? | Needed to review pending corporate-action activity. | Unknown |
 | Are stock splits exported through transaction IMEX, security master IMEX, a split-specific object, or only file export? | Needed to model split corrections. | Unknown |
 | Does IMEX expose original ACA action IDs or only resulting APX transactions? | Needed for traceability. | Unknown |
@@ -403,7 +403,7 @@ No supplied REP source, report catalog, or report output identifies corporate-ac
 | Does APX have a standard ACA/Reorg Utility report? | Unknown |
 | Can REP report APX Trade Blotter rows before final posting? | Unknown |
 | Does REP expose transaction source/origin fields for ACA-generated APX entries? | Unknown |
-| Are Axys and APX report names different for corporate-action review? | Unknown |
+| Are Axys/APX report names different for corporate-action review? | Unknown |
 | Which reports use stored values versus recalculated values around split/reorg dates? | Unknown |
 
 ### 6.3 REP Implementation Guidance
@@ -613,7 +613,7 @@ A developer may safely assume only the following from the supplied material:
 |---|---:|
 | Axys conversion/extract packages commonly include `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf`. | High Confidence |
 | `split.inf` is identified as an Axys securities splits file. | High Confidence |
-| ACA is verified as an Advent corporate-actions workflow for both Axys and APX at the vendor workflow/product-claim level. | Verified |
+| ACA is verified as an Advent corporate-actions workflow for both Axys/APX at the vendor workflow/product-claim level. | Verified |
 | In the ACA/Axys workflow, active holdings can be received by daily script, reports and Automation Results email can be produced, simple/mandatory events can process to Trade Blotter, and complex/option events require review. | Verified |
 | In the ACA/APX workflow, APX holdings can be sent to ACA, ACA creates action records, users review/download actions, APX Reorg Utility runs, and resulting transactions post to APX Trade Blotter. | Verified |
 | Exact field layouts, transaction codes, IMEX objects, REP report names, APX tables, ACA action IDs, and final-posting lifecycle must be treated as Unknown. | Verified by absence in supplied source material |
@@ -653,6 +653,70 @@ To test a corporate-action workflow across Axys/APX, a sanitized example should 
 | REP/report output | Compare user-facing reports against source-data. |
 | Audit trail/export/logs | Confirm processing source, user/script, date/time, and corrections. |
 
+### 12.4 Stock Split and Reverse Split Boundary
+
+The 2026-07-07 split research strengthens the practical split boundary without
+closing exact Axys/APX schema unknowns. The strongest split evidence remains:
+
+- Axys conversion evidence identifying `split.inf` / `SPLIT.INF` as the Axys
+  securities splits file;
+- AdventGuru conversion evidence describing exported CSV copies of `split.inf`
+  and APX-to-Axys IMEX export of splits;
+- FinFolio conversion evidence saying split transactions may be derived or
+  "blown out" from `SPLIT.INF`;
+- ByAllAccounts Axys/APX integration evidence mapping `SPLIT`, `JOURNAL`, and
+  `OTHER` to the `;` marker; and
+- WealthTechs examples showing a standalone split comment row using `;`.
+
+#### 12.4.1 Split Representation
+
+| Representation surface | Current interpretation | Confidence |
+|---|---|---:|
+| `split.inf` / `SPLIT.INF` | Axys securities split history file in public conversion evidence. | High Confidence for file existence |
+| Conversion-created split transactions | Downstream conversion tools may materialize split history as explicit split transactions. | Medium |
+| `;` marker/comment rows | Integration workflows can use `;` for split/journal/other markers; one consultant example shows a `;` split comment row. | Medium |
+| APX split storage | APX can export splits in conversion workflows, but native split table/view/schema remains Unknown. | Unknown / Medium concept |
+| Exact split fields | Split date, symbol, and factor are conceptually required, but exact Axys/APX field layouts remain Unknown. | Unknown |
+
+#### 12.4.2 Performance and Audit Treatment
+
+A normal stock split or reverse split should be treated as a neutral corporate
+action: share quantity and per-share price change inversely, and market value
+should remain stable aside from rounding or cash-in-lieu. It is not ordinary
+income, not a client external flow, and not a Modified Dietz performance cause
+by itself.
+
+For performance-comparison work, split evidence is most useful as review or
+cross-reference evidence:
+
+- holdings quantity should reconcile to the split factor;
+- price should move inversely to the split factor where price data is available;
+- market value should remain stable when the split is processed correctly;
+- cash-in-lieu should be audited as a separate cash/transaction event; and
+- missing or incorrect split treatment can create artificial performance or
+  holdings differences.
+
+Therefore, split evidence belongs naturally in Source Detail, review evidence,
+or a future `Data Issues` worksheet unless the split error actually
+changes a Modified Dietz input such as holdings market value, transaction
+amount, or reported performance.
+
+#### 12.4.3 Remaining Split Evidence Needed
+
+The highest-value additional materials are:
+
+1. sanitized Axys `split.inf` rows with field names, split dates, symbols, and
+   factors;
+2. APX IMEX split export rows or APX Public View / SQL rows for split history;
+3. before/after holdings rows around a split;
+4. before/after price rows around a split;
+5. cash-in-lieu transaction rows tied to a split; and
+6. before/after performance report rows for a missed or corrected split.
+
+Until those examples are available, this chapter should not claim exact vendor
+split field layouts, REP report names, APX table names, or universal transaction
+code treatment.
+
 ---
 
 ## 13. Audit and Reconciliation Considerations
@@ -684,7 +748,7 @@ The chapter is based only on supplied source and research material. The followin
 
 ### 14.1 Governing Repository Specification
 
-1. `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0. Governs factual discipline, confidence labels, Axys/APX separation, field dictionary format, and Unknown handling.
+1. `axys_apx_reference_blueprint.md`, Version 2.0. Governs factual discipline, confidence labels, Axys/APX separation, field dictionary format, and Unknown handling.
 
 ### 14.2 Corporate Actions Research Sources
 
@@ -733,7 +797,7 @@ The chapter is based only on supplied source and research material. The followin
 | CA-U017 | Whether ACA-generated APX Trade Blotter rows contain source/origin fields. | APX | High | Trade Blotter export after ACA processing. |
 | CA-U018 | Whether corporate-action corrections appear in `didpost.aud` or other audit files with sufficient detail. | Axys/APX | High | Audit trail export and documentation. |
 | CA-U019 | Whether ACA-for-Axys writes only Trade Blotter transactions or can also update `split.inf`, `sec.inf`, `.pri`, or other Axys files. | Axys | High | Axys ACA workflow sample or vendor technical documentation. |
-| CA-U020 | Exact fields in the ACA Automation Results email for Axys and APX. | Axys/APX | Medium | Sanitized Automation Results email. |
+| CA-U020 | Exact fields in the ACA Automation Results email for Axys/APX. | Axys/APX | Medium | Sanitized Automation Results email. |
 | CA-U021 | Whether ACA reports contain stable action IDs that can be reconciled to Trade Blotter or posted transactions. | Axys/APX | High | ACA report/export and accounting output sample. |
 | CA-U022 | Whether simple/mandatory auto-processed events are flagged differently from reviewed complex events in downstream records. | Axys/APX | High | ACA output, Trade Blotter export, posted transaction export. |
 | CA-U023 | Whether ACA revisions/alerts can be linked to already-posted transactions. | Axys/APX | High | ACA alert history and posting/audit trail sample. |
@@ -772,7 +836,7 @@ The strongest supported material is:
 1. Axys has a `split.inf` securities splits file in the supplied conversion evidence.
 2. Axys conversion packages commonly include `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf`.
 3. Third-party conversion tools may materialize split history into explicit transactions.
-4. ACA is verified as an Advent corporate-actions workflow for both Axys and APX.
+4. ACA is verified as an Advent corporate-actions workflow for both Axys/APX.
 5. Axys ACA evidence includes active holdings by daily script, reports, Automation Results email, simple/mandatory events processing to Trade Blotter, and complex/option events requiring review.
 6. APX ACA evidence includes APX holdings handoff, ACA action records, review/download, APX Reorg Utility, and APX Trade Blotter.
 7. Many implementation-critical details remain Unknown: field layouts, transaction codes, IMEX object names, REP report names, ACA action IDs, final posting behavior, cost-basis/taxability storage, and performance impact.
@@ -781,66 +845,8 @@ Use this chapter as a disciplined reference boundary: it documents what is known
 
 ---
 
-## 18. Stock Split / Reverse Split Update
+## Research Provenance
 
-The 2026-07-07 split research strengthens the practical split boundary without
-closing exact Axys/APX schema unknowns. The strongest split evidence remains:
-
-- Axys conversion evidence identifying `split.inf` / `SPLIT.INF` as the Axys
-  securities splits file;
-- AdventGuru conversion evidence describing exported CSV copies of `split.inf`
-  and APX-to-Axys IMEX export of splits;
-- FinFolio conversion evidence saying split transactions may be derived or
-  "blown out" from `SPLIT.INF`;
-- ByAllAccounts Axys/APX integration evidence mapping `SPLIT`, `JOURNAL`, and
-  `OTHER` to the `;` marker; and
-- WealthTechs examples showing a standalone split comment row using `;`.
-
-### 18.1 Split Representation Boundary
-
-| Representation surface | Current interpretation | Confidence |
-|---|---|---:|
-| `split.inf` / `SPLIT.INF` | Axys securities split history file in public conversion evidence. | High Confidence for file existence |
-| Conversion-created split transactions | Downstream conversion tools may materialize split history as explicit split transactions. | Medium |
-| `;` marker/comment rows | Integration workflows can use `;` for split/journal/other markers; one consultant example shows a `;` split comment row. | Medium |
-| APX split storage | APX can export splits in conversion workflows, but native split table/view/schema remains Unknown. | Unknown / Medium concept |
-| Exact split fields | Split date, symbol, and factor are conceptually required, but exact Axys/APX field layouts remain Unknown. | Unknown |
-
-### 18.2 Performance And Audit Treatment
-
-A normal stock split or reverse split should be treated as a neutral corporate
-action: share quantity and per-share price change inversely, and market value
-should remain stable aside from rounding or cash-in-lieu. It is not ordinary
-income, not a client external flow, and not a Modified Dietz performance cause
-by itself.
-
-For performance-comparison work, split evidence is most useful as review or
-cross-reference evidence:
-
-- holdings quantity should reconcile to the split factor;
-- price should move inversely to the split factor where price data is available;
-- market value should remain stable when the split is processed correctly;
-- cash-in-lieu should be audited as a separate cash/transaction event; and
-- missing or incorrect split treatment can create artificial performance or
-  holdings differences.
-
-Therefore, split evidence belongs naturally in Source Detail, review evidence,
-or a future `Data Audit Issues` worksheet unless the split error actually changes a
-Modified Dietz input such as holdings market value, transaction amount, or
-reported performance.
-
-### 18.3 Remaining Split Evidence Needed
-
-The highest-value additional materials are:
-
-1. sanitized Axys `split.inf` rows with field names, split dates, symbols, and
-   factors;
-2. APX IMEX split export rows or APX Public View / SQL rows for split history;
-3. before/after holdings rows around a split;
-4. before/after price rows around a split;
-5. cash-in-lieu transaction rows tied to a split; and
-6. before/after performance report rows for a missed or corrected split.
-
-Until those examples are available, this chapter should not claim exact vendor
-split field layouts, REP report names, APX table names, or universal transaction
-code treatment.
+The 2026-07-07 stock-split and reverse-split conclusions are incorporated into
+Section 12.4. Their supporting source history remains in
+`../evidence/Research_09_Corporate_Actions.md`.

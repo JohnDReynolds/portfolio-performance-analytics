@@ -1,5 +1,9 @@
 # Research Notes: Transactions
 
+> Historical evidence corpus. Preserve provenance here, but maintain current
+> reader explanations in `../reference/Chapter_05_Transactions.md` and current
+> implementation policy in `../contracts/transaction_semantics_matrix.yaml`.
+
 > **Date consolidated:** 2026-06-29  
 > **Purpose:** Single research reference for `../reference/Chapter_05_Transactions.md`.  
 > **Scope:** Axys/APX-style portfolio accounting transactions, transaction interfaces, Trade Blotter workflows, IMEX/REP evidence, transaction codes, transaction fields, dependencies, audit rules, contradictions, and known unknowns.  
@@ -441,7 +445,7 @@ Typical blotter activities include:
 - Approval.
 - Posting preparation.
 
-Exact native Axys and APX workflow details remain unknown.
+Exact native Axys/APX workflow details remain unknown.
 
 **Confidence:** Medium.
 
@@ -1161,7 +1165,7 @@ Design implication: cash-like transactions require special handling. A parser sh
 
 ### 8.16 IMEX
 
-AdventGuru states that Axys v2.x introduced binary file formats and that IMEX allowed users to import and export CSV, tab, and fixed formats. It also states that IMEX combined with transaction and label import through the Trade Blotter provides a way to move fundamental data in and out of Axys and APX.
+AdventGuru states that Axys v2.x introduced binary file formats and that IMEX allowed users to import and export CSV, tab, and fixed formats. It also states that IMEX combined with transaction and label import through the Trade Blotter provides a way to move fundamental data in and out of Axys/APX.
 
 Extracted facts:
 
@@ -2265,7 +2269,7 @@ This taxonomy should become the basis for the future Audit Rules chapter or audi
 |---|---|---|---|---|---:|
 | TU-001 | What is the complete official Axys transaction code matrix? | Required for definitive documentation. | Unknown | Vendor manuals, IMEX documentation, production systems. | High |
 | TU-002 | What is the complete official APX transaction code matrix? | Required for definitive documentation. | Unknown | Vendor manuals, IMEX documentation, production systems. | High |
-| TU-003 | Are Axys and APX transaction codes identical, overlapping, or divergent by version/configuration? | Needed for Axys/APX differences section. | Unknown | Official manuals, production exports. | High |
+| TU-003 | Are Axys/APX transaction codes identical, overlapping, or divergent by version/configuration? | Needed for Axys/APX differences section. | Unknown | Official manuals, production exports. | High |
 | TU-004 | Which observed codes are native versus integration-layer mappings? | Avoids false documentation. | Unknown | Vendor docs, production evidence. | High |
 | TU-005 | Are deprecated or version-specific transaction codes relevant? | Version coverage. | Unknown | Release notes, manuals. | Medium |
 
@@ -2538,9 +2542,9 @@ The independent research pass found additional publicly accessible evidence, but
 
 1. SS&C's current Axys product page confirms Axys portfolio accounting/reporting capabilities, including automated reconciliation of trade information, settlement data, transactions, and positions; tax-lot or average-cost accounting; trade-date or settlement-date accounting; commission tracking by purpose or broker; integrated multi-currency capabilities; and corporate-actions processing.
 2. SS&C's current APX product material confirms APX is positioned as a centralized book of record and integrated portfolio management, performance measurement, accounting, and reporting platform; it tracks holdings, transactions, and performance, and includes compliance/audit-trail language.
-3. ByAllAccounts Custodial Integrator user guides for both Axys and APX provide directly named transaction translation fields: Transaction Type, Transaction Src/Dest Type, Transaction Src/Dest Symbol, and Transaction Special Security Type/Symbol.
-4. ByAllAccounts explicitly documents that transfer interpretation can depend on sign: positive security units translate as `li`, while negative security units translate as `lo`, for both Axys and APX integration workflows.
-5. ByAllAccounts documents special security type/symbol usage for fee transactions, including `exus` or `epus` with fee symbols such as `custfee` or `expense`, for both Axys and APX integration workflows.
+3. ByAllAccounts Custodial Integrator user guides for both Axys/APX provide directly named transaction translation fields: Transaction Type, Transaction Src/Dest Type, Transaction Src/Dest Symbol, and Transaction Special Security Type/Symbol.
+4. ByAllAccounts explicitly documents that transfer interpretation can depend on sign: positive security units translate as `li`, while negative security units translate as `lo`, for both Axys/APX integration workflows.
+5. ByAllAccounts documents special security type/symbol usage for fee transactions, including `exus` or `epus` with fee symbols such as `custfee` or `expense`, for both Axys/APX integration workflows.
 6. WealthTechs AIA APX documentation confirms Trade Blotter organization settings: consolidate into one blotter, create one blotter per custodian, or create no trade blotter.
 7. Advent/SSRS report evidence confirms that the Transaction Summary Report displays account transactions maintained by Advent, with observable sections/columns for sales, dividends, contributions, and withdrawals.
 8. AdventGuru consultant evidence confirms that IMEX and Trade Blotter import are complementary, that direct Axys file access is risky across versions, that APX users may use SQL/reporting alternatives, and that APX v1.x through v4.x maintained IMEX while eliminating fixed-format file generation.
@@ -2615,9 +2619,9 @@ SS&C's current APX product material supports the following capability statements
 
 These statements strengthen broad APX coverage and justify treating APX transaction data as part of a broader book-of-record/accounting/reporting platform. They do **not** resolve native database schema or transaction-code unknowns.
 
-### D.6 Axys and APX Transaction Translation Field Evidence
+### D.6 Axys/APX Transaction Translation Field Evidence
 
-The ByAllAccounts Axys and APX guides provide unusually specific transaction translation field names. These are still integration-guide fields, but they are sufficiently specific to include in Chapter 05 as observed integration fields.
+The ByAllAccounts Axys/APX guides provide unusually specific transaction translation field names. These are still integration-guide fields, but they are sufficiently specific to include in Chapter 05 as observed integration fields.
 
 #### D.6.1 Axys Observed Fields
 
@@ -2643,7 +2647,7 @@ The field dictionary should be updated so these names are no longer listed merel
 
 ### D.7 Sign-Dependent Transfer Translation
 
-ByAllAccounts documents the same sign-dependent transfer principle for Axys and APX integration workflows:
+ByAllAccounts documents the same sign-dependent transfer principle for Axys/APX integration workflows:
 
 | System | Sign / Quantity Condition | Observed Translation | Confidence | Notes |
 |---|---|---|---:|---|
@@ -2658,7 +2662,7 @@ This strengthens the existing interpretation rule: transaction code alone is ins
 
 ### D.8 Special Security Type/Symbol for Fees
 
-ByAllAccounts documents use of special security type/symbol fields for fees in both Axys and APX integration workflows.
+ByAllAccounts documents use of special security type/symbol fields for fees in both Axys/APX integration workflows.
 
 | System | Observed Special Types | Observed Symbols | Confidence | Notes |
 |---|---|---|---:|---|
@@ -2863,10 +2867,10 @@ The `didpost.aud` file should be added as an observed Axys audit-trail artifact 
 | Chapter Area | Recommended Update |
 |---|---|
 | Axys Known Files / Artifacts | Add `didpost.aud` as observed audit-trail file associated with Trade Blotter posting; mark Medium Confidence. |
-| Field Dictionary | Promote Src/Dest Type, Src/Dest Symbol, Special Security Type/Symbol from conceptual to observed integration fields for Axys and APX. |
+| Field Dictionary | Promote Src/Dest Type, Src/Dest Symbol, Special Security Type/Symbol from conceptual to observed integration fields for Axys/APX. |
 | REP Section | Add Sales fields from Transaction Summary Report: Trade Date, Settle Date, Quantity, Symbol, Security, Unit Cost, Total Cost, Unit Price, Proceeds, Gain/Loss. |
 | IMEX Section | Keep official object names Unknown; add stronger interface-layer caveat that public research did not locate official object definitions. |
-| Transaction Codes | Keep observed matrix; do not promote to official. Strengthen sign-dependent `li`/`lo` treatment for both Axys and APX. |
+| Transaction Codes | Keep observed matrix; do not promote to official. Strengthen sign-dependent `li`/`lo` treatment for both Axys/APX. |
 | Known Issues / Quirks | Add direct-file-access version risk and APX fixed-format elimination as interface/version quirks. |
 | Unknowns | Preserve native schemas, code matrices, and IMEX object definitions as high-priority Unknowns. |
 
@@ -2891,9 +2895,9 @@ The strongest incremental findings are:
 1. The ByAllAccounts Axys guide gives more concrete Axys transaction-import details than previously captured, including explicit references to `topost.trn`, append behavior, `imex32.exe`, `pospos32.exe`, IMEX logs, folder labels, and several observed transaction-file columns or settings.
 2. The ByAllAccounts Axys guide explicitly states that transactions are delivered into the designated Trade Blotter for review and posting, and that generated transactions are appended to `topost.trn` rather than replacing existing blotter contents.
 3. The ByAllAccounts Axys guide gives observed transaction translation fields: `Axys Transaction Type`, `Axys Transaction Src/Dest Type`, and `Axys Transaction Special Security Type / Symbol`.
-4. The ByAllAccounts Axys and APX guides both document sign-dependent transfer interpretation: negative units translate as `lo`; positive units translate as `li`.
+4. The ByAllAccounts Axys/APX guides both document sign-dependent transfer interpretation: negative units translate as `lo`; positive units translate as `li`.
 5. The ByAllAccounts APX guide gives a fuller observed APX translation matrix for `by`, `dp`, `cs`, `pa`, `sl`, `li`, `lo`, `dv`, `in`, `ai`, `rc`, `pd`, `wd`, `ss`, `sa`, and `;`.
-6. AdventGuru provides additional evidence that `didpost.aud` is an Audit Trail file used by both Axys and APX to review posted transactions, and that large Axys 3.x Audit Trail exports through IMEX may fail in some environments.
+6. AdventGuru provides additional evidence that `didpost.aud` is an Audit Trail file used by both Axys/APX to review posted transactions, and that large Axys 3.x Audit Trail exports through IMEX may fail in some environments.
 7. The Advent/SSRS Wealth Management Reports PDF gives stronger visible evidence for the Transaction Summary Report sections and fields: Purchases, Sales, Dividends, Contributions, and Withdrawals.
 8. The WealthTechs Axys AIA guide adds specific observed handling for withholding tax and original-face quantity options in an Axys integration workflow.
 
@@ -3211,7 +3215,7 @@ AdventGuru provides two separate pieces of consultant evidence about `didpost.au
 | Unknown | Priority |
 |---|---:|
 | Full `didpost.aud` native file layout | High |
-| Whether `didpost.aud` is identical between Axys and APX | High |
+| Whether `didpost.aud` is identical between Axys/APX | High |
 | Whether every posted transaction always appears in `didpost.aud` | High |
 | How deleted/reversed transactions are represented in `didpost.aud` | High |
 | Whether `didpost.aud` stores original and corrected transaction versions | High |
@@ -3341,7 +3345,7 @@ Even after two independent research passes, the following would materially impro
 | Axys `topost.trn` append behavior | Unknown/Medium | Medium | ByAllAccounts Axys guide states append behavior. |
 | Axys IMEX log existence | Medium | Medium, stronger support | ByAllAccounts Axys guide references View IMEX Logs workflow. |
 | `didpost.aud` as audit trail | Medium | Medium, stronger support | AdventGuru has two relevant articles. |
-| Axys/APX uppercase cancellation | Medium | Medium, stronger support | ByAllAccounts Axys and APX guides both document behavior. |
+| Axys/APX uppercase cancellation | Medium | Medium, stronger support | ByAllAccounts Axys/APX guides both document behavior. |
 | APX observed code matrix | Medium | Medium, stronger support | ByAllAccounts APX default translation table expanded. |
 | Official native code matrix | Unknown | Unknown | Still not found. |
 | Official IMEX transaction objects | Unknown | Unknown | Still not found. |

@@ -11,18 +11,18 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
+from ppar.audit import (
     FxRatesLoader,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path
 
@@ -54,7 +54,7 @@ class TestFxRatesLoader(unittest.TestCase):
 
     def test_load_baseline_snapshot_a_fx_rates(self) -> None:
         """FX rate rows load with normalized internal columns."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = FxRatesLoader(specification).load("a")
         assert frame is not None
 
@@ -76,7 +76,7 @@ class TestFxRatesLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             path = _write_yaml(directory, _minimal_specification(directory))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(FxRatesLoader(specification).load("a"))
 
@@ -90,7 +90,7 @@ class TestFxRatesLoader(unittest.TestCase):
                 "fx_rates": "missing_fx_rates.csv",
             }
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(FxRatesLoader(specification).load("a"))
 
@@ -112,7 +112,7 @@ class TestFxRatesLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "fx_rates.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 FxRatesLoader(specification).load("a")
@@ -140,7 +140,7 @@ class TestFxRatesLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "fx_rates.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 FxRatesLoader(specification).load("a")
@@ -169,7 +169,7 @@ class TestFxRatesLoader(unittest.TestCase):
                             }
                         ).write_csv(directory / snapshot_name / "fx_rates.csv")
                     path = _write_yaml(directory, configuration)
-                    specification = PerformanceComparisonSpecification(path)
+                    specification = AuditSpecification(path)
 
                     with self.assertRaises(PpaError) as context:
                         FxRatesLoader(specification).load("a")
@@ -197,7 +197,7 @@ class TestFxRatesLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "fx_rates.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 FxRatesLoader(specification).load("a")
@@ -228,7 +228,7 @@ class TestFxRatesLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "fx_rates.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 FxRatesLoader(specification).load("a")
@@ -258,7 +258,7 @@ class TestFxRatesLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "fx_rates.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = FxRatesLoader(specification).load("a")
 

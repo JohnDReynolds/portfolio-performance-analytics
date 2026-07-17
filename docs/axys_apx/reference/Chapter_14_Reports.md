@@ -3,7 +3,7 @@
 **Repository:** AXYS / APX Reference Repository
 **Chapter file:** `Chapter_14_Reports.md`
 **Prepared:** 2026-06-29
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 **Source basis:** Supplied research files only, especially `../evidence/Research_14_Reports.md`, with cross-reference to supplied architecture, holdings, transactions, performance, classifications, IMEX, and REP research.
 
 ---
@@ -16,7 +16,7 @@
 
 ## 1. Overview
 
-Reports are a core functional area of both Axys and APX. In this repository, a **report** means a human-readable, client-facing, management-facing, or analyst-facing output generated from portfolio accounting, holdings, transaction, performance, classification, benchmark, or relationship data.
+Reports are a core functional area of both Axys/APX. In this repository, a **report** means a human-readable, client-facing, management-facing, or analyst-facing output generated from portfolio accounting, holdings, transaction, performance, classification, benchmark, or relationship data.
 
 This chapter intentionally separates:
 
@@ -47,7 +47,7 @@ Reports are downstream views of the accounting data model. They may summarize tr
 | APX has a documented public investment-management report guide with named report examples. | Not applicable | Yes | Verified |
 | APX guide-covered investment reports are built on Microsoft SQL Server Reporting Services. | Unknown | Yes | Verified |
 | Report Writer Pro / Replang / REP are relevant to Axys reporting and to some APX extraction/custom reporting workflows. | Yes | Yes | High Confidence |
-| REP-based extraction may be used by connectors for both Axys and APX. | Yes | Yes | Verified for connector workflows |
+| REP-based extraction may be used by connectors for both Axys/APX. | Yes | Yes | Verified for connector workflows |
 | IMEX and Reports are distinct interfaces. | Yes | Yes | Verified by repository structure |
 | Exact Axys standard report catalog is not supplied. | Unknown | Not applicable | Unknown |
 | Exact APX SSRS RDL names, datasets, stored procedures, and database dependencies are not supplied. | Not applicable | Unknown | Unknown |
@@ -564,7 +564,7 @@ This section defines a repository documentation model for reports. It is not an 
 
 | Source | Use |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Governing editorial standard, chapter structure, field dictionary format, confidence labels, and Unknown handling. |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Governing editorial standard, chapter structure, field dictionary format, confidence labels, and Unknown handling. |
 | `../evidence/Research_14_Reports.md` | Primary source for report names, APX report labels, report families, IMEX/report cautions, version differences, and Unknowns. |
 | `../evidence/Research_13_REP.md` | REP/Replang mechanics, `.REP` examples, `AMAN.REP`, `REP32.exe`, Report Writer Pro, and custom report cautions. |
 | `../evidence/Research_12_IMEX.md` | IMEX/report distinction, connector extraction, IMEX logs, file artifacts, and report-based extraction cautions. |
@@ -581,7 +581,7 @@ The chapter relies on the supplied research summaries rather than independently 
 
 | Source Type | Examples / Relevance |
 |---|---|
-| SS&C Advent product pages | Axys and APX product-level reporting capabilities. |
+| SS&C Advent product pages | Axys/APX product-level reporting capabilities. |
 | Advent Portfolio Exchange Reports Guide | APX report categories, report names, visible labels, SSRS basis. |
 | Consultant documentation | Axys/APX Report Writer Pro, Replang, `.REP`, report customization examples. |
 | Integration documentation | Data Broker / REP32 extraction, AIA/CI report and IMEX workflows. |
@@ -619,7 +619,7 @@ The following items remain Unknown and should not be documented as facts until s
 
 ## 14. Chapter Summary
 
-Reports are a first-class operational interface in both Axys and APX, but the evidence differs by product.
+Reports are a first-class operational interface in both Axys/APX, but the evidence differs by product.
 
 For **Axys**, the supplied material supports predefined reports, Report Writer Pro, REP/Replang customization, specific examples such as `Portfolio Appraisal`, `AMAN.REP`, and `CDIhold.rep`, and selected report labels from holdings and AUM examples. The supplied material does not provide a complete Axys standard report catalog or a full field dictionary.
 

@@ -3,7 +3,9 @@
 These are historical checkpoint notes from earlier implementation sessions.
 They are useful for continuity, but they are not the active roadmap. Current
 future work belongs in
-[`roadmap.md`](../../roadmap.md).
+the [PPAR Audit Product Constitution and Roadmap](../product_constitution.md),
+with current implementation scope in the
+[Audit MVP Completion Plan](../mvp_plan.md).
 
 ## Historical Checkpoint State
 
@@ -50,14 +52,14 @@ identifies a specific workbook, YAML, or report pain point.
 The project uses `_demo_output/` as the shared generated-demo output root:
 
 - `_demo_output/generic_analytics`
-- `_demo_output/axysapx_analytics`
+- `_demo_output/axys_apx_analytics`
 - `_demo_output/performance_comparison_portfolio`
 
 Source-checkout demo and smoke commands write artifacts under these directories
 and print the paths to review. They do not open browser windows automatically.
 
 The packaged performance comparison demo is documented in
-[`ppar/setup_templates/axysapx_performance_comparison/README.md`](../../../ppar/setup_templates/axysapx_performance_comparison/README.md):
+[`ppar/setup_templates/axys_apx_audit/README.md`](../../../ppar/setup_templates/axys_apx_audit/README.md):
 
 The baseline, single-restatement, and transaction-rules YAML files remain
 validation fixtures. They are covered by the demo matrix validator and targeted

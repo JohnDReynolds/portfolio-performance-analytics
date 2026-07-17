@@ -1,4 +1,4 @@
-"""Read and validate performance comparison YAML specifications."""
+"""Read and validate Audit YAML specifications."""
 
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison.methods import (
+from ppar.audit.data_issues.config import validate_data_issues_config
+from ppar.audit.performance_comparison.methods import (
     ModifiedDietzDayCount,
     ModifiedDietzFlowTiming,
     ModifiedDietzInclusionRule,
@@ -186,8 +187,8 @@ class PortfolioReturnReconstruction:
 SecurityReturnReconstruction = PortfolioReturnReconstruction
 
 
-class PerformanceComparisonSpecification:
-    """Read performance comparison YAML settings and resolve fixture paths.
+class AuditSpecification:
+    """Read Audit YAML settings and resolve fixture paths.
 
     Attributes:
         path: Filesystem path to the comparison YAML specification.
@@ -233,6 +234,7 @@ class PerformanceComparisonSpecification:
 
         self.values: dict[str, Any] = loaded_yaml
         self._validate_removed_cash_configuration()
+        self._validate_data_issues_configuration()
         self.comparison_level = self._comparison_level(comparison_level)
         self.portfolio_return_reconstruction = (
             self._portfolio_return_reconstruction()
@@ -243,6 +245,18 @@ class PerformanceComparisonSpecification:
         self.files = self._files()
         self._validate_reconstruction_files()
         self._validate_required_files()
+
+    def _validate_data_issues_configuration(self) -> None:
+        """Validate Data Issues before loading or reporting.
+
+        Raises:
+            PpaError: If Data Issues configuration is malformed, unknown, or
+                unsafe.
+        """
+        try:
+            validate_data_issues_config(self.values)
+        except ValueError as error:
+            raise PpaError(self._error_message(str(error)), 504) from error
 
     def _validate_removed_cash_configuration(self) -> None:
         """Reject the retired standalone cash-dataset policy section.
@@ -700,5 +714,5 @@ class PerformanceComparisonSpecification:
                 )
 
     def _error_message(self, message: str) -> str:
-        """Return an error message with comparison specification context."""
-        return f"{message}  |  comparison_specification_path={self.path}"
+        """Return an error message with Audit specification context."""
+        return f"{message}  |  audit_specification_path={self.path}"

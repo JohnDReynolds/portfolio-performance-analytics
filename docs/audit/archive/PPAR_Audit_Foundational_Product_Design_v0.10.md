@@ -1,23 +1,127 @@
 # PPAR Audit
 
+> **Archived migration snapshot.** This v0.10 document is preserved for
+> traceability and is not maintained. Use
+> [`../product_constitution.md`](../product_constitution.md)
+> for the current product constitution and roadmap, and
+> [`../product_specifications_index.md`](../product_specifications_index.md)
+> for approved detailed specifications.
+
 ## Foundational Product Design
 
-### Phases 1 through 3B — Doctrine, Conceptual Architecture, and Detailed Functional Specifications
+### Phases 1 through 3F — Doctrine, Architecture, and Evidence-Gated Product Direction
 
 | Document field | Value |
 |---|---|
-| Document status | Phases 2 and 3A founder-approved; Phase 3B draft for founder review |
-| Version | 0.5 |
-| Date | 2026-07-16 |
+| Document status | Phases 2 through 3F founder-approved; document split outline for founder review |
+| Version | 0.10 |
+| Date | 2026-07-17 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
 | Canonical file | `PPAR_Audit_Foundational_Product_Design.md` |
-| Phase covered | Phase 1 — Product Doctrine and Boundaries; Phase 2 — Users, Workflows, and Conceptual Product Architecture; Phase 3A — Performance Change Investigation; Phase 3B — Performance Data Quality Audit |
+| Phase covered | Phase 1 — Product Doctrine and Boundaries; Phase 2 — Users, Workflows, and Conceptual Product Architecture; Phase 3A — Performance Change Investigation; Phase 3B — Performance Data Quality Audit; Phase 3C — Audit Readiness; Phase 3D — Executive Investigation Summary; Phase 3E — Audit Health Dashboard and Operational Intelligence; Phase 3F — Human Review and Disposition boundary |
 | Supersedes | Version 0.2; its reviewed Phase 1 content is incorporated into this canonical document |
-| Next phase gate | Founder review and approval of Phase 3B; Phase 3C must not begin before approval |
+| Next phase gate | Founder review and approval of the proposed document split outline before restructuring or Phase 4 |
 | Confirmed deployment doctrine | Local-first execution within the client-controlled environment is a permanent product principle |
 
 ## Change Log
+
+### Version 0.10 — 2026-07-17
+
+- Recorded founder approval of the evidence-gated Phase 3F boundary and the
+  document split in principle.
+- Added the founder principle that PPAR should maximize the value, accuracy,
+  and presentation of information while recognizing that investigation
+  workflow varies across users and remains too early to productize.
+- Converted Human Review and Disposition from a future feature assumption into
+  a distant, evidence-gated possibility. Validation may conclude that PPAR
+  should provide no managed workflow.
+- Added a proposed two-document outline for founder review only. No file was
+  created, renamed, split, or moved, and Phase 4 remains gated.
+- Preserved all twelve safety invariants. No application code was changed.
+
+### Version 0.9 — 2026-07-17
+
+- Recorded founder approval of all seven Phase 3E recommendations while
+  preserving the recurring-use gate: approval of the design does not authorize
+  history/dashboard implementation before client evidence establishes value.
+- Adopted an evidence-horizon drafting discipline in response to founder
+  concern that the canonical document was becoming unwieldy and specifying too
+  many hypothetical details too early.
+- Added a deliberately lean Phase 3F boundary brief for Human Review and
+  Disposition. It records only current truth, non-negotiable product contracts,
+  validation questions, and the evidence gate for later design. Workflow state
+  names, schemas, storage, permissions, UI, notifications, and integrations
+  remain intentionally unspecified.
+- Deferred Phase 4 until the founder reviews both the Phase 3F boundary and the
+  recommended consolidation of this document into a concise governing product
+  design/roadmap with detailed approved specifications retained separately.
+- Preserved all twelve safety invariants. No application code was changed.
+
+### Version 0.8 — 2026-07-16
+
+- Recorded founder approval of Phase 3D and its six recommended defaults:
+  Executive Investigation Summary first in HTML/XLSX; one progressive summary
+  for managers and analysts; separate performance and Data Audit attention;
+  cause ranking only within one comparable review unit; affected-row/entity
+  Data Audit counts rather than unvalidated incident counts; and deterministic
+  narrative/actions without editable workflow or generative narrative.
+- Added the Phase 3E functional specification for the Audit Health Dashboard
+  and Operational Intelligence, including the conditional local history model,
+  source-state identity, deduplication, metric-specific comparability, bounded
+  descriptive metrics, recurrence language, management views, machine-readable
+  output, failure behavior, safety mapping, and client-validation gate.
+- Preserved the founder-approved deferral of history implementation until
+  recurring client use establishes a serious business case. Phase 3E specifies
+  the safe product boundary; it does not authorize a database, hosted service,
+  composite health score, cross-client benchmarking, workflow inference, or
+  application-code changes.
+- Preserved all twelve safety invariants and the Phase 3F gate. No application
+  code was changed.
+
+### Version 0.7 — 2026-07-16
+
+- Recorded founder approval of Phase 3C and its six recommended defaults:
+  Ready/Qualified Ready/Blocked with Diagnostic Only outside the readiness
+  statuses; one engine for explicit and automatic preflight; a small local
+  versioned readiness artifact; external approval references rather than PPAR
+  workflow; product/contract/configuration identity in provenance; and a
+  controlled-validation versus operational-reliance distinction.
+- Added the Phase 3D functional specification for the Executive Investigation
+  Summary, grounded in the current three shared review tables, derived
+  period-level triage, summary/supporting CSVs, review handoff metadata,
+  evidence links, and generated portfolio/security bundles.
+- Preserved the founder-approved Phase 3A decision to use status plus
+  full-precision explained and residual amounts without an
+  explanation-completeness percentage.
+- Corrected an overstatement inherited from an implementation-design note:
+  current HTML begins with `Performance Differences`, not a separate
+  first-screen `Problems` grid. Such an executive entry layer remains future
+  work.
+- Preserved the local-first doctrine, all twelve safety invariants, deferred
+  workflow/history infrastructure, and the Phase 3E gate. No application code
+  was changed.
+
+### Version 0.6 — 2026-07-16
+
+- Recorded founder approval of Phase 3B and its five recommended defaults:
+  concise rule-execution coverage; optional pilot rules limited to understood
+  populations; fail-closed malformed rule configuration; integrated Data Audit
+  placement initially; and reuse of Phase 3A prioritization until client
+  evidence justifies a separate model.
+- Added the Phase 3C functional specification for Audit Readiness, grounded in
+  current configuration validation, source/extract contracts, structural and
+  financial-integrity controls, diagnostic exceptions, bundle gates, and
+  internal regression infrastructure.
+- Corrected the current provenance boundary: generated bundles record the
+  comparison path, source/extract context, contract versions, and semantic
+  fingerprints, but do not currently embed the installed PPAR version or a
+  complete configuration snapshot/fingerprint.
+- Re-ran the complete project suite at the v0.6 checkpoint: all 824 tests
+  passed, superseding the earlier intake note about a documentation-style
+  failure.
+- Preserved the local-first doctrine, all twelve safety invariants, and the
+  Phase 3D gate. No application code was changed.
 
 ### Version 0.5 — 2026-07-16
 
@@ -96,12 +200,16 @@
 18. [Phase 2 — Users, Workflows, and Conceptual Product Architecture](#17-phase-2--users-workflows-and-conceptual-product-architecture)
 19. [Phase 3A — Performance Change Investigation](#18-phase-3a--performance-change-investigation)
 20. [Phase 3B — Performance Data Quality Audit](#19-phase-3b--performance-data-quality-audit)
-21. [Appendix A — Source Register](#appendix-a--source-register)
-22. [Appendix B — Representative Workbook Observations](#appendix-b--representative-workbook-observations)
-23. [Appendix C — Incorporated Product-Expansion Inventory](#appendix-c--incorporated-product-expansion-inventory)
-24. [Appendix D — Planned Foundational Design Sections](#appendix-d--planned-foundational-design-sections)
-25. [Appendix E — Additional Implementation-Document Intake](#appendix-e--additional-implementation-document-intake)
-26. [Appendix F — External Evidence](#appendix-f--external-evidence)
+21. [Phase 3C — Audit Readiness](#20-phase-3c--audit-readiness)
+22. [Phase 3D — Executive Investigation Summary](#21-phase-3d--executive-investigation-summary)
+23. [Phase 3E — Audit Health Dashboard and Operational Intelligence](#22-phase-3e--audit-health-dashboard-and-operational-intelligence)
+24. [Phase 3F — Human Review and Disposition Boundary](#23-phase-3f--human-review-and-disposition-boundary)
+25. [Appendix A — Source Register](#appendix-a--source-register)
+26. [Appendix B — Representative Workbook Observations](#appendix-b--representative-workbook-observations)
+27. [Appendix C — Incorporated Product-Expansion Inventory](#appendix-c--incorporated-product-expansion-inventory)
+28. [Appendix D — Planned Foundational Design Sections](#appendix-d--planned-foundational-design-sections)
+29. [Appendix E — Additional Implementation-Document Intake](#appendix-e--additional-implementation-document-intake)
+30. [Appendix F — External Evidence](#appendix-f--external-evidence)
 
 ---
 
@@ -163,7 +271,7 @@ This version is grounded in current project paths and generated evidence:
   `SAFETY_INVARIANTS` catalog
 - `docs/axys_apx/contracts/transaction_semantics_matrix.yaml` and its
   rendered Markdown companion
-- `docs/audit/performance_comparison_demo_source_contract.md`,
+- `docs/audit/demo_source_contract.md`,
   `docs/audit/site_extract_readiness_checklist.md`, and the current extract-contract
   implementation/templates
 - the setup-installed audit README and `ppar.yaml`
@@ -186,7 +294,35 @@ A source register appears in Appendix A. Observations from the representative wo
 | `docs/audit/performance_comparison_transaction_boundary_snapshot.md` | Compact reviewer snapshot of transaction-semantics boundaries | Use to preserve conservative coverage and identify context-required or backlog families | The referenced machine-readable semantics matrix remains the implementation contract; narrow packaged examples do not establish universal production support |
 | `docs/audit/archive/performance_comparison_evidence_pack_review.md` | Historical reviewer aid for one evidence-pack checkpoint | Use as a concise inventory of evidence-pack, extract-readiness, boundary, fixture, and validator work at that checkpoint | It explicitly is not the roadmap or the transaction-semantics contract and is not a current-status authority |
 
-### 0.5 Capability-status language
+### 0.5 Design depth and evidence horizon
+
+The canonical document governs product doctrine, current truth, major product
+boundaries, approved direction, roadmap gates, and decisions that would be
+costly or dangerous to reverse. It is not a substitute for client discovery or
+an invitation to specify every plausible future feature.
+
+Use this depth rule:
+
+- **Current and near-term validated capabilities:** specify behavior deeply
+  enough to preserve safety, guide implementation, and define acceptance.
+- **Approved but unvalidated directions:** record the problem, value,
+  non-negotiable boundaries, dependencies, and validation gate only.
+- **Deferred or speculative capabilities:** do not define detailed schemas,
+  state machines, permissions, UI, storage, integrations, or edge-case
+  contracts until evidence makes those decisions necessary.
+
+Detailed design should occur at the **evidence horizon**: the point at which a
+real user problem, observed workflow, implementation decision, or safety risk
+requires specificity. Attractive completeness beyond that horizon creates
+false precision and maintenance burden.
+
+When a later phase reaches beyond the evidence horizon, the correct output is a
+short boundary brief and a validation plan, not a hypothetical functional
+specification. This discipline supersedes any earlier instruction to fill every
+standard specification field for a capability whose business case remains
+unvalidated.
+
+### 0.6 Capability-status language
 
 The following labels will be used throughout the foundational design:
 
@@ -932,15 +1068,13 @@ The architecture documentation also describes structural, metamorphic, artifact-
 
 ### Current working-tree verification
 
-The 2026-07-16 intake used project HEAD `e035174` and the current working tree.
-The full suite ran 823 tests and completed with one documentation-style failure:
-the then-supplied handoff and v0.2 snapshot contained nine instances of the
-legacy unhyphenated term. The v0.2 content has since been consolidated into this
-canonical document and the redundant snapshot removed; the governing handoff
-retains one legacy occurrence. This failure is not evidence of an application
-calculation or artifact regression, but the release gate is not described as
-fully passing. Current generated bundles and the executable bundle contract
-independently confirm manifest version 4 and the expected report surfaces.
+The 2026-07-16 intake began at project HEAD `e035174` and the current working
+tree. At the v0.6 checkpoint, the complete project suite ran 824 tests and all
+passed. This supersedes the earlier intake note about a documentation-style
+failure in the then-supplied handoff/versioned snapshot. Current generated
+bundles and the executable bundle contract independently confirm manifest
+version 4 and the expected report surfaces. These results remain internal
+engineering evidence, not real-client validation.
 
 ### Commercial reality
 
@@ -1434,6 +1568,22 @@ Performance Analytics may remain in the shared technical package, but its buyer,
 No product enhancement may silently weaken the meaning of no-lost-difference, no-double-counting, Fully Explained arithmetic, lineage, currency/unit safety, period-boundary safety, fail-closed policy, report parity, or deterministic output.
 
 A change to one of those guarantees requires an explicit product and engineering decision, updated documentation, and corresponding tests.
+
+## Principle 19 — Information quality before workflow ownership
+
+PPAR Audit should provide as much decision-useful and accurate information as
+the available evidence and supported methodology permit. How that information
+is structured, prioritized, explained, and presented is part of the product,
+not cosmetic packaging.
+
+The process used to review, route, approve, correct, retain, or close that
+information will differ across clients and users. PPAR should make its output
+easy to use within those workflows without assuming that it should own them.
+
+Managed workflow is a distant possibility, not an expected product layer. It
+should be considered only after repeated client evidence shows a common,
+material problem that cannot be handled adequately through clear evidence
+packs, reproducible reruns, or the client's existing systems.
 
 ---
 
@@ -2357,7 +2507,7 @@ rights must remain explicit.
 | Approve return basis and Modified Dietz assumptions | Performance methodology owner | Performance/operations manager or the client’s formal methodology authority | Compliance/GIPS reviewer where applicable | Configuration identifies method, timing, day count, inclusion rule, flow/income categories, return basis, and sign convention. | CURRENT — DOCUMENTED; CURRENT — REQUIRES CLIENT VALIDATION |
 | Set comparison tolerances and operational materiality | Analyst or methodology owner | Performance/operations manager | Compliance and executive sponsor for material policy | Comparison tolerance determines reportable differences; business materiality governs review/escalation and must not silently erase findings. | CURRENT — DOCUMENTED for tolerances; CANDIDATE for a coherent materiality workflow |
 | Create or change a suppression | Analyst proposes; authorized configuration owner implements | Performance/operations manager | Compliance for material or recurring suppressions | Suppressed rows remain in `findings.csv`; reason/approval should be retained. Requiring formal reasons is CANDIDATE. | CURRENT — DOCUMENTED technical behavior; CANDIDATE approval workflow |
-| Run the audit or rerun after correction | Authorized analyst/operator | Preapproved operating procedure; manager approval for scope/policy changes | Local administrator | New artifacts must identify inputs, configuration, and product version; prior artifacts remain retained under policy. | CURRENT — DEMONSTRATED; CURRENT — REQUIRES CLIENT VALIDATION |
+| Run the audit or rerun after correction | Authorized analyst/operator | Preapproved operating procedure; manager approval for scope/policy changes | Local administrator | New artifacts should identify inputs, configuration, and product version; prior artifacts remain retained under policy. Current bundles identify the comparison path and source context but not the installed PPAR version or a complete configuration fingerprint. | CURRENT — DEMONSTRATED for execution and partial provenance; APPROVED DIRECTION for complete run provenance; CURRENT — REQUIRES CLIENT VALIDATION |
 | View complete versus prioritized evidence | Authorized reviewer | Client access-control owner | Technology/security | Summaries may prioritize; complete evidence remains available to authorized reviewers and validators. | CURRENT — DOCUMENTED artifact separation; CURRENT — REQUIRES CLIENT VALIDATION for access model |
 | Add a human note or disposition | Qualified analyst or manager | Manager for material closure | Portfolio accounting/compliance as applicable | If later justified, store separately from calculated causes with author, time, evidence reference, and workflow status. | DEFERRED; requires a serious business case and client validation |
 | Add a supplemental human explanation | Qualified specialist | Methodology owner | Compliance for external reliance | If later justified, it must be explicitly human-supplied and non-additive; it cannot change analytical status or Explained Difference. | APPROVED DIRECTION concept; DEFERRED implementation pending business case and client validation |
@@ -3790,9 +3940,10 @@ and does not imply a second additive impact. CURRENT — REQUIRES CLIENT
 VALIDATION for language comprehension.
 
 `PCI-044` — The report SHOULD prioritize unresolved or policy-limited periods
-before fully explained periods, without hiding the latter. Current Problems and
-needs-review summaries provide the technical foundation; management
-materiality and exact ordering remain CANDIDATE.
+before fully explained periods, without hiding the latter. Current primary
+review tables and the derived needs-review summary provide the technical
+foundation; a separate first-screen executive entry layer, management
+materiality, and exact ordering remain CANDIDATE.
 
 ## 18.15 Evidence, lineage, and immutable audit trail
 
@@ -4909,7 +5060,7 @@ the packaged scope. Explicit execution coverage, stricter malformed-
 configuration validation, calibrated false-positive evidence, and real-client
 rule utility remain APPROVED DIRECTION or CURRENT — REQUIRES CLIENT VALIDATION.
 
-## 19.19 Dependencies and open decisions
+## 19.19 Dependencies and approved working assumptions
 
 ### Dependencies
 
@@ -4922,27 +5073,28 @@ rule utility remain APPROVED DIRECTION or CURRENT — REQUIRES CLIENT VALIDATION
 - deferred workflow/history capabilities only if later business validation
   justifies them.
 
-### Open decisions for founder review
+### Founder-approved Phase 3B working assumptions
 
-1. **Rule-execution summary — OPEN DECISION:** recommended direction is to
-   adopt the five execution outcomes in `PDQ-036` and the minimum summary in
-   `PDQ-044`, without adding human workflow infrastructure.
-2. **Pilot rule-set policy — OPEN DECISION:** whether every pilot begins with
-   all seven optional rules deliberately configured, or only the rules relevant
-   to validated source populations. Recommended default: configure only
-   understood populations while always retaining mandatory continuity.
-3. **Malformed configuration — OPEN DECISION:** recommended direction is to
-   make invalid enablement, tolerance, and filter shapes fail validation
-   instead of silently falling back.
-4. **Data Audit placement — OPEN DECISION:** retain Data Audit primarily inside
-   the integrated audit bundle for initial pilots; consider a standalone entry
-   point only after client workflow shows independent demand.
-5. **Rule-result priority — OPEN DECISION:** validate whether the Phase 3A
-   operational-materiality dimensions are sufficient or Phase 4 needs a
-   separate rule-specific priority model. Do not introduce confidence or a
-   composite quality score.
+The founder approved Phase 3B on 2026-07-16 with these working assumptions:
 
-None of these decisions authorizes per-finding workflow, hidden suppression,
+1. **Rule-execution summary — APPROVED DIRECTION:** adopt the five execution
+   outcomes in `PDQ-036` and the minimum summary in `PDQ-044`, without adding
+   human workflow infrastructure.
+2. **Pilot rule-set policy — APPROVED DIRECTION; CURRENT — REQUIRES CLIENT
+   VALIDATION:** configure optional rules only for understood, comparable
+   source populations; always retain mandatory continuity.
+3. **Malformed configuration — APPROVED DIRECTION:** invalid enablement,
+   tolerance, and filter shapes should fail validation rather than silently
+   fall back. This is not yet current application behavior.
+4. **Data Audit placement — APPROVED DIRECTION:** retain Data Audit primarily
+   inside the integrated audit bundle for initial pilots. A standalone entry
+   point remains CANDIDATE only after independent client demand is shown.
+5. **Rule-result priority — APPROVED DIRECTION; CURRENT — REQUIRES CLIENT
+   VALIDATION:** reuse the Phase 3A operational-materiality dimensions initially.
+   Do not add a separate rule-priority model, confidence score, or composite
+   quality score without client evidence.
+
+These assumptions do not authorize per-finding workflow, hidden suppression,
 hosted processing, or expansion beyond performance-quality review.
 
 ## 19.20 Real-client validation plan
@@ -5025,17 +5177,3251 @@ Each claim is CURRENT — REQUIRES CLIENT VALIDATION for a real site.
   standalone data-quality product; or
 - that packaged-demo calibration establishes universal Axys/APX behavior.
 
-## 19.22 Phase 3B completion and next gate
+## 19.22 Phase 3B approval and next gate
 
-Phase 3B is complete as a **draft functional specification for founder review**.
-It defines the current rule surface, exact snapshot execution boundary,
-configuration and tolerance behavior, mandatory/optional policy, evidence and
-cause separation, outputs, failure policy, false-positive management,
-acceptance criteria, and client-validation plan.
+Phase 3B was founder-approved on 2026-07-16 with the five working assumptions
+in Section 19.19. That approval authorized Phase 3C drafting; it did not
+authorize application-code changes or begin Phase 3D.
 
-Phase 3C MUST NOT begin until the founder reviews and approves Phase 3B and
-resolves or authorizes working assumptions for the open decisions in Section
-19.19.
+---
+
+# 20. Phase 3C — Audit Readiness
+
+## 20.1 Specification identity, purpose, and status
+
+**Capability:** Audit Readiness and Preflight
+
+**Primary user:** local operator or performance/operations analyst
+
+**Primary first-pilot surface:** a pre-run decision for the requested portfolio
+audit scope, with explicit limitations and remediation
+
+**Overall status:** CURRENT — DEMONSTRATED and CURRENT — DOCUMENTED for
+distributed technical validators and fail-closed run gates; CURRENT — REQUIRES
+CLIENT VALIDATION for real client inputs and operating usefulness; APPROVED
+DIRECTION for a unified operator-facing readiness experience
+
+Audit Readiness answers:
+
+> Are these declared snapshots, contracts, configuration, product context, and
+> requested outputs safe and sufficiently evidenced for this specific audit
+> purpose—and, if not, exactly what must happen next?
+
+It is a precondition decision, not an opinion that the extracts are complete,
+the configured policy is correct, the performance is accurate, or the eventual
+investigation will be fully explained.
+
+This section follows the `MUST`, `SHOULD`, and `MAY` meanings in Section 18.1.
+Requirement identifiers use `ARD` for Audit Readiness.
+
+`ARD-001` — Readiness MUST be bound to a declared run purpose, requested report
+scope, Snapshot A and B, source/extract contract, configuration, and product
+context. It MUST NOT be a generic certification of the client environment.
+APPROVED DIRECTION.
+
+`ARD-002` — A readiness decision MUST NOT weaken or replace any calculation,
+lineage, output-integrity, or bundle-validation gate that occurs during or
+after the run. APPROVED DIRECTION.
+
+`ARD-003` — Current technical validation MUST be described candidly: it can
+demonstrate that the supplied case passes implemented controls, but it has not
+established compatibility with a real client's Axys/APX exports. CURRENT —
+REQUIRES CLIENT VALIDATION.
+
+## 20.2 User problem, actors, trigger, and authority
+
+### 20.2.1 User problem
+
+Today, a knowledgeable operator can run the configuration validator or start an
+audit and receive useful failures and a detailed successful summary. However,
+the controls are distributed across specification parsing, data loading,
+comparison, financial-integrity checks, report generation, and bundle
+validation. The operator does not receive one durable readiness object that
+answers:
+
+- what was evaluated;
+- which requested outputs are safe to attempt;
+- what required evidence passed;
+- what optional evidence is absent and how that limits the result;
+- what remains unapproved or ambiguous;
+- who must act; and
+- which changes invalidate the decision.
+
+`ARD-004` — The unified experience MUST turn technical controls into an
+operator decision and corrective path. It SHOULD not merely reproduce a long
+exception stack or relabel every warning as “readiness.” APPROVED DIRECTION.
+
+### 20.2.2 Actors and authority
+
+| Actor | Readiness responsibility | Authority boundary |
+|---|---|---|
+| Performance/operations analyst | Declares intended use and scope; reviews qualifications | Cannot approve extract facts or methodology merely by operating the run |
+| Source/extract administrator | Confirms export procedure, fields, provenance, and reproducibility | Cannot approve performance treatment unless separately authorized |
+| Methodology owner | Approves return basis, formula policy, transaction semantics, tolerances, and material configuration | Does not certify file delivery or local infrastructure |
+| Performance/operations manager | Approves pilot use, material exceptions, and whether a qualified result is acceptable | Cannot waive a safety blocker |
+| Local product administrator | Installs the approved version, controls local files, runs validation, and retains evidence | Cannot approve accounting meaning solely because the administrator can edit YAML |
+| Technology/security owner | Approves execution boundary, access, output location, updates, and permitted support data | Does not approve financial calculations |
+| PPAR | Evaluates declared contracts and reports deterministic pass, qualification, or block evidence | Does not infer missing approval or official correctness |
+
+`ARD-005` — Readiness MUST distinguish factual source approval, business-policy
+approval, technical execution authority, and product-calculated status.
+APPROVED DIRECTION.
+
+`ARD-006` — No human role may convert an unresolved safety requirement into
+`Qualified Ready` by waiver. The source/configuration must be corrected, the
+requested scope safely narrowed, or the workflow must remain `Blocked`.
+APPROVED DIRECTION.
+
+### 20.2.3 Triggering events
+
+Readiness should be evaluated:
+
+- before the first pilot run;
+- after either snapshot or extract procedure changes;
+- after a schema, mapping, transaction rule, tolerance, suppression, formula,
+  source contract, or report-scope change;
+- after a product or dependency upgrade;
+- after an earlier readiness or audit failure;
+- before an operationally relied-upon rerun; and
+- when an accepted client regression case no longer matches.
+
+`ARD-007` — A prior readiness result MUST be invalidated when any material
+bound input, contract, configuration, requested scope, or product context
+changes. APPROVED DIRECTION.
+
+## 20.3 Readiness decision model
+
+### 20.3.1 Readiness statuses
+
+The proposed three-status model is:
+
+- **`Ready`** — all required contracts evaluated for the requested purpose and
+  scope pass; no declared optional-evidence limitation materially qualifies
+  the intended interpretation.
+- **`Qualified Ready`** — no safety blocker exists, but explicitly optional
+  evidence is absent or another permitted limitation narrows what the audit can
+  explain or review. The limitation and affected scope are visible.
+- **`Blocked`** — a required input, meaning, approval, integrity condition,
+  configuration, regression requirement, or safe-output boundary is unresolved.
+
+These statuses are APPROVED DIRECTION under the founder-approved Phase 3C
+working assumptions. They are not the Phase 3A analytical statuses or future
+human workflow statuses.
+
+`ARD-008` — Overall status MUST be calculated deterministically:
+
+1. any blocking item produces `Blocked`;
+2. otherwise, any applicable qualification produces `Qualified Ready`; and
+3. otherwise, the result is `Ready`.
+
+APPROVED DIRECTION.
+
+`ARD-009` — Readiness items MUST use a separate disposition:
+
+- `Blocker`;
+- `Qualification`; or
+- `Information`.
+
+An informational item does not change overall status. APPROVED DIRECTION.
+
+`ARD-010` — `Qualified Ready` MUST be allowed only for an explicit optional or
+permitted limitation whose safety effect is understood. Unknown required
+meaning, missing required data, incomplete required policy, or an internal
+logic failure MUST produce `Blocked`. APPROVED DIRECTION.
+
+`ARD-011` — `Ready` means safe to proceed past the evaluated preflight for the
+declared purpose. It does not guarantee that no later data-dependent,
+report-size, arithmetic, lineage, parity, determinism, filesystem, or bundle
+gate will fail. APPROVED DIRECTION.
+
+### 20.3.2 Diagnostic-only execution
+
+The current `validate_config --allow-incomplete-yaml` option intentionally lets
+maintainers and implementers inspect a case whose YAML setup is incomplete.
+That is useful diagnosis, not readiness.
+
+`ARD-012` — A run that bypasses complete-YAML validation MUST be labeled
+`Diagnostic Only` and MUST NOT receive `Ready` or `Qualified Ready`. CURRENT —
+DOCUMENTED boundary; unified presentation is APPROVED DIRECTION.
+
+`ARD-013` — Diagnostic bypasses MUST remain explicit in the command, output,
+and any generated artifact. They MUST NOT become the default or a way to
+produce authoritative pilot evidence. CURRENT — DOCUMENTED.
+
+### 20.3.3 Intended use and reliance
+
+The first clients are validation partners. A case can be safe for controlled
+validation without being approved for recurring operational reliance.
+
+`ARD-014` — The readiness request SHOULD declare intended use, at minimum
+`validation` or `operational review`. Both uses retain identical safety
+requirements; operational review additionally requires the client's applicable
+approval and regression evidence. APPROVED DIRECTION.
+
+`ARD-015` — A validation-purpose `Ready` result MUST retain CURRENT — REQUIRES
+CLIENT VALIDATION and MUST NOT be represented as production certification.
+
+## 20.4 Current technical baseline and gaps
+
+### 20.4.1 Current demonstrated foundation
+
+The current `validate_config` path:
+
+1. parses the YAML with duplicate-key rejection;
+2. resolves comparison level, snapshots, schemas, files, and reconstruction
+   settings;
+3. checks required file existence;
+4. loads and compares the configured datasets;
+5. validates normalized columns and source mappings;
+6. applies current identity, transaction, extract-contract, currency/unit, and
+   period controls reached by the comparison;
+7. validates complete YAML treatment for observed changed fields by default;
+8. loads transaction data from both snapshots;
+9. reports observed transaction codes, rule coverage, and semantic sources;
+10. reports configured and minimum required datasets/columns;
+11. reports missing configured optional files; and
+12. returns nonzero with an actionable error when validation fails.
+
+The `ppar setup` workflow also invokes the same validator when starter snapshot
+files are present. Normal audit generation repeats applicable source and policy
+checks and adds conservation, lineage, report-size, output-parity,
+determinism, and bundle-validation gates.
+
+`ARD-016` — These controls are CURRENT — DEMONSTRATED; CURRENT — DOCUMENTED;
+CURRENT — REQUIRES CLIENT VALIDATION. They are distributed technical gates, not
+the completed unified readiness product.
+
+### 20.4.2 Current gaps
+
+| Gap | Current truth | Target status |
+|---|---|---|
+| Unified readiness status | Validator prints pass/fail and summary, not Ready/Qualified Ready/Blocked | APPROVED DIRECTION |
+| Multiple issue collection | Most failures stop at the first raised product error | CANDIDATE bounded issue collection where safe |
+| Optional-evidence interpretation | Missing configured optional files are listed, but their effect is not calculated into a readiness qualification | CANDIDATE |
+| Durable readiness object | No canonical readiness JSON/table exists | CANDIDATE |
+| Human approval record | No built-in contract/configuration approval workflow exists | DEFERRED workflow; CANDIDATE external approval reference |
+| Product-version provenance | `ppar.__version__` exists, but current bundles do not embed it | APPROVED DIRECTION |
+| Complete configuration provenance | Current bundles identify the comparison path, not an embedded configuration snapshot/fingerprint | APPROVED DIRECTION |
+| Client regression baseline | Internal demo/release regression exists; no client accepted-case registry exists | CURRENT — REQUIRES CLIENT VALIDATION; CANDIDATE minimal local case files |
+| Data Audit configuration shape | Some malformed settings can currently fall back or be ignored | APPROVED DIRECTION from Phase 3B |
+| Public preflight surface | Maintainer module exists; no unified top-level operator experience is established | CANDIDATE |
+
+`ARD-017` — Phase 3C MUST NOT describe any target item in this gap table as a
+current implemented capability.
+
+## 20.5 Preflight contract layers
+
+### 20.5.1 Layer 1 — Local workspace and execution context
+
+This layer establishes:
+
+- requested site directory and audit configuration path;
+- installed PPAR version and dependency/runtime identity;
+- requested report level(s) and output mode;
+- output destination;
+- client-controlled execution boundary; and
+- intended use and operator identity or local job identity where available.
+
+Current commands validate key paths and required package dependencies during
+normal use. They do not create a complete readiness context record.
+
+`ARD-018` — The target preflight MUST identify the exact installed PPAR
+version, requested outputs, and configuration path before evaluating financial
+meaning. APPROVED DIRECTION.
+
+`ARD-019` — Output-directory existence, write permission, available capacity,
+and dependency availability SHOULD be checked before expensive processing when
+the selected output requires them. CANDIDATE.
+
+`ARD-020` — Infrastructure checks MUST remain inside the client-controlled
+environment and MUST NOT require portfolio-data telemetry. APPROVED DIRECTION.
+
+### 20.5.2 Layer 2 — Specification and configuration shape
+
+Current specification validation includes:
+
+- YAML must parse to a mapping;
+- duplicate mapping keys fail;
+- Snapshot A and B definitions and paths must have valid shape;
+- comparison level must be portfolio or security;
+- configured dataset names must be supported;
+- file definitions, `required` flags, schemas, and paths must have valid shape;
+- selected performance dataset must be configured;
+- active reconstruction settings must contain supported keys and enum values;
+- required reconstruction datasets cannot opt out of required status; and
+- legacy/unsupported policy sections fail.
+
+`ARD-021` — Duplicate, unknown, malformed, or internally contradictory policy
+configuration MUST be a blocker. CURRENT — DEMONSTRATED for current validated
+sections; APPROVED DIRECTION for complete schema coverage.
+
+`ARD-022` — Phase 3B's approved fail-closed Data Audit configuration behavior
+MUST become part of this layer before malformed Data Audit settings can be
+considered ready. APPROVED DIRECTION; not current application behavior.
+
+### 20.5.3 Layer 3 — Source/extract contract and file structure
+
+This layer evaluates:
+
+- Snapshot A/B directories and configured file presence;
+- required versus optional file status;
+- required normalized columns and unambiguous alias resolution;
+- extract-contract path and shape;
+- required transaction context fields;
+- supported contract column names and Boolean flags;
+- source/report provenance and reproducible export procedure where declared;
+- native identifier/code visibility; and
+- selected report scope against available performance datasets.
+
+`ARD-023` — A required configured file missing from either snapshot MUST
+produce `Blocked` with the dataset, snapshot, resolved path, owner, and
+corrective action. CURRENT — DEMONSTRATED failure; unified item format is
+CANDIDATE.
+
+`ARD-024` — A configured optional file that exists MUST still pass its
+applicable schema and integrity contract before it contributes evidence.
+CURRENT — DOCUMENTED.
+
+`ARD-025` — A required normalized column that is absent or resolves
+ambiguously MUST produce `Blocked`. CURRENT — DEMONSTRATED.
+
+`ARD-026` — Readiness MUST NOT infer that a vendor export is complete merely
+because the CSV header passes. Source provenance, export procedure, applicable
+fields, and known omissions remain client-owned evidence. APPROVED DIRECTION.
+
+### 20.5.4 Layer 4 — Transaction and accounting semantics
+
+This layer evaluates:
+
+- observed transaction codes in both snapshots;
+- configured conditional rules and their source;
+- extract-contract enforcement for ambiguous Axys/APX-style flows;
+- required source/destination, special-security, or report-semantic context;
+- normalized transaction category, flow sign, performance sign, and formula
+  role when applicable;
+- field-role registry coverage; and
+- explicit additive, evidence-only, or suppression treatment for changed fields
+  that require policy.
+
+`ARD-027` — Ambiguous `dp`, `li`, `lo`, or `wd` rows without the required
+contract context MUST be `Blocked` when enforcement is on. CURRENT —
+DEMONSTRATED.
+
+`ARD-028` — Setting
+`extract_contract.enforce_ambiguous_axys_flows: false` MUST NOT by itself prove
+readiness. The target readiness decision must require an attributable reviewed
+local opt-out and identify the risk owner; otherwise the case is `Blocked`.
+APPROVED DIRECTION; the current technical validator checks the Boolean setting
+but does not record human approval.
+
+`ARD-029` — An unknown or unsupported transaction family MAY remain
+non-additive review evidence only when safe quarantine is explicit and the
+requested calculation does not depend on guessed semantics. Otherwise it is a
+blocker. APPROVED DIRECTION.
+
+`ARD-030` — No code name, field name, majority behavior, or packaged-demo
+example may substitute for client-approved transaction or accounting policy.
+CURRENT — DOCUMENTED.
+
+### 20.5.5 Layer 5 — Financial and period integrity
+
+Applicable current controls include:
+
+- three-letter normalized currency codes;
+- explicit base-currency counterparts for foreign countable values;
+- agreement between local/base values when currencies are the same;
+- valid, positive, uniquely scoped FX rates and quote direction;
+- portfolio-specific FX target currency agreement;
+- required reconstruction inputs and supported formula configuration;
+- valid ordered performance periods;
+- rejection of reversed or overlapping periods;
+- safe dated-evidence ownership; and
+- beginning/end continuity as a mandatory visible Data Audit finding.
+
+`ARD-031` — Unsafe currency, unit, FX, period, or required reconstruction input
+conditions MUST produce `Blocked` before authoritative output. CURRENT —
+DEMONSTRATED for implemented contracts.
+
+`ARD-032` — A continuity mismatch is not a preflight blocker merely because it
+exists. It remains a mandatory visible review finding unless the underlying
+period or value contract is itself invalid. CURRENT — DOCUMENTED distinction.
+
+`ARD-033` — A legitimate unresolved performance difference is not a readiness
+failure. Missing required setup or unsafe evidence is a readiness blocker;
+honest unexplained residual after a safe run is an analytical outcome.
+APPROVED DIRECTION.
+
+### 20.5.6 Layer 6 — Requested output and downstream gates
+
+The readiness request must evaluate each selected output scope separately:
+
+- portfolio report, mandatory for the initial pilot;
+- security report when the selected case requires drilldown;
+- XLSX, HTML, or CSV-only presentation;
+- optional reconstruction diagnostics; and
+- compact or expanded supporting files.
+
+`ARD-034` — Security-level readiness MUST require security performance and any
+active security reconstruction inputs only when security output is requested.
+APPROVED DIRECTION consistent with the founder-approved Phase 3A pilot scope.
+
+`ARD-035` — If `both` is requested but security inputs are unavailable, the
+target preflight MUST explicitly narrow the request to portfolio with
+authorization or return `Blocked` for the unchanged request. It MUST NOT
+silently call the full request ready. APPROVED DIRECTION; current `both`
+execution may skip unavailable security output with a status message.
+
+`ARD-036` — Readiness SHOULD estimate review-table row amplification and output
+risk where practical. The exact 100,000-row limit remains a hard generation
+gate even if the estimate passes. CANDIDATE estimate; CURRENT — DEMONSTRATED
+generation gate.
+
+`ARD-037` — Post-generation arithmetic, lineage, parity, determinism, and bundle
+validation are downstream completion gates. A preflight `Ready` result MUST
+not pre-authorize a failed evidence pack. CURRENT — DOCUMENTED.
+
+## 20.6 Required versus optional evidence
+
+### 20.6.1 Four evidence classes
+
+Readiness needs a more precise model than “file exists”:
+
+1. **Structurally required** — required for the selected comparison/output to
+   load safely.
+2. **Conditionally required** — required because a selected method, currency,
+   transaction family, asset condition, or report level is present.
+3. **Optional but limiting** — safe to omit, but absence reduces explanation,
+   rule coverage, drilldown, or reviewer evidence.
+4. **Optional and nonlimiting for declared scope** — absent evidence that does
+   not affect the requested purpose.
+
+`ARD-038` — Structurally or conditionally required evidence missing for the
+declared case MUST produce `Blocked`. APPROVED DIRECTION.
+
+`ARD-039` — Optional-but-limiting evidence missing MUST produce a visible
+`Qualification` that names the unavailable capability, affected population,
+and claim limitation. CANDIDATE.
+
+`ARD-040` — Optional evidence that is irrelevant to the declared scope MAY be
+an informational item and need not prevent `Ready`. CANDIDATE.
+
+### 20.6.2 Relationship to extraction labels
+
+The current extraction guidance uses:
+
+- `Required` for ordinary evidence needed to make Fully Explained possible;
+- `Required only when applicable` for named features or data conditions; and
+- `Optional` for safe omissions.
+
+The runtime structural minimum is intentionally narrower. A field can be
+structurally optional to a loader but necessary to explain a specific changed
+value.
+
+`ARD-041` — Readiness MUST disclose which meaning of “required” is being used:
+runtime safety, selected feature/method, or explanation depth. It MUST NOT
+collapse all three into one misleading checklist. APPROVED DIRECTION.
+
+`ARD-042` — A missing field that prevents `Fully Explained` but does not make
+the run unsafe SHOULD normally produce `Qualified Ready`, not `Blocked`,
+provided the limitation is explicit and no required policy is missing.
+CANDIDATE; CURRENT — REQUIRES CLIENT VALIDATION.
+
+`ARD-043` — Optional evidence absence MUST NOT be described as proof that no
+relevant event occurred. APPROVED DIRECTION.
+
+## 20.7 Processing and evaluation sequence
+
+The target unified preflight should use this sequence:
+
+1. **Declare request:** intended use, portfolio/security scope, snapshots,
+   outputs, and local configuration.
+2. **Static validation:** paths, YAML shape, duplicate keys, supported settings,
+   contract references, and required declarations.
+3. **Source loading:** required files, headers, mappings, types, identifiers,
+   dates, and optional-file inventory.
+4. **Data-dependent validation:** observed transaction semantics, field roles,
+   changed-field policy coverage, currency/unit, period, reconstruction, and
+   selected Data Audit configuration.
+5. **Output-risk assessment:** requested surfaces, optional limitations,
+   estimated row amplification, output destination, and downstream gates.
+6. **Version/regression assessment:** product/configuration/contract identity
+   and applicable accepted-case evidence.
+7. **Decision:** item list, Ready/Qualified Ready/Blocked, remediation, and
+   validity boundary.
+
+`ARD-044` — Static checks SHOULD collect multiple independent issues when doing
+so is safe and useful. Data-dependent evaluation MUST stop when continuing
+would require interpreting invalid structure or unsafe semantics. APPROVED
+DIRECTION.
+
+`ARD-045` — The unified preflight SHOULD reuse loaded/normalized results or a
+shared deterministic plan with the immediately following audit. It SHOULD not
+double full-run cost merely to create a readiness label. CANDIDATE.
+
+`ARD-046` — The current validator's full comparison is a meaningful
+data-dependent check, but a pass applies only to changed fields and conditions
+observed in those supplied snapshots. It MUST NOT be represented as proof that
+configuration covers every future field or transaction. CURRENT — DOCUMENTED
+boundary.
+
+`ARD-047` — If inputs change after preflight and before bundle completion, the
+readiness result MUST be invalidated or the run MUST prove it used the same
+bound content. APPROVED DIRECTION; content binding is not a current complete
+capability.
+
+## 20.8 Source/extract contract approval
+
+### 20.8.1 Required contract content
+
+A pilot source/extract contract should identify:
+
+- source system and relevant version when known;
+- producing report, IMEX profile, REP/custom report, or export procedure;
+- dataset and field inventory;
+- snapshot capture/as-of provenance;
+- normalized mappings and preserved native fields;
+- conditional transaction context;
+- required/conditional/optional evidence;
+- known omissions and client-specific enrichments;
+- currency, unit, period, and identifier conventions;
+- responsible source owner and methodology owner;
+- contract version or stable content fingerprint; and
+- approval reference and effective date.
+
+`ARD-048` — PPAR MUST NOT invent absent source provenance or approval metadata.
+Missing approval required for the declared intended use is a blocker; missing
+optional descriptive context may be a qualification only when safety is not
+affected. APPROVED DIRECTION.
+
+`ARD-049` — A packaged contract is a versioned product default for its declared
+scope, not proof that the client's extract conforms to it. CURRENT —
+DOCUMENTED.
+
+### 20.8.2 Approval without workflow infrastructure
+
+No PPAR approval database or human-signature workflow is required for the first
+pilot. Approval may remain in the client's change-control system or a small
+local controlled record referenced by the configuration.
+
+`ARD-050` — The initial product SHOULD record an approval reference, approver
+role, approval date, and contract/configuration fingerprint without building
+generic workflow infrastructure. APPROVED DIRECTION.
+
+`ARD-051` — PPAR MUST treat an approval reference as provenance, not as proof
+that the approver had authority or that the policy is correct. APPROVED
+DIRECTION.
+
+`ARD-052` — Any change to contract-relevant fields, export procedure, guarded
+transaction context, or semantic mappings MUST invalidate the applicable
+approval and require revalidation. APPROVED DIRECTION.
+
+## 20.9 Configuration completeness
+
+### 20.9.1 Current completeness boundary
+
+Current complete-YAML validation checks observed reportable changed fields. It
+requires explicit accounting role and, where applicable, additive,
+evidence-only, or suppression policy before normal bundle generation.
+
+`ARD-053` — Readiness MUST distinguish:
+
+- syntactic validity;
+- structural/schema validity;
+- observed-case policy completeness;
+- selected-method completeness; and
+- client approval completeness.
+
+One passing dimension MUST NOT imply the others. APPROVED DIRECTION.
+
+`ARD-054` — A configuration that passes because the supplied snapshots contain
+no instance of a future field or transaction family is complete only for the
+observed case. CURRENT — DOCUMENTED boundary.
+
+`ARD-055` — Missing required impact policy, unknown field role, unsupported
+method key, or ambiguous required transaction semantics MUST produce
+`Blocked`. CURRENT — DEMONSTRATED for implemented contracts.
+
+### 20.9.2 Supported attribution versus full explanation
+
+The strict supported-attribution option checks whether known supported
+attribution methods have the required setup. It does not require every
+performance difference to be fully explained.
+
+`ARD-056` — Readiness for a requested strict-attribution run MUST include that
+strict check. Readiness for an ordinary review MAY permit a safe unexplained
+result, but MUST NOT permit missing setup for a field the product claims to
+treat authoritatively. APPROVED DIRECTION.
+
+`ARD-057` — `Fully Explained` is never a readiness prerequisite by itself.
+Configuration safety and explanation outcome are different dimensions.
+APPROVED DIRECTION.
+
+## 20.10 Product version, configuration identity, and regression
+
+### 20.10.1 Current version and artifact truth
+
+Current project evidence shows:
+
+- `pyproject.toml` is the package-version authority;
+- the installed package exposes `ppar.__version__`;
+- the current package version is `0.1.5` at this intake;
+- the report-bundle manifest contract is version 4;
+- output-integrity normalization is version 1;
+- review-summary contract is version 1;
+- extract-availability and transaction-semantics machine contracts are
+  independently versioned; and
+- generated bundles contain deterministic table, review-surface, and bundle
+  fingerprints.
+
+Current generated bundles do **not** embed the installed PPAR version or a
+complete configuration snapshot/fingerprint.
+
+`ARD-058` — Any future readiness artifact MUST record the installed PPAR
+version and relevant contract/schema versions. APPROVED DIRECTION.
+
+`ARD-059` — The authoritative run bundle SHOULD record a deterministic
+configuration fingerprint and either retain the approved resolved
+configuration or identify a controlled immutable copy. APPROVED DIRECTION.
+
+`ARD-060` — A path alone MUST NOT be treated as immutable configuration
+identity because the file can change in place. APPROVED DIRECTION.
+
+### 20.10.2 Regression model
+
+Current internal regression infrastructure includes:
+
+- unit and integration tests;
+- safety-invariant tests;
+- packaged scenario matrix;
+- operational demo rebuild/freeze checks;
+- portfolio/security bundle generation and validation;
+- cross-format parity and determinism checks;
+- wheel/install smoke tests; and
+- the maintained 500x scale workflow.
+
+This is strong internal engineering evidence, not client accepted-case
+regression.
+
+`ARD-061` — Before an operationally relied-upon client upgrade, the new product
+and configuration SHOULD be run against a small approved set of client cases
+covering known explanations, unresolved results, Data Audit findings, and
+source-contract boundaries. APPROVED DIRECTION; CURRENT — REQUIRES CLIENT
+VALIDATION.
+
+`ARD-062` — Client regression cases MAY begin as immutable local input/config
+directories plus expected semantic outcomes and validated bundles. A database
+or cross-run history system is not required. CANDIDATE.
+
+`ARD-063` — Regression comparison MUST focus on semantic outcomes, calculations,
+statuses, findings, lineage, and contract versions. Volatile timestamps and
+permitted presentation-only differences MUST be excluded explicitly. APPROVED
+DIRECTION consistent with SN-11.
+
+`ARD-064` — A product, configuration, source-contract, or mapping change that
+alters an accepted semantic outcome MUST produce `Blocked` for operational use
+until the change is explained, approved, and the baseline is intentionally
+superseded. APPROVED DIRECTION.
+
+`ARD-065` — The absence of client regression cases during the first validation
+pilot MUST be disclosed. It may qualify a validation-purpose run; it cannot be
+silently treated as established operational regression coverage. APPROVED
+DIRECTION.
+
+## 20.11 Actionable remediation
+
+Each target readiness item should include:
+
+- stable check identifier and category;
+- disposition: Blocker, Qualification, or Information;
+- affected requested scope and snapshot;
+- dataset, file/path, field, transaction code, configuration key, or contract
+  reference as applicable;
+- concise observed condition;
+- why it matters;
+- required evidence or correction;
+- responsible owner role;
+- exact next validation action; and
+- status after correction only when deterministic.
+
+`ARD-066` — Remediation MUST tell the operator what to change or obtain and who
+owns the decision. “Contact support” alone is insufficient when the repository
+can identify a source, policy, configuration, or infrastructure owner.
+APPROVED DIRECTION.
+
+`ARD-067` — Remediation MUST NOT recommend weakening a safety invariant,
+disabling ambiguous-flow enforcement without reviewed evidence, suppressing an
+unknown field, or widening a tolerance merely to obtain a pass. CURRENT —
+DOCUMENTED doctrine.
+
+`ARD-068` — When multiple remedies are safe, the product SHOULD present the
+least expansive correction first—for example, add the required context, narrow
+the requested scope, or keep an unsupported item review-only. CANDIDATE.
+
+`ARD-069` — Error output SHOULD avoid unnecessarily echoing sensitive row
+values. Stable identifiers, paths, fields, counts, and locally inspectable
+details should normally be enough for first-line support. APPROVED DIRECTION.
+
+## 20.12 Reviewer-facing and machine-readable outputs
+
+### 20.12.1 Current output
+
+Current `validate_config` provides a console pass/fail result and, on success,
+prints snapshot paths, configured/minimum datasets, required columns, missing
+optional files, configured impact methods, transaction-rule count, contract
+context, observed transaction codes, codes without YAML rules, and semantic
+source counts.
+
+`ARD-070` — This current output is CURRENT — DEMONSTRATED and useful for
+maintainers, but it is not a durable readiness decision or complete client
+handoff.
+
+### 20.12.2 Target output
+
+The minimum target output is:
+
+1. overall status and declared intended use;
+2. requested and evaluated scope;
+3. bound snapshot/configuration/product/contract identity;
+4. required-check summary;
+5. qualifications and their exact interpretation limits;
+6. blockers ordered by responsible owner and dependency;
+7. informational coverage summary;
+8. remediation and rerun instruction;
+9. downstream gates that remain; and
+10. creation time plus invalidation conditions.
+
+`ARD-071` — Human-readable and machine-readable readiness outputs MUST derive
+from one validated result model. APPROVED DIRECTION under the same parity
+doctrine as report outputs.
+
+`ARD-072` — The initial machine-readable artifact SHOULD be a small local
+versioned JSON object or equivalent embedded in the eventual evidence pack. It
+MUST NOT require a database, hosted service, or human-workflow platform.
+APPROVED DIRECTION.
+
+`ARD-073` — A `Blocked` preflight MAY be retained locally for troubleshooting,
+but it MUST be clearly separated from a successful audit evidence pack and
+must not imply that reports were generated. APPROVED DIRECTION.
+
+## 20.13 Status transitions and re-evaluation
+
+Readiness is recalculated, not manually closed:
+
+```text
+Blocked
+  -> correct required input/policy/environment
+  -> rerun preflight
+  -> Ready or Qualified Ready
+
+Qualified Ready
+  -> add optional evidence or safely narrow interpretation
+  -> rerun preflight
+  -> Ready or remain Qualified Ready
+
+Ready / Qualified Ready
+  -> bound input, contract, configuration, version, or scope changes
+  -> Invalidated
+  -> rerun preflight
+```
+
+`ARD-074` — `Invalidated` is a lifecycle condition, not a fourth readiness
+status. An invalidated result cannot authorize a run until reevaluated.
+CANDIDATE.
+
+`ARD-075` — Readiness transitions MUST NOT change Phase 3A analytical status,
+Phase 3B issue results, or future human workflow status. APPROVED DIRECTION.
+
+`ARD-076` — Manual comments, assignments, approvals, and closure remain outside
+the initial readiness object except for a minimal external approval reference.
+The deferred workflow decision remains unchanged.
+
+## 20.14 Failure behavior and edge cases
+
+| Condition | Readiness treatment | Current/target status |
+|---|---|---|
+| Missing required performance file | Blocked | CURRENT — DEMONSTRATED |
+| Missing reconstruction-required holdings or transactions | Blocked | CURRENT — DEMONSTRATED |
+| Missing configured optional file | Information today; Qualification only when the target can establish a limitation | CURRENT — DEMONSTRATED listing; CANDIDATE status |
+| Optional file exists but has invalid required columns | Blocked for its configured contribution; narrow scope only if explicitly safe | CURRENT — DOCUMENTED |
+| Duplicate YAML key | Blocked | CURRENT — DEMONSTRATED |
+| Unsupported/malformed reconstruction policy | Blocked | CURRENT — DEMONSTRATED |
+| Unknown changed field or missing required impact policy | Blocked | CURRENT — DEMONSTRATED |
+| Diagnostic incomplete-YAML option | Diagnostic Only; never Ready | CURRENT — DOCUMENTED |
+| Ambiguous flow codes without contract context | Blocked | CURRENT — DEMONSTRATED |
+| Reviewed ambiguous-flow opt-out | Requires approval reference; ready only within declared risk boundary | APPROVED DIRECTION |
+| Safe unmatched/ambiguous transaction identity | Qualification or later review evidence when formula ownership remains safe | CURRENT — DOCUMENTED behavior; CANDIDATE readiness wording |
+| Unsafe currency/unit/FX basis | Blocked | CURRENT — DEMONSTRATED |
+| Reversed/overlapping periods | Blocked | CURRENT — DEMONSTRATED |
+| Continuity mismatch | Nonblocking mandatory review finding | CURRENT — DEMONSTRATED |
+| No reported performance changes | May still be Ready; report/data-quality result may simply be clean | CURRENT — DOCUMENTED |
+| A and B resolve to the same files or content | Block unless an explicit validation purpose makes this intentional | CANDIDATE |
+| Requested security report lacks security data | Block requested scope or obtain authorization to narrow to portfolio | APPROVED DIRECTION |
+| Estimated output risk | Qualification or blocker based on declared hard boundary; generation limit remains final | CANDIDATE |
+| Review table exceeds 100,000 rows | Generation blocks and writes no files for that report | CURRENT — DEMONSTRATED |
+| Output destination unwritable or insufficient | Block before writing when detectable | CANDIDATE preflight; current write failure remains possible |
+| Internal arithmetic/lineage/parity/determinism failure | Not a readiness qualification; run/bundle invalid | CURRENT — DOCUMENTED |
+| Product/config changed since readiness | Invalidate and rerun | APPROVED DIRECTION |
+| Client accepted-case regression differs | Block operational use pending review | APPROVED DIRECTION |
+
+`ARD-077` — Narrowing scope is a new request, not a waiver. The readiness
+output MUST show the original blocker and the newly authorized scope.
+APPROVED DIRECTION.
+
+`ARD-078` — If identical or apparently stale snapshots are intentionally used
+for a clean baseline test, the purpose and expected zero-change behavior SHOULD
+be explicit. CANDIDATE.
+
+## 20.15 Lineage, audit trail, and safety invariants
+
+`ARD-079` — Every readiness item SHOULD trace to the evaluated configuration
+key, contract clause, source file/header, normalized validation, regression
+case, or runtime condition that produced it. CANDIDATE.
+
+`ARD-080` — The readiness result MUST preserve the distinction among:
+
+- source-contract error;
+- configuration/policy error;
+- optional evidence limitation;
+- visible review finding;
+- internal logic failure; and
+- downstream output failure.
+
+APPROVED DIRECTION.
+
+`ARD-081` — Phase 3C directly inherits:
+
+| Invariant | Readiness implication |
+|---|---|
+| SN-01 No lost differences | Diagnostic bypass cannot authorize omission of an observed unclassified change |
+| SN-02 No double counting | Readiness cannot approve ambiguous effect ownership |
+| SN-03 Fully Explained arithmetic | Readiness does not predeclare explanation success; downstream reconciliation remains mandatory |
+| SN-04 Continuity | Continuity remains mandatory and visible, not a disabling option |
+| SN-05 Bidirectional lineage | A successful pack still requires complete lineage |
+| SN-06 Currency/unit consistency | Unsafe monetary basis blocks |
+| SN-07 Period-boundary safety | Reversed/overlapping or ambiguous periods block |
+| SN-08/09 Demo contracts | Internal fixture readiness cannot become client compatibility evidence |
+| SN-10 Report parity | Readiness cannot authorize inconsistent output meanings |
+| SN-11 Deterministic output | Bound content and semantic regression exclude declared volatility only |
+| SN-12 Fail-closed policy | Unknown required role, semantics, or impact policy blocks |
+
+CURRENT — DOCUMENTED product contract.
+
+`ARD-082` — A Phase 3C implementation change is unacceptable if it converts a
+current blocker to qualification without explicit product approval and evidence
+that safety is preserved. APPROVED DIRECTION.
+
+## 20.16 Scale and performance
+
+Current `validate_config` executes a real comparison, so it can detect
+data-dependent policy gaps but may approach audit processing cost. The report
+then repeats some work and adds output-specific gates.
+
+`ARD-083` — Preflight performance MUST be measured separately for static
+validation, source loading, data-dependent checks, and output-risk assessment.
+CANDIDATE.
+
+`ARD-084` — Cheap required source, currency, period, policy, and integrity
+checks SHOULD remain enabled in ordinary production operation. Redundant
+full-artifact reparsing and similarly expensive independent checks MAY remain
+in test/release gates when production cost is material. CURRENT — DOCUMENTED
+project doctrine.
+
+`ARD-085` — Readiness MUST fail safely rather than sample away a required
+condition merely to meet a runtime target. APPROVED DIRECTION.
+
+`ARD-086` — Large-site validation SHOULD report row counts by dataset,
+comparison scope, missing optional files, issue counts by readiness category,
+elapsed time, and estimated review-output amplification. CANDIDATE.
+
+`ARD-087` — Major readiness, reporting, financial-integrity, or cross-cutting
+changes remain subject to the maintained 500x release-candidate scale check.
+CURRENT — DOCUMENTED.
+
+## 20.17 Local-first, security, privacy, and support
+
+`ARD-088` — All snapshot inspection, configuration resolution, contract
+evaluation, fingerprinting, regression comparison, and readiness output MUST
+execute and remain inside the client-controlled environment during ordinary
+operation. APPROVED DIRECTION.
+
+`ARD-089` — Audit Readiness MUST NOT require hosted portfolio-data processing,
+remote rule execution, or routine evidence upload. OUT OF SCOPE.
+
+`ARD-090` — Product/version update checks, if later added, MAY exchange only
+explicitly approved non-portfolio metadata. Exact entitlement, update,
+connectivity, and offline-grace fields remain OPEN DECISION.
+
+`ARD-091` — A readiness output intended for support SHOULD separate
+non-sensitive environment/version/check metadata from portfolio identifiers,
+paths, values, and business policy. Any transfer remains explicit and
+client-authorized. APPROVED DIRECTION.
+
+`ARD-092` — Readiness does not grant file or report access. Client operating-
+system permissions and governance remain the current access boundary; built-in
+role-based authorization is not current. CURRENT — DOCUMENTED.
+
+## 20.18 Acceptance criteria
+
+Phase 3C is functionally acceptable only when all applicable criteria pass:
+
+1. **Bound request:** purpose, scope, snapshots, outputs, configuration,
+   contract, and product context are explicit.
+2. **Status:** Ready, Qualified Ready, and Blocked follow one deterministic
+   precedence; Diagnostic Only cannot masquerade as ready.
+3. **Required evidence:** structural and conditional requirements block when
+   absent.
+4. **Optional evidence:** safe limitations are distinguished from irrelevant
+   omissions and unsafe gaps.
+5. **Source contract:** extract shape, provenance, context, approval reference,
+   and limitations are visible without claiming universal vendor behavior.
+6. **Configuration:** syntax, structure, observed-case policy, selected method,
+   and approval completeness are distinct.
+7. **Semantics:** unknown fields and unsafe transaction meaning fail closed;
+   review-only quarantine remains available when safe.
+8. **Financial integrity:** currency/unit, FX, period, and reconstruction
+   preconditions remain enforced.
+9. **Requested output:** portfolio/security scope and output formats are
+   evaluated separately; later report/bundle gates remain active.
+10. **Remediation:** each blocker/qualification identifies why, owner, evidence,
+    correction, and recheck path.
+11. **Provenance:** product and contract versions plus configuration/content
+    identity make the decision reproducible.
+12. **Regression:** operational upgrades compare accepted semantic outcomes;
+    first-pilot absence is disclosed.
+13. **Outputs:** human and machine readiness views agree and remain local.
+14. **Invalidation:** material changes force reevaluation.
+15. **Claims:** readiness is safe-to-proceed evidence, not correctness,
+    completeness, assurance, or production certification.
+
+Current technical controls demonstrate substantial parts of criteria 3, 6–9,
+and 13 within the packaged scope. Unified statuses, optional-evidence impact,
+approval references, complete provenance, and client regression remain
+APPROVED DIRECTION, CANDIDATE, or CURRENT — REQUIRES CLIENT VALIDATION.
+
+## 20.19 Dependencies and approved working assumptions
+
+### Dependencies
+
+- founder-approved Phase 2 actors, decision rights, and exception paths;
+- founder-approved Phase 3A input, policy, attribution, and failure boundaries;
+- founder-approved Phase 3B rule configuration and integrated placement;
+- current source-data contract, field-role registry, transaction-semantics
+  matrix, extract-contract templates, and site-readiness checklist;
+- current configuration validator, source loaders, financial-integrity checks,
+  output guardrails, safety invariants, and bundle contract;
+- client source, methodology, technology, and approval owners; and
+- accepted client regression cases only after validation creates them.
+
+### Founder-approved working assumptions
+
+The founder approved these six working assumptions on 2026-07-16:
+
+1. **Status model:** use `Ready`, `Qualified Ready`, and `Blocked` with the
+   precedence in `ARD-008`, while keeping `Diagnostic Only` outside the
+   readiness statuses.
+2. **Operator surface:** expose one readiness engine both as an explicit
+   no-report preflight and automatically at the start of `ppar audit`. Exact
+   command naming remains implementation design.
+3. **Readiness artifact:** create a small local versioned machine-readable
+   summary and include the successful result in the eventual evidence pack;
+   do not add a database.
+4. **Approval provenance:** record a reference to the client's existing
+   approval/change-control record plus role/date/fingerprint rather than
+   building PPAR workflow.
+5. **Version and configuration binding:** add installed product version,
+   relevant contract versions, and resolved configuration/content fingerprints
+   to readiness and run provenance.
+6. **Intended-use distinction:** distinguish controlled validation from
+   operational review so absence of client regression/approval evidence can
+   qualify a validation run but block operational reliance.
+
+These decisions add a bounded preflight record, not the deferred comments,
+assignment, case-management, or cross-run history infrastructure.
+
+## 20.20 Real-client validation plan
+
+### Stage 1 — Source and approval discovery
+
+- identify Axys/APX version, report/export tool, extract procedure, dataset
+  inventory, and accountable owners;
+- classify each field/file as structurally required, conditionally required,
+  optional limiting, or optional nonlimiting for the selected case;
+- document source, methodology, technology, and approval responsibilities;
+- identify the client's existing change-control reference mechanism;
+- run current validation and compare its output with the client's expectation.
+
+**Exit evidence:** approved pilot request and source/extract contract with no
+guessed semantics.
+
+### Stage 2 — Known readiness cases
+
+- run known-good inputs;
+- remove or corrupt required files/columns;
+- remove optional evidence;
+- introduce unknown fields, ambiguous flow context, currency/unit conflicts,
+  period overlap, incomplete policy, and output-scope mismatches;
+- verify status precedence and remediation ownership;
+- confirm Diagnostic Only never becomes ready.
+
+**Exit evidence:** labeled Ready, Qualified Ready, and Blocked cases that source
+and methodology owners agree are correctly classified.
+
+### Stage 3 — Independent operator remediation
+
+- have a client operator run preflight without founder guidance;
+- measure time to identify and route each issue;
+- have the proper owner correct or approve the condition;
+- rerun and verify deterministic status transition;
+- confirm sensitive data remains local during support.
+
+**Exit evidence:** another authorized operator can reach a correct readiness
+decision and remediation path using bounded support.
+
+### Stage 4 — Change and regression validation
+
+- change extract schema, transaction family, configuration, product version,
+  and requested scope in controlled cases;
+- confirm prior readiness invalidates;
+- rerun accepted client cases and compare semantic outcomes;
+- test approval-reference and version/configuration provenance;
+- measure validation cost and false readiness classifications.
+
+**Exit evidence:** an evidence-supported client change-control procedure and
+decision on which provenance/regression fields are required for repeatability.
+
+## 20.21 Claims supported and not supported
+
+### Claims supported now, with qualification
+
+- PPAR currently validates substantial configuration, required-file, normalized
+  schema, transaction-context, accounting-role, policy, currency/unit, period,
+  and reconstruction conditions before or during audit processing.
+- The current validator reports resolved datasets, minimum required columns,
+  missing optional files, extract-contract context, and transaction semantic
+  coverage for the supplied snapshots.
+- Current audit generation retains fail-closed arithmetic, lineage,
+  report-size, parity, determinism, and bundle-validation gates.
+- The packaged configuration and demo matrix pass their current validators.
+
+Each claim remains CURRENT — REQUIRES CLIENT VALIDATION for a real site.
+
+### Claims not supported
+
+- that current validation is a completed unified readiness product;
+- that a passing config proves the client's extract is complete or policy is
+  correct;
+- that a pass covers fields or transaction families absent from the supplied
+  snapshots;
+- that missing optional evidence never limits explanation;
+- that current bundles embed the installed product version or complete
+  configuration snapshot/fingerprint;
+- that PPAR currently stores attributable contract/configuration approvals;
+- that internal demo/release regression equals client accepted-case regression;
+- that `Ready` guarantees a successful later report or fully explained result;
+- that `Qualified Ready` can waive a safety blocker;
+- that Audit Readiness provides independent assurance, certification,
+  production approval, regulatory compliance, or official-performance
+  correctness; or
+- that packaged Axys/APX readiness establishes universal Axys/APX
+  compatibility.
+
+## 20.22 Phase 3C approval and next gate
+
+Phase 3C was founder-approved on 2026-07-16 with the six working assumptions
+in Section 20.19. It defines the current technical baseline, approved readiness
+statuses, preflight layers, required/optional evidence model, remediation,
+source-contract approval boundary, configuration completeness,
+version/regression behavior, outputs, invalidation, acceptance criteria, and
+client-validation plan.
+
+That approval authorized Phase 3D drafting; it did not authorize application
+code changes or begin Phase 3E.
+
+---
+
+# 21. Phase 3D — Executive Investigation Summary
+
+## 21.1 Specification identity, purpose, and status
+
+**Capability:** Executive Investigation Summary
+
+**Primary user:** performance/operations manager or senior reviewer
+
+**Primary first-pilot surface:** the first view of every authoritative
+portfolio investigation report, with direct paths to analyst evidence
+
+**Overall status:** CURRENT — DEMONSTRATED and CURRENT — DOCUMENTED for the
+shared analytical tables, three reviewer surfaces, derived triage/supporting
+tables, handoff metadata, and evidence-pack validation; CURRENT — REQUIRES
+CLIENT VALIDATION for comprehension and operating usefulness; APPROVED
+DIRECTION for the intended executive entry layer
+
+The Executive Investigation Summary answers:
+
+> What changed, how completely is it explained, what requires attention, what
+> should happen next, and where is the evidence—without asking management to
+> reconstruct the answer from technical tables?
+
+It is a communication and navigation layer over an authoritative investigation.
+It is not a second calculation, a workflow decision, a certification, a
+confidence score, or a replacement for detailed evidence.
+
+This section follows the `MUST`, `SHOULD`, and `MAY` meanings in Section 18.1.
+Requirement identifiers use `EIS` for Executive Investigation Summary.
+
+`EIS-001` — Every summary value, status, cause, finding, and action cue MUST be
+derived from the same validated result model as the detailed report. The
+summary MUST NOT recalculate performance independently. APPROVED DIRECTION.
+
+`EIS-002` — The summary MUST preserve the independent meanings of Audit
+Readiness, Performance Change Investigation, Performance Data Quality Audit,
+and any future human disposition. It MUST NOT collapse them into one opaque
+health or confidence score. APPROVED DIRECTION.
+
+`EIS-003` — The initial product MUST remain deterministic and local-first. A
+hosted service, database, generative narrative engine, reviewer-comment system,
+or cross-run history index is not required. APPROVED DIRECTION consistent with
+the founder-approved infrastructure boundary.
+
+## 21.2 User problem, actors, trigger, and authority
+
+### 21.2.1 User problem
+
+The current portfolio and security reports begin with `Performance
+Differences`, followed by `Performance Difference Causes` and `Data Audit
+Issues`. The bundle also contains useful derived tables such as
+`needs_review_summary.csv`, `portfolio_period_summary.csv`,
+`cause_summary.csv`, `impact_coverage.csv`, `context_evidence_summary.csv`, and
+`residual_status.csv`, plus compact `review_summary.json` handoff metadata.
+
+These are strong analytical and machine-handoff foundations, but they do not
+yet provide one concise management answer. A manager must currently infer:
+
+- whether any performance result remains partly explained or unexplained;
+- which individual changed periods are largest or highest priority;
+- which supported causes matter most within those periods;
+- whether independent Data Audit issues require attention;
+- which limitations prevent stronger interpretation;
+- what action belongs to which owner; and
+- which report row or supporting artifact proves each statement.
+
+`EIS-004` — The summary MUST reduce navigation effort without reducing evidence
+depth. Complete detail MUST remain available to authorized reviewers.
+APPROVED DIRECTION.
+
+`EIS-005` — The summary MUST not describe the current `review_summary.json` as
+an executive narrative. That file is compact review-handoff metadata containing
+entrypoints, source context, counts, transaction semantics, and artifact
+references. CURRENT — DEMONSTRATED.
+
+`EIS-006` — The summary MUST not describe the current HTML as already containing
+a separate first-screen `Problems` grid. Current implementation and generated
+artifacts begin with the shared `Performance Differences` table. A lower-level
+implementation-design statement to the contrary is superseded by executable
+and generated evidence. CURRENT — DEMONSTRATED correction.
+
+### 21.2.2 Actors and authority
+
+| Actor | Summary responsibility | Authority boundary |
+|---|---|---|
+| Performance/operations analyst | Validates scope, explanation status, cause interpretation, findings, and evidence navigation before reliance | Cannot rewrite calculated values or mark unresolved evidence as explained |
+| Performance/operations manager | Uses the first view to prioritize review and decide whether external use needs further approval | Cannot waive readiness, arithmetic, lineage, or source-contract blockers |
+| Methodology owner | Approves return method, impact treatment, materiality policy, and action language tied to methodology | Does not establish source completeness or official correctness merely by approving wording |
+| Source/extract owner | Resolves source, export, mapping, and missing-evidence actions named by the summary | Does not approve performance interpretation unless separately authorized |
+| Compliance/GIPS reviewer | Reviews claims, material unresolved items, and permitted external use where applicable | Does not turn PPAR output into independent assurance |
+| Local administrator | Generates, validates, retains, and securely distributes the local evidence pack | Does not approve analytical conclusions solely through technical access |
+| PPAR | Derives concise facts, statuses, priorities, action cues, and evidence references deterministically | Does not close investigations, approve official returns, or infer missing human judgment |
+
+`EIS-007` — Summary language MUST make product-calculated facts, client-approved
+policy, and human decisions distinguishable. APPROVED DIRECTION.
+
+`EIS-008` — A manager's use of the summary MUST NOT alter an analytical status
+or create a disposition record. Human comments, assignment, approval, closure,
+and reopening remain DEFERRED pending a serious business case and client
+validation. APPROVED DIRECTION.
+
+### 21.2.3 Trigger and preconditions
+
+The summary is generated only after:
+
+1. the declared audit request passes applicable readiness and runtime gates;
+2. source differences and Data Audit findings are calculated;
+3. canonical review tables reconcile;
+4. explanation, conservation, ownership, and lineage invariants pass; and
+5. the requested report/bundle can be validated.
+
+`EIS-009` — An authoritative summary MUST be generated as part of the same
+successful report-bundle transaction as its detailed evidence. It MUST NOT be
+published from partial or unvalidated intermediate files. APPROVED DIRECTION.
+
+`EIS-010` — A `Blocked` readiness result MUST not produce an authoritative
+investigation summary. A separately labeled diagnostic preflight record may
+exist, but it is not an investigation result. APPROVED DIRECTION.
+
+`EIS-011` — If summary derivation, cross-reference validation, or output parity
+fails, the evidence pack MUST fail rather than silently omit or stale the
+summary. APPROVED DIRECTION consistent with SN-10 and SN-11.
+
+## 21.3 Capability boundary and shared truth model
+
+### 21.3.1 One model, several presentations
+
+The target model is one versioned in-memory summary result derived from current
+validated tables. That result may render as:
+
+- the first section of the HTML report;
+- the first sheet of the XLSX workbook;
+- a small machine-readable summary artifact for CSV-only and integration use;
+  and
+- entrypoint and evidence-reference metadata in the bundle manifest/handoff.
+
+The three detailed analytical surfaces remain:
+
+1. `Performance Differences`;
+2. `Performance Difference Causes`; and
+3. `Data Audit Issues`.
+
+The Executive Investigation Summary is an entry layer over those surfaces, not
+a fourth source of analytical truth.
+
+`EIS-012` — HTML, XLSX, and machine-readable summary outputs MUST share the same
+canonical fields, values, statuses, ordering keys, and evidence references.
+Presentation-only differences MAY improve usability but MUST NOT change
+meaning. APPROVED DIRECTION.
+
+`EIS-013` — The summary SHOULD be assembled from already computed table caches
+or a shared result object. It SHOULD NOT fully reparse artifacts or repeat an
+expensive comparison merely to create presentation. CANDIDATE implementation
+design.
+
+`EIS-014` — Full-artifact reparsing and independent format comparison belong in
+tests and release-candidate validation when production cost would be material.
+Inexpensive reconciliation invariants MUST remain enabled in production.
+APPROVED DIRECTION consistent with project test-gate doctrine.
+
+### 21.3.2 Independent truth rails
+
+The summary must show at least these independent dimensions:
+
+| Dimension | Source truth | Permitted summary statement |
+|---|---|---|
+| Readiness/run validity | Phase 3C result and successful bundle gates | Evaluated scope and limitations; never a correctness certification |
+| Performance change | `Performance Differences` | Changed review units and exact per-unit explanation status |
+| Cause evidence | counted and supporting rows in `Performance Difference Causes` plus lineage | Largest eligible causes and their evidence role |
+| Data quality | `Data Audit Issues` and rule-execution coverage when available | Priority findings and coverage limitations; never automatic causation |
+| Human disposition | No current product layer | Not shown as calculated closure; future only if separately implemented |
+
+`EIS-015` — A `Fully Explained` performance result MUST NOT suppress or downgrade
+an independent Data Audit issue. A clean Data Audit result MUST NOT change a
+`Partly Explained` or `Unexplained` performance result. APPROVED DIRECTION.
+
+`EIS-016` — The initial summary MUST NOT create a single overall “passed,”
+“healthy,” or “complete” status. It SHOULD present separate performance and
+Data Audit attention statements, with readiness/run provenance separately.
+APPROVED DIRECTION.
+
+## 21.4 Content hierarchy
+
+### 21.4.1 Required first-view order
+
+The initial summary should use the following hierarchy:
+
+1. **Investigation identity and scope** — portfolio/security level, entities,
+   comparison snapshots, reporting span, intended use, and generated artifact.
+2. **Attention statements** — separate performance-explanation and Data Audit
+   outcomes, without a composite score.
+3. **Key counts** — changed review units by analytical status and Data Audit
+   items by supported priority/coverage category.
+4. **Priority performance changes** — the most important changed review units,
+   with performance difference, explained amount, residual, and status.
+5. **Largest supported causes** — cause families within the displayed review
+   unit, with basis and evidence role.
+6. **Unresolved and limited items** — residuals, withheld residuals, missing
+   inputs, evidence-only areas, ambiguous or unsupported interpretation, and
+   safe limitations.
+7. **Data Audit highlights** — independent findings and rule-coverage caveats.
+8. **Recommended actions** — deterministic, owner-routed next steps.
+9. **Evidence navigation** — stable links/references to detailed rows and
+   supporting artifacts.
+10. **Method, provenance, and limitations** — calculation basis, configuration
+    identity, product/contract versions, and claims boundary.
+
+`EIS-017` — The first screen/page SHOULD answer scope, attention, most important
+change, unresolved state, highest-priority Data Audit issue, and next action
+without requiring detailed-table reading. APPROVED DIRECTION; exact layout is
+CANDIDATE pending client comprehension testing.
+
+`EIS-018` — The first view MUST stay bounded. It MUST show complete counts and
+limitations even when it displays only a prioritized subset of rows. Full
+detail MUST remain one navigation step away. APPROVED DIRECTION.
+
+`EIS-019` — “No reportable performance differences” is permitted only when the
+canonical `Performance Differences` population is empty for the declared
+scope. It MUST NOT imply that Data Audit found no issue or that source-data is
+correct. APPROVED DIRECTION.
+
+`EIS-020` — “No Data Audit issues detected” is permitted only for rules that
+were actually evaluated over their declared eligible populations. Until
+rule-execution coverage is implemented, the summary MUST use narrower wording
+and disclose unavailable or insufficient rule evidence. APPROVED DIRECTION.
+
+### 21.4.2 Investigation identity and scope
+
+Required identity fields should include:
+
+- report title and stable bundle/run identity;
+- portfolio or security comparison level;
+- requested entities or an explicit all-configured-scope statement;
+- earliest and latest applicable period dates;
+- Snapshot A and Snapshot B labels/source context;
+- intended use: controlled validation or operational review;
+- output generation time;
+- installed PPAR and relevant contract versions when Phase 3C provenance is
+  implemented; and
+- resolved configuration/content fingerprint when implemented.
+
+`EIS-021` — Scope labels MUST distinguish the compared reporting span from
+individual affected periods. A minimum/maximum date range MUST NOT imply that
+every intervening period changed or was evaluated by every optional rule.
+APPROVED DIRECTION.
+
+`EIS-022` — Large entity populations MAY be summarized by count on the first
+view, but the exact included population MUST remain available in the validated
+evidence pack. APPROVED DIRECTION.
+
+## 21.5 Explanation completeness
+
+### 21.5.1 Definition
+
+Explanation completeness is evaluated separately for each canonical review
+unit: portfolio-period for portfolio reporting and security-period (with its
+declared return container) for security reporting.
+
+For a review unit:
+
+```text
+reported performance difference
+  = explained performance difference + unexplained difference
+```
+
+The corresponding Phase 3A statuses are:
+
+- **`Fully Explained`** — the explained difference reconciles to the reported
+  difference within fixed product precision and no unresolved owned amount
+  remains;
+- **`Partly Explained`** — some supported amount is explained and a reportable
+  unexplained amount remains; and
+- **`Unexplained`** — no supported owned cause explains the reportable change.
+
+`EIS-023` — The summary MUST reuse the exact Phase 3A arithmetic, precision,
+and status from the canonical performance table. It MUST NOT recompute the
+status from rounded display values. APPROVED DIRECTION.
+
+`EIS-024` — The initial summary MUST show status plus the full-precision
+explained and unexplained amounts available through the underlying contract.
+It MUST NOT add an explanation-completeness percentage. Founder-approved
+working assumption.
+
+`EIS-025` — A report-level explanation summary MUST use counts of review units
+by status. It MUST NOT sum or average return differences, explained amounts,
+or residuals across unrelated portfolios, securities, periods, currencies, or
+return containers. APPROVED DIRECTION.
+
+`EIS-026` — A rounded visual zero MUST NOT be labeled Fully Explained unless the
+unrounded canonical arithmetic satisfies the Phase 3A invariant. APPROVED
+DIRECTION.
+
+### 21.5.2 Withheld residuals and incomplete coverage
+
+Current supporting evidence can label a residual
+`withheld_partial_estimates` when coverage is incomplete or estimates may
+overlap. That status protects reviewers from treating an unsafe subtraction as
+an authoritative residual.
+
+`EIS-027` — When the authoritative review table has a valid unexplained amount,
+the summary MUST show it. When the applicable residual is withheld, the summary
+MUST say that it is withheld and why; it MUST NOT derive a replacement by
+subtracting a partial estimate total. APPROVED DIRECTION.
+
+`EIS-028` — `impact_coverage.csv`, `residual_status.csv`, and
+`needs_review_summary.csv` are current supporting inputs for limitations and
+triage. They MUST NOT override the canonical `Performance Differences` status
+or become a second explanation calculation. CURRENT — DEMONSTRATED boundary.
+
+## 21.6 Priority performance changes
+
+Priority ordering inherits the founder-approved Phase 3A model:
+
+1. unresolved data-integrity or safety concern;
+2. `Unexplained` before `Partly Explained` before `Fully Explained`;
+3. client-approved operational materiality when configured;
+4. recurring or policy-ambiguous conditions when supported by evidence;
+5. larger absolute performance difference within a comparable basis; and
+6. stable portfolio/security/date tie-breakers.
+
+`EIS-029` — Operational materiality MAY prioritize a reportable item but MUST
+NOT suppress it or change explanation arithmetic. APPROVED DIRECTION.
+
+`EIS-030` — Until client-approved materiality exists, the summary MUST avoid
+calling an item “material.” It MAY use “largest” for a transparently defined
+absolute magnitude within comparable review units. APPROVED DIRECTION.
+
+`EIS-031` — A bounded first view SHOULD display the highest-priority review
+units and the number not shown. The default row limit is CANDIDATE and must be
+tested with real reviewers; it is not a financial threshold.
+
+`EIS-032` — Stable ordering MUST be deterministic across HTML, XLSX, and
+machine-readable output. APPROVED DIRECTION.
+
+## 21.7 Largest supported causes
+
+### 21.7.1 Eligibility
+
+A cause is eligible for an executive “largest supported causes” statement only
+when:
+
+- it belongs to the displayed review unit;
+- its economic effect is owned once under the Phase 3A model;
+- it is counted in the canonical explained amount or explicitly labeled as
+  non-additive support;
+- its impact basis is compatible with the review unit;
+- its lineage resolves to source or derived formula evidence; and
+- any confidence/coverage limitation remains visible.
+
+`EIS-033` — Cause ranking MUST use authoritative counted cause rows or a
+validated aggregation over them. It MUST NOT rank raw input-value differences,
+context rows, cross-checks, Data Audit findings, or overlapping candidate
+estimates as though they were additive return causes. APPROVED DIRECTION.
+
+`EIS-034` — Causes MAY be aggregated into approved cause families within one
+review unit only when all included effects share compatible units, sign
+convention, impact basis, and ownership. APPROVED DIRECTION.
+
+`EIS-035` — The initial product MUST NOT total a cause family across unrelated
+periods or portfolios for the executive summary. Cross-run and trend analysis
+belongs to Phase 3E and remains gated. APPROVED DIRECTION.
+
+`EIS-036` — A “largest cause” row SHOULD show cause family, signed explained
+impact, plain-language effect, basis/method, and evidence reference. If the
+effect is review-only or evidence-only, the wording MUST say so and omit it
+from the additive ranking. APPROVED DIRECTION.
+
+### 21.7.2 Current table boundary
+
+Current `cause_summary.csv` groups period-level cause areas and exposes
+estimated return impact, impact basis, confidence, representative codes, and a
+message. Current `Performance Difference Causes` is the reviewer-facing cause
+surface whose counted rows reconcile to the displayed explanation.
+
+`EIS-037` — `cause_summary.csv` is a useful current foundation, but it MUST NOT
+be promoted unchanged as the executive largest-cause model until eligibility,
+aggregation, and parity with the canonical explained amount are explicitly
+validated. CANDIDATE.
+
+`EIS-038` — If no eligible quantified cause exists, the summary MUST say
+“No supported quantified cause” or equivalent. It MUST NOT promote a possible
+cause merely to avoid an empty section. APPROVED DIRECTION.
+
+## 21.8 Unresolved items and limitations
+
+The summary should distinguish:
+
+- valid unexplained amount;
+- partly explained amount;
+- withheld residual because estimates are incomplete or overlapping;
+- missing impact input;
+- evidence-only cause area;
+- review-only context;
+- ambiguous or unsupported transaction meaning;
+- Data Audit issue requiring independent review;
+- unavailable or insufficient optional rule evidence;
+- readiness or provenance qualification retained with an otherwise successful
+  validation-purpose run; and
+- downstream limitation on claims or external use.
+
+`EIS-039` — Each unresolved item MUST state the affected review unit or scope,
+the limitation type, why it matters, the responsible owner role, the next safe
+action, and an evidence reference. APPROVED DIRECTION.
+
+`EIS-040` — The summary MUST preserve “unknown,” “not evaluated,” “withheld,”
+and “unexplained” as distinct conditions. It MUST NOT render any of them as
+zero, clean, or not applicable without evidence. APPROVED DIRECTION.
+
+`EIS-041` — Suppressed findings MUST remain in the complete audit trail and
+summary counts/provenance where contractually required. A suppression MUST NOT
+make a material unresolved condition disappear from management visibility.
+APPROVED DIRECTION; precise suppression-summary policy is CURRENT — REQUIRES
+CLIENT VALIDATION.
+
+## 21.9 Data Audit highlights
+
+Data Audit highlights are an independent section sourced from `Data Audit
+Issues` and, when implemented, Phase 3B rule-execution coverage. The first-pilot
+priority model reuses Phase 3A's approved operational prioritization rather
+than creating a separate score.
+
+`EIS-042` — The summary MUST label Data Audit rows as findings or review issues,
+not proven errors and not performance causes. APPROVED DIRECTION.
+
+`EIS-043` — A mandatory continuity finding and any client-prioritized integrity
+issue MUST remain visible even when every performance difference is Fully
+Explained. APPROVED DIRECTION.
+
+`EIS-044` — The summary SHOULD show check/rule identity, snapshot, affected
+portfolio/security/date scope, observed relationship, priority basis, and
+evidence link for each highlighted issue. APPROVED DIRECTION.
+
+`EIS-045` — Current `x_ref_issues.csv` may contain multiple affected rows for a
+shared condition. Until a validated stable issue-group identifier exists, the
+summary MUST describe row counts and affected entities; it MUST NOT claim a
+precise number of independent incidents. APPROVED DIRECTION.
+
+`EIS-046` — The absence of an optional dataset, insufficient peer population,
+or disabled rule MUST qualify coverage rather than appear as “no issue.”
+APPROVED DIRECTION inherited from Phase 3B.
+
+## 21.10 Recommended actions
+
+Initial actions should be deterministic templates selected from calculated
+conditions and routed to an owner role. Examples include:
+
+- review a named unexplained period and linked source detail;
+- complete or approve a named attribution/configuration input;
+- obtain missing source or transaction context from the extract owner;
+- review a Data Audit finding in the source system;
+- validate a low-confidence or evidence-only area before relying on totals;
+- narrow requested scope safely and rerun;
+- retain the current result with an explicit limitation; or
+- escalate a methodology or external-use decision to the authorized owner.
+
+`EIS-047` — Recommended actions MUST be traceable to a calculated status,
+finding, limitation, or approved policy. The product MUST NOT invent a business
+decision or recommend altering source records without human validation.
+APPROVED DIRECTION.
+
+`EIS-048` — Action ordering SHOULD follow dependency and owner: safety/source
+contract first, then methodology/configuration, then analytical review, then
+external-use decision. APPROVED DIRECTION.
+
+`EIS-049` — Current deterministic `suggested_next_step` cues in
+`needs_review_summary.csv` are a useful foundation. They require client
+language testing and broader condition coverage before they can serve as the
+complete executive action model. CURRENT — DEMONSTRATED; CURRENT — REQUIRES
+CLIENT VALIDATION.
+
+`EIS-050` — The initial summary MUST NOT contain editable comments, assignment,
+approval, due-date, or closure fields. Those features remain DEFERRED and would
+require a separately justified workflow design. APPROVED DIRECTION.
+
+## 21.11 Evidence links and bidirectional lineage
+
+Every displayed review item should carry a stable evidence target appropriate
+to its output format:
+
+- **HTML:** a local relative anchor to the exact detailed row or the smallest
+  applicable detailed section;
+- **XLSX:** an internal hyperlink to the exact sheet/row when stable, otherwise
+  to the filtered detail sheet with the review key visible;
+- **machine-readable output:** artifact name, stable review key, row/finding
+  fingerprint where applicable, and relationship type; and
+- **supporting bundle:** relative artifact paths only, never a hosted link.
+
+`EIS-051` — A summary fact MUST trace backward to its canonical review row and,
+for causes or findings, to source/derived lineage. Detailed evidence SHOULD
+trace forward to the summary item when it was promoted. APPROVED DIRECTION.
+
+`EIS-052` — Evidence references MUST use stable keys or fingerprints, not row
+position alone. Sorting, pagination, or presentation changes MUST NOT silently
+retarget a link. APPROVED DIRECTION.
+
+`EIS-053` — Links MUST remain local and portable within the validated bundle.
+They MUST NOT expose absolute workstation paths, require network access, or
+send portfolio data outside the client-controlled environment. APPROVED
+DIRECTION.
+
+`EIS-054` — A broken required summary-to-detail reference MUST invalidate the
+authoritative bundle. CANDIDATE implementation; required by the existing
+lineage and bundle-integrity doctrine.
+
+## 21.12 Management and analyst views
+
+### 21.12.1 One progressive summary
+
+The initial product should provide one progressive summary rather than separate
+management and analyst report packages:
+
+- management sees concise identity, attention statements, key counts, priority
+  items, actions, and limitations first;
+- analysts use the same summary to open exact calculation and evidence detail;
+  and
+- both audiences see the same numbers, statuses, and ordering.
+
+`EIS-055` — The initial distinction between management and analyst use MUST be
+progressive disclosure over one validated result, not separate calculations or
+independently editable narratives. APPROVED DIRECTION.
+
+`EIS-056` — The management first view MUST not hide uncertainty, Data Audit
+issues, coverage gaps, or claim limitations merely to appear concise.
+APPROVED DIRECTION.
+
+`EIS-057` — Separate role-based summary artifacts or permission-specific views
+are DEFERRED until client access needs and a serious business case justify the
+additional parity, distribution, and support burden.
+
+### 21.12.2 Analyst detail
+
+Analyst drilldown should expose:
+
+- canonical full-precision values and review keys;
+- calculation and impact basis;
+- counted versus supporting/evidence-only role;
+- residual and coverage status;
+- source and formula lineage;
+- Data Audit trigger/tolerance evidence;
+- configuration or contract reference; and
+- complete artifact references.
+
+`EIS-058` — Analyst detail MAY be more technical, but it MUST not introduce a
+different conclusion from the management first view. APPROVED DIRECTION.
+
+## 21.13 Portfolio and security behavior
+
+The founder-approved Phase 3A pilot scope requires a portfolio report for every
+pilot and uses the security report only when the investigation needs
+security-level drilldown.
+
+`EIS-059` — The portfolio summary MUST be the primary management view for the
+initial pilot. It MUST show portfolio-period outcomes even when a security
+report is also generated. APPROVED DIRECTION.
+
+`EIS-060` — A security summary MUST preserve the security report's declared
+return container and status semantics. It MUST NOT aggregate security returns
+or impacts into a portfolio conclusion unless an explicit validated method
+owns that aggregation. APPROVED DIRECTION.
+
+`EIS-061` — When both reports exist, each summary SHOULD link to the other at
+the bundle level while retaining its own scope and lineage. Shared Data Audit
+evidence MUST not be presented as two independent incidents merely because it
+appears in both report packages. APPROVED DIRECTION.
+
+`EIS-062` — Absence of a security report MUST be disclosed as scope, not treated
+as evidence that no security-level issue exists. APPROVED DIRECTION.
+
+## 21.14 Configuration and permissions
+
+### 21.14.1 Product-controlled behavior
+
+The following should be fixed or version-controlled product behavior initially:
+
+- content hierarchy and section meaning;
+- analytical status labels;
+- explanation arithmetic and precision;
+- cause eligibility and ownership rules;
+- independent Data Audit treatment;
+- deterministic tie-breakers;
+- required limitation language; and
+- summary/detail parity and lineage requirements.
+
+`EIS-063` — Client configuration MUST NOT redefine Fully Explained, cause
+ownership, residual arithmetic, or the distinction between cause and Data Audit
+evidence. APPROVED DIRECTION.
+
+### 21.14.2 Client-controlled behavior
+
+The client may eventually configure, under attributable approval:
+
+- operational-materiality thresholds and dimensions;
+- entity/scope selection;
+- permitted output formats;
+- approved rule enablement, filters, and tolerances;
+- report title and controlled business labels; and
+- local retention/distribution policy.
+
+`EIS-064` — A configured threshold MAY change priority or first-view inclusion,
+but every reportable item and complete audit-trail row MUST remain available.
+APPROVED DIRECTION.
+
+`EIS-065` — A presentation preference MUST NOT change machine-readable facts or
+remove a mandatory limitation. APPROVED DIRECTION.
+
+`EIS-066` — Summary configuration that affects interpretation MUST be retained
+with the run and bound to the Phase 3C configuration identity. APPROVED
+DIRECTION.
+
+## 21.15 Processing model
+
+The target derivation sequence is:
+
+1. receive the already validated canonical performance, cause, Data Audit,
+   coverage, triage, lineage, and provenance results;
+2. establish exact report scope and comparable review units;
+3. calculate per-unit attention keys without changing analytical values;
+4. select eligible causes and verify their sum/ownership against canonical
+   explanation data;
+5. select unresolved/limited items and Data Audit highlights independently;
+6. derive deterministic action cues and owner roles;
+7. create stable evidence references;
+8. render all requested formats from one summary result;
+9. validate semantic parity, links, counts, ordering, and required limitations;
+   and
+10. include the summary in bundle fingerprints and final validation.
+
+`EIS-067` — Summary derivation MUST be a pure, deterministic transformation of
+validated inputs plus approved configuration. Identical normalized inputs and
+configuration MUST produce identical semantic output aside from declared
+volatile metadata. APPROVED DIRECTION.
+
+`EIS-068` — The product MUST reconcile summary counts to canonical table
+populations and summary financial values to canonical rows before publication.
+APPROVED DIRECTION.
+
+`EIS-069` — A displayed subset MUST carry total population, displayed count,
+selection basis, and evidence path to the complete set. APPROVED DIRECTION.
+
+`EIS-070` — Recommended-action templates and attention statements MUST have
+stable identifiers or versioned vocabulary so client validation and regression
+can detect semantic changes. CANDIDATE.
+
+## 21.16 Machine-readable contract and outputs
+
+### 21.16.1 Minimum result shape
+
+The initial machine-readable summary should contain:
+
+- schema/version and bundle identity;
+- scope and provenance reference;
+- readiness/run-validity reference;
+- separate performance and Data Audit attention statements;
+- exact counts by analytical status and applicable Data Audit category;
+- ordered priority review-unit items;
+- eligible cause items and evidence roles;
+- unresolved/limitation items;
+- Data Audit highlight items and coverage limitations;
+- recommended actions with owner role and source condition;
+- evidence targets; and
+- claim/interpretation limitations.
+
+`EIS-071` — The machine-readable summary SHOULD be a small versioned JSON
+artifact or equivalent structured object included in the evidence pack. It
+MUST NOT require a database or persistent service. APPROVED DIRECTION.
+
+`EIS-072` — The exact schema is CANDIDATE implementation work. It MUST use typed
+numbers/dates, stable enums, explicit null/withheld semantics, and relative
+artifact references. CSV-only mode MAY additionally promote flat tables, but
+those tables MUST derive from the same object.
+
+`EIS-073` — Current `review_summary.json` SHOULD remain a compatible handoff
+foundation or be versioned deliberately. The executive summary MUST not
+silently repurpose version 1 fields with new meanings. APPROVED DIRECTION.
+
+### 21.16.2 Human-readable surfaces
+
+The target presentation is:
+
+- **HTML:** Executive Investigation Summary first, followed by the three
+  detailed analytical surfaces and any declared appendix detail;
+- **XLSX:** Executive Summary first, followed by the same three detailed
+  analytical sheets and any declared diagnostics; and
+- **CSV-only/integration:** structured executive summary plus the existing
+  canonical primary and supporting tables.
+
+`EIS-074` — Adding the entry layer MUST NOT remove or rename the three current
+primary analytical tables without a separately versioned contract change.
+APPROVED DIRECTION.
+
+`EIS-075` — The summary itself SHOULD be mandatory in every authoritative
+portfolio pilot bundle once implemented. Security summary generation follows
+the selected security-output scope. CANDIDATE pending founder approval and
+client validation.
+
+## 21.17 Failure behavior and edge cases
+
+| Condition | Required summary behavior |
+|---|---|
+| No reportable performance differences; no evaluated Data Audit rows | State the performance result narrowly; disclose Data Audit coverage rather than claim universal cleanliness |
+| No performance differences; Data Audit findings exist | Lead with no reportable performance difference and a separate Data Audit review-required statement |
+| Fully explained differences; Data Audit findings exist | Show Fully Explained counts and retain Data Audit highlights independently |
+| Partly explained or unexplained difference | Prioritize the affected review unit and show exact residual/status/action |
+| Residual withheld | State withheld and reason; do not calculate a replacement |
+| Causes exist but none is eligible for additive ranking | State no supported quantified cause; link review-only evidence separately |
+| Optional input absent | Show affected capability and coverage limitation; never convert absence to clean result |
+| Data Audit rule not evaluated | State not evaluated/unavailable/insufficient according to coverage evidence |
+| Very large review population | Show bounded priority subset, exact totals, and link to complete detail |
+| Equal priority/magnitude | Use stable entity/date/key tie-breakers |
+| Security detail unavailable | Disclose scope limitation; do not imply no security issue |
+| Broken link, count mismatch, parity drift, or stale summary | Fail authoritative bundle validation |
+| Diagnostic/incomplete-YAML run | Do not publish an authoritative executive investigation summary |
+
+`EIS-076` — Empty-state language MUST name what was evaluated and what was not.
+“No issues” without scope and coverage is prohibited. APPROVED DIRECTION.
+
+`EIS-077` — A summary MUST NOT present a report-generation failure as an
+analytical outcome. Failure diagnostics remain separate from validated result
+content. APPROVED DIRECTION.
+
+`EIS-078` — Unsupported character, long label, extreme magnitude, negative
+amount, missing optional description, or empty detail table MUST not break
+typed machine output or cause silent value truncation. CANDIDATE test contract.
+
+## 21.18 Scale, performance, local-first, and support
+
+`EIS-079` — Summary work SHOULD scale with canonical summary/review tables and
+selected highlights, not with repeated full-artifact parsing. CANDIDATE.
+
+`EIS-080` — First-view row limits MUST bound rendering cost but MUST NOT limit
+calculation, counts, validation, or retained evidence. APPROVED DIRECTION.
+
+`EIS-081` — The 500x scale check MUST remain in the release-candidate workflow
+after implementing this cross-cutting reporting layer. Any summary-specific
+latency/memory budget must be measured before a gate is established; existing
+gates MUST NOT be relaxed merely because the new layer fails. CURRENT project
+test-gate doctrine.
+
+`EIS-082` — Summary generation, viewing, evidence navigation, and validation
+MUST work without internet access inside the client-controlled environment.
+APPROVED DIRECTION.
+
+`EIS-083` — Support guidance SHOULD identify the local artifact, review key,
+condition ID, and version needed to diagnose a summary issue without requiring
+the client to transmit unrestricted portfolio data. APPROVED DIRECTION.
+
+`EIS-084` — Any future remote support transfer remains client-authorized and
+data-minimized. The summary feature MUST NOT add telemetry. APPROVED DIRECTION.
+
+## 21.19 Acceptance criteria
+
+Phase 3D is functionally acceptable only when all applicable criteria pass:
+
+1. **Shared truth:** all summary formats derive from the same validated model
+   as the detailed analytical surfaces.
+2. **Scope:** report level, entities, periods, snapshots, intended use, and
+   provenance are explicit.
+3. **Independent dimensions:** readiness/run validity, performance explanation,
+   Data Audit, and human disposition remain separate.
+4. **Explanation completeness:** per-unit status and exact amounts reuse Phase
+   3A arithmetic; no percentage is introduced.
+5. **Aggregation safety:** returns/residuals are not totaled or averaged across
+   incompatible review units.
+6. **Cause eligibility:** only owned, compatible, validated causes enter largest
+   supported-cause ranking; evidence-only and cross-check rows remain separate.
+7. **Unresolved truth:** unexplained, withheld, unknown, not evaluated, and
+   optional-limitation states remain distinct.
+8. **Data Audit:** findings remain independent of performance causation and
+   include honest rule-coverage boundaries.
+9. **Actions:** every recommended action is deterministic, owner-routed, and
+   traceable to a condition.
+10. **Navigation:** required evidence references resolve through stable keys or
+    fingerprints.
+11. **Views:** management and analyst presentations share facts and differ only
+    through progressive disclosure.
+12. **Formats:** HTML, XLSX, and machine output agree semantically.
+13. **Scale:** first-view rendering is bounded while complete evidence and
+    counts remain retained.
+14. **Local-first:** no hosted service, database, telemetry, or network is
+    required.
+15. **Failure:** summary mismatch or broken required lineage invalidates the
+    bundle.
+16. **Claims:** the summary communicates a validated investigation; it does not
+    certify official correctness, assurance, compliance, or closure.
+
+`EIS-085` — Client acceptance MUST include both management comprehension and
+analyst evidence-navigation testing. Internal semantic correctness alone is
+not sufficient to claim the signature experience works. CURRENT — REQUIRES
+CLIENT VALIDATION.
+
+## 21.20 Dependencies and open decisions
+
+### Dependencies
+
+- founder-approved Phase 2 actors, decision rights, workflows, and local-first
+  architecture;
+- founder-approved Phase 3A explanation arithmetic, status, materiality,
+  evidence, and portfolio/security scope;
+- founder-approved Phase 3B independent Data Audit model, rule configuration,
+  priority reuse, and coverage direction;
+- founder-approved Phase 3C readiness, provenance, intended-use, and versioned
+  local artifact direction;
+- current canonical review tables, supporting summaries, lineage, manifest,
+  review handoff, bundle validation, parity, and determinism controls; and
+- real-client examples of management questions, terminology comprehension,
+  materiality policy, evidence navigation, and acceptable action language.
+
+### Founder-approved Phase 3D working assumptions
+
+The founder approved these six working assumptions on 2026-07-16:
+
+1. **Entry-layer placement:** add the Executive Investigation Summary as the
+   first HTML section and first XLSX sheet, while preserving the three existing
+   analytical surfaces.
+2. **Audience model:** use one progressive summary for managers and analysts
+   rather than separate report packages or permissioned views.
+3. **Attention model:** show separate performance-explanation and Data Audit
+   attention statements; do not introduce a composite status, score, or
+   “passed” badge.
+4. **Cause ranking:** rank only eligible supported causes within a single
+   comparable review unit; prohibit cross-period or cross-portfolio cause
+   totals in Phase 3D.
+5. **Data Audit counting:** show affected row/entity counts and coverage until
+   a stable validated issue-group contract exists; do not call them incident
+   counts.
+6. **Narrative and actions:** use deterministic statements and action templates
+   only; defer editable notes, workflow, and generative narrative.
+
+These decisions add a bounded report-entry layer and a small structured result,
+not the deferred comments, assignment, case-management, or cross-run history
+infrastructure.
+
+## 21.21 Real-client validation plan
+
+### Stage 1 — Question and language discovery
+
+- observe how managers and analysts currently review restatements;
+- collect the first questions they ask and the evidence they trust;
+- test `Fully Explained`, `Partly Explained`, `Unexplained`, `withheld`, and
+  Data Audit language without coaching;
+- identify client-approved materiality and escalation owners; and
+- confirm which summary statements are safe for internal and external use.
+
+**Exit evidence:** approved first-view vocabulary, priority policy, and
+responsibility map.
+
+### Stage 2 — Labeled summary cases
+
+- generate clean/no-difference, Fully Explained, Partly Explained,
+  Unexplained, withheld-residual, evidence-only, and missing-input cases;
+- pair each with no Data Audit finding, independent finding, mandatory
+  continuity finding, and unavailable-rule evidence as applicable;
+- verify that management states the correct conclusion and limitation; and
+- verify that analysts reach the exact supporting row without founder help.
+
+**Exit evidence:** labeled semantic cases and comprehension results with no
+dimension conflation.
+
+### Stage 3 — Action and handoff testing
+
+- have a manager prioritize cases using the summary;
+- have the named owner follow each recommended action;
+- measure time to evidence, wrong-path navigation, and language ambiguity;
+- confirm deterministic action templates do not imply unauthorized correction;
+  and
+- test a rerun as a new result without adding workflow infrastructure.
+
+**Exit evidence:** another authorized operator can interpret, route, and
+evidence the investigation using bounded support.
+
+### Stage 4 — Scale, parity, and claims validation
+
+- test large entity/period populations and bounded first views;
+- validate HTML/XLSX/machine parity and all summary/detail links;
+- test version/configuration changes and accepted semantic regressions;
+- review claim language with the client's appropriate governance owner; and
+- run the maintained release-candidate and 500x workflows.
+
+**Exit evidence:** approved pilot summary contract, measured usability, stable
+performance, and defensible claims boundary.
+
+## 21.22 Claims supported, claims not supported, and next gate
+
+### Claims supported now, with qualification
+
+- PPAR currently generates shared HTML/XLSX reviewer surfaces for Performance
+  Differences, Performance Difference Causes, and Data Audit Issues.
+- Current bundles contain deterministic period-level triage, cause, coverage,
+  residual, context, lineage, manifest, and handoff artifacts.
+- Current primary performance tables show per-review-unit performance
+  difference, explained difference, unexplained difference, status, and
+  comments, subject to current method/configuration boundaries.
+- Current bundle validation protects required artifacts, typed content,
+  canonical review content, parity, and deterministic semantic output.
+
+These are CURRENT — DEMONSTRATED and CURRENT — DOCUMENTED foundations. Their
+usefulness and correctness on real client exports remain CURRENT — REQUIRES
+CLIENT VALIDATION.
+
+### Claims not supported
+
+- that the intended executive first-view experience is currently implemented;
+- that current `review_summary.json` is an executive narrative;
+- that current HTML begins with a separate `Problems` grid;
+- that a summary establishes official-performance correctness, independent
+  assurance, compliance, approval, or investigation closure;
+- that Fully Explained means source-data contains no independent quality issue;
+- that no displayed Data Audit row means every applicable rule was evaluated;
+- that cause estimates can be totaled safely across periods or portfolios;
+- that current artifacts support an explanation-completeness percentage,
+  composite health score, or confidence score;
+- that PPAR currently provides management/analyst access control, comments,
+  assignment, approval, or case workflow; or
+- that Phase 3D requires or authorizes cross-run history, dashboard, or
+  Operational Intelligence infrastructure.
+
+### Completion and next gate
+
+Phase 3D is complete as a **founder-approved functional specification**.
+It defines content hierarchy, explanation completeness, priority performance
+changes, largest supported causes, unresolved items, independent Data Audit
+highlights, deterministic actions, evidence links, progressive management and
+analyst use, shared calculation/table behavior, outputs, failures, scale,
+acceptance, and client validation.
+
+The founder approved Phase 3D on 2026-07-16 with the six working assumptions in
+Section 21.20. That approval authorized Phase 3E drafting; it did not authorize
+application-code changes or begin Phase 3F.
+
+---
+
+# 22. Phase 3E — Audit Health Dashboard and Operational Intelligence
+
+## 22.1 Phase outcome and design posture
+
+**Capability status:** APPROVED DIRECTION; implementation remains DEFERRED
+until recurring client use establishes a serious business case and validates
+the comparability model. This section is a draft functional specification for
+founder review, not authorization to implement history infrastructure.
+
+Phase 3E defines how PPAR Audit could use multiple retained, validated
+investigations to answer a management question:
+
+> Across comparable reporting cycles, where is reported performance changing,
+> what remains unresolved, and which operational patterns deserve attention?
+
+The dashboard is not a visualization over one workbook. It depends on a
+trustworthy local history of immutable investigations, declared source-state
+relationships, version/configuration provenance, and metric-specific
+comparability. Operational Intelligence is the evidence-backed pattern layer
+over that same history; it is not a separate causal-inference or BI product.
+
+`AHD-001` — Phase 3E MUST NOT be described as current product behavior. Current
+bundles provide strong per-run inputs, but PPAR has no persistent audit-history
+repository, source-state chain, cross-run comparability engine, or health
+dashboard. CURRENT — DOCUMENTED limitation.
+
+`AHD-002` — Phase 3E implementation MUST remain deferred until a validation
+partner demonstrates recurring use, retained comparable runs, a management
+decision improved by history, and willingness to govern the required local
+provenance. APPROVED DIRECTION.
+
+`AHD-003` — The dashboard MUST preserve separate dimensions for readiness/run
+validity, performance-change frequency, explanation status, unresolved work,
+Data Audit findings, and human disposition. It MUST NOT collapse them into one
+health score, confidence score, grade, traffic light, or pass/fail badge.
+APPROVED DIRECTION.
+
+## 22.2 User problem, value, and non-goals
+
+### 22.2.1 User problem
+
+A manager can review one investigation using Phase 3D, but repeated operation
+creates different questions:
+
+- Is the same portfolio or reporting period changing again?
+- Are unexplained outcomes becoming more or less common?
+- Which supported cause families recur across comparable investigations?
+- Which Data Audit checks repeatedly affect the evaluated population?
+- Is a perceived improvement real, or did scope, rules, configuration, or
+  optional evidence change?
+- Which current investigation should the team open first?
+
+Without a governed history model, teams may answer these questions with manual
+spreadsheets that double-count regenerated reports, mix incomparable methods,
+ignore rule-coverage changes, or mistake absence of evidence for improvement.
+
+### 22.2.2 Intended value
+
+Phase 3E should:
+
+- reduce manual compilation of recurring investigation results;
+- expose repeated change and unresolved patterns without hiding individual
+  evidence;
+- give managers a bounded view of current and historical review demand;
+- help analysts navigate from a pattern to the exact immutable investigation;
+- distinguish real observed change from coverage or comparability change; and
+- identify client-validated opportunities for process improvement or reusable
+  rules.
+
+### 22.2.3 Explicit non-goals
+
+Phase 3E is not:
+
+- proof that official performance is correct;
+- an independent assurance, compliance, GIPS, or control certification;
+- investment-performance, risk, or return-volatility analytics;
+- an employee, team, custodian, vendor, or portfolio “scorecard”;
+- a cross-client benchmark or PPAR-hosted data network;
+- a generic BI platform, data warehouse, or ticketing system;
+- a prediction of future errors;
+- a substitute for Phase 3D investigation detail;
+- a license to aggregate unlike returns, residuals, or cause amounts; or
+- evidence that a recurring association is the organizational root cause.
+
+`AHD-004` — “Health” MUST mean disclosed descriptive evidence about the
+performance-review process within an explicit client-controlled population. It
+MUST NOT imply medicalized diagnosis, certification, or a universal quality
+standard. APPROVED DIRECTION.
+
+## 22.3 Current foundation and prerequisite gaps
+
+| Foundation or gap | Current truth | Phase 3E implication |
+|---|---|---|
+| Immutable per-run evidence packs | Manifest v4, canonical tables, review keys, lineage, and normalized bundle fingerprints are current | Reuse as the authoritative evidence source; do not copy or mutate their facts |
+| Per-run analytical results | Performance Differences, causes, residual/status, Data Audit Issues, coverage, and triage are current | History facts must derive from these canonical results |
+| Bundle determinism and parity | Current safety controls validate semantic output across formats | History/dashboard output must inherit equivalent parity and determinism controls |
+| Product version in bundle | Not current | Required before authoritative cross-version history |
+| Resolved configuration fingerprint | Not current | Required for comparability and interpretation |
+| Source-state identity/relationship | Snapshot labels and extract context exist, but an authoritative A-to-B-to-C chain is not current | Required to distinguish repeated restatement from report regeneration |
+| Unified readiness artifact | Phase 3C approved direction, not current | Operational history should bind to the readiness result once implemented |
+| Executive summary object | Phase 3D approved direction, not current | Preferred compact ingestion surface when implemented |
+| Durable history/index | Not current | Conditional prerequisite; implementation remains deferred |
+| Human workflow/disposition | Not current | Resolution time, aging, closure, and owner-backlog metrics remain unavailable |
+| Real-client recurring-use evidence | Not available | Blocks product and claims validation |
+
+`AHD-005` — A normalized bundle fingerprint proves the recorded bundle
+semantics and supports deduplication; it is not a source-state identifier,
+configuration approval, or comparability decision. APPROVED DIRECTION.
+
+`AHD-006` — Existing bundles that lack required product, configuration, source-
+state, or intended-use provenance MAY be registered for discovery, but MUST be
+excluded from authoritative metrics whose interpretation requires the missing
+facts. CANDIDATE migration behavior.
+
+## 22.4 Actors and decision rights
+
+| Actor | Responsibility | May decide | Must not decide merely through access |
+|---|---|---|---|
+| Performance/operations analyst | Review patterns and open underlying investigations | Which evidence to investigate and what source/methodology question to raise | That frequency proves source error, blame, or official correction |
+| Performance/operations manager | Own dashboard purpose, review cadence, population, and escalation policy | Approved scope, history window, operational materiality, and action priority | To waive missing comparability or rewrite product facts |
+| Methodology owner | Govern return basis, material configuration semantics, and permitted cross-version comparison | Whether a method/configuration change preserves metric comparability | That administrative continuity proves methodological equivalence |
+| Source/extract administrator | Govern source-state identity, capture provenance, and export procedure | Whether state B succeeds state A and whether source identity is stable | Performance methodology or explanation status |
+| Local product administrator | Retain bundles, generate/index local history, validate artifacts, and manage access | Local paths, retention operations, approved software release, and job execution | Accounting meaning or business acceptance |
+| Compliance/GIPS reviewer | Review reliance, definitions, limitations, and retention under client policy | Applicable governance challenge and permitted use | Convert the dashboard into independent assurance |
+| Technology/security owner | Approve local storage, access, backup, and support boundary | Client-controlled deployment and distribution policy | Financial interpretation |
+| PPAR | Validate, deduplicate, classify metric eligibility, calculate descriptive measures, and link evidence | Deterministic product results under approved policy | Human closure, official correctness, blame, or source correction |
+
+`AHD-007` — Any manual inclusion, exclusion, identity mapping, or comparability
+override MUST be an attributable, versioned policy decision with a reason and
+approval reference. It MUST NOT modify an underlying bundle. APPROVED
+DIRECTION.
+
+`AHD-008` — PPAR-calculated historical facts MUST remain distinguishable from
+client-supplied classifications and future Phase 3F dispositions. APPROVED
+DIRECTION.
+
+## 22.5 History and metric terminology
+
+Phase 3E uses exact units to prevent denominator and double-counting errors:
+
+- **Evidence bundle:** one validated portfolio- or security-level report bundle
+  produced by one audit execution.
+- **Audit execution:** the local operation that may produce one portfolio
+  bundle, one security bundle, or both for the same source-state comparison.
+- **Source state:** a client-declared extract/capture state with stable identity,
+  capture/as-of provenance, and relationship to another state.
+- **State transition:** one declared comparison from source state A to source
+  state B. Snapshot B is not presumed correct or later unless provenance says
+  so.
+- **Review unit:** one compatible analytical grain, such as portfolio-period or
+  portfolio-security-period, identified by report level and stable entity/
+  period keys.
+- **Changed review unit:** a review unit with a reportable performance change
+  under the run's declared comparison contract.
+- **Observation:** one review unit's result for one validated state transition.
+- **Comparable series:** ordered observations eligible for one named metric
+  under an explicit comparability policy.
+- **Repeated change:** the same stable review unit changes again in a later
+  comparable state transition.
+- **Affected row/entity count:** the Phase 3D-approved Data Audit population
+  count; it is not an incident count.
+- **Dashboard generation:** a deterministic local result derived at an “as of”
+  time from a declared history/index version and filter policy.
+
+`AHD-009` — A regenerated bundle with identical normalized semantics MUST NOT
+be counted as a new source-state observation merely because its file path or
+creation timestamp differs. APPROVED DIRECTION.
+
+`AHD-010` — Portfolio and security bundles from the same audit execution MUST
+remain separate analytical levels. Shared source evidence or Data Audit rows
+MUST NOT be counted twice as independent operational events. APPROVED
+DIRECTION.
+
+`AHD-011` — “Restatement” SHOULD be used only when the client has established
+that a later source state changes a previously reported value. Otherwise the
+product MUST use the narrower term “observed performance change.” APPROVED
+DIRECTION.
+
+## 22.6 Conditional local history model
+
+### 22.6.1 Storage posture
+
+If the implementation gate is later satisfied, the initial history should use:
+
+1. immutable, client-retained evidence bundles as the authoritative facts;
+2. a small versioned local registry/index containing references and derived
+   facts needed for comparability and dashboard generation; and
+3. generated dashboard artifacts that can always identify their index version
+   and underlying bundle fingerprints.
+
+The registry may be JSON plus typed flat tables or an equivalent file-based
+contract. SQLite or another local database remains CANDIDATE only if measured
+volume, concurrency, query, locking, or recovery needs justify it. A hosted
+database is OUT OF SCOPE.
+
+`AHD-012` — The index MUST reference rather than replace authoritative bundles.
+Removing a dashboard or rebuilding an index MUST NOT remove or rewrite retained
+investigation evidence. APPROVED DIRECTION.
+
+`AHD-013` — Index creation and update MUST be atomic, versioned, recoverable,
+and deterministic. A partial index update MUST NOT publish a dashboard.
+CANDIDATE implementation contract.
+
+### 22.6.2 Minimum history record
+
+Each registered audit execution should carry or reference:
+
+- history schema version and local execution ID;
+- creation/import time and accountable local job/operator identity where
+  available;
+- portfolio and/or security bundle paths and normalized fingerprints;
+- manifest, review-summary, executive-summary, readiness, and history-contract
+  versions;
+- installed PPAR version and relevant rule/normalization/contract versions;
+- resolved configuration fingerprint and approved immutable reference;
+- readiness status, intended use, qualifications, and approval reference;
+- comparison level, requested/evaluated scope, return basis, currency/unit, and
+  tolerance/materiality policy identity;
+- source-state A/B IDs, capture/as-of provenance, and declared relationship;
+- stable portfolio/security/period identities and any approved identity-map
+  version;
+- per-review-unit performance difference, explained difference, residual or
+  withheld state, and analytical status;
+- eligible supported cause families and economic-effect ownership references;
+- Data Audit affected rows/entities, rule identity/version, and evaluation
+  coverage;
+- links to canonical evidence; and
+- future Phase 3F disposition references only when available.
+
+`AHD-014` — The history record MUST preserve typed values and stable enums. It
+MUST NOT scrape displayed HTML/XLSX text when a canonical machine-readable
+artifact is available. APPROVED DIRECTION.
+
+`AHD-015` — The index MUST retain the provenance and policy used when a fact was
+generated. A later configuration change MUST NOT retroactively reinterpret an
+old bundle as though it used the new policy. APPROVED DIRECTION.
+
+### 22.6.3 Ingestion and validation
+
+The target ingestion sequence is:
+
+1. locate a client-selected evidence bundle;
+2. validate required artifacts, manifest, fingerprints, lineage, and formats;
+3. bind readiness/intended-use and configuration/product provenance;
+4. identify the audit execution and source-state transition;
+5. reject or flag duplicate semantic observations;
+6. extract typed review-unit, cause, Data Audit, and coverage facts;
+7. classify eligibility independently for each metric family;
+8. write a new index version atomically; and
+9. validate indexed facts back to the immutable bundle.
+
+`AHD-016` — A bundle that fails current authoritative validation MUST NOT enter
+authoritative history. The failure is not a historical health observation.
+APPROVED DIRECTION.
+
+`AHD-017` — An imported legacy bundle MAY remain visible in an excluded/
+limited-history register with exact reasons. The dashboard MUST NOT silently
+discard it or silently treat missing provenance as comparable. CANDIDATE.
+
+## 22.7 Identity, sequence, and deduplication
+
+History requires three distinct identities:
+
+1. **bundle identity** — normalized semantic fingerprint and artifact reference;
+2. **audit-execution identity** — groups portfolio/security outputs produced for
+   one declared comparison; and
+3. **source-state identity** — identifies the client extract/reporting state
+   being compared.
+
+These identities must not be substituted for one another.
+
+`AHD-018` — The product MUST NOT infer source-state order from directory names,
+file modification time, import time, lexical Snapshot A/B labels, or manifest
+creation time. APPROVED DIRECTION inherited from `PCI-062`.
+
+`AHD-019` — One source-state transition may have multiple generated formats and
+report levels. Format copies are never new observations; report levels remain
+separate observations linked to the same transition. APPROVED DIRECTION.
+
+`AHD-020` — If the same bundle fingerprint is registered twice under different
+paths, the index MUST retain path/provenance information as needed but count the
+semantic observation once. CANDIDATE.
+
+`AHD-021` — If two different bundle fingerprints claim the same audit execution,
+level, scope, and source-state transition, ingestion MUST stop or retain an
+explicit versioned supersession relationship. It MUST NOT choose by timestamp.
+CANDIDATE.
+
+`AHD-022` — Entity renames, identifier changes, mergers, composite changes, or
+security identifier reuse require an approved identity mapping or break the
+series. Fuzzy name matching is prohibited. APPROVED DIRECTION.
+
+## 22.8 Metric-specific comparability contract
+
+A single global “comparable/not comparable” flag is too coarse. For example, a
+change in Data Audit rule coverage may invalidate a rule-frequency trend while
+leaving performance-change observations comparable. Phase 3E therefore uses
+metric-specific eligibility.
+
+### 22.8.1 Eligibility statuses
+
+- **`Eligible`** — all required dimensions are compatible for the named metric.
+- **`Limited`** — the metric remains interpretable only within an explicitly
+  narrowed population or coverage boundary.
+- **`Ineligible`** — a required identity, method, unit, provenance, or coverage
+  condition is incompatible or unknown.
+
+These are historical-metric eligibility statuses, not readiness, analytical,
+Data Audit, or workflow statuses.
+
+`AHD-023` — Each displayed metric MUST identify its eligibility rule, included
+population, excluded/limited population, window, denominator, and relevant
+policy versions. APPROVED DIRECTION.
+
+### 22.8.2 Comparability dimensions
+
+| Dimension | Performance-change metrics | Explanation metrics | Cause metrics | Data Audit metrics |
+|---|---|---|---|---|
+| Stable entity and period identity | Required | Required | Required | Required at the rule's grain |
+| Declared source-state sequence | Required for recurrence | Required for trend | Required for recurrence | Required for trend |
+| Portfolio/security report level | Must remain separate | Must remain separate | Must remain separate | Shared rows require deduplication |
+| Return basis, currency, and unit | Required | Required | Required for amount interpretation | Required when rule meaning depends on them |
+| Comparison and arithmetic policy | Required | Required | Required | Rule-specific |
+| Configuration semantics | Material changes may break the series | Required | Required | Required where rule input/logic changes |
+| Product/contract compatibility | Declared compatibility required | Declared compatibility required | Declared compatibility required | Rule-version compatibility required |
+| Optional input coverage | Disclose if scope changes | May make status trend limited | May make cause absence uninterpretable | Required per rule/population |
+| Materiality policy | Does not change reportable population; required for priority views | Required for priority views | Required for priority views | Required for priority views |
+| Workflow status | Not required | Not required | Not required | Not required; required for closure/aging metrics |
+
+`AHD-024` — Incompatible observations MUST remain available in the history
+register and exclusion counts but MUST NOT be coerced into a continuous trend.
+APPROVED DIRECTION.
+
+`AHD-025` — A product, rule, or configuration version change MUST default to
+`Ineligible` for affected metrics unless an explicit compatibility contract or
+client-approved regression demonstrates semantic equivalence. APPROVED
+DIRECTION.
+
+`AHD-026` — `Limited` MUST name the exact unaffected metric and narrowed
+population. It MUST NOT become a general waiver for unknown semantics.
+APPROVED DIRECTION.
+
+## 22.9 Dashboard information architecture
+
+The initial dashboard should use progressive disclosure and this order:
+
+1. **Scope, as-of state, and comparability coverage** — client/site, history
+   window, latest included transition, included/excluded runs, evaluated levels,
+   and material limitations.
+2. **Current review demand** — latest comparable changed review units, Partly
+   Explained/Unexplained units, independent Data Audit attention, and links to
+   Phase 3D summaries.
+3. **Repeated change** — review units observed changing again, first-observed
+   changes, reappearing changes, and incomparable sequences.
+4. **Explanation outcomes** — counts and proportions by Fully Explained,
+   Partly Explained, Unexplained, and applicable withheld states.
+5. **Recurring supported cause areas** — frequency by affected comparable
+   review unit, never cross-unit summed return impact.
+6. **Data Audit findings and coverage** — affected rows/entities by rule plus
+   evaluated/not-evaluated populations.
+7. **Descriptive entity patterns** — portfolios/securities with repeated change
+   shown with opportunity counts, denominators, and minimum-history disclosure.
+8. **Limitations and evidence** — excluded observations, coverage changes,
+   policy versions, and direct bundle references.
+
+`AHD-027` — The first view MUST show whether the apparent pattern is based on
+one observation, a pairwise change, or a multi-observation series. APPROVED
+DIRECTION.
+
+`AHD-028` — One validated run MAY support a current-state inventory, but it MUST
+NOT be labeled a trend. Two comparable observations MAY support a stated
+change. “Trend” language SHOULD require at least three comparable observations
+and MUST always disclose the observation count. CANDIDATE threshold.
+
+`AHD-029` — Management and analyst views SHOULD use one shared result with
+progressive disclosure, consistent with Phase 3D. Separate facts or permissioned
+calculation models are not part of the initial design. APPROVED DIRECTION.
+
+## 22.10 Metric catalog and aggregation rules
+
+### 22.10.1 Coverage and population metrics
+
+| Metric | Definition | Required disclosure | Status |
+|---|---|---|---|
+| Registered audit executions | Unique executions in the selected local history | Window and registry version | CANDIDATE |
+| Eligible/limited/ineligible executions | Executions by metric-family eligibility | Reason counts and affected metric family | CANDIDATE |
+| Evaluated review units | Distinct review units actually evaluated in eligible observations | Level, scope, and observation opportunities | CANDIDATE |
+| Rule evaluation coverage | Rows/entities or declared populations evaluated by each Data Audit rule | Rule version, filters, exclusions, and unavailable inputs | APPROVED DIRECTION from Phase 3B |
+| Current-state coverage | Latest valid observation available for each requested entity/scope | Missing, stale, and incomparable entities | CANDIDATE |
+
+`AHD-030` — Every rate MUST expose its numerator and denominator. A denominator
+MUST represent actual comparable observation opportunities, not all calendar
+periods, all portfolios known to the client, or all registered bundles unless
+those populations were truly evaluated. APPROVED DIRECTION.
+
+### 22.10.2 Performance-change metrics
+
+Candidate metrics are:
+
+- changed review-unit count and share of comparable evaluated opportunities;
+- distinct portfolio-periods or security-periods affected;
+- first-observed versus repeated-change counts;
+- number of comparable transitions in which a stable review unit changed;
+- largest individual absolute reported-return changes; and
+- counts within client-approved descriptive magnitude bands.
+
+`AHD-031` — Portfolio and security metrics MUST remain separate. A security
+change and its portfolio-level effect MUST NOT be treated as two independent
+portfolio restatements. APPROVED DIRECTION.
+
+`AHD-032` — Reported-return changes, explained amounts, and residuals MUST NOT
+be summed or averaged across different portfolios, periods, report levels,
+currencies, return containers, or incompatible methods. APPROVED DIRECTION.
+
+`AHD-033` — “Largest observed changes” MAY order individual compatible review
+units by absolute return difference. The display MUST retain sign, scope,
+period, unit, method, status, and evidence link and MUST NOT imply that Snapshot
+B is a correction or that magnitude alone defines operational priority.
+CANDIDATE.
+
+`AHD-034` — Aggregate currency impact is not a current metric because the
+product does not have a validated, universally comparable monetary-loss model.
+DEFERRED.
+
+### 22.10.3 Explanation metrics
+
+The initial explanation view should use:
+
+- counts and proportions of comparable changed review units by Fully Explained,
+  Partly Explained, and Unexplained;
+- separate counts for residual-withheld or method-limited states;
+- current Partly Explained/Unexplained review units with exact per-unit values;
+- consecutive comparable observations in which a unit remains unresolved; and
+- first-observed and latest-observed dates/states for the unresolved condition.
+
+`AHD-035` — Phase 3E MUST NOT introduce an explanation-completeness percentage.
+It inherits the Phase 3A decision to retain analytical status plus exact
+per-review-unit explained and residual values. APPROVED DIRECTION.
+
+`AHD-036` — A status proportion is the share of comparable changed review units
+in a named analytical status. It is not the percentage of performance change
+explained and MUST be labeled accordingly. APPROVED DIRECTION.
+
+`AHD-037` — Without Phase 3F workflow evidence, the product MAY describe how
+many consecutive comparable observations remain Partly Explained or
+Unexplained. It MUST NOT call elapsed time “open age,” “time to resolution,” or
+“backlog age.” APPROVED DIRECTION.
+
+### 22.10.4 Cause metrics
+
+The initial cause view should show:
+
+- number and share of comparable changed review units containing each eligible
+  supported cause family;
+- number of distinct entities/periods affected by the family;
+- first/latest observed transition; and
+- links to representative and complete underlying investigations.
+
+`AHD-038` — A cause family is counted at most once per review unit per source-
+state observation for frequency metrics, even when multiple source rows support
+the same family. Physical row count MAY be shown separately when useful.
+CANDIDATE.
+
+`AHD-039` — Only Phase 3A-eligible, owned, validated supported causes may enter
+cause-frequency metrics. Review evidence, supporting components, related
+outputs, Data Audit issues, and cross-check diagnostics MUST remain separate.
+APPROVED DIRECTION.
+
+`AHD-040` — Cause return impacts MUST NOT be totaled across review units. A
+frequency pattern may justify investigation; it does not prove one common root
+cause. APPROVED DIRECTION.
+
+### 22.10.5 Data Audit metrics
+
+The initial Data Audit view should show, by stable rule ID/version:
+
+- affected row count;
+- affected entity count at the rule's declared grain;
+- evaluated row/entity population;
+- not-evaluated/unavailable/insufficient population;
+- number/share of comparable observations with at least one affected entity;
+- first/latest observed transition; and
+- current high-priority affected entities with evidence links.
+
+`AHD-041` — Phase 3E inherits Phase 3D's affected-row/entity counting decision.
+It MUST NOT convert repeated rows into “incidents” until a stable, validated
+issue-group identity contract exists. APPROVED DIRECTION.
+
+`AHD-042` — Rule-frequency trends require stable rule meaning, input coverage,
+filters, tolerances, and evaluated population. A rule not evaluated MUST NOT be
+counted as zero findings. APPROVED DIRECTION.
+
+`AHD-043` — Mandatory continuity findings remain visible and independent from
+optional-rule trends. Their presence MUST NOT alter performance explanation
+arithmetic. CURRENT doctrine; APPROVED DIRECTION for history views.
+
+### 22.10.6 Entity stability and operational pattern views
+
+Descriptive entity views may show:
+
+- comparable observation opportunities by portfolio/security;
+- changed-review-unit count and rate;
+- repeated-change count;
+- Partly Explained/Unexplained count;
+- recurring supported cause families; and
+- Data Audit affected-entity counts with coverage.
+
+`AHD-044` — An entity table MAY be sorted by one disclosed descriptive metric,
+but MUST NOT be labeled a quality ranking or league table. It MUST show the
+denominator and minimum comparable history next to the numerator. CANDIDATE.
+
+`AHD-045` — Cross-portfolio comparison requires equivalent scope and observation
+opportunities. A portfolio audited more frequently or across more periods MUST
+not appear worse merely because it had more chances to produce findings.
+APPROVED DIRECTION.
+
+`AHD-046` — Custodian, source, desk, administrator, or other organizational
+patterns may be shown only when the source contract provides stable approved
+identity and adequate comparable coverage. The product MUST avoid blame or
+causal language. CANDIDATE; otherwise DEFERRED.
+
+## 22.11 Recurrence and observed-state model
+
+Until Phase 3F supplies governed disposition, Phase 3E should use observation
+language rather than closure language:
+
+- **`First Observed Change`** — first eligible changed observation for a stable
+  review unit in retained history;
+- **`Changed Again`** — a later eligible state transition changes that unit
+  again;
+- **`Not Changed in Next Comparable Observation`** — the next comparable
+  transition contains no reportable performance change for the unit;
+- **`Reappeared`** — a changed observation follows at least one eligible
+  not-changed observation;
+- **`No Comparable Follow-up`** — no later eligible observation exists; and
+- **`Incomparable`** — a required identity or policy dimension prevents the
+  recurrence conclusion.
+
+`Resolved`, `Accepted`, `Closed`, and `Reopened` require governed human
+disposition or an approved external workflow reference and belong to Phase 3F.
+
+`AHD-047` — Absence of a changed review unit in a later bundle means “not
+observed as changed” only when the later run evaluated the same unit under a
+comparable contract. Missing scope or evidence MUST NOT be treated as
+resolution. APPROVED DIRECTION.
+
+`AHD-048` — A repeated change MUST follow the declared source-state chain. Two
+independent A-to-B comparisons with no established relationship MUST not be
+ordered into a sequence. APPROVED DIRECTION.
+
+`AHD-049` — Branching source-state histories, such as two alternate corrections
+from the same prior state, MUST remain explicit branches. The product MUST NOT
+choose a canonical branch without client authority. CANDIDATE.
+
+`AHD-050` — Operational Intelligence MAY identify recurrence and co-occurrence.
+It MUST NOT use “root cause” unless the underlying Phase 3A evidence supports
+that exact cause and the historical grouping preserves its meaning. APPROVED
+DIRECTION.
+
+## 22.12 Materiality, filters, and presentation subsets
+
+Operational materiality may prioritize the dashboard, but it must not change
+historical truth.
+
+`AHD-051` — The history index MUST retain every reportable changed review unit
+and every applicable Data Audit row required by the source bundle, including
+suppressed findings in the complete audit trail. A dashboard threshold may
+change ordering or first-view inclusion only. APPROVED DIRECTION.
+
+`AHD-052` — Each filtered or bounded view MUST show the complete eligible count,
+displayed count, filter/threshold identity, and route to the complete local
+detail. APPROVED DIRECTION.
+
+`AHD-053` — Materiality-policy changes MUST be versioned and disclosed. They may
+invalidate a priority trend even when the underlying reportable-difference
+series remains comparable. APPROVED DIRECTION.
+
+`AHD-054` — A local browser filter MAY hide rows interactively, but MUST NOT
+recalculate canonical metrics or change the stored dashboard result.
+CANDIDATE.
+
+## 22.13 Recommended actions and management interpretation
+
+Phase 3E actions should be deterministic and evidence-routed. Candidate cues
+include:
+
+| Condition | Candidate action | Default owner role |
+|---|---|---|
+| Changed Again | Open latest and prior Phase 3D summaries; confirm source-state sequence and repeated mechanism | Performance analyst |
+| Reappeared | Review intervening observation, configuration, and source correction evidence | Performance/operations manager |
+| Consecutive Partly Explained/Unexplained observations | Review missing evidence, mapping, methodology, and escalation policy | Performance analyst plus methodology owner |
+| Cause family recurring across eligible units | Validate whether one reusable rule/process response exists; do not assume common cause | Operations manager |
+| Data Audit affected-entity rate increases under stable coverage | Review exact rule population, tolerance, examples, and false positives | Rule owner/source owner |
+| Rule coverage decreases | Restore evidence/coverage or label the trend unavailable | Local/source administrator |
+| Comparability exclusions rise | Review configuration, version, identity, or source-contract drift | Methodology owner and local administrator |
+
+`AHD-055` — Action text MUST identify the observed condition, owner role,
+evidence path, and limitation. It MUST NOT instruct PPAR to write corrections
+to the source system or declare a human disposition. APPROVED DIRECTION.
+
+`AHD-056` — Operational Intelligence recommendations MUST be phrased as
+investigation or process-learning hypotheses until real client evidence and an
+authorized owner support a stronger conclusion. APPROVED DIRECTION.
+
+## 22.14 Output and machine-readable contract
+
+### 22.14.1 Canonical result
+
+The target output should be one small, versioned, machine-readable dashboard
+result containing:
+
+- schema, generation, registry, and policy versions;
+- as-of time, history window, and client-controlled scope;
+- included/limited/excluded executions and observations with reason codes;
+- metric-specific eligibility and coverage;
+- current-state review-demand facts;
+- recurrence classifications;
+- explanation-status distributions;
+- supported cause-family frequencies;
+- Data Audit affected populations and rule coverage;
+- entity descriptive facts;
+- deterministic actions;
+- bundle/evidence references; and
+- required interpretation and claims limitations.
+
+`AHD-057` — All human-readable dashboard formats MUST derive from one validated
+machine-readable result. APPROVED DIRECTION.
+
+`AHD-058` — The exact schema and filenames are CANDIDATE implementation work.
+The likely initial package is local static HTML for management/reviewer use,
+XLSX for controlled operational handoff, and JSON plus typed flat tables for
+validation/integration.
+
+### 22.14.2 Relationship to per-run bundles
+
+The dashboard is a separate derived history artifact. It should reference
+immutable run bundles rather than be inserted retrospectively into them.
+
+`AHD-059` — A dashboard generation MUST identify every underlying bundle by a
+stable relative reference or registry key plus fingerprint. A broken or changed
+required reference invalidates authoritative publication. APPROVED DIRECTION.
+
+`AHD-060` — Rebuilding a dashboard with a new history window or presentation
+policy creates a new dashboard result. It MUST NOT alter prior dashboard
+generations or source bundles. APPROVED DIRECTION.
+
+`AHD-061` — HTML and XLSX should share the same section order, facts, counts,
+labels, and evidence targets. Presentation-only differences must remain
+declared and deterministic. APPROVED DIRECTION.
+
+## 22.15 Processing model
+
+The target Phase 3E sequence is:
+
+1. load the selected versioned local history registry;
+2. validate registry shape, policy, and referenced bundle identities;
+3. deduplicate formats, regenerated bundles, and paired report-level facts;
+4. establish declared source-state chains and identity mappings;
+5. derive per-metric eligibility with stable reason codes;
+6. construct typed review-unit observations from canonical run facts;
+7. calculate recurrence, coverage, status, cause, and rule-frequency facts;
+8. apply approved materiality only to priority and display selection;
+9. generate deterministic actions and evidence targets;
+10. render machine, HTML, XLSX, and flat-table outputs from one result; and
+11. validate counts, financial values, eligibility, links, parity, and
+    deterministic output before publication.
+
+`AHD-062` — Dashboard derivation MUST be a pure deterministic transformation of
+validated history facts plus approved versioned policy. APPROVED DIRECTION.
+
+`AHD-063` — The engine MUST reconcile every aggregate count to its underlying
+distinct observation keys and every displayed financial value to one canonical
+review unit. APPROVED DIRECTION.
+
+`AHD-064` — Incremental indexing MAY cache typed per-bundle facts, but cache
+entries MUST be content-bound and invalidated when required source fingerprints
+or schema versions change. CANDIDATE.
+
+## 22.16 Failure behavior and edge cases
+
+| Condition | Required behavior |
+|---|---|
+| Current/legacy bundle lacks product or configuration identity | Register as limited/ineligible where useful; exclude affected authoritative metrics |
+| Bundle validation or fingerprint fails | Stop ingestion; do not publish using the invalid bundle |
+| Same semantic bundle appears at multiple paths | Count one observation; retain controlled path provenance |
+| Conflicting bundles claim the same execution/level/transition | Stop or require explicit supersession; never choose by timestamp |
+| Source-state order is missing | Permit per-run inventory only; block recurrence/trend metrics |
+| Source-state history branches | Preserve branches; do not merge or select authority automatically |
+| Configuration/method changes | Evaluate each metric independently; exclude affected metrics absent compatibility evidence |
+| Data Audit rule coverage changes | Preserve performance metrics when safe; limit/exclude affected rule trends |
+| Optional input disappears | Show the coverage loss; do not interpret absent causes/findings as improvement |
+| Entity identifier changes | Require approved identity mapping or break the series |
+| Portfolio and security bundles share source evidence | Keep report-level facts separate and deduplicate shared operational rows |
+| No performance changes in an eligible observation | Count as evaluated/not changed; do not claim universal correctness |
+| No Data Audit rows displayed | Show evaluated rule coverage before any clean-language statement |
+| One observation only | Show current state; prohibit trend language |
+| Two observations only | Permit pairwise change language; avoid trend claim |
+| Missing expected scheduled run | Show a history/coverage gap; do not interpolate |
+| Negative or sign-reversing return difference | Preserve sign and individual value; do not use an unsafe aggregate ratio |
+| Residual withheld | Preserve withheld state; do not substitute zero or estimate |
+| Large history population | Bound first views; retain exact totals and full evidence navigation |
+| Dashboard link breaks after bundle move | Invalidate publication until registry/reference is repaired and revalidated |
+| A user filter hides all issues | Keep scope/coverage/filter banner; do not display an unqualified clean result |
+
+`AHD-065` — Missing or incompatible history is a visible product limitation or
+source/configuration-contract error, not an Unexplained analytical result.
+APPROVED DIRECTION.
+
+`AHD-066` — An aggregation, deduplication, lineage, parity, or deterministic-
+output mismatch is an internal logic error and MUST stop authoritative
+dashboard publication. APPROVED DIRECTION.
+
+## 22.17 Safety-invariant mapping
+
+Phase 3E inherits all twelve current safety invariants:
+
+| Invariant | Phase 3E acceptance implication |
+|---|---|
+| SN-01 No lost differences | Priority filters cannot erase registered reportable differences; complete counts and evidence remain available |
+| SN-02 No double counting | Duplicate bundles, formats, report levels, source rows, and economic effects cannot inflate metrics |
+| SN-03 Fully Explained arithmetic | Historical status and exact values must match the source bundle at each review unit |
+| SN-04 Beginning/ending continuity | Continuity findings remain visible and distinct; state chaining cannot fabricate continuity |
+| SN-05 Bidirectional lineage | Every dashboard fact links to source observations, and every included observation identifies applicable metrics |
+| SN-06 Currency/unit consistency | Incompatible units block amount aggregation and may block metric eligibility |
+| SN-07 Period-boundary safety | Reversed, overlapping, or incompatible periods cannot form a valid series |
+| SN-08 Demo scenario preservation | Any future dashboard fixture must preserve labeled recurrence/comparability stories |
+| SN-09 Demo fixture isolation | Synthetic history must remain isolated from client history and product claims |
+| SN-10 Report-format parity | HTML/XLSX/machine dashboard facts and counts agree semantically |
+| SN-11 Deterministic output | Identical registry, bundles, and policy produce identical nonvolatile output |
+| SN-12 Fail-closed policy coverage | Unknown identity, comparability, grouping, or required policy cannot be hidden by a filter or override |
+
+`AHD-067` — Phase 3E implementation is unacceptable if it weakens any current
+safety invariant or changes the underlying Phase 3A/3B calculations merely to
+make a historical metric easier to compute. APPROVED DIRECTION.
+
+## 22.18 Configuration and governance
+
+The initial versioned dashboard policy may control:
+
+- included client/site scope and report levels;
+- history window and as-of state;
+- approved source-state and entity identity references;
+- minimum observation counts for pairwise/trend displays;
+- operational-materiality priority thresholds;
+- cause-family and rule taxonomy versions;
+- first-view row limits;
+- local output formats and retention path; and
+- attributable inclusion/exclusion decisions.
+
+It must not control:
+
+- the meaning of Fully/Partly/Unexplained;
+- source bundle arithmetic or evidence roles;
+- whether an incompatible observation is silently treated as eligible;
+- cause ownership or Data Audit independence;
+- reportable-difference retention;
+- a composite score or confidence claim; or
+- official correctness, closure, or blame.
+
+`AHD-068` — Dashboard policy MUST be fingerprinted and retained with each
+generation. A policy change MUST produce a new result and disclose which
+historical comparisons changed. APPROVED DIRECTION.
+
+`AHD-069` — Initial access control SHOULD rely on the client-controlled file and
+environment permissions approved in Phase 2. Building application-level roles
+solely for Phase 3E is DEFERRED.
+
+## 22.19 Scale, performance, local-first, security, and support
+
+`AHD-070` — History ingestion, indexing, dashboard generation, and viewing MUST
+operate within the client-controlled environment without internet access.
+APPROVED DIRECTION.
+
+`AHD-071` — No portfolio identifier, return, cause, Data Audit result, history
+fact, or dashboard usage may be transmitted for licensing, updates, telemetry,
+benchmarking, or support without explicit case-specific client authorization.
+APPROVED DIRECTION.
+
+`AHD-072` — The dashboard SHOULD index each validated bundle once and derive
+routine views from compact typed facts rather than reparsing every XLSX/HTML or
+full evidence artifact on every use. CANDIDATE.
+
+`AHD-073` — First-view row limits MUST bound rendering cost, not calculation,
+retention, counts, comparability assessment, or evidence availability.
+APPROVED DIRECTION.
+
+`AHD-074` — A Phase 3E implementation is a major cross-cutting reporting,
+history, and safety-net change. It MUST run the complete relevant release-
+candidate workflow and the maintained 500x scale check. Existing gates MUST not
+be weakened because history processing fails. CURRENT project doctrine.
+
+`AHD-075` — Backup, restore, retention, path migration, and access procedures
+must be validated in the client environment before recurring operational
+reliance. CURRENT — REQUIRES CLIENT VALIDATION.
+
+## 22.20 Acceptance criteria
+
+Phase 3E is functionally acceptable only when all applicable criteria pass:
+
+1. **Business gate:** recurring use demonstrates a management decision and
+   value that justify history infrastructure.
+2. **Authority:** immutable validated bundles remain authoritative; the index
+   and dashboard are derived and reproducible.
+3. **Identity:** bundle, execution, source-state, entity, period, and report-
+   level identities are explicit and not inferred from filenames/timestamps.
+4. **Deduplication:** regenerated formats, duplicate paths, paired report levels,
+   source rows, and economic effects cannot inflate metrics.
+5. **Comparability:** eligibility is determined per metric family with stable
+   reasons, versions, populations, and exclusions.
+6. **Population:** every metric exposes its numerator, denominator, window,
+   observation count, and scope.
+7. **Aggregation:** incompatible returns, residuals, causes, currencies, units,
+   report levels, or periods are not totaled or averaged.
+8. **Explanation:** analytical statuses and exact per-unit values are preserved;
+   no explanation-completeness percentage is introduced.
+9. **Data Audit:** affected rows/entities and rule coverage remain explicit;
+   not evaluated is never treated as zero findings.
+10. **Recurrence:** observed-state language is distinct from human resolution,
+    closure, acceptance, and reopening.
+11. **Operational Intelligence:** patterns remain traceable hypotheses and do
+    not imply blame or unrestricted root cause.
+12. **Priority:** materiality and filters change attention only, never retained
+    truth or calculation.
+13. **Evidence:** every displayed fact resolves to exact local investigations;
+    broken required references invalidate publication.
+14. **Formats:** machine, HTML, XLSX, and flat-table outputs share one result and
+    agree semantically.
+15. **Determinism:** identical history, policy, and bundles produce identical
+    nonvolatile output.
+16. **Local-first:** no hosted store, server, telemetry, or network is required.
+17. **Scale:** indexing and views remain bounded without losing evidence, and
+    established release gates pass.
+18. **Claims:** the dashboard describes observed comparable history; it does
+    not certify quality, correctness, compliance, closure, or future outcomes.
+
+`AHD-076` — Client acceptance MUST test management interpretation, analyst
+evidence navigation, source/methodology owner agreement on comparability, and
+the ability to detect misleading denominator or coverage changes. CURRENT —
+REQUIRES CLIENT VALIDATION.
+
+## 22.21 Dependencies
+
+Phase 3E depends on:
+
+- founder-approved Phase 2 actors, decision rights, recurring workflow, and
+  local-first architecture;
+- founder-approved Phase 3A review units, analytical status, recurrence,
+  materiality, evidence, and stability boundaries;
+- founder-approved Phase 3B rule identity, independent finding model, coverage,
+  and false-positive controls;
+- founder-approved Phase 3C readiness, intended use, product/configuration
+  identity, source provenance, and local versioned artifact direction;
+- founder-approved Phase 3D progressive summary, separate attention dimensions,
+  cause eligibility, Data Audit counting, deterministic actions, and machine-
+  readable summary direction;
+- current immutable bundle, manifest v4, review-key, lineage, fingerprint,
+  parity, and determinism foundations;
+- future product/configuration/source-state provenance required for safe
+  history;
+- real-client recurring observations with stable approved semantics; and
+- Phase 3F only for workflow status, closure, assignment, and true resolution-
+  time metrics.
+
+## 22.22 Founder-approved Phase 3E working assumptions
+
+The founder approved these seven working assumptions on 2026-07-17:
+
+1. **Implementation gate:** keep history/dashboard
+   implementation DEFERRED until a validation partner demonstrates recurring
+   use and a management decision that the capability improves.
+2. **History foundation:** if the gate is met, begin with
+   immutable local bundles plus the smallest versioned file-based registry/
+   index; require evidence before adopting a database.
+3. **Health model:** present separate coverage, performance-
+   change, explanation, unresolved, cause, and Data Audit dimensions; prohibit
+   a composite score, grade, traffic light, or confidence score.
+4. **Comparability:** decide eligibility per metric family so a
+   coverage or rule change invalidates only the trends it actually affects;
+   retain excluded observations and reasons.
+5. **Aggregation:** use counts, proportions with explicit
+   denominators, individual magnitudes, and descriptive bands; prohibit cross-
+   unit return/residual/cause totals and retain the Phase 3A decision against an
+   explanation-completeness percentage.
+6. **Recurrence language:** use First Observed Change, Changed
+   Again, Not Changed in Next Comparable Observation, Reappeared, No Comparable
+   Follow-up, and Incomparable; reserve Resolved/Closed/Reopened for Phase 3F
+   disposition evidence.
+7. **Initial output posture:** use one local machine-readable
+   result with progressive static HTML/XLSX views and evidence links; do not
+   require a server, hosted service, or application-level permission system.
+   Exact formats remain subject to pilot workflow validation.
+
+These decisions define a safe conditional design. Approval does not itself
+satisfy the business gate or authorize implementation.
+
+## 22.23 Real-client validation plan
+
+### Stage 1 — Business-case and recurring-use gate
+
+- operate the current two-snapshot workflow across multiple real reporting
+  cycles without adding a history product;
+- retain immutable bundles and manually identify repeated management questions;
+- measure manual compilation time, decision value, frequency, and support cost;
+- identify the specific manager and analyst actions history would improve; and
+- confirm that the client will govern source-state, configuration, identity,
+  and retention provenance.
+
+**Exit evidence:** a serious recurring business case and founder decision to
+permit history implementation. Without this evidence, Phase 3E remains
+DEFERRED.
+
+### Stage 2 — Provenance and labeled history cases
+
+- define stable source-state IDs and A-to-B-to-C chains with source owners;
+- bind product, configuration, contract, readiness, and rule identity;
+- label duplicate generation, paired report levels, branches, gaps, identifier
+  changes, and superseding bundles;
+- test immutable bundle retention, index rebuild, and path migration; and
+- confirm every indexed fact reconciles to its source bundle.
+
+**Exit evidence:** approved history contract and labeled identity/deduplication
+cases with no silent ordering assumptions.
+
+### Stage 3 — Metric comparability and semantic validation
+
+- vary return basis, configuration, tolerance/materiality, rule version, input
+  coverage, product version, currency, report level, and entity identity;
+- have methodology/rule owners label which metric families remain eligible;
+- test numerator, denominator, exclusion, and limited-population behavior;
+- test first-observed, changed-again, not-changed, reappeared, branch, and no-
+  follow-up sequences; and
+- verify no status proportion is mistaken for percent explained.
+
+**Exit evidence:** versioned comparability rules and a semantic regression set
+agreed by client owners.
+
+### Stage 4 — Management and analyst workflow validation
+
+- compare the dashboard with the client's existing recurring review process;
+- test whether managers identify the right current priorities and limitations;
+- test whether analysts navigate each pattern to exact bundle evidence;
+- measure wrong-path navigation, false trend interpretation, and action utility;
+- validate cause/rule frequency language for false blame or causal inference;
+  and
+- confirm bounded views do not hide the complete population.
+
+**Exit evidence:** another authorized operator can interpret and act on the
+dashboard without founder coaching or dimension conflation.
+
+### Stage 5 — Scale, resilience, security, and claims
+
+- test large histories, incremental updates, rebuilds, backup/restore, path
+  migration, and interrupted writes;
+- validate machine/HTML/XLSX parity, evidence links, and deterministic repeat;
+- run release-candidate and 500x workflows;
+- test client access, retention, offline operation, and support boundaries; and
+- approve any external claim with the appropriate client governance owner.
+
+**Exit evidence:** measured local operational reliability, stable interpretation,
+and a defensible claims boundary.
+
+## 22.24 Claims supported, claims not supported, and next gate
+
+### Claims supported now, with qualification
+
+- Current validated bundles contain per-run performance, explanation, cause,
+  Data Audit, coverage, lineage, review-key, and fingerprint foundations that
+  could support a future history model.
+- The product doctrine and approved specifications define conservative repeated-
+  restatement, stability, local-first, provenance, and evidence boundaries.
+- Current deterministic bundle output can support client-retained manual
+  comparisons, subject to real-client validation.
+
+These claims do not establish a current dashboard or cross-run product.
+
+### Claims not supported
+
+- that PPAR currently stores or indexes investigation history;
+- that it currently identifies recurrence, trends, resolution time, or backlog
+  age;
+- that existing bundles contain all provenance required for authoritative
+  comparability;
+- that the dashboard or Operational Intelligence is implemented or client-
+  validated;
+- that one or two observations establish a trend;
+- that missing optional data or unevaluated rules represent improvement;
+- that return changes, residuals, or cause impacts can be totaled across
+  portfolios or periods;
+- that PPAR has a validated explanation-completeness percentage, health score,
+  confidence score, quality rank, or cross-client benchmark;
+- that a recurring cause area proves organizational root cause or blame;
+- that not observing a later change means a human accepted, resolved, or closed
+  an investigation; or
+- that Phase 3E provides independent assurance, certification, official
+  correctness, or prediction.
+
+### Completion and next gate
+
+Phase 3E is complete as a **founder-approved functional specification**.
+It defines the conditional business gate, local history foundation, identity
+and deduplication, metric-specific comparability, descriptive metrics,
+recurrence language, Operational Intelligence boundary, management views,
+machine and human outputs, failure behavior, safety mapping, acceptance, and
+client validation.
+
+The founder approved Phase 3E on 2026-07-17 with the seven working assumptions
+in Section 22.22. That approval authorized a Phase 3F boundary brief; it did not
+authorize history/dashboard implementation or detailed speculative workflow
+design.
+
+---
+
+# 23. Phase 3F — Human Review and Disposition Boundary
+
+## 23.1 Design posture
+
+**Capability status:** DEFERRED pending a serious business case and real-client
+workflow evidence.
+
+Human review is central to PPAR Audit, but product-managed comments,
+assignments, approvals, dispositions, closure, and reopening are not current
+capabilities. This section intentionally does **not** define a detailed workflow
+system. It records the minimum product boundary that any later design must
+inherit and the evidence required before that design begins.
+
+This is a deliberate application of the evidence-horizon rule in Section 0.5.
+The product should first observe how validation partners actually review,
+approve, correct, rerun, retain, and close performance investigations. It should
+not preselect a state machine or case-management model from theory.
+
+## 23.2 Current truth
+
+PPAR currently calculates analytical results and generates immutable local
+evidence packs. Qualified client personnel review those results and make
+business decisions through processes outside PPAR.
+
+PPAR does not currently provide:
+
+- user accounts or application-level permissions;
+- comments, assignments, notifications, or work queues;
+- approval or electronic-signature workflow;
+- authoritative workflow status or closure;
+- a human-disposition record linked across reruns; or
+- a persistent investigation-history store.
+
+That absence is not automatically a product gap. Existing client controls may
+already handle some or all of this work more appropriately.
+
+## 23.3 Non-negotiable boundary
+
+Any future Human Review and Disposition capability must preserve these
+contracts:
+
+1. **Analytical status remains product-calculated.** A workflow decision cannot
+   change Fully Explained, Partly Explained, Unexplained, explained amount,
+   residual, evidence role, or cause ownership.
+2. **Human content remains visibly human.** Any note, supplemental explanation,
+   acceptance, or risk decision must identify its author, time, basis, and
+   evidence reference and remain separate from PPAR-calculated content.
+3. **No direct calculated-result override.** Correct source-data or approved
+   configuration and rerun PPAR; do not edit a cause or residual into agreement.
+4. **Reruns remain new evidence.** A later run may supersede an earlier one for
+   operational use, but it must not mutate the earlier bundle or erase its
+   provenance.
+5. **Closure is not correctness.** A client may decide that no further action is
+   warranted, but closure cannot certify official performance, source quality,
+   assurance, compliance, or product correctness.
+6. **Uncertainty remains visible.** A client decision to accept a limitation
+   does not convert an unexplained result into a product explanation.
+7. **Local-first remains permanent.** Routine workflow data, notes, evidence,
+   identities, and history remain inside the client-controlled environment.
+8. **PPAR does not become generic case management.** Workflow belongs in the
+   product only to the extent that it materially improves performance-change
+   investigation, evidence accountability, or safe rerun/closure handoff.
+
+These are product contracts, not a proposed UI or schema.
+
+## 23.4 Questions to validate before designing workflow
+
+A validation partner should answer through observed use:
+
+- Where are investigation decisions recorded today, and what actually fails in
+  that process?
+- Who reviews, who approves methodology, who corrects source-data, and who may
+  accept an unresolved limitation?
+- Which decisions recur often enough to justify product support?
+- Is a reference to the client's existing control/ticket system sufficient?
+- Do users need a human note, a disposition, assignment, approval, closure, or
+  only a reproducible rerun link?
+- What evidence is required to distinguish accepted restatement, requested
+  correction, methodology limitation, and no-further-action decisions?
+- Which retention, access, and audit requirements already exist?
+- What measurable delay, error, or accountability problem would PPAR workflow
+  remove?
+- Would workflow create more implementation, support, security, and liability
+  burden than client value?
+
+The validation method should use real historical cases and fresh investigations,
+not opinions about an imagined future interface.
+
+## 23.5 Details intentionally deferred
+
+The following must remain unspecified until the validation evidence requires a
+decision:
+
+- workflow state names and transition rules;
+- comment, assignment, approval, and disposition schemas;
+- user, role, and permission models;
+- storage technology and history architecture;
+- UI layout, inboxes, queues, dashboards, and notifications;
+- integration with ticketing, identity, email, or collaboration systems;
+- closure, reopening, aging, SLA, and escalation calculations;
+- electronic signature or regulated-record behavior;
+- API and export contracts; and
+- packaging, pricing, and support obligations.
+
+The candidate states and dispositions recorded earlier in Sections 17.4.5 and
+17.5.12 are discovery hypotheses only. They are not a committed state model.
+
+## 23.6 Evidence gate and possible product outcomes
+
+Detailed design should begin only if repeated client evidence establishes:
+
+- a material workflow problem tied directly to PPAR investigations;
+- a named daily user and accountable decision owner;
+- a recurring decision that existing client systems do not handle adequately;
+- a smallest useful record or handoff that can be stated from observed cases;
+- value sufficient to justify security, retention, migration, and support cost;
+  and
+- a design that preserves every boundary in Section 23.3.
+
+Validation may legitimately conclude that PPAR should provide no managed
+workflow. Other acceptable outcomes could be a minimal attributable local
+disposition record or a reference to an external client-controlled system. A
+larger assignment/approval layer should be considered only after those smaller
+options prove insufficient.
+
+## 23.7 Acceptance of the Phase 3F boundary
+
+This boundary brief is acceptable when:
+
+- current capability and absence are stated accurately;
+- human authority and product calculation authority remain distinct;
+- direct overrides and retroactive bundle mutation remain prohibited;
+- closure, correctness, explanation, and assurance remain separate concepts;
+- the local-first and non-generic-workflow boundaries are explicit;
+- hypothetical implementation details remain deferred; and
+- client evidence, rather than document completeness, controls later design.
+
+No application-code change, workflow prototype, schema, or companion document is
+authorized by this section.
+
+## 23.8 Founder-approved Phase 3F and document posture
+
+The founder approved these decisions on 2026-07-17:
+
+1. **Phase 3F posture:** accept this evidence-gated boundary and do not produce
+   a detailed Human Review and Disposition specification until distant-future
+   validation evidence shows that PPAR should own part of the workflow.
+2. **Document structure:** split the material in principle into a concise
+   governing product constitution/roadmap and a separate approved-
+   specifications reference, but review the outline before moving content.
+3. **Information-first product focus:** maximize valuable and accurate
+   information, including how it is presented. Do not assume user workflow is
+   uniform or that PPAR should define it.
+
+These decisions close Phase 3F at the appropriate evidence horizon. They do not
+authorize workflow implementation or document restructuring.
+
+## 23.9 Proposed document split outline — review only
+
+No restructuring has occurred. The proposed future structure is:
+
+### A. Concise governing document
+
+**Proposed path:** retain
+`docs/audit/PPAR_Audit_Foundational_Product_Design.md` as the canonical path,
+but replace its contents through a controlled migration with a concise product
+constitution and roadmap.
+
+**Purpose:** let a founder, product leader, engineer, implementation lead, or
+future commercial leader understand the product and its direction end to end
+without reading implementation-level specifications.
+
+**Proposed outline:**
+
+1. Executive product doctrine and enduring promise
+2. Problem, customer, user, and jobs-to-be-done hypotheses
+3. Current product truth and capability-status taxonomy
+4. Product principles, safety contracts, and trust model
+5. Product boundaries, non-goals, and local-first doctrine
+6. Information and presentation strategy
+7. Capability map: current, approved, evidence-gated, deferred, and out of scope
+8. First-client validation and claims discipline
+9. Product roadmap, evidence gates, and near-term priorities
+10. Confirmed decisions, open decisions, and links to governing references
+
+The governing document should state **what**, **why**, **status**, **boundary**,
+and **next evidence gate**. It should not repeat detailed processing rules,
+schemas, edge cases, or acceptance tests already owned by specifications and
+machine-readable contracts.
+
+### B. Approved product-specifications reference
+
+**Proposed path:**
+`docs/audit/PPAR_Audit_Product_Specifications_Reference.md`.
+
+**Purpose:** retain detailed, founder-approved product requirements and their
+implementation/safety context without making them the entrypoint for product
+strategy.
+
+**Proposed contents:**
+
+1. Source authority and implementation-evidence register
+2. Phase 2 conceptual architecture, actors, and decision-rights reference
+3. Phase 3A Performance Change Investigation specification
+4. Phase 3B Performance Data Quality Audit specification
+5. Phase 3C Audit Readiness specification
+6. Phase 3D Executive Investigation Summary specification
+7. Phase 3E Audit Health Dashboard and Operational Intelligence specification,
+   clearly marked implementation-DEFERRED
+8. Phase 3F Human Review and Disposition boundary, not a detailed specification
+9. Cross-cutting acceptance, safety, validation, and claims references
+10. Historical implementation-intake and external-evidence appendices only
+    where they remain necessary for traceability
+
+This reference should be updated when an approved product requirement changes
+or evidence justifies greater specificity. It should not grow merely because a
+hypothetical feature can be described.
+
+### C. Source-of-truth and migration rules
+
+If the outline is approved, restructuring should follow these rules:
+
+- preserve the current v0.10 document before moving content;
+- make the governing document canonical for product identity, status, scope,
+  principles, roadmap, and founder decisions;
+- make the specifications reference authoritative for approved detailed product
+  requirements;
+- keep executable behavior, tests, safety catalog, and machine-readable
+  contracts authoritative for current implementation truth;
+- link rather than duplicate detailed material;
+- preserve decision dates, capability-status labels, requirement identifiers,
+  and source traceability;
+- remove repetition only after confirming that no unique decision or limitation
+  is lost; and
+- make no application-code or product-behavior changes during the document
+  migration.
+
+**Outline gate — OPEN DECISION:** approve, revise, or reject this outline before
+any file is created, renamed, split, or moved. Phase 4 remains gated until the
+outline and migration posture are approved.
 
 ---
 
@@ -5207,7 +8593,7 @@ Current working-tree verification adds:
 Primary files:
 
 - `docs/axys_apx/contracts/transaction_semantics_matrix.yaml`
-- `ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`
+- `ppar/setup_templates/axys_apx_performance_comparison/demo_extract_availability.yaml`
 - `docs/axys_apx/contracts/templates/site_extract_contract*.yaml`
 - `ppar/performance_comparison/extract_contract.py`
 
@@ -5219,11 +8605,11 @@ and any approved site contract define runtime context requirements.
 
 Primary files:
 
-- `ppar/setup_templates/axysapx_performance_comparison/README.md`
-- `ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml`
-- `docs/audit/performance_comparison_demo_source_contract.md`
+- `ppar/setup_templates/axys_apx_performance_comparison/README.md`
+- `ppar/setup_templates/axys_apx_performance_comparison/axys_apx_performance_comparison.yaml`
+- `docs/audit/demo_source_contract.md`
 - `docs/audit/site_extract_readiness_checklist.md`
-- `docs/axys_apx/axysapx_common_core_export.md`
+- `docs/axys_apx/axys_apx_common_core_export.md`
 
 These establish the first-user path, exact current optional Data Audit rules,
 split evidence, source-contract boundary, and site-readiness responsibilities.
@@ -5486,12 +8872,22 @@ authorized as Phase 3 working assumptions.**
 
 - Performance Change Investigation — Phase 3A founder-approved on 2026-07-16
   with four authorized working assumptions,
-- Performance Data Quality Audit — Phase 3B draft completed in v0.5; awaiting
-  founder review and approval,
-- Audit Readiness — Phase 3C not started and gated on Phase 3B approval,
-- Executive Investigation Summary,
-- Audit Health Dashboard,
-- Operational Intelligence.
+- Performance Data Quality Audit — Phase 3B founder-approved on 2026-07-16
+  with five authorized working assumptions,
+- Audit Readiness — Phase 3C founder-approved on 2026-07-16 with six authorized
+  working assumptions,
+- Executive Investigation Summary — Phase 3D founder-approved on 2026-07-16
+  with six authorized working assumptions,
+- Audit Health Dashboard and Operational Intelligence — Phase 3E founder-
+  approved on 2026-07-17 with seven authorized working assumptions; its
+  implementation remains evidence-gated and DEFERRED,
+- Human Review and Disposition — Phase 3F boundary founder-approved on
+  2026-07-17; detailed specification remains deliberately DEFERRED pending
+  distant-future client evidence.
+
+Before Phase 4, the founder will review the v0.10 proposed split between a
+concise canonical product constitution/roadmap and a separate approved-
+specifications reference. No restructuring has yet occurred.
 
 ## Phase 4 — Audit Rules Catalog Framework
 
@@ -5634,7 +9030,7 @@ not be generalized into comprehensive corporate-action support.
 
 The v0.3 intake incorporated the previously requested next batch:
 
-1. `docs/audit/performance_comparison_demo_source_contract.md`
+1. `docs/audit/demo_source_contract.md`
 2. `docs/audit/site_extract_readiness_checklist.md`
 3. `docs/axys_apx/contracts/transaction_semantics_matrix.yaml` and its
    rendered Markdown counterpart

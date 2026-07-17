@@ -14,7 +14,7 @@ _GENERIC_ANALYTICS_DIR = _REPO_ROOT / "ppar" / "setup_templates" / "generic_anal
 _PERFORMANCE_DIR = _GENERIC_ANALYTICS_DIR / "performance"
 _CLASSIFICATION_DIR = _GENERIC_ANALYTICS_DIR / "classifications"
 _MAPPING_DIR = _GENERIC_ANALYTICS_DIR / "mappings"
-_OUTPUT_DIR = _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_analytics"
+_OUTPUT_DIR = _REPO_ROOT / "ppar" / "setup_templates" / "axys_apx_analytics"
 _PORTFOLIOS = {
     "MEGA_ALPHA": {
         "file_name": "Mega-Cap Alpha Portfolio.csv",
@@ -29,13 +29,13 @@ _PORTFOLIOS = {
 
 def main() -> None:
     """Write Axys/APX-shaped analytics demo files into the packaged demo tree."""
-    output_paths = write_axysapx_analytics_demo_data(_OUTPUT_DIR)
+    output_paths = write_axys_apx_analytics_demo_data(_OUTPUT_DIR)
     print("Axys/APX analytics demo files written:")
     for path in output_paths:
         print(f"- {path}")
 
 
-def write_axysapx_analytics_demo_data(output_directory: Path) -> list[Path]:
+def write_axys_apx_analytics_demo_data(output_directory: Path) -> list[Path]:
     """Write Axys/APX-shaped analytics demo files.
 
     Args:

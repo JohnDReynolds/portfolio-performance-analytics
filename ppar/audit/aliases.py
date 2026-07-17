@@ -6,8 +6,8 @@ from __future__ import annotations
 from typing import Final
 
 # Project imports
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.source_loader import ColumnAliases
+from ppar.audit import schema as pc_cols
+from ppar.audit.source_loader import ColumnAliases
 
 PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES: Final[ColumnAliases] = {
     pc_cols.PORTFOLIO_ID: (

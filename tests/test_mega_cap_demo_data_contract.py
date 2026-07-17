@@ -18,7 +18,7 @@ from ppar.analytics.attribution import View
 from ppar.analytics.cli import _frequency_from_string
 from ppar.analytics.cli import run_analytics
 from ppar.analytics.frequency import Frequency
-from ppar.axys import AxysData
+from ppar.axys_apx import AxysData
 
 
 _PERFORMANCE_DIRECTORY = "ppar/setup_templates/generic_analytics/performance"
@@ -32,8 +32,8 @@ _BENCHMARK_PATH = f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Benchmark.csv"
 _SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
 _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
-_AXYS_ANALYTICS_YAML = Path("ppar/setup_templates/axysapx_analytics/axysapx_analytics.yaml").resolve()
-_AXYS_ANALYTICS_DIRECTORY = Path("ppar/setup_templates/axysapx_analytics")
+_AXYS_ANALYTICS_YAML = Path("ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml").resolve()
+_AXYS_ANALYTICS_DIRECTORY = Path("ppar/setup_templates/axys_apx_analytics")
 _AXYS_ANALYTICS_SECREF = _AXYS_ANALYTICS_DIRECTORY / "secref.csv"
 _AXYS_ANALYTICS_SECPERF = _AXYS_ANALYTICS_DIRECTORY / "secperf.csv"
 _EXPECTED_ANALYTICS_ARTIFACTS = {
@@ -172,7 +172,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
 
         self.assertIn(expected_story, readme)
 
-    def test_axysapx_analytics_fixture_matches_canonical_performance(self) -> None:
+    def test_axys_apx_analytics_fixture_matches_canonical_performance(self) -> None:
         """Axys analytics demo data is a lossless wrapper around Mega-Cap data."""
         axys_data = AxysData(_AXYS_ANALYTICS_YAML)
         axys_portfolio = axys_data.get_portfolio("MEGA_ALPHA")
@@ -198,7 +198,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         )
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
 
-    def test_axysapx_analytics_separates_performance_and_reference_fields(self) -> None:
+    def test_axys_apx_analytics_separates_performance_and_reference_fields(self) -> None:
         """The analytics starter keeps repeated descriptions out of secperf."""
         secperf_columns = list(pd.read_csv(_AXYS_ANALYTICS_SECPERF, nrows=0).columns)
         self.assertEqual(
@@ -226,7 +226,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             site_directory = Path(temporary_directory) / "analytics"
             shutil.copytree(_AXYS_ANALYTICS_DIRECTORY, site_directory)
-            (site_directory / "axysapx_analytics.yaml").rename(
+            (site_directory / "axys_apx_analytics.yaml").rename(
                 site_directory / "ppar.yaml"
             )
             cli_output = Path(temporary_directory) / "cli_output"

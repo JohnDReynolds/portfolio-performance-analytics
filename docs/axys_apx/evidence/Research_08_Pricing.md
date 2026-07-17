@@ -1,5 +1,8 @@
 # Research Notes: Pricing
 
+> Historical evidence corpus. Preserve provenance here; maintain current
+> reader explanations in `../reference/Chapter_08_Pricing.md`.
+
 Repository area: `docs/axys_apx/evidence/`
 Prepared: 2026-06-29  
 Target chapter: `docs/axys_apx/reference/Chapter_08_Pricing.md`
@@ -7,7 +10,7 @@ Scope: Axys, APX, IMEX, REP, field names, report names, processing behavior, ver
 
 ## Governing specification
 
-This research file follows `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 9 Actionable Research-First Repository Constitution.
+This research file follows `axys_apx_reference_blueprint.md`, Version 2.0.
 
 The Blueprint requires:
 
@@ -15,7 +18,7 @@ The Blueprint requires:
 - source summaries;
 - extracted technical facts;
 - explicit confidence levels;
-- separate Axys and APX behavior where behavior differs;
+- separate Axys/APX behavior where behavior differs;
 - explicit Unknowns rather than invented details;
 - IMEX and REP treatment as first-class topics;
 - preservation of source caveats and contradictions.
@@ -31,7 +34,7 @@ The Blueprint requires:
 
 ## Research question
 
-Collect factual information about pricing in Axys and APX for future use in
+Collect factual information about pricing in Axys/APX for future use in
 `../reference/Chapter_08_Pricing.md`, focusing on:
 
 - price architecture;
@@ -85,7 +88,7 @@ Collect factual information about pricing in Axys and APX for future use in
 
 | ID | Source | Type | System | Relevance | Confidence notes |
 |---|---|---|---|---|---|
-| S1 | `AXYS_APX_REFERENCE_BLUEPRINT.md` | Repository governing specification | Repository | Governs research-first mode, confidence labels, Chapter 08 scope, IMEX/REP standards, and Unknown handling. | Verified for repository process. |
+| S1 | `axys_apx_reference_blueprint.md` | Repository governing specification | Repository | Governs research-first mode, confidence labels, Chapter 08 scope, IMEX/REP standards, and Unknown handling. | Verified for repository process. |
 | S2 | ByAllAccounts, `Custodial Integrator User Guide` for Axys | Third-party integration guide | Axys | Defines IMEX as Axys Import/Export utility; describes transaction, position, and price files imported into Axys; identifies price file/folder behavior through prior repository research. | Verified for CI workflow; not a complete native SS&C pricing manual. |
 | S3 | ByAllAccounts, `Custodial Integrator Release Notes` for Axys | Third-party integration release notes | Axys | Provides version-specific pricing bug fixes: calculated prices, stale/missing prices, bond calculated-price truncation, output precision. | Verified for CI release behavior; not native Axys documentation. |
 | S4 | WealthTechs, `AIA User Manual for APX Users` | Third-party integration manual | APX | Documents AIA APX pricing settings, price-file update logic, clean price file, price set logic, custodian trumping order, and custom `.pri` file naming. | Verified for AIA workflow; not a complete APX pricing manual. |
@@ -195,7 +198,7 @@ IMEX log review (`imexPrices.log`)
 
 | Statement | Confidence | Evidence treatment |
 |---|---:|---|
-| AdventGuru states exported price file formats for Axys and APX are simple enough that users could write a merger, but Advent has an existing `mergepri` script command. | Medium | Consultant evidence; useful implementation clue. |
+| AdventGuru states exported price file formats for Axys/APX are simple enough that users could write a merger, but Advent has an existing `mergepri` script command. | Medium | Consultant evidence; useful implementation clue. |
 | `mergepri` allows specifying a destination and multiple sources. | Medium | Consultant evidence. |
 | The first source is primary. | Medium | Consultant evidence. |
 | Prices in the first source file are not overwritten by prices from secondary source files. | Medium | Consultant evidence. |
@@ -575,7 +578,7 @@ User reviews `imexPrices.log` to identify the error.
 |---|---|---|---|
 | PU-001 | Complete Axys `.pri` file layout. | Required for importers, validators, migration tools. | Sanitized price file, file layout manual, IMEX manual. |
 | PU-002 | Complete APX price import/export layout. | Required for APX price integration. | AIA/APX archive price files, APX IMEX docs, public views. |
-| PU-003 | Native IMEX price object names for Axys and APX. | Required for Chapter 12 and Chapter 08 field dictionaries. | Vendor IMEX object catalog or sample `.inf`. |
+| PU-003 | Native IMEX price object names for Axys/APX. | Required for Chapter 12 and Chapter 08 field dictionaries. | Vendor IMEX object catalog or sample `.inf`. |
 | PU-004 | Native price key fields. | Needed for dedupe, replacement, update logic. | Vendor docs or reproducible tests. |
 | PU-005 | Native price source / price set model. | Needed to avoid overwriting correct valuations. | APX price-set docs, Axys source docs, sample exports. |
 | PU-006 | Standard REP report names for prices, missing prices, stale prices. | Required for REP coverage. | REP catalog, `.rep` source, report output samples. |
@@ -708,7 +711,7 @@ To convert this research into a stronger Chapter 08, request any of the followin
 
 ### Repository / uploaded research sources
 
-1. `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 9 Actionable Research-First Repository Constitution. Governing repository specification.
+1. `axys_apx_reference_blueprint.md`, Version 2.0. Governing repository specification.
 2. `Research_12_IMEX.md`. Prior repository research supporting IMEX definition, `*.pri`, `$pathpri`, price imports, log behavior, direct file access cautions, REP32/Replang context.
 3. `Research_04_Security_Master.md`. Prior repository research supporting security master dependencies, `SourceId` price-source context, `sec.inf`/`type.inf`, APX public-view cautions.
 4. `Research_05_Transactions.md`. Prior repository research supporting transaction price dependency, direct-file-access caution, price/holdings/performance dependencies.
@@ -738,7 +741,7 @@ The strongest supported material is integration-layer evidence:
 - APX AIA documents price-file update modes, price-set logic, custodian-specific pricing, custodian trumping order, and custom price-file naming.
 - AdventGuru provides useful consultant evidence for `mergepri` and direct-file-access caution.
 
-The core unresolved gap remains the official native price field dictionary for Axys and APX. Until `.pri` samples, IMEX object definitions, APX public views, or official pricing manuals are available, Chapter 08 should preserve exact field names, object names, report names, and native storage behavior as **Unknown**.
+The core unresolved gap remains the official native price field dictionary for Axys/APX. Until `.pri` samples, IMEX object definitions, APX public views, or official pricing manuals are available, Chapter 08 should preserve exact field names, object names, report names, and native storage behavior as **Unknown**.
 
 ## Deep IMEX Addendum Incorporated 2026-06-30
 

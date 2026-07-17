@@ -2,7 +2,7 @@
 
 This directory contains test-only Axys CSV snapshots, a test-only Axys column
 mapping schema, and performance comparison YAML files. User-facing demo data
-lives under `ppar/setup_templates/axysapx_performance_comparison`.
+lives under `ppar/setup_templates/axys_apx_audit`.
 
 Keeping the synthetic fixtures here avoids mixing regression scenarios with
 the user-facing demo files.
@@ -22,36 +22,36 @@ the user-facing demo files.
 
 The `validation/` directory is the single home for test-only performance
 comparison YAML scenarios. These files are used by targeted unit tests and by
-`ppar.performance_comparison.cli.validate_demo_matrix`. They are not
+`ppar.audit.cli.validate_demo_matrix`. They are not
 user-facing demos; they exist to keep specific edge cases covered without
 asking reviewers to inspect extra workbooks.
 
-- `validation/ppar_performance_comparison.yaml`: Tests the clean/no-issue
+- `validation/ppar_audit.yaml`: Tests the clean/no-issue
   control case and proves the comparison
   can run without producing false positives.
-- `validation/ppar_performance_comparison_restatement.yaml`: Tests missing
+- `validation/ppar_audit_restatement.yaml`: Tests missing
   transaction setup guidance on a controlled restatement.
-- `validation/ppar_performance_comparison_restatement_transaction_rules.yaml`:
+- `validation/ppar_audit_restatement_transaction_rules.yaml`:
   Tests that transaction amount rows become explainable when YAML supplies
   transaction rules and impact methods.
-- `validation/ppar_performance_comparison_security_restatement.yaml`: Tests
+- `validation/ppar_audit_security_restatement.yaml`: Tests
   security-level result comparison with security review keys.
-- `validation/ppar_performance_comparison_multi_restatement.yaml`: Stress-tests
+- `validation/ppar_audit_multi_restatement.yaml`: Stress-tests
   multiple portfolios, multiple periods, context rows, residual/coverage
   behavior, workbook accounting invariants, and a large clean multi-period
   background portfolio that should not create false positives.
-- `validation/ppar_performance_comparison_modified_dietz.yaml`: Tests Modified
+- `validation/ppar_audit_modified_dietz.yaml`: Tests Modified
   Dietz external-flow cross-check diagnostics.
-- `validation/ppar_performance_comparison_policy_gap_demo.yaml`: Tests
+- `validation/ppar_audit_policy_gap_demo.yaml`: Tests
   missing-YAML setup guidance for omitted contribution, transaction-rule, and
   transaction-impact specifications.
-- `validation/ppar_performance_comparison_suppressed.yaml`: Tests
+- `validation/ppar_audit_suppressed.yaml`: Tests
   active-vs-suppressed finding behavior and audit visibility.
 
 Validate the scenario matrix with:
 
 ```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
+./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
 ```
 
 ## Scenario Matrix

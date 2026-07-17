@@ -17,19 +17,19 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import aliases
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.base_currency import with_authoritative_base_currency
-from ppar.performance_comparison.currency_basis import normalize_currency_columns
-from ppar.performance_comparison.extract_contract import (
+from ppar.audit import aliases
+from ppar.audit import schema as pc_cols
+from ppar.audit.base_currency import with_authoritative_base_currency
+from ppar.audit.currency_basis import normalize_currency_columns
+from ppar.audit.extract_contract import (
     validate_transaction_extract_contract,
 )
-from ppar.performance_comparison import source_loader
-from ppar.performance_comparison.portfolio_performance import (
+from ppar.audit import source_loader
+from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
     SnapshotKey,
 )
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.audit.specification import AuditSpecification
 import ppar.utilities as util
 
 __all__ = [
@@ -333,7 +333,7 @@ class TransactionsLoader:
         _specification: Parsed comparison specification.
     """
 
-    def __init__(self, specification: PerformanceComparisonSpecification) -> None:
+    def __init__(self, specification: AuditSpecification) -> None:
         """Initialize the transaction loader.
 
         Args:

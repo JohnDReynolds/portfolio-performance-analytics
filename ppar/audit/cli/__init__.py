@@ -1,1 +1,1 @@
-"""Command-line entry points for the Performance Auditing workflow."""
+"""Command-line entry points for the Audit workflow."""

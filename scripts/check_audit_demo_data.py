@@ -1,7 +1,7 @@
-"""Audit packaged performance-comparison demo data.
+"""Check packaged Audit demo data.
 
 This command delegates to
-``scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py`` so
+``scripts/operational_demo_data/rebuild_audit_demo_data.py`` so
 the generated performance files and their audit guardrails share one
 implementation.
 """
@@ -20,8 +20,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 # Project imports  # noqa: E402
-from scripts.operational_demo_data.rebuild_performance_comparison_demo_data import (
-    _DEFAULT_AXYS_DIRECTORY,
+from scripts.operational_demo_data.rebuild_audit_demo_data import (
+    _DEFAULT_AXYS_APX_DIRECTORY,
     _DEFAULT_COMPARISON_PATH,
     _DEFAULT_HOLDING_SCENARIOS_PATH,
     _DEFAULT_TRANSACTION_SCENARIOS_PATH,
@@ -30,19 +30,19 @@ from scripts.operational_demo_data.rebuild_performance_comparison_demo_data impo
 
 
 def main() -> int:
-    """Run the packaged performance-comparison demo-data audit."""
+    """Run the packaged Audit demo-data check."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "comparison_path",
+        "audit_path",
         nargs="?",
         type=Path,
         default=_DEFAULT_COMPARISON_PATH,
-        help="Portfolio performance-comparison YAML to audit.",
+        help="Audit YAML to check.",
     )
     parser.add_argument(
         "--axys-directory",
         type=Path,
-        default=_DEFAULT_AXYS_DIRECTORY,
+        default=_DEFAULT_AXYS_APX_DIRECTORY,
         help="Directory containing snapshot_a and snapshot_b.",
     )
     parser.add_argument(
@@ -61,7 +61,7 @@ def main() -> int:
 
     issues = audit_demo_data(
         axys_directory=args.axys_directory,
-        comparison_path=args.comparison_path,
+        comparison_path=args.audit_path,
         holding_scenarios_path=args.holding_scenarios_path,
         transaction_scenarios_path=args.transaction_scenarios_path,
     )

@@ -15,7 +15,7 @@ import yaml
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
-from ppar.axys import AxysData
+from ppar.axys_apx import AxysData
 import ppar.analytics.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
@@ -176,7 +176,7 @@ class TestAxysPipeline(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             data = AxysData(_write_axys_inputs(Path(temp_dir)))
             with mock.patch(
-                "ppar.axys.performance_sources.pl.scan_csv",
+                "ppar.axys_apx.performance_sources.pl.scan_csv",
                 wraps=pl.scan_csv,
             ) as scan_csv:
                 portfolios = data.get_portfolios(("P1", "P2"))

@@ -8,7 +8,6 @@ recursive-include ppar *.py
 recursive-include ppar py.typed
 recursive-include ppar/setup_templates *.csv *.yaml *.md *.py
 
-prune images
 prune tests
 
 global-exclude .DS_Store

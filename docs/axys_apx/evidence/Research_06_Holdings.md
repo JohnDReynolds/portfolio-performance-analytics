@@ -1,16 +1,19 @@
 # Research Notes: Holdings
 
+> Historical evidence corpus. Preserve provenance here; maintain current
+> reader explanations in `../reference/Chapter_06_Holdings.md`.
+
 Repository: AXYS / APX Reference Repository  
 Research file: `docs/axys_apx/evidence/Research_06_Holdings.md`
 Target chapter: `docs/axys_apx/reference/Chapter_06_Holdings.md`
 Prepared: 2026-06-29  
-Governing spec: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing spec: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ## 1. Scope and Method
 
 This file collects source-backed research for the reader-facing holdings chapter. It is not the chapter itself. It is intended to preserve factual evidence, confidence classifications, useful report names, field names, processing behaviors, implementation quirks, and unresolved unknowns.
 
-The governing blueprint requires facts-first documentation, separate Axys and APX treatment, preference for vendor documentation / exports / REP reports / production observations / consultant documentation, and classification of important technical statements as Verified, High Confidence, Medium Confidence, or Unknown.
+The governing blueprint requires facts-first documentation, separate Axys/APX treatment, preference for vendor documentation / exports / REP reports / production observations / consultant documentation, and classification of important technical statements as Verified, High Confidence, Medium Confidence, or Unknown.
 
 ### Confidence labels used here
 
@@ -320,7 +323,7 @@ The following should remain Unknown in Chapter 06 unless additional documentatio
 | Treatment of cash, short positions, accrued income, unsettled trades, FX, and multicurrency holdings. | Critical for real-world holdings chapter. | Report guides and sample outputs. |
 | Security identifier hierarchy used in holdings reports. | Needed for data dictionary. | Security master docs and report output samples. |
 | Whether `CDIhold.rep` is generic or WealthTechs-specific. | Avoid documenting third-party workflow as standard Axys/APX. | Report source or vendor notes. |
-| Whether REP syntax and variables differ between Axys and APX. | Needed for REP chapter cross-reference. | Axys/APX Replang manuals and sample `.rep` files. |
+| Whether REP syntax and variables differ between Axys/APX. | Needed for REP chapter cross-reference. | Axys/APX Replang manuals and sample `.rep` files. |
 
 ## 13. Recommended Next Inputs Before Strengthening Chapter 06
 
@@ -333,7 +336,7 @@ To strengthen the reader-facing holdings chapter, collect any of the following:
 5. One lot-level holdings report sample, if used by either system.
 6. Axys/APX IMEX or Import/Export manual pages for positions/holdings.
 7. Sample `.rep` files: `CDIhold.rep`, `aman.rep`, and any standard Portfolio Appraisal report definition.
-8. Sample current-date and historical holdings extracts from Axys and APX.
+8. Sample current-date and historical holdings extracts from Axys/APX.
 9. Any client-specific notes documenting how holdings are calculated relative to transactions, prices, splits, and accruals.
 
 Until those are available, Chapter 06 should heavily distinguish verified report behavior from unknown internal data-storage behavior.

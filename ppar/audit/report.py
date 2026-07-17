@@ -1,4 +1,4 @@
-"""Render performance comparison findings as review-oriented reports."""
+"""Render Audit findings as review-oriented reports."""
 
 from __future__ import annotations
 
@@ -14,24 +14,24 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.errors import PpaError
-from ppar.performance_comparison import bundle as _pc_bundle
-from ppar.performance_comparison import conservation as _pc_conservation
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import explain as _pc_explain
-from ppar.performance_comparison import findings as _pc_findings
-from ppar.performance_comparison import lineage as _pc_lineage
-from ppar.performance_comparison import output_policy as _pc_output_policy
-from ppar.performance_comparison import rendering as _pc_rendering
-from ppar.performance_comparison import review_keys as _pc_review_keys
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import runner as _pc_runner
-from ppar.performance_comparison import workbook as _pc_workbook
-from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
-from ppar.performance_comparison.specification import PORTFOLIO_COMPARISON_LEVEL
+from ppar.audit import bundle as _pc_bundle
+from ppar.audit import conservation as _pc_conservation
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison import explain as _pc_explain
+from ppar.audit.performance_comparison import findings as _pc_findings
+from ppar.audit import lineage as _pc_lineage
+from ppar.audit import output_policy as _pc_output_policy
+from ppar.audit import rendering as _pc_rendering
+from ppar.audit import review_keys as _pc_review_keys
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import runner as _pc_runner
+from ppar.audit import workbook as _pc_workbook
+from ppar.audit import workbook_tables as _pc_workbook_tables
+from ppar.audit.specification import PORTFOLIO_COMPARISON_LEVEL
 
 __all__ = [
-    "write_performance_comparison_report_bundle",
-    "write_performance_comparison_review_workbook",
+    "write_audit_report_bundle",
+    "write_audit_review_workbook",
 ]
 
 _COUNT = "count"
@@ -147,7 +147,7 @@ def _html_table(
 def _performance_comparison_html_report(
     findings: pl.DataFrame,
     *,
-    title: str = "Performance Auditing Report",
+    title: str = "Audit Report",
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
@@ -174,7 +174,7 @@ def _performance_comparison_html_report(
         in a browser.
     """
     sheets = _sheets or (
-        _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+        _pc_workbook_tables.audit_review_workbook_sheets(
             findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
@@ -346,11 +346,11 @@ def _html_workbook_row_value_classes(
     return ()
 
 
-def _write_performance_comparison_html_report(
+def _write_audit_html_report(
     findings: pl.DataFrame,
     output_path: util.PathLike,
     *,
-    title: str = "Performance Auditing Report",
+    title: str = "Audit Report",
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
@@ -380,7 +380,7 @@ def _write_performance_comparison_html_report(
     report_path = Path(output_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     sheets = _sheets or (
-        _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+        _pc_workbook_tables.audit_review_workbook_sheets(
             findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
@@ -398,11 +398,11 @@ def _write_performance_comparison_html_report(
     return report_path
 
 
-def write_performance_comparison_report_bundle(
+def write_audit_report_bundle(
     findings: pl.DataFrame,
     output_directory: util.PathLike,
     *,
-    title: str = "Performance Auditing Report",
+    title: str = "Audit Report",
     top_evidence_limit: int = 10,
     include_workbook: bool = False,
     include_html_output: bool = True,
@@ -412,7 +412,7 @@ def write_performance_comparison_report_bundle(
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
     expand_all_supporting_files: bool = True,
-    _x_ref_issues: pl.DataFrame | None = None,
+    _data_issues: pl.DataFrame | None = None,
     _reconstruction_cache: (
         _pc_workbook_tables.WorkbookReconstructionCache | None
     ) = None,
@@ -480,14 +480,14 @@ def write_performance_comparison_report_bundle(
     )
     table_cache = _pc_workbook_tables._WorkbookTableCache(active_findings)
     workbook_sheets = (
-        _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+        _pc_workbook_tables.audit_review_workbook_sheets(
             findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
             _reconstruction_cache=reconstruction_cache,
             _table_cache=table_cache,
-            _x_ref_issues=_x_ref_issues,
+            _data_issues=_data_issues,
             _finding_audit_trail=finding_audit_trail,
         )
     )
@@ -538,7 +538,7 @@ def write_performance_comparison_report_bundle(
         comparison_level
     )
     if include_html_output:
-        paths["html_report"] = _write_performance_comparison_html_report(
+        paths["html_report"] = _write_audit_html_report(
             findings,
             bundle_directory / html_report_file_name,
             title=title,
@@ -787,7 +787,7 @@ def _report_bundle_tables(
     }
 
 
-def write_performance_comparison_review_workbook(
+def write_audit_review_workbook(
     findings: pl.DataFrame,
     output_path: util.PathLike,
     *,
@@ -817,7 +817,7 @@ def write_performance_comparison_review_workbook(
     Returns:
         Normalized workbook path.
     """
-    return _pc_workbook_tables.write_performance_comparison_review_workbook(
+    return _pc_workbook_tables.write_audit_review_workbook(
         findings,
         output_path,
         top_evidence_limit=top_evidence_limit,

@@ -82,7 +82,7 @@
       "elapsed_ratio": 61.8
     },
     {
-      "phase": "Phase J reused materialized rows across Data Audit checks",
+      "phase": "Phase J reused materialized rows across Data Issues checks",
       "scaled_seconds": 88.49,
       "elapsed_ratio": 57.09
     },
@@ -122,7 +122,7 @@
       "elapsed_ratio": 76.34
     },
     {
-      "phase": "Phase R reused Data Audit indexes and filter fast paths",
+      "phase": "Phase R reused Data Issues indexes and filter fast paths",
       "scaled_seconds": 77.29,
       "elapsed_ratio": 74.85
     },
@@ -161,7 +161,7 @@
       "workbook_table_derivation_both_reports": 44.94,
       "xlsx_write_both_reports": 16.16,
       "supporting_table_construction_both_reports": 11.08,
-      "x_ref": 7.77,
+      "data_issues": 7.77,
       "compact_zip_both_reports": 3.36,
       "manifest_both_reports": 3.05,
       "html_construction_and_write_both_reports": 2.11,
@@ -176,7 +176,7 @@
       "review_rows": {
         "performance_differences": 12500,
         "performance_difference_causes": 70000,
-        "x_ref_issues": 13000
+        "data_issues": 13000
       }
     },
     "security": {
@@ -184,7 +184,7 @@
       "review_rows": {
         "performance_differences": 25500,
         "performance_difference_causes": 60500,
-        "x_ref_issues": 13000
+        "data_issues": 13000
       }
     }
   },
@@ -199,7 +199,7 @@
     "Phase G keeps base-currency and period-boundary assertions active in production while evaluating them with Polars expressions instead of Python row dictionaries.",
     "Phase H reuses the FX portfolio-period index and appends lineage metadata column-wise while preserving byte-identical SHA-256 finding fingerprints.",
     "Phase I indexes complete evidence rows once and preserves their original ordering instead of constructing a small Polars DataFrame for every changed period.",
-    "Phase J materializes each holdings and transactions snapshot union once and reuses those rows across every enabled Data Audit cross-reference check.",
+    "Phase J materializes each holdings and transactions snapshot union once and reuses those rows across every enabled Data Issues cross-reference check.",
     "Phase K caches repeated source-detail wording and classification shapes while copying portfolio identity, source locator, and review key from every individual finding row.",
     "Phase L builds each holdings-and-transactions reconstruction index once per snapshot and reuses it for separate portfolio and security Modified Dietz checks.",
     "Phase M derives source candidates once per Modified Dietz formula input and uses the same result for effect allocation and mandatory unallocated-input visibility.",
@@ -211,8 +211,8 @@
     "Phase P preserved all values and visible formatting across 410,261 generated workbook cells, reduced the full 100x profile from 29.74 seconds to 28.47 seconds, and reduced the 500x wall-clock observation from 78.50 seconds to 76.71 seconds.",
     "Phase Q compiles exact JSON scalar encoders once per finding column and bounds repeated-value caches while preserving every persisted SHA-256 fingerprint byte.",
     "Phase Q reduced profiled 100x finding-audit-trail construction from 1.72 seconds to 1.13 seconds; its 77.87-second 500x sample is retained as measured run-to-run variation, not reported as an aggregate gate improvement.",
-    "Phase R short-circuits empty Data Audit filters, reuses the holdings rate index, and sorts continuity rows once in Polars instead of sorting every Python group.",
-    "Phase R preserved all 2,600 profiled 100x Data Audit rows exactly and reduced x_ref processing from 2.18 seconds to 1.88 seconds; the combined Phase Q and R target paths are 0.97 seconds faster in the 100x profile.",
+    "Phase R short-circuits empty Data Issues filters, reuses the holdings rate index, and sorts continuity rows once in Polars instead of sorting every Python group.",
+    "Phase R preserved all 2,600 profiled 100x Data Issues rows exactly and reduced data_issues processing from 2.18 seconds to 1.88 seconds; the combined Phase Q and R target paths are 0.97 seconds faster in the 100x profile.",
     "Phase R's 77.29-second 500x sample passed the unchanged gate and remains within the observed wall-clock variation around Phase P's 76.71-second sample.",
     "Phase S indexes eligible holdings, flow, and income rows once by Modified Dietz owner/component instead of rescanning owner rows for every formula input, and reuses cached performance-input classification.",
     "Phase S preserved all report CSV rows and all 410,261 workbook cells and formats, reduced profiled 100x report-table derivation from 10.20 seconds to 8.82 seconds, and reduced the full profile from 29.71 seconds to 26.90 seconds.",
@@ -226,8 +226,8 @@
     "Phase U reduced profiled 100x contribution-candidate construction from 1.57 seconds to 0.79 seconds and primary-coverage construction from 2.25 seconds to 1.53 seconds.",
     "Phase U reduced the 500x wall-clock observation from 71.87 seconds to 66.40 seconds while passing the unchanged hard gate.",
     "Phase V keeps mandatory SN-04 market-value continuity active in production while using grouped Polars shifts to evaluate adjacent periods and materializing only violations.",
-    "Phase V preserved all 2,600 profiled 100x x_ref rows exactly, and every supporting CSV remained byte-identical apart from regenerated manifests.",
-    "Phase V reduced profiled 100x market-value continuity processing from approximately 0.53 seconds to 0.014 seconds and total x_ref processing from 1.79 seconds to 1.28 seconds.",
+    "Phase V preserved all 2,600 profiled 100x data_issues rows exactly, and every supporting CSV remained byte-identical apart from regenerated manifests.",
+    "Phase V reduced profiled 100x market-value continuity processing from approximately 0.53 seconds to 0.014 seconds and total data_issues processing from 1.79 seconds to 1.28 seconds.",
     "Phase V's required 500x gate passed at 70.10 seconds and a 69.37x ratio; the wall-clock sample is slower than Phase U's 66.40 seconds and is not reported as an aggregate improvement.",
     "A same-process isolated 500x benchmark reduced the Phase V target path from 1.2709 seconds to 0.0572 seconds with identical issue counts, indicating an approximately 1.21-second target-path saving despite full-run timing variation.",
     "Phase W keeps SN-01, SN-02, SN-05, and SN-07 active in production while associating finding fingerprints, assigning cause dispositions, and detecting invalid cause rows with Polars operations.",

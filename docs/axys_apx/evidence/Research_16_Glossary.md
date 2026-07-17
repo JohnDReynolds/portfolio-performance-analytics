@@ -2,7 +2,7 @@
 
 Research notes for `../reference/Chapter_16_Glossary.md`.
 
-This file follows `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. It is intended as research support for Chapter 16, not as the chapter text.
+This file follows `axys_apx_reference_blueprint.md` Version 2.0. It is intended as research support for Chapter 16, not as the chapter text.
 
 ## Scope
 
@@ -32,7 +32,7 @@ This glossary research collects terms that are likely to appear across the Axys/
 
 | Source | Type | Notes |
 |---|---|---|
-| AXYS_APX_REFERENCE_BLUEPRINT.md Version 2.0 | Supplied governing specification | Defines repository purpose, required confidence labels, structure, and prohibition against invented behavior. |
+| axys_apx_reference_blueprint.md Version 2.0 | Supplied governing specification | Defines repository purpose, required confidence labels, structure, and prohibition against invented behavior. |
 | SS&C Advent Axys product page | Public vendor source | Describes Axys as portfolio reporting/accounting software with performance measurement, reporting, multicurrency, fixed income, corporate actions, and Report Writer Pro capabilities. |
 | SS&C Advent Portfolio Exchange product page | Public vendor source | Describes APX as an integrated portfolio and client management solution connecting front, middle, and back office on one platform. |
 | SS&C Advent APX product brief page | Public vendor source | Describes APX as centralized book of record for portfolio management, performance measurement, accounting, reporting, composite management, performance analytics, and CRM. |
@@ -58,8 +58,8 @@ Field names, transaction codes, report names, and file layouts should not be fin
 
 | Term | Working Definition | Axys | APX | IMEX | REP | Confidence | Evidence / Notes |
 |---|---|---|---|---|---|---|---|
-| Advent | Legacy vendor name historically associated with Axys and APX. SS&C Advent branding is used in current product materials. | Applicable | Applicable | N/A | N/A | Verified | Current vendor pages use SS&C Advent branding for Axys and Advent Portfolio Exchange. |
-| SS&C Advent | Current product/vendor branding for Axys and APX in public materials. | Applicable | Applicable | N/A | N/A | Verified | Public vendor pages identify the products under SS&C Advent. |
+| Advent | Legacy vendor name historically associated with Axys/APX. SS&C Advent branding is used in current product materials. | Applicable | Applicable | N/A | N/A | Verified | Current vendor pages use SS&C Advent branding for Axys and Advent Portfolio Exchange. |
+| SS&C Advent | Current product/vendor branding for Axys/APX in public materials. | Applicable | Applicable | N/A | N/A | Verified | Public vendor pages identify the products under SS&C Advent. |
 | Axys | SS&C Advent portfolio management, portfolio accounting, performance measurement, and reporting solution. | Primary product | Related product only | Supports integration/extract workflows, but exact object set requires verification. | Uses REP/Report Writer Pro reporting architecture; exact details require verification. | Verified | Vendor material states Axys automates portfolio reporting and accounting, includes performance measurement, reporting, multicurrency, and fixed income support. |
 | APX | Advent Portfolio Exchange; integrated portfolio management, accounting, performance measurement, reporting, and client relationship management solution. | Related product only | Primary product | Supports IMEX and other APX integration options; exact object set requires verification. | Uses reporting architecture including REP/RepLang; exact details require verification. | Verified | Vendor material describes APX as an integrated portfolio and client management solution and centralized book of record. |
 | Advent Portfolio Exchange | Full product name for APX. | N/A | Full product name | N/A | N/A | Verified | Public vendor source. |
@@ -103,7 +103,7 @@ Field names, transaction codes, report names, and file layouts should not be fin
 | Report | Generated output from Axys/APX reporting system, usually for portfolio/accounting/performance/client reporting. | Axys has predefined and customizable reports. | APX has standard reports and automated report packaging. | Reports may be exported or used as extraction source. | Core output of REP/RepLang/report engine. | Verified | Public vendor and integration material. |
 | Standard Report | Vendor-provided/predefined report. | Axys has hundreds of predefined reports per vendor material. | APX has vast library of standard reports per vendor material. | May be used for extracts. | REP32 can run standard reports in connector workflow. | Verified | Vendor and Data Broker material. |
 | Custom Report | Report modified or built to meet firm-specific requirements. | Axys supports custom reports and Report Writer Pro. | APX supports flexible custom reporting. | May be used to produce custom extracts. | Often implemented via Report Writer Pro or RepLang. | Verified | Vendor and practitioner material. |
-| Report Writer Pro | Advent report authoring/customization tool. | Public Axys vendor material says users can create reports with Axys Report Writer Pro. | Practitioner material says Axys and APX users can create reports using Report Writer Pro. | N/A | Related to report creation; exact internal format Unknown. | Verified for Axys; High Confidence for APX | Vendor and practitioner material. |
+| Report Writer Pro | Advent report authoring/customization tool. | Public Axys vendor material says users can create reports with Axys Report Writer Pro. | Practitioner material says Axys/APX users can create reports using Report Writer Pro. | N/A | Related to report creation; exact internal format Unknown. | Verified for Axys; High Confidence for APX | Vendor and practitioner material. |
 | REP | Common shorthand for Advent report file/report architecture. Exact formal definition should be verified. | Used in Axys reporting. | Used in APX reporting. | REP output can be an alternative extract source. | Primary glossary term for repository Chapter 13. | Medium Confidence | Public integration/practitioner material references reports, RepLang, and REP32; exact `.rep` file semantics require vendor/manual verification. |
 | RepLang / Replang | Advent report scripting/language used to modify/create reports. | Practitioner source states Replang is part of Axys reporting architecture. | Practitioner source states Replang is part of APX reporting architecture; APX may add more keywords. | Can be used to produce text/CSV extracts through reports. | Core report programming language. | High Confidence | AdventGuru practitioner material. |
 | REP32 | Reporting engine/application. | Used with Axys client tools in integration workflow. | Used with APX client tools in integration workflow. | May generate extract files from reports/macros. | Executes reports/macros per integration documentation. | Verified | Data Broker article. |
@@ -341,7 +341,7 @@ The following are possible report categories, not verified report names. Do not 
 
 | Topic | Research Finding | Axys | APX | Confidence | Notes |
 |---|---|---|---|---|---|
-| Do not assume identical behavior between Axys and APX | Repository standard requires separate Axys and APX behavior whenever they differ. | Applies. | Applies. | Verified | From supplied blueprint. |
+| Do not assume identical behavior between Axys/APX | Repository standard requires separate Axys/APX behavior whenever they differ. | Applies. | Applies. | Verified | From supplied blueprint. |
 | Use Unknown rather than inventing field names | Field names, transaction codes, report behavior, and implementation details must not be invented. | Applies. | Applies. | Verified | From supplied blueprint. |
 | APX has more modern data access options than Axys | Practitioner material states APX users can access underlying SQL Server database via Stored Accounting Functions, Public Views, SSRS, REST API, etc., and that APX has capabilities Axys users do not. | Contrast only. | Applies. | High Confidence | Practitioner source; verify exact availability by APX version. |
 | IMEX remains relevant even where APIs exist | Practitioner material states APX import/export methods like IMEX may still be efficient and reliable for certain data elements. | Likely relevant. | Applies. | High Confidence | Practitioner source. |

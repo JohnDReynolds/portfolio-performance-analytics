@@ -12,7 +12,7 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 import ppar.utilities as util
 
 DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {

@@ -29,7 +29,7 @@ Files:
 Shared fixture configuration lives one directory above this snapshot:
 
 - axys_column_mappings.yaml: Axys column mapping configuration
-- ppar_performance_comparison.yaml: comparison configuration for axys_a and axys_b
+- ppar_audit.yaml: comparison configuration for axys_a and axys_b
 
 Intentional event coverage:
 - BUY and SELL transactions

@@ -12,9 +12,9 @@ from typing import TYPE_CHECKING, cast
 import polars as pl
 
 # Project imports
-from ppar.axys import reconciliation
-from ppar.axys.performance_sources import AxysPerformanceSourceLoader
-from ppar.axys.specification import AxysSpecification
+from ppar.axys_apx import reconciliation
+from ppar.axys_apx.performance_sources import AxysPerformanceSourceLoader
+from ppar.axys_apx.specification import AxysSpecification
 import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 from ppar.analytics.frequency import Frequency
@@ -22,7 +22,7 @@ import ppar.utilities as util
 
 if TYPE_CHECKING:
     from ppar.analytics import Analytics
-    from ppar.axys.supporting_sources import AxysClassificationSources
+    from ppar.axys_apx.supporting_sources import AxysClassificationSources
 
 _ANALYTICS_REQUIRED_COLUMNS = {
     cols.FROM_DATE,
@@ -194,7 +194,7 @@ class AxysPortfolio:
             benchmark_sources,
         )
         # Import lazily to avoid a module import cycle.
-        from ppar.axys.supporting_sources import (  # pylint: disable=import-outside-toplevel
+        from ppar.axys_apx.supporting_sources import (  # pylint: disable=import-outside-toplevel
             AxysClassificationSources,
         )
 

@@ -10,23 +10,23 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import PerformanceComparisonSpecification
+from ppar.audit import AuditSpecification
 
-_AXYS_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_AXYS_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
 _TEST_AXYS_SCHEMA_PATH = Path("tests/data/axys/axys_column_mappings.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path
 
 
 def _write_yaml_text(directory: Path, contents: str) -> Path:
     """Write raw comparison YAML text and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(contents, encoding="utf-8")
     return path
 
@@ -47,12 +47,12 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
     }
 
 
-class TestPerformanceComparisonSpecification(unittest.TestCase):
+class TestAuditSpecification(unittest.TestCase):
     """Verify comparison specification parsing and file preflight behavior."""
 
     def test_fixture_comparison_paths_are_resolved(self) -> None:
         """Committed baseline fixture resolves snapshots, schemas, and files."""
-        specification = PerformanceComparisonSpecification(_AXYS_COMPARISON_PATH)
+        specification = AuditSpecification(_AXYS_COMPARISON_PATH)
 
         self.assertEqual(specification.snapshot_a.label, "axys_a")
         self.assertEqual(specification.snapshot_b.label, "axys_b")
@@ -91,7 +91,7 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
             }
             path = _write_yaml(directory, configuration)
 
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertFalse(specification.files["security_performance"].required)
             self.assertEqual(
@@ -114,7 +114,7 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 802"))
             self.assertIn("files.transactions", str(context.exception))
@@ -147,7 +147,7 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 802"))
             self.assertIn("files.holdings", str(context.exception))
@@ -180,7 +180,7 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
             path = _write_yaml(directory, configuration)
 
             with self.assertRaisesRegex(PpaError, "required by the comparison contract"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_duplicate_yaml_section_key_raises(self) -> None:
         """Duplicate YAML sections fail instead of silently overriding values."""
@@ -207,7 +207,7 @@ transaction_impact_methods:
             )
 
             with self.assertRaisesRegex(PpaError, "duplicate YAML key"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_duplicate_yaml_method_key_raises(self) -> None:
         """Duplicate method keys inside one semantic slot fail fast."""
@@ -232,7 +232,7 @@ transaction_impact_methods:
             )
 
             with self.assertRaisesRegex(PpaError, "duplicate YAML key"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_simple_dietz_reconstruction_rejects_timed_flow_keys(self) -> None:
         """Simple Dietz does not accept timing fields it cannot use."""
@@ -253,7 +253,7 @@ transaction_impact_methods:
             path = _write_yaml(directory, configuration)
 
             with self.assertRaisesRegex(PpaError, "not valid for method simple_dietz"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_modified_simple_dietz_reconstruction_omits_timed_flow_keys(self) -> None:
         """Modified Simple Dietz accepts only fields used by its formula."""
@@ -284,7 +284,7 @@ transaction_impact_methods:
             }
             path = _write_yaml(directory, configuration)
 
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             reconstruction = specification.portfolio_return_reconstruction
             if reconstruction is None:
@@ -312,7 +312,7 @@ transaction_impact_methods:
             path = _write_yaml(directory, configuration)
 
             with self.assertRaisesRegex(PpaError, "required keys for method modified_dietz"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_reconstruction_rejects_unknown_keys(self) -> None:
         """Unknown reconstruction keys fail instead of being ignored."""
@@ -333,7 +333,7 @@ transaction_impact_methods:
             path = _write_yaml(directory, configuration)
 
             with self.assertRaisesRegex(PpaError, "unsupported keys: surprise"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_portfolio_performance_cannot_configure_required_flag(self) -> None:
         """Portfolio performance requiredness is structural, not configurable."""
@@ -349,7 +349,7 @@ transaction_impact_methods:
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 504"))
             self.assertIn("must not specify required", str(context.exception))
@@ -363,7 +363,7 @@ transaction_impact_methods:
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 504"))
             self.assertIn("files.portfolio_performance is required", str(context.exception))
@@ -379,7 +379,7 @@ transaction_impact_methods:
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 504"))
             self.assertIn("snapshots.b must be a mapping", str(context.exception))
@@ -390,10 +390,119 @@ transaction_impact_methods:
             path = _write_yaml(Path(temp_dir), ["not", "a", "mapping"])
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 504"))
             self.assertIn("YAML must be a dictionary", str(context.exception))
+
+    def test_valid_data_issues_configuration_is_preserved(self) -> None:
+        """Strict validation retains valid current values without normalization."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            data_issues = {
+                "enabled": True,
+                "holdings_price_range": {
+                    "enabled": True,
+                    "only": {"holdings.security_id": [101, "ABC"]},
+                    "exclude": {"portfolio": "TEST"},
+                    "absolute_tolerance": 0.01,
+                    "percent_tolerance": 0.5,
+                },
+                "portfolio_market_value_continuity": {
+                    "absolute_tolerance": 0.01,
+                },
+            }
+            configuration["data_issues"] = data_issues
+            path = _write_yaml(directory, configuration)
+
+            specification = AuditSpecification(path)
+
+        self.assertEqual(specification.values["data_issues"], data_issues)
+
+    def test_retired_data_audit_checks_key_is_rejected(self) -> None:
+        """The retired configuration key fails with an actionable replacement."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["data_audit_checks"] = {"enabled": False}
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaises(PpaError) as context:
+                AuditSpecification(path)
+
+        self.assertTrue(str(context.exception).startswith("Error 504"))
+        self.assertIn(
+            "data_audit_checks is no longer supported; use data_issues instead",
+            str(context.exception),
+        )
+
+    def test_data_issues_configuration_rejects_malformed_or_unknown_values(self) -> None:
+        """Every formerly fail-open Data Issues shape fails at an actionable path."""
+        invalid_sections = (
+            ([], "data_issues must be a mapping"),
+            ({"unknown_issue": {}}, "unknown issue types or unsupported keys"),
+            ({"enabled": "yes"}, "data_issues.enabled must be a Boolean"),
+            (
+                {"holdings_price_range": []},
+                "data_issues.holdings_price_range must be a mapping",
+            ),
+            (
+                {"holdings_price_range": {"surprise": True}},
+                "data_issues.holdings_price_range has unsupported keys: surprise",
+            ),
+            (
+                {"holdings_price_range": {"enabled": 1}},
+                "data_issues.holdings_price_range.enabled must be a Boolean",
+            ),
+            (
+                {"holdings_price_range": {"percent_tolerance": -0.01}},
+                "data_issues.holdings_price_range.percent_tolerance must be a "
+                "finite nonnegative number",
+            ),
+            (
+                {"holdings_price_range": {"absolute_tolerance": float("inf")}},
+                "data_issues.holdings_price_range.absolute_tolerance must be a "
+                "finite nonnegative number",
+            ),
+            (
+                {"holdings_price_range": {"only": ["security_id"]}},
+                "data_issues.holdings_price_range.only must be a mapping",
+            ),
+            (
+                {"holdings_price_range": {"only": {"price": 10}}},
+                "data_issues.holdings_price_range.only.price is not a supported "
+                "filter field",
+            ),
+            (
+                {"holdings_price_range": {"exclude": {"security_id": {"ABC": 1}}}},
+                "data_issues.holdings_price_range.exclude.security_id must be a "
+                "scalar value",
+            ),
+            (
+                {"duplicate_transactions": {"absolute_tolerance": 1}},
+                "data_issues.duplicate_transactions has unsupported keys: "
+                "absolute_tolerance",
+            ),
+            (
+                {"portfolio_market_value_continuity": {"enabled": False}},
+                "data_issues.portfolio_market_value_continuity has unsupported "
+                "keys: enabled",
+            ),
+        )
+        for data_issues, expected_message in invalid_sections:
+            with self.subTest(expected_message=expected_message):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    directory = Path(temp_dir)
+                    configuration = _minimal_specification(directory)
+                    configuration["data_issues"] = data_issues
+                    path = _write_yaml(directory, configuration)
+
+                    with self.assertRaises(PpaError) as context:
+                        AuditSpecification(path)
+
+                self.assertTrue(str(context.exception).startswith("Error 504"))
+                self.assertIn(expected_message, str(context.exception))
 
 
 if __name__ == "__main__":

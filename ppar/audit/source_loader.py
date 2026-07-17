@@ -14,10 +14,10 @@ import polars as pl
 import yaml
 
 # Project imports
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.specification import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.specification import (
     ComparisonSnapshot,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
 from ppar.errors import PpaError
 import ppar.utilities as util
@@ -333,7 +333,7 @@ def read_schema_mapped_csv(
     dataset_name: str,
     default_required_aliases: ColumnAliases,
     default_optional_aliases: ColumnAliases,
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     snapshot_key: str,
 ) -> pl.DataFrame:
     """Read a CSV using built-in aliases plus snapshot schema overrides.
@@ -419,7 +419,7 @@ def require_numeric_columns(
 
 
 def snapshot_by_key(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     snapshot_key: str,
 ) -> ComparisonSnapshot:
     """Return the configured snapshot for a neutral snapshot key."""
@@ -431,7 +431,7 @@ def snapshot_by_key(
 
 
 def optional_file_path(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     dataset_name: str,
     snapshot_key: str,
 ) -> util.PathLike | None:

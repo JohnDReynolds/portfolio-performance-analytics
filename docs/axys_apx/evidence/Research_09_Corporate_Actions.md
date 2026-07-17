@@ -4,13 +4,13 @@
 **Target chapter:** `docs/axys_apx/reference/Chapter_09_Corporate_Actions.md`
 **Systems:** SS&C Advent Axys; SS&C Advent Portfolio Exchange (APX)  
 **Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## 1. Research Scope and Evidence Policy
 
-This file collects implementation-oriented research for a future technical reference chapter on corporate actions in Axys and APX.
+This file collects implementation-oriented research for a future technical reference chapter on corporate actions in Axys/APX.
 
 The governing repository standard requires that important statements be classified as:
 
@@ -27,7 +27,7 @@ This research intentionally preserves unknowns. It does not invent transaction c
 
 | Source | Type | Relevance | Notes | Confidence Use |
 |---|---:|---|---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Uploaded repository specification | Governs format, confidence labels, factual discipline, Axys/APX separation | Used as editorial authority only | Verified for repository process |
+| `axys_apx_reference_blueprint.md` | Uploaded repository specification | Governs format, confidence labels, factual discipline, Axys/APX separation | Used as editorial authority only | Verified for repository process |
 | SS&C Advent, “Overcome the Challenges of Corporate Actions Processing with Axys” | Vendor product brief PDF | ACA integration with Axys, active-holdings script, reports, Automation Results email, Trade Blotter processing, simple/complex event review | Public vendor brief | Verified for ACA/Axys product claims |
 | SS&C Advent, “Brief: Advent Corporate Actions for APX” | Vendor web page / product brief | APX integration with Advent Corporate Actions (ACA), processing flow, Trade Blotter, Reorg Utility | Public vendor page | Verified for ACA/APX product claims |
 | SS&C Advent, “What is SS&C Advent Corporate Actions?” | Vendor web page | General ACA positioning; dashboard/calendar/reporting improvements | Public vendor page | Verified for ACA product positioning only |
@@ -45,7 +45,7 @@ This research intentionally preserves unknowns. It does not invent transaction c
 
 | Finding | Axys | APX | Classification | Evidence / Notes |
 |---|---|---|---:|---|
-| Corporate actions are a distinct operational domain for Advent users; SS&C offers Advent Corporate Actions (ACA) as a separate corporate actions solution. | ACA is marketed as integrated with Axys | ACA is marketed specifically for APX | Verified | SS&C product briefs describe ACA workflows for both Axys and APX. |
+| Corporate actions are a distinct operational domain for Advent users; SS&C offers Advent Corporate Actions (ACA) as a separate corporate actions solution. | ACA is marketed as integrated with Axys | ACA is marketed specifically for APX | Verified | SS&C product briefs describe ACA workflows for both Axys/APX. |
 | ACA for Axys can receive active holdings by daily script, provide reports and Automation Results email, and process simple/mandatory events to the Trade Blotter. | Yes, per vendor brief | N/A | Verified | Vendor-described Axys workflow; exact fields and final posting lifecycle Unknown. |
 | ACA for APX can send holdings from APX to the ACA Server, cross-reference securities to an action database, review/download actions, run the APX Reorg Utility, and post transactions to the APX Trade Blotter. | Not stated | Yes, per vendor brief | Verified | Vendor-described APX workflow. |
 | Axys has a `split.inf` file used for security splits. | Yes | Unknown whether native APX stores an equivalent physical file | High Confidence | Third-party conversion and consultant sources identify `split.inf` / `SPLIT.INF` as Advent Axys security splits file. |
@@ -229,7 +229,7 @@ No supplied IMEX dictionary, sample IMEX exports, or command scripts were provid
 
 | Question | Why It Matters | Status |
 |---|---|---:|
-| Which IMEX object exports transactions in Axys and APX? | Needed to audit dividend/reorg postings. | Unknown |
+| Which IMEX object exports transactions in Axys/APX? | Needed to audit dividend/reorg postings. | Unknown |
 | Are stock splits exported through transaction IMEX, security master IMEX, a split-specific IMEX object, or only through file export? | Needed to model split corrections. | Unknown |
 | Does IMEX expose original ACA action IDs or only resulting APX transactions? | Needed for traceability from external ACA to APX postings. | Unknown |
 | Does APX IMEX expose Trade Blotter rows before posting and posted transactions after posting? | Needed to distinguish pending vs final corporate actions. | Unknown |
@@ -261,7 +261,7 @@ No supplied REP source, report catalog, or sample output was provided for corpor
 | Can REP read `split.inf` directly? | Unknown |
 | Can REP report APX Trade Blotter transactions before posting? | Unknown |
 | Does REP expose transaction source/origin fields for ACA-generated APX entries? | Unknown |
-| Are there separate Axys and APX report names for corporate action review? | Unknown |
+| Are there separate Axys/APX report names for corporate action review? | Unknown |
 
 ---
 
@@ -397,7 +397,7 @@ Chapter 09 can safely state:
 
 1. Axys data conversions commonly require `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf` files.
 2. `split.inf` is identified by third-party conversion documentation as the Axys securities splits file.
-3. ACA is verified as an Advent corporate-actions workflow for both Axys and APX at the vendor workflow/product-claim level.
+3. ACA is verified as an Advent corporate-actions workflow for both Axys/APX at the vendor workflow/product-claim level.
 4. In the ACA/Axys workflow, active holdings can be received by daily script, ACA reports and Automation Results email can be produced, simple/mandatory events can process to the Axys Trade Blotter, and complex/option events require review.
 5. In the ACA/APX workflow, APX holdings can be sent to ACA, ACA creates action records, users review/download actions, the APX Reorg Utility runs, and resulting transactions post to the APX Trade Blotter.
 6. Exact corporate action IMEX objects, REP reports, APX tables, Axys split field layouts, ACA source IDs, final posting lifecycle, and transaction codes remain Unknown unless additional source material is supplied.
@@ -540,7 +540,7 @@ Do not state any of the following without additional evidence:
 | CA-U014 | Treatment of fractional shares and cash-in-lieu | Axys/APX | Medium |
 | CA-U015 | Identifier-change history versus overwrite behavior | Axys/APX | Medium |
 | CA-U016 | Whether ACA-for-Axys writes only Trade Blotter transactions or can also update `split.inf`, `sec.inf`, `.pri`, or other Axys files | Axys | High |
-| CA-U017 | Exact fields in the ACA Automation Results email for Axys and APX | Axys/APX | Medium |
+| CA-U017 | Exact fields in the ACA Automation Results email for Axys/APX | Axys/APX | Medium |
 | CA-U018 | Whether ACA reports contain stable action IDs that can be reconciled to Trade Blotter or posted transactions | Axys/APX | High |
 | CA-U019 | Whether simple/mandatory auto-processed events are flagged differently from reviewed complex events in downstream records | Axys/APX | High |
 | CA-U020 | Whether ACA revisions/alerts can be linked to already-posted transactions | Axys/APX | High |
@@ -610,7 +610,7 @@ explains:
 - cash-in-lieu rows that should be reviewed separately from the split factor.
 
 For ppar, split evidence is better suited to review evidence or a future
-`Data Audit Issues` worksheet than to default `Performance Difference Causes` unless
+`Data Issues` worksheet than to default `Performance Difference Causes` unless
 the split error actually changes a Modified Dietz input such as holdings market
 value, transaction amount, or reported performance.
 

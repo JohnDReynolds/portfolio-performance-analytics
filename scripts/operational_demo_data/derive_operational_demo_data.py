@@ -39,8 +39,8 @@ _AXYS_SCHEMA_PATH: Final = (
     _REPO_ROOT
     / "ppar"
     / "setup_templates"
-    / "axysapx_performance_comparison"
-    / "axysapx_column_mappings.yaml"
+    / "axys_apx_audit"
+    / "axys_apx_column_mappings.yaml"
 )
 _PORTFOLIOS: Final = (
     ("ALPHA", "Mega-Cap Alpha", 1.00, 0.04),
@@ -526,7 +526,7 @@ def write_outputs(
     source_path = output_directory / "source_performance.csv"
     performance.to_csv(source_path, index=False)
     paths["source_performance"] = str(source_path)
-    schema_path = output_directory / "axysapx_column_mappings.yaml"
+    schema_path = output_directory / "axys_apx_column_mappings.yaml"
     schema_path.write_text(_AXYS_SCHEMA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
     paths["axys_schema"] = str(schema_path)
     for snapshot_name, frames in (("axys_a", snapshot_a), ("axys_b", snapshot_b)):
@@ -536,7 +536,7 @@ def write_outputs(
             path = snapshot_directory / f"{name}.csv"
             frame.to_csv(path, index=False)
             paths[f"{snapshot_name}_{name}"] = str(path)
-    comparison_yaml_path = output_directory / "axysapx_performance_comparison.yaml"
+    comparison_yaml_path = output_directory / "axys_apx_audit.yaml"
     comparison_yaml_path.write_text(_comparison_yaml(), encoding="utf-8")
     paths["comparison_yaml"] = str(comparison_yaml_path)
     return paths
@@ -1342,13 +1342,13 @@ snapshots:
     label: operational_axys_a
     path: axys_a
     vendor: axys
-    schema: axysapx_column_mappings.yaml
+    schema: axys_apx_column_mappings.yaml
 
   b:
     label: operational_axys_b
     path: axys_b
     vendor: axys
-    schema: axysapx_column_mappings.yaml
+    schema: axys_apx_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv

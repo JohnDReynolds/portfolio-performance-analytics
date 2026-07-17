@@ -15,9 +15,9 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import findings as pc_findings
-from ppar.performance_comparison.safety_invariants import DifferenceDisposition
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison import findings as pc_findings
+from ppar.audit.safety_invariants import DifferenceDisposition
 
 FINDING_SEQUENCE: Final[str] = "finding_sequence"
 FINDING_FINGERPRINT: Final[str] = "finding_fingerprint"

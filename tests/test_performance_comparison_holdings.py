@@ -12,21 +12,21 @@ from polars.testing import assert_frame_equal
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
-    PerformanceComparisonSpecification,
+from ppar.audit import (
+    AuditSpecification,
     HoldingsLoader,
 )
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.base_currency import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.base_currency import (
     with_authoritative_base_currency,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path
 
@@ -58,7 +58,7 @@ class TestHoldingsLoader(unittest.TestCase):
 
     def test_load_baseline_snapshot_a_holdings(self) -> None:
         """Holding rows load with normalized internal columns."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = HoldingsLoader(specification).load("a")
         assert frame is not None
 
@@ -107,7 +107,7 @@ class TestHoldingsLoader(unittest.TestCase):
                 ).write_csv(snapshot_path / "holdings.csv")
             path = _write_yaml(directory, configuration)
 
-            frame = HoldingsLoader(PerformanceComparisonSpecification(path)).load("a")
+            frame = HoldingsLoader(AuditSpecification(path)).load("a")
 
         assert frame is not None
         self.assertEqual(frame[pc_cols.BASE_CURRENCY].to_list(), ["USD"])
@@ -176,7 +176,7 @@ class TestHoldingsLoader(unittest.TestCase):
                 ).write_csv(snapshot_path / "holdings.csv")
             path = _write_yaml(directory, configuration)
 
-            frame = HoldingsLoader(PerformanceComparisonSpecification(path)).load("a")
+            frame = HoldingsLoader(AuditSpecification(path)).load("a")
 
         assert frame is not None
         self.assertEqual(frame[pc_cols.ACCRUED].to_list(), [10.0])
@@ -213,7 +213,7 @@ class TestHoldingsLoader(unittest.TestCase):
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                HoldingsLoader(PerformanceComparisonSpecification(path)).load("a")
+                HoldingsLoader(AuditSpecification(path)).load("a")
 
         message = str(context.exception)
         self.assertTrue(message.startswith("Error 504"))
@@ -224,7 +224,7 @@ class TestHoldingsLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             path = _write_yaml(directory, _minimal_specification(directory))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(HoldingsLoader(specification).load("a"))
 
@@ -238,7 +238,7 @@ class TestHoldingsLoader(unittest.TestCase):
                 "holdings": "missing_positions.csv",
             }
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(HoldingsLoader(specification).load("a"))
 
@@ -260,7 +260,7 @@ class TestHoldingsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "holdings.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 HoldingsLoader(specification).load("a")
@@ -287,7 +287,7 @@ class TestHoldingsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "holdings.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 HoldingsLoader(specification).load("a")
@@ -311,7 +311,7 @@ class TestHoldingsLoader(unittest.TestCase):
                     encoding="utf-8",
                 )
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 HoldingsLoader(specification).load("a")

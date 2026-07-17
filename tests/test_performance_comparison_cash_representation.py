@@ -12,13 +12,13 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.source_data_contract import source_data_contract
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.audit import schema as pc_cols
+from ppar.audit.source_data_contract import source_data_contract
+from ppar.audit.specification import AuditSpecification
 
 _AXYS_APX_STARTER = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/"
-    "axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/"
+    "axys_apx_audit.yaml"
 )
 
 
@@ -59,7 +59,7 @@ class TestCashRepresentationContract(unittest.TestCase):
             path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
 
             with self.assertRaisesRegex(PpaError, "files.cash is not supported"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
     def test_axys_apx_starter_uses_holdings_for_cash(self) -> None:
         """The user-facing starter cannot quietly restore files.cash."""
@@ -92,7 +92,7 @@ class TestCashRepresentationContract(unittest.TestCase):
             path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
 
             with self.assertRaisesRegex(PpaError, "represent cash as holdings"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
 
 if __name__ == "__main__":

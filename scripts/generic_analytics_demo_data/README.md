@@ -1,166 +1,98 @@
-# Analytics Demo Data Generation Notes
+# Analytics Demo Data Refresh
 
-These notes record how the current Mega-Cap analytics demo data was created.
-They are retained as generation/process notes, not as the active roadmap.
-Project forward work is tracked centrally in
-`docs/roadmap.md`. Reusable refresh helpers live in
-`scripts/generic_analytics_demo_data/`; generated outputs and caches live in
-`_demo_output/generic_analytics_data_generation/`.
+This directory contains the maintained helpers for refreshing the Mega-Cap
+Analytics demo data. Analytics product direction belongs in
+[`../../docs/analytics/roadmap.md`](../../docs/analytics/roadmap.md); this file
+documents only the repeatable data-generation workflow and its current source
+assumptions.
 
-## Objective
+Generated outputs and caches live under
+`_demo_output/generic_analytics_data_generation/` and are ignored by Git.
+Promote reviewed CSVs into `ppar/setup_templates/` only deliberately.
 
-Create a believable, simple, reproducible large-cap demo data set that can
-eventually refresh the generic analytics smoke-test files and become the source
-universe for related Axys/APX analytics and performance comparison demos.
+## Maintained Helpers
 
-The demo should tell a story similar to the current README Features section:
+- `generate_mega_cap_analytics_demo_data.py` downloads or loads historical
+  BlackRock OEF holdings and prices, applies the cash-return proxy, and writes
+  candidate Analytics CSVs.
+- `audit_mega_cap_history.py` audits holdings-date continuity and price
+  coverage.
+- `validate_generated_analytics_demo_data.py` loads candidate CSVs through
+  `Analytics` and verifies the intended portfolio/benchmark story.
 
-- the portfolio outperforms the benchmark;
-- security selection is a major source of active return;
-- the portfolio has a better Sharpe ratio than the benchmark;
-- GICS sector reporting remains understandable and realistic.
+The retired SPY and calibration prototypes are not part of the maintained
+workflow. Market-data download libraries are generation-time conveniences,
+not PPAR runtime dependencies.
 
-The data does not need to be research-grade. Current survivors, current GICS,
-and modest synthetic portfolio tilts are acceptable if documented.
+## Refresh Workflow
 
-## Guiding Principles
+Generate candidate files:
 
-- Do not touch the existing packaged demo CSV files in phase 1.
-- Do not add `yfinance` or other market-data downloaders as runtime
-  dependencies.
-- It is acceptable to use packages already installed in the local `.venv` for
-  temporary generation work.
-- Prefer simple, inspectable logic over perfect index reconstruction.
-- Use all usable holdings from the selected universe unless presentation quality
-  becomes a problem.
-- Use a cap-weighted benchmark proxy. Equal weighting is not acceptable for the
-  main candidate data set.
-- Keep generated output names distinct until we explicitly switch demos.
-
-## Phase 1: Generate New Analytics Files
-
-Create a script that downloads or assembles a current large-cap universe,
-downloads recent monthly adjusted prices, constructs benchmark and alpha
-portfolio performance rows, and writes new CSV files under distinct names.
-
-Current maintained script:
-
-```text
-scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
+```bash
+./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
 ```
 
-Candidate generated files:
+Validate the generated files:
 
-```text
-_demo_output/generic_analytics_data_generation/generated_oef_files/performance/Generated OEF Alpha Portfolio.csv
-_demo_output/generic_analytics_data_generation/generated_oef_files/performance/Generated OEF Benchmark.csv
-_demo_output/generic_analytics_data_generation/generated_oef_files/classifications/Generated OEF Security.csv
-_demo_output/generic_analytics_data_generation/generated_oef_files/classifications/Generated OEF Economic Sector.csv
-_demo_output/generic_analytics_data_generation/generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
+```bash
+./.venv/bin/python scripts/generic_analytics_demo_data/validate_generated_analytics_demo_data.py
 ```
 
-The script should also print summary metrics:
+Audit longer source history when investigating coverage:
 
-- usable security count;
-- period count;
-- cumulative portfolio return;
-- cumulative benchmark return;
-- active return;
-- portfolio Sharpe ratio;
-- benchmark Sharpe ratio;
-- top security and sector contributors if easy to calculate.
-
-## Phase 2: Validate The Generated Story
-
-Add lightweight validation to the generation script before any demo code uses
-the new files.
-
-Minimum checks:
-
-- portfolio and benchmark periods align;
-- each period's weights sum to 1.0;
-- every performance identifier has a security name;
-- every security maps to a GICS sector;
-- every GICS sector has a display name;
-- portfolio cumulative return is greater than benchmark cumulative return;
-- portfolio Sharpe ratio is greater than benchmark Sharpe ratio;
-- generated CSVs can be loaded by `Analytics`;
-- economic-sector attribution can be produced.
-
-## Phase 3: Switch The Analytics Demo
-
-After manual review, update `ppar/setup_templates/generic_analytics/` to use
-the generated files as the main data source.
-
-Possible follow-up choices:
-
-- keep generated file names distinct;
-- or rename them to the existing canonical demo names once we are confident.
-
-Refresh README images and Features text only after the new output is accepted.
-
-## Phase 4: Derive Axys/APX-Style Analytics Data
-
-Use the same generated source universe to create Axys/APX-style exports for the
-Axys/APX analytics demo.
-
-Likely files:
-
-- `portperf.csv`;
-- `secperf.csv`;
-- classification or lookup data if useful.
-
-The goal is for the Axys/APX analytics starter data to tell the same broad
-portfolio vs. benchmark story as the generic analytics smoke-test data, but
-through Axys/APX-style source files.
-
-## Phase 5: Derive Performance Comparison Snapshots
-
-Create controlled snapshot A and snapshot B data from the generated Axys/APX-style
-universe.
-
-Snapshot B should include small, understandable restatements such as:
-
-- one price change;
-- one position market value or quantity change;
-- one transaction amount change;
-- one cash or accrued income change;
-- one classification/reference change as context.
-
-The portfolio and security performance comparison workbooks should be able to
-answer:
-
-```text
-This performance difference happened, and these underlying source-data
-differences explain it.
+```bash
+./.venv/bin/python scripts/generic_analytics_demo_data/audit_mega_cap_history.py
 ```
 
-## Phase 6: Promote Or Retire Old Demo Data
+The helpers write to:
 
-Once all three demo families use the generated source universe:
+```text
+_demo_output/generic_analytics_data_generation/generated_oef_files/
+_demo_output/generic_analytics_data_generation/cache/oef/
+```
 
-- decide which old packaged demo files remain useful;
-- move test-only scenarios out of user-facing demo paths if needed;
-- remove obsolete generated or legacy files;
-- update documentation and contract tests.
+Before promotion, confirm that periods align, weights sum to 1.0, identifiers
+and sector mappings are complete, Analytics can load the data, economic-sector
+attribution can be produced, and the intended cumulative-return and Sharpe-ratio
+story remains true.
 
-## Current Choices And Open Questions
+## Source and Modeling Assumptions
 
-- Current universe choice: historical BlackRock OEF holdings as a public proxy
-  for a U.S. mega-cap benchmark.
-- Current history length: 5 years, because monthly continuity is
-  non-negotiable and the 10-year OEF archive has non-repairable early gaps.
-- Current cash treatment: aggregate BlackRock cash/derivative rows into
-  `CASHUSD`, mapped to the `Cash` sector.
-- Current cash return proxy: BIL adjusted monthly returns.
-- Current alpha-tilt approach: synthetic hindsight tilt toward stronger
-  realized risk-adjusted return names, while preserving a believable
-  portfolio/benchmark story.
-- Open question: should future refreshes keep using live BlackRock/yfinance
-  downloads, or should accepted source snapshots be checked in as seed data?
+- The user-facing dataset is called Mega-Cap; OEF identifies the source
+  provenance.
+- Historical holdings come from BlackRock's product-data JSON endpoint for
+  portfolio `239723`.
+- The maintained history is five years because the ten-year OEF archive has a
+  non-repairable early gap.
+- BlackRock cash and derivative rows are aggregated into `CASHUSD` in the
+  `Cash` sector.
+- BIL adjusted monthly returns provide the cash-return proxy.
+- The benchmark is a capitalization-weighted proxy; the portfolio applies a
+  modest synthetic tilt intended to tell a clear demonstration story.
+- Current survivors and current GICS classifications are acceptable for this
+  demo when the limitation remains documented.
 
-## Current Local Notes
+One requested holdings date, 2024-03-29, has no source rows. The generator uses
+2024-03-28, which remains in the same calendar month, while retaining March
+2024 as the performance period.
 
-- `.cache/` and `_demo_output/` are ignored by Git.
-- `yfinance` is available in the current `.venv`, but should remain a
-  generation-time convenience rather than a runtime dependency.
+## Current Accepted Dataset
+
+The current five-year candidate covers 61 usable monthly holdings snapshots
+from 2021-06-01 through 2026-05-29 and produces 60 performance periods with no
+missing months. It contains 117 securities including `CASHUSD`.
+
+At the last accepted refresh:
+
+- benchmark cumulative return: 1.165913;
+- portfolio cumulative return: 1.251763;
+- active return: 0.085850;
+- portfolio annualized Sharpe ratio: 1.082316;
+- benchmark annualized Sharpe ratio: 1.041324;
+- average `CASHUSD` weight: approximately 0.268%; and
+- maximum `CASHUSD` weight: approximately 0.466%.
+
+Treat these values as refresh-review anchors, not permanent product gates.
+After accepting a new source snapshot, update this section, refresh the
+packaged generic Analytics data, derive the related Axys/APX starter data as
+needed, regenerate README images, and run the repository validation workflow.

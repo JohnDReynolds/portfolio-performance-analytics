@@ -16,27 +16,27 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
+from ppar.audit import (
     compare_snapshots,
-    write_performance_comparison_report_bundle,
+    write_audit_report_bundle,
 )
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import workbook_tables as _pc_workbook_tables
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml"
 )
 
 _EXPECTED_PORTFOLIO_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.X_REF_ISSUES_SHEET,
+    _pc_review_model.DATA_ISSUES_SHEET,
 ]
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
 _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.X_REF_ISSUES_SHEET,
+    _pc_review_model.DATA_ISSUES_SHEET,
     _pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
     _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
@@ -116,7 +116,7 @@ def _workbook_date_text(value: object) -> str:
     return str(value)[:10]
 
 
-class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
+class TestAuditWorkbookContract(unittest.TestCase):
     """Validate reviewer-facing workbook presentation invariants."""
 
     def test_audit_file_names_are_level_specific(self) -> None:
@@ -215,7 +215,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
 
         findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 Path(directory) / "bundle",
                 include_workbook=True,
@@ -312,7 +312,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertNotIn("Source Detail", workbook.sheetnames)
                 self.assertEqual(
-                    _header_values(workbook["Data Audit Issues"]),
+                    _header_values(workbook["Data Issues"]),
                     [
                         "Snapshot",
                         "Portfolio",
@@ -752,7 +752,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             comparison_level="security",
         )
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 Path(directory) / "bundle",
                 include_workbook=True,
@@ -1057,7 +1057,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
 
         findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 Path(directory) / "bundle",
                 include_workbook=True,

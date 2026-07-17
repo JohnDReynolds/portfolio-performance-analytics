@@ -9,13 +9,13 @@ from unittest import mock
 from polars.testing import assert_frame_equal
 
 # Project imports
-from ppar.performance_comparison import (
+from ppar.audit import (
     compact_findings_table,
     compare_snapshots,
     summarize_findings,
 )
-from ppar.performance_comparison.compare import PerformanceComparison
-from ppar.performance_comparison.findings import (
+from ppar.audit.performance_comparison.compare import PerformanceComparison
+from ppar.audit.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
     EVIDENCE_ROLE,
@@ -37,18 +37,18 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     THRU_DATE,
 )
-from ppar.performance_comparison.runner import AuditComparisonViews
+from ppar.audit.runner import AuditComparisonViews
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
 _PACKAGED_COMPARISON_PATH = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/"
-    "axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/"
+    "axys_apx_audit.yaml"
 )
 _COMPACT_FINDING_COLUMNS = [
     FINDING_CODE,
@@ -65,7 +65,7 @@ _COMPACT_FINDING_COLUMNS = [
 ]
 
 
-class TestPerformanceComparisonRunner(unittest.TestCase):
+class TestAuditRunner(unittest.TestCase):
     """Verify public performance comparison runner behavior."""
 
     def test_compare_snapshots_returns_empty_table_for_baseline(self) -> None:

@@ -16,7 +16,7 @@ from typing import Final, Sequence
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison.methods import (
+from ppar.audit.performance_comparison.methods import (
     ContributionImpactMethod,
     FxRateImpactMethod,
     HoldingImpactMethod,

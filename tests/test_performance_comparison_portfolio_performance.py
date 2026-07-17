@@ -11,21 +11,21 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
-    PerformanceComparisonSpecification,
+from ppar.audit import (
+    AuditSpecification,
     PortfolioPerformanceLoader,
 )
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path
 
@@ -35,7 +35,7 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
 
     def test_load_baseline_snapshot_a_portfolio_performance(self) -> None:
         """Portfolio performance rows load with normalized internal columns."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = PortfolioPerformanceLoader(specification).load("a")
 
         self.assertTrue(
@@ -52,7 +52,7 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
 
     def test_restatement_snapshot_b_loads_changed_portfolio_return(self) -> None:
         """The restatement fixture exposes a controlled portfolio return change."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
+        specification = AuditSpecification(_RESTATEMENT_COMPARISON_PATH)
         frame = PortfolioPerformanceLoader(specification).load("b")
 
         target_row = frame.filter(
@@ -86,7 +86,7 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
                     "files": {"portfolio_performance": "portperf.csv"},
                 },
             )
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 PortfolioPerformanceLoader(specification).load("a")
@@ -120,7 +120,7 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
                     "files": {"portfolio_performance": "portperf.csv"},
                 },
             )
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 PortfolioPerformanceLoader(specification).load("a")
@@ -150,7 +150,7 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
                     "files": {"portfolio_performance": "portperf.csv"},
                 },
             )
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 PortfolioPerformanceLoader(specification).load("a")

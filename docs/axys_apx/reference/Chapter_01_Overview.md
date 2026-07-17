@@ -3,7 +3,7 @@
 Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_01_Overview.md`
 Prepared: 2026-06-29
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 Folder index: `../README.md`
 Source basis: supplied repository chapters under `reference/`, supporting
 research files under `evidence/`, and implementation contracts under
@@ -24,7 +24,7 @@ These rules should guide any implementation or further documentation work in thi
 - Do not assume IMEX object names or REP field names without evidence.
 - Do not equate security type with classification, asset class, sector, country, or region.
 - Do not assume performance is stored or recalculated without explicit evidence.
-- Do not normalize or merge data across Axys and APX without first validating the source context and confidence level.
+- Do not normalize or merge data across Axys/APX without first validating the source context and confidence level.
 
 ## Axys/APX blockers
 
@@ -53,75 +53,6 @@ from configurable source-data comparison toward vendor-specific extraction,
 automatic Axys/APX methodology claims, or richer feature families such as APX
 attribution, multi-currency, fixed-income automation, and corporate actions.
 
-## Chapter cross-reference index
-Use this index to jump to the chapters that most directly connect to a topic:
-
-- Overview — entry point for the repository map, evidence conventions, and guardrails.
-- Architecture — Axys and APX architecture and platform role: [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) and [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md).
-- Security master — identity and matching context: [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md).
-- Transactions — transaction meaning, coding, and posting context: [Chapter_05_Transactions.md](Chapter_05_Transactions.md).
-- Holdings — positions and valuation context: [Chapter_06_Holdings.md](Chapter_06_Holdings.md).
-- Cash — cash movement and cash-like activity: [Chapter_07_Cash.md](Chapter_07_Cash.md).
-- Pricing — price import and valuation context: [Chapter_08_Pricing.md](Chapter_08_Pricing.md).
-- Corporate actions — splits, reorgs, and related account changes: [Chapter_09_Corporate_Actions.md](Chapter_09_Corporate_Actions.md).
-- Performance — performance inputs, outputs, and evidence boundaries: [Chapter_10_Performance.md](Chapter_10_Performance.md).
-- Classifications — grouping and classification-like reporting context: [Chapter_11_Classifications.md](Chapter_11_Classifications.md).
-- IMEX — import/export workflows and exchange paths: [Chapter_12_Imex.md](Chapter_12_Imex.md).
-- REP — report extraction and report-source context: [Chapter_13_Rep.md](Chapter_13_Rep.md).
-- Reports — report families and report-label caution: [Chapter_14_Reports.md](Chapter_14_Reports.md).
-- Data dictionary and glossary — field-level vocabulary and terminology: [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
-- Multi-currency — Axys capability evidence, audit-adapter boundaries, and
-  unresolved native mechanics:
-  [Chapter_17_Multi_Currency.md](Chapter_17_Multi_Currency.md).
-- Contracts — implementation aids: [contracts/transaction_semantics_matrix.md](../contracts/transaction_semantics_matrix.md) for conservative transaction classification rules and [contracts/demo_extract_availability.md](../contracts/demo_extract_availability.md) for packaged-demo extract availability.
-
-## Chapter dependency map
-A compact view of the main evidence flow:
-
-Security master → Transactions → Holdings / positions → Cash → Pricing → Corporate actions → Performance → Reports
-
-IMEX / REP → data movement, extraction, and report-source context → Reports
-
-The glossary and data dictionary support the terminology and field vocabulary used throughout the repository.
-
-## How to use this reference
-Choose the path that fits your immediate question:
-
-- If you are new to the topic, start with [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md), [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md), and [Chapter_12_Imex.md](Chapter_12_Imex.md) for the big picture.
-- If you need to understand transactions, start with [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md), [Chapter_05_Transactions.md](Chapter_05_Transactions.md), [Chapter_06_Holdings.md](Chapter_06_Holdings.md), and [Chapter_07_Cash.md](Chapter_07_Cash.md).
-- If you are focused on performance or reporting, start with [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_11_Classifications.md](Chapter_11_Classifications.md), [Chapter_13_Rep.md](Chapter_13_Rep.md), [Chapter_14_Reports.md](Chapter_14_Reports.md), and [Chapter_17_Multi_Currency.md](Chapter_17_Multi_Currency.md) for currency-specific boundaries.
-- If you are looking up a term or field, start with [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
-- If you are implementing ppar demo rules, use the contracts after reading the relevant chapters. They are cross-cutting aids, not replacement vendor documentation.
-
-## How to read a chapter
-Each chapter is intended to be read in the same compact pattern:
-
-- Start with the chapter’s scope and what it covers.
-- Check the evidence and confidence notes before treating anything as settled.
-- Look for implementation cautions, Unknowns, and any cross-references to adjacent chapters.
-- Use the chapter as a starting point, then move to the linked chapters for the next step.
-
-## Chapters, Research Notes, And Contracts
-
-Use the chapter files as the reader-facing reference. The
-`../evidence/Research_*.md` files preserve source-by-source evidence, search
-history, dated research updates, and open questions that would make the
-chapters too noisy. Contracts are implementation-facing cross-cutting aids:
-
-- [contracts/transaction_semantics_matrix.md](../contracts/transaction_semantics_matrix.md) is the human-readable transaction classification contract for demo and test work. Its machine-readable companion is [contracts/transaction_semantics_matrix.yaml](../contracts/transaction_semantics_matrix.yaml).
-- [contracts/demo_extract_availability.md](../contracts/demo_extract_availability.md) is a generated view of packaged-demo extract availability. Its machine-readable source is `ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`.
-
-Contracts should summarize or operationalize chapter conclusions. If an
-contract conflicts with a chapter, treat that as a cleanup issue rather than as
-a competing source of truth.
-
-Dated research-update or addendum sections should not be read as competing
-chapters. They are provenance notes for evidence that has been folded into the
-chapter or should be folded into the relevant main-body section. If an
-addendum section becomes the clearest explanation of a topic, prefer merging
-that explanation into the relevant main-body section and leaving only a short
-provenance note.
-
 ## 1. Overview
 
 This chapter introduces the AXYS / APX Reference Repository and summarizes the factual scope of the supplied chapters. It is a repository orientation chapter, not a replacement for the detailed subject chapters.
@@ -145,10 +76,10 @@ The material here is deliberately scoped to what the supplied chapters can suppo
 
 | Purpose | Repository Treatment | Confidence |
 |---|---|---:|
-| Preserve factual knowledge about Axys and APX | Supported by the governing blueprint and implemented across supplied chapters. | Verified |
+| Preserve factual knowledge about Axys/APX | Supported by the governing blueprint and implemented across supplied chapters. | Verified |
 | Serve developers, consultants, investment operations, performance analysts, data engineers, and AI coding assistants | Stated audience in blueprint. | Verified |
 | Document implementation-oriented behavior rather than portfolio-accounting theory | Repository standard. | Verified |
-| Separate Axys and APX behavior whenever behavior differs | Required editorial principle. | Verified |
+| Separate Axys/APX behavior whenever behavior differs | Required editorial principle. | Verified |
 | Preserve Unknowns | Required editorial principle. | Verified |
 
 ### 1.2 Confidence Labels
@@ -205,7 +136,7 @@ The supplied source material for this overview includes chapters 02 through
 | `Chapter_11_Classifications.md` | Classifications | Security type versus classification, asset class/sector/country/region/custom classification evidence. | Supplied. |
 | `Chapter_12_Imex.md` | IMEX | Import/export utilities, workflow artifacts, logs, object/field dictionary status. | Supplied. |
 | `Chapter_13_Rep.md` | REP | `.REP`, RepLang, Report Writer Pro, REP32, report-based extraction. | Supplied. |
-| `Chapter_14_Reports.md` | Reports | Axys and APX report families, APX named reports, report-label cautions. | Supplied. |
+| `Chapter_14_Reports.md` | Reports | Axys/APX report families, APX named reports, report-label cautions. | Supplied. |
 | `Chapter_15_Data_Dictionary.md` | Data dictionary | Cross-repository field, token, file, utility, report-label, and artifact index. | Supplied. |
 | `Chapter_16_Glossary.md` | Glossary | Repository term definitions and ambiguity notes. | Supplied. |
 | `Chapter_17_Multi_Currency.md` | Multi-currency | Axys capability evidence, normalized audit-adapter boundaries, cash-provenance confidence, and unresolved native currency mechanics. | Supplied; native mechanics remain mostly Unknown. |
@@ -350,7 +281,7 @@ The supplied report chapter identifies APX report names. Report names are not da
 
 ## 6. IMEX Overview
 
-IMEX is documented as an import/export mechanism used in Axys and APX workflows. The supplied chapters verify multiple IMEX-adjacent artifacts and workflows but do not provide a complete official IMEX object dictionary.
+IMEX is documented as an import/export mechanism used in Axys/APX workflows. The supplied chapters verify multiple IMEX-adjacent artifacts and workflows but do not provide a complete official IMEX object dictionary.
 
 ### 6.1 IMEX Findings
 
@@ -736,7 +667,7 @@ The supplied REP/report chapters include an Axys `AMAN.REP` example.
 | Practice | Reason | Confidence |
 |---|---|---:|
 | Cite the specific chapter/source basis when extending a claim. | Prevents unsupported generalization. | High Confidence |
-| Separate Axys and APX behavior. | Architecture and interface paths differ. | Verified repository rule |
+| Separate Axys/APX behavior. | Architecture and interface paths differ. | Verified repository rule |
 | Preserve Unknowns explicitly. | Unknown is preferable to invented certainty. | Verified repository rule |
 | Treat integration behavior as integration behavior. | AIA/CI/Data Broker evidence may not be native platform behavior. | High Confidence |
 | Record version, environment, and extraction path. | File/report/IMEX behavior may vary. | High Confidence |
@@ -754,7 +685,7 @@ The supplied REP/report chapters include an Axys `AMAN.REP` example.
 | Cash balances are available through a known native IMEX object. | Unknown |
 | Report labels are native fields. | Unsafe |
 | Uppercase transaction codes are universal cancellation codes in every context. | Unknown |
-| Axys and APX use identical IMEX objects and fields. | Unknown |
+| Axys/APX use identical IMEX objects and fields. | Unknown |
 | Performance reports always read stored values or always recalculate. | Unknown |
 | Historical classification reports use historical classifications. | Unknown |
 
@@ -789,7 +720,7 @@ This chapter is based on the following supplied repository material only.
 
 | Source | Description |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Governing specification for editorial standards, structure, confidence labels, and repository success criteria. |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Governing specification for editorial standards, structure, confidence labels, and repository success criteria. |
 | `Chapter_02_Axys_Architecture.md` | Axys architecture, file artifacts, IMEX, REP, data-domain dependencies, version cautions. |
 | `Chapter_03_APX_Architecture.md` | APX architecture, platform role, SSRS/reporting, IMEX, SQL/access paths, blotter concepts. |
 | `Chapter_04_Security_Master.md` | Security identity, symbol/type matching, `sec.inf`, `type.inf`, translations, field evidence. |

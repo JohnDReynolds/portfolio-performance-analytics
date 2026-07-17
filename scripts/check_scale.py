@@ -22,7 +22,7 @@ from polars.testing import assert_frame_equal
 
 from ppar.analytics.attribution import View
 from ppar.analytics.frequency import Frequency
-from ppar.axys import AxysData
+from ppar.axys_apx import AxysData
 
 try:
     from scripts import audit_scale_contract
@@ -32,10 +32,10 @@ except ModuleNotFoundError:  # Direct ``python scripts/check_scale.py`` executio
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _ANALYTICS_TEMPLATE = (
-    _PROJECT_ROOT / "ppar" / "setup_templates" / "axysapx_analytics"
+    _PROJECT_ROOT / "ppar" / "setup_templates" / "axys_apx_analytics"
 )
 _AUDIT_TEMPLATE = (
-    _PROJECT_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
+    _PROJECT_ROOT / "ppar" / "setup_templates" / "axys_apx_audit"
 )
 _BASELINE_TIMEOUT_SECONDS = 60
 _PERFORMANCE_TIMING_SAMPLES = 3
@@ -420,7 +420,7 @@ def _expanded_audit_history_frame(source: pl.DataFrame, scale: int) -> pl.DataFr
 def _prepare_analytics(directory: Path, scale: int) -> tuple[Path, int]:
     """Write one temporary Analytics site and return its secperf row count."""
     shutil.copytree(_ANALYTICS_TEMPLATE, directory)
-    (directory / "axysapx_analytics.yaml").rename(directory / "ppar.yaml")
+    (directory / "axys_apx_analytics.yaml").rename(directory / "ppar.yaml")
     for file_name in ("portperf.csv", "secperf.csv"):
         frame = _expanded_frame(
             directory / file_name,
@@ -439,7 +439,7 @@ def _prepare_audit(
 ) -> tuple[Path, int]:
     """Write one temporary Audit site and return its aggregate CSV row count."""
     shutil.copytree(_AUDIT_TEMPLATE, directory)
-    (directory / "axysapx_performance_comparison.yaml").rename(
+    (directory / "axys_apx_audit.yaml").rename(
         directory / "ppar.yaml"
     )
     if changed_portfolios is not None:
@@ -507,7 +507,7 @@ def _analytics_large_site_scale(requested_scale: int) -> int:
 def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, set[int]]:
     """Write a fixed 5x Audit history and return rows and expected years."""
     shutil.copytree(_AUDIT_TEMPLATE, directory)
-    (directory / "axysapx_performance_comparison.yaml").rename(
+    (directory / "axys_apx_audit.yaml").rename(
         directory / "ppar.yaml"
     )
     row_count = 0
@@ -531,7 +531,7 @@ def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, set[int]]:
 def _prepare_selected_analytics(directory: Path, scale: int) -> tuple[Path, int]:
     """Write an Analytics site whose selected pair has unique copied securities."""
     shutil.copytree(_ANALYTICS_TEMPLATE, directory)
-    (directory / "axysapx_analytics.yaml").rename(directory / "ppar.yaml")
+    (directory / "axys_apx_analytics.yaml").rename(directory / "ppar.yaml")
 
     security_performance = pl.read_csv(directory / "secperf.csv")
     security_reference = pl.read_csv(directory / "secref.csv")
@@ -548,7 +548,7 @@ def _prepare_selected_analytics(directory: Path, scale: int) -> tuple[Path, int]
 def _prepare_long_history_analytics(directory: Path) -> tuple[Path, int, int]:
     """Write a fixed 5x Analytics history and return rows and period count."""
     shutil.copytree(_ANALYTICS_TEMPLATE, directory)
-    yaml_path = directory / "axysapx_analytics.yaml"
+    yaml_path = directory / "axys_apx_analytics.yaml"
     yaml_text = yaml_path.read_text(encoding="utf-8")
     yaml_text = yaml_text.replace(
         "thru_date: 2026-05-29",
@@ -719,7 +719,7 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
                 [
                     sys.executable,
                     "-m",
-                    "ppar.performance_comparison.cli.validate_bundle",
+                    "ppar.audit.cli.validate_bundle",
                     report_path,
                 ]
             )
@@ -777,7 +777,7 @@ def _check_long_history_audit(workspace: Path) -> tuple[int, float]:
             [
                 sys.executable,
                 "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
+                "ppar.audit.cli.validate_bundle",
                 report_path,
             ]
         )

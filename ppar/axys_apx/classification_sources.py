@@ -10,8 +10,8 @@ from typing import Any, Final, cast
 import polars as pl
 
 # Project imports
-from ppar.axys.specification import AxysSpecification, ErrorMessage, SourceType
-from ppar.axys.column_aliases import resolve_column
+from ppar.axys_apx.specification import AxysSpecification, ErrorMessage, SourceType
+from ppar.axys_apx.column_aliases import resolve_column
 import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util

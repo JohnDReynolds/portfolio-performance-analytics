@@ -9,7 +9,7 @@ from collections.abc import Iterable, Mapping
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison import schema as _pc_cols
+from ppar.audit import schema as _pc_cols
 
 
 def transaction_semantics_summary(

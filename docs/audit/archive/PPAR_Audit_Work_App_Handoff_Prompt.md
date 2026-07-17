@@ -1,5 +1,11 @@
 # PPAR Audit Foundational Product Design — Work App Handoff Prompt
 
+> **Archived working prompt.** This handoff predates completion of the
+> foundational product-design exercise and is preserved only for decision
+> provenance. Use `../product_constitution.md` for the current
+> product constitution and roadmap and
+> `../mvp_plan.md` for active implementation scope.
+
 You are taking over a multi-phase product strategy and product-design project for **PPAR Audit**, working inside my local PPAR project with access to its source code, tests, generated artifacts, and documentation.
 
 Act as a senior product strategist and product architect with strong investment-operations, portfolio-accounting, performance-measurement, data-quality, and enterprise-software judgment. Your job is not to make the product sound larger than it is. Your job is to create a rigorous, candid, internally useful product constitution and roadmap that distinguish current truth, client-validation needs, approved direction, and speculation.
@@ -196,15 +202,20 @@ Use the actual project as the source of truth. When sources conflict, use this h
 1. Current executable product behavior, tests, generated artifacts, and current machine-readable contracts.
 2. The current safety-invariant catalog and its maintainer-facing contract.
 3. The current README, setup-installed documentation, and compact architecture document.
-4. The **Current Status** and **Current Open Items** sections of the central roadmap.
+4. The canonical Audit product constitution and active MVP implementation plan.
 5. Explicit current-checkpoint and status notes in the deep performance-comparison design reference.
 6. Current machine-readable transaction-semantics and extract contracts.
-7. Explicit founder decisions in this prompt and the canonical product-design document.
-8. Historical implementation journals, earlier design prose, reviewer snapshots, and brainstorming drafts.
+7. The portfolio-level roadmap for cross-product and shared-platform direction.
+8. Explicit founder decisions in this prompt and the canonical product-design document.
+9. Historical implementation journals, earlier design prose, reviewer snapshots, and brainstorming drafts.
 
 Important interpretation rules:
 
-- The central roadmap is a large cumulative engineering journal. Most numbered phases are historical rationale, not a customer-facing roadmap or an active product commitment.
+- The former cumulative roadmap is archived at
+  `docs/archive/roadmap_through_v0.1.5.md`. Its numbered phases are historical
+  rationale, not a customer-facing roadmap or an active product commitment.
+- The current `docs/roadmap.md` is a concise portfolio-level authority map, not
+  the detailed Audit backlog.
 - Prefer explicit current status over older prose in the same file.
 - Prefer the machine-readable transaction-semantics matrix over a compact reviewer snapshot.
 - Prefer current generated artifacts and tests over stale screenshots or historical sheet-name descriptions.
@@ -219,7 +230,10 @@ At minimum, search for and read the current equivalents of:
 - project/root `README.md`;
 - `PPAR.pdf` or product overview source;
 - `docs/architecture.md`;
-- central `roadmap.md`;
+- portfolio-level `roadmap.md`;
+- `PPAR_Audit_Foundational_Product_Design.md`;
+- `PPAR_Audit_MVP_Implementation_Plan.md`;
+- archived `roadmap_through_v0.1.5.md` when historical rationale matters;
 - `performance_comparison_design.md`;
 - `performance_comparison_safety_invariants.md`;
 - `performance_comparison_transaction_boundary_snapshot.md`;

@@ -7,7 +7,7 @@ Scope: Axys, APX, IMEX, REP, field names, report names, processing behavior, ver
 
 ## Governing specification
 
-These notes follow `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. The blueprint requires factual, implementation-oriented Axys/APX documentation, separation of Axys and APX when behavior differs, and explicit confidence labels: Verified, High Confidence, Medium Confidence, Unknown.
+These notes follow `axys_apx_reference_blueprint.md` Version 2.0. The blueprint requires factual, implementation-oriented Axys/APX documentation, separation of Axys/APX when behavior differs, and explicit confidence labels: Verified, High Confidence, Medium Confidence, Unknown.
 
 ## Confidence labels used here
 
@@ -132,7 +132,7 @@ These notes follow `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. The blueprint 
 | Native IMEX object name(s) for Axys security master. | No source in the gathered material provides an official IMEX object list or data dictionary. |
 | Native IMEX object name(s) for APX security master. | Sources show APX Import/Export utility usage and `sec.inf`/`type.inf`, but not a formal object name. |
 | Required fields for creating/importing securities via IMEX. | Available sources show integration labels and matching fields, not the complete required import schema. |
-| Whether Axys and APX IMEX security-master layouts are identical. | Not established. |
+| Whether Axys/APX IMEX security-master layouts are identical. | Not established. |
 | Whether `sec.inf`/`type.inf` are native Axys files, APX exported files, compatibility artifacts, or integration-specific copies. | ByAllAccounts refers to them for APX CI, but the broader APX native storage model is not documented in the sources. |
 
 ## REP / Report Writer / Replang
@@ -141,7 +141,7 @@ These notes follow `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. The blueprint 
 
 | Statement | System | Confidence |
 |---|---:|---:|
-| Axys and APX can use Report Writer Pro and Replang reports for custom reporting. | Axys/APX | Verified |
+| Axys/APX can use Report Writer Pro and Replang reports for custom reporting. | Axys/APX | Verified |
 | A Data Broker Advent Connector uses Advent standard reports and macros to generate extracts. | Axys/APX | Verified |
 | The connector requires Advent client tools, specifically `REP32.exe`, and uses the REP32 engine plus some RepLang scripting and macros. | Axys/APX | Verified |
 | APX has public views, but a third-party consultant source says they are limited and do not expose all desired data. | APX | Verified |
@@ -175,7 +175,7 @@ These notes follow `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. The blueprint 
 | Data Broker Advent Connector minimum supported versions listed by Salentica/Elements are Axys 3.8.6 and APX 15.2/16.1/16.2/17.1. | Axys/APX | Verified for that connector only |
 | APX is described as an integrated platform spanning front, middle, and back office, while Axys is described as portfolio reporting/accounting software with predefined reports and customization. | Axys/APX | Verified as product-positioning language |
 | `.addlabel` script command example works in Axys but is not valid in APX; APX equivalent workflow mentioned is posting through the trade blotter. | Axys/APX | Verified |
-| The same exact security-master storage model between Axys and APX is not established. | Axys/APX | Unknown |
+| The same exact security-master storage model between Axys/APX is not established. | Axys/APX | Unknown |
 | APX public views are available but limited, whereas Axys extraction examples often involve REP/report/macros and files. | Axys/APX | Medium Confidence; source evidence is partial |
 
 ## Examples
@@ -498,7 +498,7 @@ Implementation caution:
 | Data Broker Advent connector is installed on a client-side machine with Advent client tools, specifically `REP32.exe`. | Axys/APX | Verified for connector |
 | Data Broker uses Advent standard reports and macros to generate extracts. | Axys/APX | Verified for connector |
 | Data Broker uses the REP32 engine plus RepLang scripting and macros. | Axys/APX | Verified for connector |
-| AdventGuru states Axys and APX users can export reports to Excel, create macros, use Report Writer Pro, modify RepLang reports, and use third-party ETL tools. | Axys/APX | Medium Confidence |
+| AdventGuru states Axys/APX users can export reports to Excel, create macros, use Report Writer Pro, modify RepLang reports, and use third-party ETL tools. | Axys/APX | Medium Confidence |
 | SS&C Axys product page says Axys includes hundreds of predefined reports and Axys Report Writer Pro. | Axys | Verified product-level |
 | Exact REP report names for security master remain Unknown. | Axys/APX | Unknown |
 | Whether REP exposes all security-master fields remains Unknown. | Axys/APX | Unknown |
@@ -683,9 +683,9 @@ Repository impact:
 - It supports using `APX Symbol` + `Type` in integration/matching workflows.
 - It still does **not** prove the formal APX database primary key.
 
-### 5. Axys and APX missing-prices file fields
+### 5. Axys/APX missing-prices file fields
 
-Both the Axys and APX CI User Guides include a field dictionary for optional output file `MISSINGPRICES_yyyymmdd.csv`.
+Both the Axys/APX CI User Guides include a field dictionary for optional output file `MISSINGPRICES_yyyymmdd.csv`.
 
 Important limitation: this is not a security-master file. It is useful because it confirms the same security identifier vocabulary used by CI.
 
@@ -699,7 +699,7 @@ Important limitation: this is not a security-master file. It is useful because i
 
 Repository impact:
 
-- Confirms `Symbol` and `Type` as the core identifier pair in CI security-master matching context for both Axys and APX.
+- Confirms `Symbol` and `Type` as the core identifier pair in CI security-master matching context for both Axys/APX.
 - Does not prove formal native primary key.
 
 ### 6. APX security matching rules and reserved type-prefix exclusions
@@ -831,7 +831,7 @@ Repository impact:
 1. Add an “Import/Export Utility Evidence” table:
    - Axys: `imex32.exe`; exports `sec.inf` and `type.inf`; imports transactions, prices, and positions in CI context.
    - APX: `apxix.exe`; exports `sec.inf` and `type.inf`; imports transactions, prices, positions, and position lots in CI context.
-2. Add a “CI Security Translation File Dictionary” for Axys and APX, clearly labeled as CI output, not native Security Master schema.
+2. Add a “CI Security Translation File Dictionary” for Axys/APX, clearly labeled as CI output, not native Security Master schema.
 3. Add a “Missing Prices File Identifier Dictionary” showing `Symbol`, `Type`, `Name`, `WP Account`, and `Institution`, clearly labeled as CI output.
 4. Update Unknowns:
    - Replace “Does Axys/APX use sec.inf/type.inf?” with “Complete layout and official object names Unknown.”

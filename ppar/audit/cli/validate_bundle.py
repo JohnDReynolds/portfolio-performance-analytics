@@ -1,4 +1,4 @@
-"""Validate a performance comparison report bundle."""
+"""Validate an Audit report bundle."""
 
 # Python imports
 import argparse
@@ -6,11 +6,11 @@ from pathlib import Path
 import sys
 
 # Project imports
-from ppar.performance_comparison.bundle import report_bundle_validation_issues
+from ppar.audit.bundle import report_bundle_validation_issues
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Validate a generated performance comparison report bundle.
+    """Validate a generated Audit report bundle.
 
     Args:
         argv: Optional command-line arguments excluding the executable name.
@@ -34,12 +34,12 @@ def main(argv: list[str] | None = None) -> int:
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Validate a performance comparison report bundle.",
+        description="Validate an Audit report bundle.",
     )
     parser.add_argument(
         "bundle_directory",
         type=Path,
-        help="Path to a generated performance comparison report bundle directory.",
+        help="Path to a generated Audit report bundle directory.",
     )
     return parser
 

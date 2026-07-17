@@ -25,13 +25,13 @@ _COMPARISON_YAML = (
     _PROJECT_ROOT
     / "ppar"
     / "setup_templates"
-    / "axysapx_performance_comparison"
-    / "axysapx_performance_comparison.yaml"
+    / "axys_apx_audit"
+    / "axys_apx_audit.yaml"
 )
 _OUTPUT_DIRECTORIES = (
     _PROJECT_ROOT / "_demo_output" / "generic_analytics_data_generation",
-    _PROJECT_ROOT / "_demo_output" / "performance_comparison_portfolio",
-    _PROJECT_ROOT / "_demo_output" / "performance_comparison_security",
+    _PROJECT_ROOT / "_demo_output" / "audit_portfolio",
+    _PROJECT_ROOT / "_demo_output" / "audit_security",
     _PROJECT_ROOT / "_demo_output" / "readme_image_cache",
 )
 
@@ -202,12 +202,12 @@ def _run_generic_data_generation(runner: ReleaseCandidateRunner) -> None:
     )
 
 
-def _run_demo_data_audit(
+def _run_demo_data_issues(
     runner: ReleaseCandidateRunner,
     *,
     write_packaged_assets: bool,
 ) -> None:
-    """Audit or rewrite packaged Axys/APX performance-comparison demo data.
+    """Audit or rewrite packaged Axys/APX Audit demo data.
 
     Args:
         write_packaged_assets: Whether to pass ``--write`` to the rebuild
@@ -216,7 +216,7 @@ def _run_demo_data_audit(
     """
     command: list[str | Path] = [
         _VENV_PYTHON,
-        "scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py",
+        "scripts/operational_demo_data/rebuild_audit_demo_data.py",
     ]
     if write_packaged_assets:
         command.append("--write")
@@ -224,11 +224,18 @@ def _run_demo_data_audit(
 
 
 def _run_extract_availability_check(runner: ReleaseCandidateRunner) -> None:
-    """Check that rendered Axys/APX extract-availability docs are current."""
+    """Check that rendered Axys/APX contract documents are current."""
     runner.run(
         [
             _VENV_PYTHON,
             "scripts/render_demo_extract_availability.py",
+            "--check",
+        ]
+    )
+    runner.run(
+        [
+            _VENV_PYTHON,
+            "scripts/render_transaction_semantics_matrix.py",
             "--check",
         ]
     )
@@ -239,11 +246,11 @@ def _run_report_bundle_checks(runner: ReleaseCandidateRunner) -> None:
     bundle_specs = (
         (
             "portfolio",
-            _PROJECT_ROOT / "_demo_output" / "performance_comparison_portfolio",
+            _PROJECT_ROOT / "_demo_output" / "audit_portfolio",
         ),
         (
             "security",
-            _PROJECT_ROOT / "_demo_output" / "performance_comparison_security",
+            _PROJECT_ROOT / "_demo_output" / "audit_security",
         ),
     )
     for comparison_level, output_directory in bundle_specs:
@@ -251,7 +258,7 @@ def _run_report_bundle_checks(runner: ReleaseCandidateRunner) -> None:
             [
                 _VENV_PYTHON,
                 "-m",
-                "ppar.performance_comparison.cli.report_bundle",
+                "ppar.audit.cli.report_bundle",
                 _COMPARISON_YAML,
                 output_directory,
                 "--comparison-level",
@@ -263,7 +270,7 @@ def _run_report_bundle_checks(runner: ReleaseCandidateRunner) -> None:
             [
                 _VENV_PYTHON,
                 "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
+                "ppar.audit.cli.validate_bundle",
                 output_directory,
             ]
         )
@@ -273,7 +280,7 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
     """Run scripts copied by ``ppar setup`` in a temporary site workspace."""
     with tempfile.TemporaryDirectory(prefix="ppar_release_site_") as directory:
         site_directory = Path(directory) / "my_ppar_data"
-        comparison_directory = site_directory / "audit"
+        audit_directory = site_directory / "audit"
 
         runner.run(
             [
@@ -287,7 +294,7 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
         )
         runner.run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
         runner.run(
-            [_VENV_PYTHON, comparison_directory / "run_audit.py"]
+            [_VENV_PYTHON, audit_directory / "run_audit.py"]
         )
         runner.run(
             [
@@ -299,16 +306,16 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
             [
                 _VENV_PYTHON,
                 "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
-                comparison_directory / "output" / "portfolio",
+                "ppar.audit.cli.validate_bundle",
+                audit_directory / "output" / "portfolio",
             ]
         )
         runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
-                comparison_directory / "output" / "security",
+                "ppar.audit.cli.validate_bundle",
+                audit_directory / "output" / "security",
             ]
         )
 
@@ -402,7 +409,7 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         "--write-packaged-assets",
         action="store_true",
         help=(
-            "Rewrite tracked packaged Axys/APX performance-comparison CSV assets "
+            "Rewrite tracked packaged Axys/APX Audit CSV assets "
             "when the rebuild script derives intentional changes."
         ),
     )
@@ -468,10 +475,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     runner.phase(2, "Audit packaged demo data")
-    _run_demo_data_audit(runner, write_packaged_assets=args.write_packaged_assets)
+    _run_demo_data_issues(runner, write_packaged_assets=args.write_packaged_assets)
     if args.write_packaged_assets:
         runner.asset_note(
-            "Packaged Axys/APX performance-comparison CSV assets may have been rewritten."
+            "Packaged Axys/APX Audit CSV assets may have been rewritten."
         )
     runner.complete("Packaged demo data audit")
 
@@ -488,7 +495,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     runner.complete("Setup workspace scripts and bundles")
 
     runner.phase(6, "Validate scenario matrix")
-    runner.run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
+    runner.run([_VENV_PYTHON, "-m", "ppar.audit.cli.validate_demo_matrix"])
     runner.complete("Scenario matrix")
 
     runner.phase(7, "Release-asset refresh")

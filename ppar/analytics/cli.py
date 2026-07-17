@@ -19,7 +19,7 @@ from ppar.analytics import Analytics
 from ppar.analytics.attribution import Chart, View
 from ppar.analytics.frequency import Frequency
 import ppar.analytics.schema as cols
-from ppar.axys import AxysData
+from ppar.axys_apx import AxysData
 from ppar.errors import PpaError
 import ppar.utilities as util
 

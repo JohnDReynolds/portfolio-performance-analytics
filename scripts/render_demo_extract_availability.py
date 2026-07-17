@@ -15,7 +15,7 @@ _DEFAULT_CONTRACT_PATH: Final = (
     _REPO_ROOT
     / "ppar"
     / "setup_templates"
-    / "axysapx_performance_comparison"
+    / "axys_apx_audit"
     / "demo_extract_availability.yaml"
 )
 _DEFAULT_OUTPUT_PATH: Final = (
@@ -101,9 +101,9 @@ _RELATED_REFERENCES: Final[tuple[str, ...]] = (
     "[Chapter_12_Imex.md](../reference/Chapter_12_Imex.md)",
     "[Chapter_13_Rep.md](../reference/Chapter_13_Rep.md)",
     "[Chapter_15_Data_Dictionary.md](../reference/Chapter_15_Data_Dictionary.md)",
-    "[axysapx_common_core_export.md](../axysapx_common_core_export.md)",
-    "[performance_comparison_demo_source_contract.md]"
-    "(../../audit/performance_comparison_demo_source_contract.md)",
+    "[axys_apx_common_core_export.md](../axys_apx_common_core_export.md)",
+    "[demo_source_contract.md]"
+    "(../../audit/demo_source_contract.md)",
 )
 
 
@@ -141,11 +141,11 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "# PPAR Axys/APX Extract Requirements and Source Guidance",
         "",
         "Repository: AXYS / APX Reference Repository",
-        "Scope: `ppar/setup_templates/axysapx_performance_comparison/snapshot_a` and",
-        "`ppar/setup_templates/axysapx_performance_comparison/snapshot_b`",
+        "Scope: `ppar/setup_templates/axys_apx_audit/snapshot_a` and",
+        "`ppar/setup_templates/axys_apx_audit/snapshot_b`",
         "Status: Draft confidence matrix generated from the packaged YAML contract.",
         "",
-        "<!-- GENERATED FROM ppar/setup_templates/axysapx_performance_comparison/"
+        "<!-- GENERATED FROM ppar/setup_templates/axys_apx_audit/"
         "demo_extract_availability.yaml. -->",
         "<!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->",
         "",
@@ -158,7 +158,7 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "and/or REP-style report extracts.",
         "",
         "The machine-readable source of truth is "
-        "`ppar/setup_templates/axysapx_performance_comparison/"
+        "`ppar/setup_templates/axys_apx_audit/"
         "demo_extract_availability.yaml`. Tests verify "
         "that the YAML covers every packaged comparison demo CSV header and "
         "that this contract is current.",
@@ -198,7 +198,7 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
             "- `Chapter_10_Performance.md` says `portperf` and `secperf` "
             "should be treated as normalized/local names unless a live IMEX "
             "object, report output, or vendor manual confirms native names.",
-            "- `docs/axys_apx/axysapx_common_core_export.md` is a starter reference only. "
+            "- `docs/axys_apx/axys_apx_common_core_export.md` is a starter reference only. "
             "It proposes common field aliases but does not override the more "
             "conservative chapter confidence boundaries.",
             "",
@@ -269,7 +269,9 @@ def _dataset_table(dataset_name: str, columns: Mapping[str, Any]) -> list[str]:
     ]
     for column_name, metadata in columns.items():
         metadata_map = _as_mapping(metadata)
-        open_questions = "; ".join(_required_text_list(metadata_map, "open_questions"))
+        open_questions = "<br>".join(
+            _required_text_list(metadata_map, "open_questions")
+        )
         lines.append(
             "| "
             f"{_escape_table_text(dataset_label)} | "

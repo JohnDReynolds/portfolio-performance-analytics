@@ -16,12 +16,12 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import aliases
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import aliases
+from ppar.audit import schema as pc_cols
 import ppar.utilities as util
 
 _CONTRACT_RESOURCE: Final[str] = "ppar.setup_templates"
-_CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axysapx_performance_comparison"
+_CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axys_apx_audit"
 _CONTRACT_FILE_NAME: Final[str] = "demo_extract_availability.yaml"
 _AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = frozenset({"DP", "LI", "LO", "WD"})
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"

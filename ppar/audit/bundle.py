@@ -1,4 +1,4 @@
-"""Validate generated performance comparison report bundles."""
+"""Validate generated Audit report bundles."""
 
 from __future__ import annotations
 
@@ -16,23 +16,23 @@ import polars as pl
 
 # Project imports
 import ppar.utilities as util
-from ppar.performance_comparison import conservation as _pc_conservation
-from ppar.performance_comparison import extract_contract as _pc_extract_contract
-from ppar.performance_comparison import lineage as _pc_lineage
-from ppar.performance_comparison import output_integrity as _pc_output_integrity
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import workbook as _pc_workbook
-from ppar.performance_comparison.specification import (
-    PerformanceComparisonSpecification,
+from ppar.audit import conservation as _pc_conservation
+from ppar.audit import extract_contract as _pc_extract_contract
+from ppar.audit import lineage as _pc_lineage
+from ppar.audit import output_integrity as _pc_output_integrity
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import workbook as _pc_workbook
+from ppar.audit.specification import (
+    AuditSpecification,
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
-from ppar.performance_comparison.portfolio_performance import SnapshotKey
-from ppar.performance_comparison.transaction_summary import (
+from ppar.audit.portfolio_performance import SnapshotKey
+from ppar.audit.transaction_summary import (
     transaction_rule_codes,
     transaction_semantics_summary,
 )
-from ppar.performance_comparison.transactions import TransactionsLoader
+from ppar.audit.transactions import TransactionsLoader
 
 __all__ = [
     "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
@@ -57,7 +57,7 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "source_detail",
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
-    _pc_review_model.X_REF_ISSUES_ARTIFACT,
+    _pc_review_model.DATA_ISSUES_ARTIFACT,
     _pc_review_model.CAUSE_LINEAGE_ARTIFACT,
     "needs_review_summary",
     "portfolio_period_summary",
@@ -76,9 +76,10 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
 _CSV_PRIMARY_REVIEW_ARTIFACTS = (
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
-    _pc_review_model.X_REF_ISSUES_ARTIFACT,
+    _pc_review_model.DATA_ISSUES_ARTIFACT,
 )
-_REPORT_BUNDLE_MANIFEST_VERSION = 4
+_REPORT_BUNDLE_TYPE = "audit_report"
+_REPORT_BUNDLE_MANIFEST_VERSION = 5
 _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "bundle_type",
     "manifest_version",
@@ -173,7 +174,7 @@ def report_bundle_contract() -> dict[str, object]:
         all internal implementation details or optional diagnostic artifacts.
     """
     return {
-        "bundle_type": "performance_comparison_report",
+        "bundle_type": _REPORT_BUNDLE_TYPE,
         "audit_artifact_files": {
             comparison_level: {
                 _pc_review_model.HTML_REPORT_ARTIFACT: (
@@ -357,15 +358,15 @@ def write_report_bundle_readme(
         if csv_only_output
         else _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
     )
-    x_ref_review_artifact = (
-        "`x_ref_issues.csv`"
+    data_issues_review_artifact = (
+        "`data_issues.csv`"
         if csv_only_output
-        else _pc_review_model.X_REF_ISSUES_SHEET
+        else _pc_review_model.DATA_ISSUES_SHEET
     )
     lines = [
         f"# {_escape_readme_text(title)}",
         "",
-        "This directory is a portable Performance Auditing review bundle.",
+        "This directory is a portable Audit review bundle.",
         "",
         "## Recommended Review Order",
         "",
@@ -383,7 +384,7 @@ def write_report_bundle_readme(
                 "differences."
             ]
         ),
-        f"3. Use {x_ref_review_artifact} to review cross-reference "
+        f"3. Use {data_issues_review_artifact} to review cross-reference "
         "consistency checks across the union of Snapshot A and Snapshot B.",
         f"4. Use `{source_detail_path}` for audit and "
         "troubleshooting; it is the reviewer-friendly finding-level audit trail.",
@@ -420,7 +421,7 @@ def _archived_supporting_files_readme_lines(
     if csv_only_output:
         lines[4:4] = [
             "- `performance_differences.csv`, "
-            "`performance_difference_causes.csv`, and `x_ref_issues.csv`: "
+            "`performance_difference_causes.csv`, and `data_issues.csv`: "
             "primary CSV review files.",
         ]
     return lines
@@ -647,7 +648,7 @@ def report_bundle_manifest(
         else finding_audit_trail
     )
     manifest = {
-        "bundle_type": "performance_comparison_report",
+        "bundle_type": _REPORT_BUNDLE_TYPE,
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
         "created_at": dt.datetime.now(dt.UTC).isoformat(),
         "title": title,
@@ -698,7 +699,7 @@ def _report_bundle_source_context(
             "comparison_path": None,
             "extract_contract": None,
         }
-    specification = PerformanceComparisonSpecification(comparison_path)
+    specification = AuditSpecification(comparison_path)
     return {
         "comparison_path": str(comparison_path),
         "extract_contract": _pc_extract_contract.extract_contract_summary(
@@ -716,7 +717,7 @@ def _report_bundle_transaction_semantics(
     """Return compact transaction semantics metadata for a report bundle."""
     if comparison_path is None:
         return transaction_semantics_summary([active_findings])
-    specification = PerformanceComparisonSpecification(comparison_path)
+    specification = AuditSpecification(comparison_path)
     loader = TransactionsLoader(specification)
     snapshot_keys: tuple[SnapshotKey, SnapshotKey] = ("a", "b")
     frames = [
@@ -975,8 +976,8 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         "performance_difference_causes": (
             "canonical CSV counterpart of the formula-input cause sheet"
         ),
-        "x_ref_issues": (
-            "canonical CSV counterpart of the Data Audit Issues sheet"
+        "data_issues": (
+            "canonical CSV counterpart of the Data Issues sheet"
         ),
         "cause_lineage": "machine-readable cause-to-finding source lineage",
         "impact_estimates": "currently quantified impact estimates",
@@ -1111,7 +1112,7 @@ def _report_bundle_manifest_shape_issues(
     for key in _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS:
         if key not in manifest:
             issues.append(f"manifest top-level key {key!r} is missing")
-    if manifest.get("bundle_type") != "performance_comparison_report":
+    if manifest.get("bundle_type") != _REPORT_BUNDLE_TYPE:
         issues.append("manifest bundle_type is malformed")
     version = manifest.get("manifest_version")
     if (

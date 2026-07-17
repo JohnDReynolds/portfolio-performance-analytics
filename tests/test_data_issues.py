@@ -1,4 +1,4 @@
-"""Tests for performance-comparison Data Audit Issues checks."""
+"""Tests for performance-comparison Data Issues checks."""
 
 from __future__ import annotations
 
@@ -13,18 +13,18 @@ import unittest
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import x_ref
+from ppar.audit import schema as pc_cols
+from ppar.audit.data_issues import checks as data_issues
 
 
-class TestPerformanceComparisonXRefIssues(unittest.TestCase):
-    """Validate source-data consistency checks used by the Data Audit Issues sheet."""
+class TestDataIssues(unittest.TestCase):
+    """Validate source-data consistency checks used by the Data Issues sheet."""
 
     def test_continuity_respects_adjacency_and_combined_tolerance(self) -> None:
         """Continuity flags only adjacent periods beyond absolute and percent limits."""
         frame = pl.DataFrame(
             {
-                x_ref.SNAPSHOT: ["Snapshot A"] * 6,
+                data_issues.SNAPSHOT: ["Snapshot A"] * 6,
                 pc_cols.PORTFOLIO_ID: ["P1", "P1", "P2", "P2", "P3", "P3"],
                 pc_cols.FROM_DATE: [
                     dt.date(2026, 1, 1),
@@ -47,13 +47,13 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
             }
         )
         config = {
-            x_ref.ISSUE_PORTFOLIO_MV_CONTINUITY: {
+            data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY: {
                 "absolute_tolerance": 10.0,
                 "percent_tolerance": 1.0,
             }
         }
 
-        issues = x_ref._market_value_continuity_issues(
+        issues = data_issues._market_value_continuity_issues(
             (frame,),
             config,
             dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
@@ -61,20 +61,20 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0][pc_cols.PORTFOLIO_ID], "P2")
-        self.assertEqual(issues[0][x_ref.DIFFERENCE], -11.0)
+        self.assertEqual(issues[0][data_issues.DIFFERENCE], -11.0)
 
-    def test_packaged_demo_includes_every_x_ref_issue_type(self) -> None:
+    def test_packaged_demo_includes_every_data_issues_issue_type(self) -> None:
         """The Axys/APX demo keeps one visible example of every X-Ref issue type."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
             / "setup_templates"
-            / "axysapx_performance_comparison"
-            / "axysapx_performance_comparison.yaml"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
         )
 
-        issues = x_ref.x_ref_issues_table(comparison_path)
-        issue_types = set(issues.get_column(x_ref.ISSUE_TYPE).to_list())
+        issues = data_issues.data_issues_table(comparison_path)
+        issue_types = set(issues.get_column(data_issues.ISSUE_TYPE).to_list())
 
         self.assertEqual(
             issue_types,
@@ -89,19 +89,19 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
             },
         )
 
-    def test_packaged_demo_includes_dividend_rate_x_ref_issue(self) -> None:
+    def test_packaged_demo_includes_dividend_rate_data_issues_issue(self) -> None:
         """The Axys/APX demo includes a visible dividend-rate mismatch example."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
             / "setup_templates"
-            / "axysapx_performance_comparison"
-            / "axysapx_performance_comparison.yaml"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
         )
 
-        issues = x_ref.x_ref_issues_table(comparison_path)
+        issues = data_issues.data_issues_table(comparison_path)
         dividend_rate_issues = issues.filter(
-            (issues[x_ref.ISSUE_TYPE] == "dividend_rate")
+            (issues[data_issues.ISSUE_TYPE] == "dividend_rate")
             & (issues["security_id"] == "JPM")
         )
 
@@ -111,19 +111,19 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
             {"ALPHA", "BALANCED"},
         )
 
-    def test_packaged_demo_includes_pa_sa_rate_x_ref_issue(self) -> None:
+    def test_packaged_demo_includes_pa_sa_rate_data_issues_issue(self) -> None:
         """The Axys/APX demo includes a visible accrued-interest rate mismatch."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
             / "setup_templates"
-            / "axysapx_performance_comparison"
-            / "axysapx_performance_comparison.yaml"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
         )
 
-        issues = x_ref.x_ref_issues_table(comparison_path)
+        issues = data_issues.data_issues_table(comparison_path)
         pa_rate_issues = issues.filter(
-            (issues[x_ref.ISSUE_TYPE] == "pa_sa_rate")
+            (issues[data_issues.ISSUE_TYPE] == "pa_sa_rate")
             & (issues["security_id"] == "91282Y5Y1")
         )
 
@@ -133,7 +133,7 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
             {"ALPHA", "INCOME"},
         )
 
-    def test_x_ref_issues_detect_rate_and_missing_dividend_issues(self) -> None:
+    def test_data_issues_detect_rate_and_missing_dividend_issues(self) -> None:
         """Dividend and pa/sa checks compare same-day same-security rates."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -173,16 +173,16 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 """,
             )
 
-            issues = x_ref.x_ref_issues_table(comparison_path)
-            issue_types = set(issues.get_column(x_ref.ISSUE_TYPE).to_list())
+            issues = data_issues.data_issues_table(comparison_path)
+            issue_types = set(issues.get_column(data_issues.ISSUE_TYPE).to_list())
             missing_dividends = issues.filter(
-                issues[x_ref.ISSUE_TYPE] == "missing_dividend"
+                issues[data_issues.ISSUE_TYPE] == "missing_dividend"
             )
             missing_portfolios = set(
                 missing_dividends.get_column("portfolio_id").to_list()
             )
             missing_explanations = set(
-                missing_dividends.get_column(x_ref.EXPLANATION).to_list()
+                missing_dividends.get_column(data_issues.EXPLANATION).to_list()
             )
 
         self.assertIn("dividend_rate", issue_types)
@@ -199,7 +199,7 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
             },
         )
 
-    def test_x_ref_issues_detect_holdings_and_transaction_price_ranges(self) -> None:
+    def test_data_issues_detect_holdings_and_transaction_price_ranges(self) -> None:
         """Price-range checks compare same-day same-security prices."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -212,8 +212,8 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                     "P1,2026-02-15,,ABC,by,stock,$cash,CASHUSD,,,10,10.00,-100,0",
                     "P2,2026-02-15,,ABC,by,stock,$cash,CASHUSD,,,10,10.50,-105,0",
                 ],
-                x_ref_config="""
-                data_audit_checks:
+                data_issues_config="""
+                data_issues:
                   holdings_price_range:
                     percent_tolerance: 1.0
                   transactions_price_range:
@@ -221,13 +221,13 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 """,
             )
 
-            issues = x_ref.x_ref_issues_table(comparison_path)
-            issue_types = set(issues.get_column(x_ref.ISSUE_TYPE).to_list())
+            issues = data_issues.data_issues_table(comparison_path)
+            issue_types = set(issues.get_column(data_issues.ISSUE_TYPE).to_list())
 
         self.assertIn("holdings_price_range", issue_types)
         self.assertIn("transactions_price_range", issue_types)
 
-    def test_x_ref_issues_detect_duplicate_transactions(self) -> None:
+    def test_data_issues_detect_duplicate_transactions(self) -> None:
         """Duplicate-transaction checks flag exact repeated activity rows."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -239,21 +239,21 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 ],
             )
 
-            issues = x_ref.x_ref_issues_table(comparison_path)
+            issues = data_issues.data_issues_table(comparison_path)
             duplicate_issues = issues.filter(
-                issues[x_ref.ISSUE_TYPE] == "duplicate_transactions"
+                issues[data_issues.ISSUE_TYPE] == "duplicate_transactions"
             )
 
         self.assertEqual(duplicate_issues.height, 4)
         self.assertEqual(
-            set(duplicate_issues.get_column(x_ref.EXPLANATION).to_list()),
+            set(duplicate_issues.get_column(data_issues.EXPLANATION).to_list()),
             {
                 "Duplicate transaction rows have the same portfolio, date, "
                 "security, code, amount, quantity, and price."
             },
         )
 
-    def test_x_ref_issue_type_can_be_disabled(self) -> None:
+    def test_data_issues_issue_type_can_be_disabled(self) -> None:
         """Each issue type is on by default but can be opted out in YAML."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -272,8 +272,8 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                     "P1,2026-02-16,,BOND,pa,fius,,,,,0,0,40,0",
                     "P2,2026-02-16,,BOND,pa,fius,,,,,0,0,45,0",
                 ],
-                x_ref_config="""
-                data_audit_checks:
+                data_issues_config="""
+                data_issues:
                   dividend_rate:
                     enabled: false
                 """,
@@ -288,13 +288,13 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 """,
             )
 
-            issues = x_ref.x_ref_issues_table(comparison_path)
-            issue_types = set(issues.get_column(x_ref.ISSUE_TYPE).to_list())
+            issues = data_issues.data_issues_table(comparison_path)
+            issue_types = set(issues.get_column(data_issues.ISSUE_TYPE).to_list())
 
         self.assertNotIn("dividend_rate", issue_types)
         self.assertIn("pa_sa_rate", issue_types)
 
-    def test_x_ref_issue_filters_support_only_and_exclude(self) -> None:
+    def test_data_issues_issue_filters_support_only_and_exclude(self) -> None:
         """Issue filters support exact-match dataset.field and common field names."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -309,8 +309,8 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                     "P1,2026-02-15,,ABC,dv,stock,,,,,0,0,50,0",
                     "P2,2026-02-15,,ABC,dv,stock,,,,,0,0,60,0",
                 ],
-                x_ref_config="""
-                data_audit_checks:
+                data_issues_config="""
+                data_issues:
                   dividend_rate:
                     only:
                       transactions.security_type: stock
@@ -320,9 +320,9 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 """,
             )
 
-            issues = x_ref.x_ref_issues_table(comparison_path)
+            issues = data_issues.data_issues_table(comparison_path)
             dividend_issues = issues.filter(
-                issues[x_ref.ISSUE_TYPE] == "dividend_rate"
+                issues[data_issues.ISSUE_TYPE] == "dividend_rate"
             )
 
         self.assertEqual(dividend_issues.height, 0)
@@ -333,7 +333,7 @@ def _write_site(
     *,
     holdings_rows: list[str],
     transaction_rows: list[str],
-    x_ref_config: str = "data_audit_checks: {}",
+    data_issues_config: str = "data_issues: {}",
     transaction_rules: str = "",
 ) -> Path:
     """Write a minimal performance-comparison site and return its YAML path."""
@@ -366,7 +366,7 @@ def _write_site(
         block
         for block in (
             textwrap.dedent(transaction_rules).strip(),
-            textwrap.dedent(x_ref_config).strip(),
+            textwrap.dedent(data_issues_config).strip(),
         )
         if block
     )

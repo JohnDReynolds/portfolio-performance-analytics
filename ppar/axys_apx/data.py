@@ -1,7 +1,7 @@
 """Load Axys sources for use by the analytics facade.
 
 This module provides the public ``AxysData`` facade for experimental Axys
-source loading. See ``ppar/setup_templates/axysapx_analytics/run_analytics.py``
+source loading. See ``ppar/setup_templates/axys_apx_analytics/run_analytics.py``
 for a working example.
 """
 
@@ -15,12 +15,12 @@ from pathlib import Path
 from typing import Any
 
 # Project imports
-from ppar.axys.classification_sources import AxysClassificationSourceLoader
-from ppar.axys.date_ranges import AxysDateRange
-from ppar.axys.performance_sources import AxysPerformanceSourceLoader
-from ppar.axys.portfolios import AxysPortfolio, AxysPortfolioLoader
-from ppar.axys.specification import AxysSpecification
-from ppar.axys.supporting_sources import (
+from ppar.axys_apx.classification_sources import AxysClassificationSourceLoader
+from ppar.axys_apx.date_ranges import AxysDateRange
+from ppar.axys_apx.performance_sources import AxysPerformanceSourceLoader
+from ppar.axys_apx.portfolios import AxysPortfolio, AxysPortfolioLoader
+from ppar.axys_apx.specification import AxysSpecification
+from ppar.axys_apx.supporting_sources import (
     AxysClassificationSources,
     AxysSupportingSourceLoader,
 )

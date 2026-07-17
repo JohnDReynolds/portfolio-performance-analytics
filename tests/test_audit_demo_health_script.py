@@ -1,4 +1,4 @@
-"""Tests for the packaged performance-comparison demo health-check script."""
+"""Tests for the packaged Audit demo health-check script."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-import scripts.check_performance_comparison_demo_health as demo_health
+import scripts.check_audit_demo_health as demo_health
 
 
 def _command_text(command: tuple[str, ...]) -> str:
@@ -14,7 +14,7 @@ def _command_text(command: tuple[str, ...]) -> str:
     return " ".join(command)
 
 
-class TestPerformanceComparisonDemoHealthScript(unittest.TestCase):
+class TestAuditDemoHealthScript(unittest.TestCase):
     """Verify demo-health command selection without running nested checks."""
 
     def test_default_mode_runs_all_demo_health_guards(self) -> None:
@@ -37,7 +37,7 @@ class TestPerformanceComparisonDemoHealthScript(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertTrue(
             any(
-                "rebuild_performance_comparison_demo_data.py" in text
+                "rebuild_audit_demo_data.py" in text
                 for text in command_texts
             )
         )

@@ -40,3 +40,25 @@ The Chapter 17 evidence consists of two research intakes because the first
 focused primarily on cash provenance and the follow-up tested the broader Axys
 multi-currency implementation questions. Both are retained so their different
 scope and citation limitations remain visible.
+
+## Maintenance Boundary
+
+Existing research files preserve the form in which evidence was gathered, so
+some contain historical narrative that overlaps a reader-facing chapter. Do not
+continue expanding that narrative as a parallel manual. New evidence should be
+recorded as compact provenance:
+
+- source identity and retrieval or observation date;
+- extracted claim, quotation locator, or artifact locator;
+- affected Axys/APX version or environment when known;
+- confidence and any contradiction;
+- unresolved question; and
+- the chapter or contract conclusion affected by the evidence.
+
+Reader explanations, conceptual models, worked examples, audit rules, and
+implementation recommendations belong in the matching chapter or contract.
+`Research_05_Transactions.md`, `Research_06_Holdings.md`,
+`Research_07_Cash.md`, and `Research_08_Pricing.md` are retained as historical
+evidence corpora, but their overlapping narrative is frozen. Integrate new
+durable conclusions into the reader-facing chapter and append only the compact
+provenance needed to support them here.

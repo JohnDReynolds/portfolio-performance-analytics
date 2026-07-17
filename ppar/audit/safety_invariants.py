@@ -1,4 +1,4 @@
-"""Catalog the intended Performance Auditing safety invariants.
+"""Catalog the intended Audit safety invariants.
 
 This module is an executable design catalog, not an enforcement layer. It gives
 the completed safety-net program stable identifiers, failure classifications,
@@ -145,7 +145,7 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
         coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
             "Portfolio and security prior-end/next-begin values are checked per snapshot.",
-            "Continuity mismatches remain mandatory Data Audit Issues.",
+            "Continuity mismatches remain mandatory Data Issues.",
             "The continuity check cannot be disabled with optional audit checks.",
         ),
         known_gaps=(),

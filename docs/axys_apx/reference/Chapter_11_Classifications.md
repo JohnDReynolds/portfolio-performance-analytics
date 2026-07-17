@@ -3,7 +3,7 @@
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys_apx/reference/Chapter_11_Classifications.md`
 Prepared from supplied research material: 2026-06-29
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -273,6 +273,21 @@ Do not generalize this rule into APX SQL, APX reporting, APX public views, or na
 | Sample classification lookup export | Whether classification code/name/hierarchy/sort order exists outside security master. |
 | Successful classification import sample and logs | Whether classification values can be imported/updated and required fields. |
 
+### 4.5 Reference-List Discovery and REP Cross-Check
+
+The available IMEX evidence adds classification/reference-list export leads
+but does not close the field dictionary.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| Reference lists | Sectors, industries, asset classes, indexes, and composites are mentioned in conversion/export contexts. | Medium |
+| Candidate live-discovery fields | Code, description/name, sort order, parent group, security assignment, portfolio label assignment, and effective-date behavior. | Discovery guidance |
+| Security type distinction | `type.inf` Security Type Information is related reference data but is not the same as asset class/sector/industry classification. | High Confidence |
+| IMEX vs REP comparison | Compare raw IMEX classification exports with REP/report rollups to detect report-derived grouping or overrides. | Design guidance |
+
+Exact IMEX object names and field lists for classifications, indexes,
+composites, labels, and assignments remain Unknown.
+
 ---
 
 ## 5. REP / Replang / Report Output
@@ -284,7 +299,7 @@ Do not generalize this rule into APX SQL, APX reporting, APX public views, or na
 | Axys reports are written in RepLang. | Yes | Unknown | Verified for Axys | CSSI research supports Axys RepLang. |
 | Axys supports Report Writer Pro. | Yes | N/A | Verified | Product material supports this. |
 | APX users can use Report Writer Pro or Replang source edits. | N/A | Yes | Medium Confidence | Consultant source; exact APX source/keyword set Unknown. |
-| Axys and APX reports can be used by connector workflows through standard reports, macros, REP32, and RepLang scripting. | Yes | Yes | Verified for connector | Data Broker evidence. |
+| Axys/APX reports can be used by connector workflows through standard reports, macros, REP32, and RepLang scripting. | Yes | Yes | Verified for connector | Data Broker evidence. |
 | REP/report output can be exported/automated and used as an extraction path. | Yes | Yes | High Confidence | Supported by AdventGuru and connector research. |
 | Exact REP report names for Axys classifications are known. | Unknown | N/A | Unknown | No supplied report catalog. |
 | Exact APX report name for the custom classification/industry group/sector report is known. | N/A | Unknown | Unknown | Search snippet lacked report name. |
@@ -570,7 +585,7 @@ For downstream tools that consume Axys/APX classifications, a minimum safe schem
 
 | Field | Required? | Reason |
 |---|---:|---|
-| `source_system` | Yes | Axys and APX behavior can differ. |
+| `source_system` | Yes | Axys/APX behavior can differ. |
 | `extract_method` | Yes | IMEX, REP, SQL, report export, third-party integration, etc. |
 | `source_artifact` | Yes | Report name, file name, IMEX object, SQL view, export file. |
 | `run_date` | Yes | Historical behavior may depend on current metadata at run time. |
@@ -599,7 +614,7 @@ For downstream tools that consume Axys/APX classifications, a minimum safe schem
 | Historical reports use stored classification snapshots. | Unknown |
 | Asset Class is always derived from Security Type. | Unknown |
 | Sector/industry hierarchy follows GICS, BICS, SIC, or any named taxonomy. | Unknown |
-| Axys and APX use identical classification fields. | Unknown |
+| Axys/APX use identical classification fields. | Unknown |
 | Advent “labels” are equivalent to classifications. | Unknown |
 
 ---
@@ -610,7 +625,7 @@ This chapter is based on the supplied research files and their referenced source
 
 | Supplied research file | Use in this chapter |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial rules, confidence labels, chapter template, and Unknown handling. |
+| `axys_apx_reference_blueprint.md` | Governing editorial rules, confidence labels, chapter template, and Unknown handling. |
 | `../evidence/Research_11_Classifications.md` | Primary classification research: Axys/APX classification capabilities, field candidates, IMEX/REP unknowns, test plan, quirks. |
 | `../evidence/Research_04_Security_Master.md` | Security identity, `sec.inf`, `type.inf`, symbol/type matching, security import dependencies, duplicate security quirks. |
 | `../evidence/Research_06_Holdings.md` | Portfolio Appraisal, holdings fields, group/management mode behavior, report examples, `CDIhold.rep`. |
@@ -668,17 +683,8 @@ Referenced external source categories from the supplied research include:
 | Before/after classification edit test | Confirms historical classification behavior. |
 | Versioned exports from Axys/APX environments | Confirms version differences and field stability. |
 
-## 14. Deep IMEX Update
+## Research Provenance
 
-The deep IMEX research adds classification/reference-list export leads but does
-not close the field dictionary.
-
-| Topic | Chapter treatment | Confidence |
-|---|---|---:|
-| Reference lists | Sectors, industries, asset classes, indexes, and composites are mentioned in conversion/export contexts. | Medium |
-| Candidate live-discovery fields | Code, description/name, sort order, parent group, security assignment, portfolio label assignment, and effective-date behavior. | Discovery guidance |
-| Security type distinction | `type.inf` Security Type Information is related reference data but is not the same as asset class/sector/industry classification. | High Confidence |
-| IMEX vs REP comparison | Compare raw IMEX classification exports with REP/report rollups to detect report-derived grouping or overrides. | Design guidance |
-
-Exact IMEX object names and field lists for classifications, indexes,
-composites, labels, and assignments remain Unknown.
+The deep IMEX classification conclusions are incorporated into Section 4.5.
+Their supporting source history remains in
+`../evidence/Research_11_Classifications.md`.

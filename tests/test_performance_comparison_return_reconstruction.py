@@ -15,8 +15,8 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import return_reconstruction as _reconstruction
-from ppar.performance_comparison.return_reconstruction import (
+from ppar.audit.performance_comparison import return_reconstruction as _reconstruction
+from ppar.audit.performance_comparison.return_reconstruction import (
     BEGIN_VALUE_B,
     DERIVED_DENOMINATOR_B,
     DERIVED_RETURN_DIFFERENCE,
@@ -38,15 +38,15 @@ from ppar.performance_comparison.return_reconstruction import (
     return_reconstruction_summary,
     security_return_reconstruction_checks,
 )
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.audit.specification import AuditSpecification
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml"
 )
 _BASELINE_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison.yaml"
+    "tests/data/axys/validation/ppar_audit.yaml"
 )
-_DEMO_AXYS_DIRECTORY = Path("ppar/setup_templates/axysapx_performance_comparison")
+_DEMO_AXYS_APX_DIRECTORY = Path("ppar/setup_templates/axys_apx_audit")
 _INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS = {
     ("BALANCED", "2026-05-09", "2026-05-14"),
     ("INCOME", "2026-04-01", "2026-04-30"),
@@ -336,8 +336,8 @@ def _comparison_path_with_reconstruction_method(
     for snapshot in snapshots.values():
         if not isinstance(snapshot, dict):
             raise AssertionError("Expected snapshot to be a mapping.")
-        snapshot["path"] = str((_DEMO_AXYS_DIRECTORY / str(snapshot["path"])).resolve())
-        snapshot["schema"] = str((_DEMO_AXYS_DIRECTORY / str(snapshot["schema"])).resolve())
+        snapshot["path"] = str((_DEMO_AXYS_APX_DIRECTORY / str(snapshot["path"])).resolve())
+        snapshot["schema"] = str((_DEMO_AXYS_APX_DIRECTORY / str(snapshot["schema"])).resolve())
 
     for section_name in (
         "portfolio_return_reconstruction",
@@ -352,7 +352,7 @@ def _comparison_path_with_reconstruction_method(
             section.pop("day_count", None)
             section.pop("inclusion_rule", None)
 
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
     return path
 
@@ -649,7 +649,7 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(PpaError, "missing required keys"):
-                PerformanceComparisonSpecification(path)
+                AuditSpecification(path)
 
 
 if __name__ == "__main__":

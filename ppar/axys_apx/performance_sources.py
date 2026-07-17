@@ -10,9 +10,9 @@ from typing import Final, Literal
 import polars as pl
 
 # Project imports
-from ppar.axys.specification import AxysSpecification, ErrorMessage
-from ppar.axys.column_aliases import resolve_column
-from ppar.axys.date_ranges import AxysDateRange
+from ppar.axys_apx.specification import AxysSpecification, ErrorMessage
+from ppar.axys_apx.column_aliases import resolve_column
+from ppar.axys_apx.date_ranges import AxysDateRange
 import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util

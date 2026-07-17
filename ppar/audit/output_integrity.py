@@ -16,9 +16,9 @@ from typing import Any, TypeGuard
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison import rendering as _pc_rendering
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import workbook as _pc_workbook
+from ppar.audit import rendering as _pc_rendering
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import workbook as _pc_workbook
 
 NORMALIZATION_VERSION = 1
 VOLATILE_METADATA = (

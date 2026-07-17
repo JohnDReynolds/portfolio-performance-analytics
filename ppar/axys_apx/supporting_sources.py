@@ -10,9 +10,9 @@ from typing import cast
 import polars as pl
 
 # Project imports
-from ppar.axys.classification_sources import AxysClassificationSourceLoader
-from ppar.axys.portfolios import AxysPortfolio
-from ppar.axys.specification import AxysSpecification
+from ppar.axys_apx.classification_sources import AxysClassificationSourceLoader
+from ppar.axys_apx.portfolios import AxysPortfolio
+from ppar.axys_apx.specification import AxysSpecification
 import ppar.analytics.schema as cols
 
 

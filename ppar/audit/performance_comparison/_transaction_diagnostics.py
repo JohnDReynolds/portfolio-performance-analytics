@@ -6,8 +6,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 # Project imports
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.findings import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
@@ -17,7 +17,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_SEMANTICS_SOURCE_MIXED,
     TRANSACTION_SEMANTICS_SOURCE_SOURCE,
     TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,

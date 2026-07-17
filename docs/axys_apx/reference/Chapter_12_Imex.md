@@ -16,7 +16,7 @@
 
 ## 1. Overview
 
-IMEX is the import/export layer referenced in the supplied research for moving data into and out of Axys and APX environments. The available source material supports strong statements about specific integration workflows, utilities, file names, logs, and report-based extraction alternatives. It does **not** provide a complete official SS&C IMEX object dictionary, native IMEX field dictionary, or complete native APX/Axys command syntax.
+IMEX is the import/export layer referenced in the supplied research for moving data into and out of Axys/APX environments. The available source material supports strong statements about specific integration workflows, utilities, file names, logs, and report-based extraction alternatives. It does **not** provide a complete official SS&C IMEX object dictionary, native IMEX field dictionary, or complete native APX/Axys command syntax.
 
 This chapter therefore distinguishes:
 
@@ -166,8 +166,8 @@ These are observed integration fields/parameters. They are not a complete native
 |---|---:|---|
 | Direct Axys file access is not best practice because proprietary file formats can change between versions. | Medium Confidence | Consultant evidence in supplied research. |
 | A cited example says upgrading from Axys 3.7 to 3.8 required file conversion and produced some files with different formats. | Medium Confidence | Consultant evidence. |
-| Salentica Data Broker documentation lists Axys 3.8.6 as a minimum supported version for that connector. | Verified for connector |
-| Whether Axys IMEX file schemas differ among Axys versions is not established. | Unknown |
+| Salentica Data Broker documentation lists Axys 3.8.6 as a minimum supported version for that connector. | Verified for connector | |
+| Whether Axys IMEX file schemas differ among Axys versions is not established. | Unknown | |
 | Consultant evidence reports large Axys 3.x Audit Trail IMEX exports may fail in some environments. | Medium Confidence | Do not generalize without production testing. |
 
 ---
@@ -321,7 +321,7 @@ The supplied research does not establish official native IMEX object names.
 | Required/optional flags for native IMEX fields | Unknown |
 | Native field data types, lengths, precision, and date formats | Unknown |
 | Native import validation rules and error codes | Unknown |
-| Whether Axys and APX field names are identical | Unknown |
+| Whether Axys/APX field names are identical | Unknown |
 
 ### 4.3 Known field-label evidence
 
@@ -355,6 +355,56 @@ The following field labels are supported by the research. They are intentionally
 | Gain/Loss | Visible in Transaction Summary Report Sales section. | Unknown | Observed | Unknown | Observed | Medium Confidence |
 | Ex-Date | Visible in Transaction Summary Report Dividends section. | Unknown | Observed | Unknown | Observed | Medium Confidence |
 | Pay-Date | Visible in Transaction Summary Report Dividends section. | Unknown | Observed | Unknown | Observed | Medium Confidence |
+
+### 4.4 Publicly Supported Axys IMEX-Adjacent Inventory
+
+Public sources do **not** provide a complete official Axys IMEX object and
+field dictionary. The strongest evidence remains integration-level evidence
+from Custodial Integrator, AIA, conversion, and connector workflows.
+
+| Area | Public evidence | Role | Confidence | Boundary |
+|---|---|---|---:|---|
+| Security information | `sec.inf` | Security reference used to map/generate valid imports. | Verified for CI | Full layout Unknown. |
+| Security types | `type.inf` | Type reference used with security master. | Verified for CI | Full type dictionary Unknown. |
+| Transactions | `topost.trn` | Trade Blotter import/append file. | Verified for CI | Full Trade Blotter layout Unknown. |
+| Positions | `ptopost.trn`, `.pos` | Position Post input/replacement position files. | Verified for CI | Native holdings mechanics Unknown. |
+| Position lots | `imexPositionLots.log` | Optional lot import/log path. | Verified for CI | Lot schema Unknown. |
+| Prices | `*.pri`, `imexPrices.log` | Price import/append workflow. | Verified for CI | Price-file layout Unknown. |
+| Missing prices | `MISSINGPRICES_yyyymmdd.csv` | CI diagnostic output. | Verified for CI | Not a native IMEX object. |
+| Security translations | `SECTRANSLATIONS_yyyymmdd.csv` | CI diagnostic/output file. | Verified for CI | Not native security master. |
+| Portfolios | `*.cli` traversal | Portfolio-code discovery in CI. | Verified for CI | Direct file layout Unknown. |
+| Classifications, indexes, composites | Conversion/export mentions. | Reference/migration candidates. | Medium | Object names/fields Unknown. |
+| Performance history | Migration/export concern. | Possible IMEX concern. | Medium | Clean field catalog Unknown. |
+
+### 4.5 Live Installation Discovery Pattern
+
+For real implementation, build a versioned IMEX catalog from a licensed Axys
+environment instead of hard-coding a universal schema:
+
+1. Run `imex32.exe` interactively.
+2. Record every displayed object name exactly.
+3. Capture selectable fields, labels, internal tokens if shown, order, type,
+   width, required/importable/exportable status, and
+   contracts/templates/layout files.
+4. Export all available formats: CSV, tab, and fixed where supported.
+5. Repeat with portfolios containing cash, equities, funds, fixed income,
+   corporate actions, fees, income, external flows, multicurrency, security
+   classifications, and tax lots.
+6. Collect IMEX logs and record counts, field counts, warnings, rejected rows,
+   and line/column diagnostics.
+7. Compare IMEX output with REP/report output for performance,
+   classifications, holdings, and any value that must tie to a user-visible
+   report.
+
+### 4.6 Product-Design Guidance
+
+| Design rule | Reason |
+|---|---|
+| Use IMEX for operational/reference data where a stable object/export exists. | Strongest evidence is for security reference, security types, transactions, prices, and positions. |
+| Use REP/Replang/custom reports for user-visible report values. | Performance and classification tie-outs may be report-shaped or recalculated. |
+| Preserve original source field labels and row lineage. | Client installs, versions, and templates may differ. |
+| Maintain a versioned `imex_catalog`. | Public evidence does not prove one universal IMEX schema. |
+| Keep normalized product schemas separate from vendor schemas. | Normalized audit fields are product design, not proof of IMEX availability. |
 
 ---
 
@@ -734,7 +784,7 @@ The following items remain **Unknown** and should not be promoted to fact withou
 | Required vs optional fields for native IMEX import. | Vendor import specs or validated sample imports with error logs. |
 | Field data types, lengths, precision, date formats, and delimiter/fixed-width rules. | Vendor IMEX manuals and sample files. |
 | Native import validation rules and error/error-code schema. | IMEX manuals and logs. |
-| Whether Axys and APX IMEX field names are identical. | Paired Axys/APX manuals or sample exports from both systems. |
+| Whether Axys/APX IMEX field names are identical. | Paired Axys/APX manuals or sample exports from both systems. |
 
 ### 13.2 Control files, command behavior, and logs
 
@@ -777,54 +827,8 @@ The following items remain **Unknown** and should not be promoted to fact withou
 | Whether fixed-format elimination applies beyond the cited APX v1.x–v4.x range. | APX documentation. |
 | Whether large Audit Trail IMEX export issues persist in current Axys/APX versions. | Production tests or vendor notes. |
 
-## 14. Deep Research Update: Axys IMEX Inventory and Field Discovery
+## Research Provenance
 
-The 2026-06-30 deep-research pass reinforces the central IMEX boundary:
-public sources do **not** provide a complete official Axys IMEX object and
-field dictionary. The strongest evidence remains integration-level evidence from
-Custodial Integrator, AIA, conversion, and connector workflows.
-
-### 14.1 Publicly supported Axys IMEX-adjacent inventory
-
-| Area | Public evidence | Role | Confidence | Boundary |
-|---|---|---|---:|---|
-| Security information | `sec.inf` | Security reference used to map/generate valid imports. | Verified for CI | Full layout Unknown. |
-| Security types | `type.inf` | Type reference used with security master. | Verified for CI | Full type dictionary Unknown. |
-| Transactions | `topost.trn` | Trade Blotter import/append file. | Verified for CI | Full Trade Blotter layout Unknown. |
-| Positions | `ptopost.trn`, `.pos` | Position Post input/replacement position files. | Verified for CI | Native holdings mechanics Unknown. |
-| Position lots | `imexPositionLots.log` | Optional lot import/log path. | Verified for CI | Lot schema Unknown. |
-| Prices | `*.pri`, `imexPrices.log` | Price import/append workflow. | Verified for CI | Price-file layout Unknown. |
-| Missing prices | `MISSINGPRICES_yyyymmdd.csv` | CI diagnostic output. | Verified for CI | Not a native IMEX object. |
-| Security translations | `SECTRANSLATIONS_yyyymmdd.csv` | CI diagnostic/output file. | Verified for CI | Not native security master. |
-| Portfolios | `*.cli` traversal | Portfolio-code discovery in CI. | Verified for CI | Direct file layout Unknown. |
-| Classifications, indexes, composites | Conversion/export mentions. | Reference/migration candidates. | Medium | Object names/fields Unknown. |
-| Performance history | Migration/export concern. | Possible IMEX concern. | Medium | Clean field catalog Unknown. |
-
-### 14.2 Live installation discovery pattern
-
-For real implementation, build a versioned IMEX catalog from a licensed Axys
-environment instead of hard-coding a universal schema:
-
-1. Run `imex32.exe` interactively.
-2. Record every displayed object name exactly.
-3. Capture selectable fields, labels, internal tokens if shown, order, type,
-   width, required/importable/exportable status, and contracts/templates/layout files.
-4. Export all available formats: CSV, tab, and fixed where supported.
-5. Repeat with portfolios containing cash, equities, funds, fixed income,
-   corporate actions, fees, income, external flows, multicurrency, security
-   classifications, and tax lots.
-6. Collect IMEX logs and record counts, field counts, warnings, rejected rows,
-   and line/column diagnostics.
-7. Compare IMEX output with REP/report output for performance,
-   classifications, holdings, and any value that must tie to a user-visible
-   report.
-
-### 14.3 Product-design guidance
-
-| Design rule | Reason |
-|---|---|
-| Use IMEX for operational/reference data where a stable object/export exists. | Strongest evidence is for security reference, security types, transactions, prices, and positions. |
-| Use REP/Replang/custom reports for user-visible report values. | Performance and classification tie-outs may be report-shaped or recalculated. |
-| Preserve original source field labels and row lineage. | Client installs, versions, and templates may differ. |
-| Maintain a versioned `imex_catalog`. | Public evidence does not prove one universal IMEX schema. |
-| Keep normalized product schemas separate from vendor schemas. | Normalized audit fields are product design, not proof of IMEX availability. |
+The 2026-06-30 Axys IMEX inventory and field-discovery conclusions are
+incorporated into Sections 4.4 through 4.6. Their supporting source history
+remains in `../evidence/Research_12_IMEX.md`.

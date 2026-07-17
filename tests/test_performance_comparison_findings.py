@@ -4,7 +4,7 @@
 import unittest
 
 # Project imports
-from ppar.performance_comparison.findings import (
+from ppar.audit.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     DELTA_B_MINUS_A,
     DIRECT_INPUT,

@@ -4,7 +4,7 @@ Repository: AXYS / APX Reference Repository
 Target chapter: `docs/axys_apx/reference/Chapter_13_Rep.md`
 Research file: `docs/axys_apx/evidence/Research_13_REP.md`
 Prepared: 2026-06-29  
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -13,7 +13,7 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 This research follows the repository blueprint requirements:
 
 - Document factual, implementation-oriented knowledge.
-- Separate Axys and APX whenever behavior differs.
+- Separate Axys/APX whenever behavior differs.
 - Prefer evidence from vendor documentation, reports, examples, consultant documentation, and production observations.
 - Classify each technical statement as **Verified**, **High Confidence**, **Medium Confidence**, or **Unknown**.
 - Do not invent field names, report behavior, transaction codes, report internals, or implementation details.
@@ -24,7 +24,7 @@ This file is intentionally conservative. Where the available evidence does not i
 
 ## 1. Scope of This Research File
 
-This research covers the **REP / RepLang / report execution layer** for Axys and APX.
+This research covers the **REP / RepLang / report execution layer** for Axys/APX.
 
 The term **REP** is used here to refer to Advent report source files and report execution artifacts commonly associated with:
 
@@ -50,7 +50,7 @@ This research does **not** attempt to document every Advent standard report. Tha
 | SRC-004 | SS&C Advent Axys 3.8.7 blog post | Vendor blog | Axys 3.8.7 included enhanced Position Reconciliation report, expanded generic date framework, additional/improved multicurrency reports | High |
 | SRC-005 | CSSI / Client Server Specialists PDF, “How to Add Portfolio Code to Axys Reports” | Consultant technical PDF | Axys reports are written in RepLang; AMAN.REP is Assets Under Management report; reports can be copied and edited in text editor; example fields/expressions `#~8portmv`, `$:fileo`; report path example `e:\axys34\rep` | Medium-High |
 | SRC-006 | Salentica/Black Diamond Data Broker Advent Connector article | Integration documentation | Connector for Axys/APX uses Advent standard reports and macros; requires Advent Client Tools / REP32.exe; uses REP32 engine, RepLang scripting, and macros; tested minimum Axys/APX versions listed | Medium-High |
-| SRC-007 | AdventGuru, “Using Visual Studio Code to Modify Advent Replang Reports in Axys and APX” | Consultant blog | Axys and APX can create reports with Report Writer Pro or direct Replang source edits; Replang remains part of Axys/APX reporting architecture; APX adds more keywords than Axys; APX also has SQL Server integration options | Medium |
+| SRC-007 | AdventGuru, “Using Visual Studio Code to Modify Advent Replang Reports in Axys/APX” | Consultant blog | Axys/APX can create reports with Report Writer Pro or direct Replang source edits; Replang remains part of Axys/APX reporting architecture; APX adds more keywords than Axys; APX also has SQL Server integration options | Medium |
 | SRC-008 | AdventGuru Axys/APX category page excerpt | Consultant blog index/excerpt | APX data access options include Stored Accounting Functions, Public Views, SSRS, REST API; Report Writer Pro/Replang remain available | Medium |
 | SRC-009 | Microsoft SSRS documentation | Vendor documentation for SSRS, not APX-specific | SSRS is an on-premises platform for creating, deploying, and managing paginated reports | High for SSRS, not evidence of APX-specific behavior |
 | SRC-010 | APX Reports Guide search result from Advent CDN | Vendor-looking PDF search result | Indicates APX reports use Microsoft SQL Server Reporting Services platform and can be customized/branded | Medium until full guide is obtained |
@@ -178,7 +178,7 @@ Reference URLs:
 | Statement | Classification | Evidence / Notes |
 |---|---|---|
 | APX users can create reports using Report Writer Pro or by updating Replang source directly. | Medium Confidence | AdventGuru consultant source; not directly vendor-confirmed in accessible docs. |
-| Replang remains part of the reporting architecture of both Axys and APX. | Medium Confidence | AdventGuru consultant source. |
+| Replang remains part of the reporting architecture of both Axys/APX. | Medium Confidence | AdventGuru consultant source. |
 | APX has more Replang keywords than Axys in current versions. | Medium Confidence | AdventGuru states Replang for Axys has roughly 100 keywords and current APX adds another 100+ keywords; exact keyword list not supplied. |
 | Exact APX Replang keyword set. | Unknown | Not available in current evidence. |
 | Exact APX `.REP` file locations. | Unknown | Not available in current evidence. |
@@ -461,7 +461,7 @@ Chapter 13 can use this structure:
 | APX supports flexible custom reporting. | N/A | Yes | Verified | SRC-003 |
 | APX has performance analytics and composite management support for GIPS compliance. | N/A | Yes | Verified | SRC-003 |
 | APX users can create reports using Report Writer Pro or Replang source edits. | N/A | Yes | Medium Confidence | SRC-007 |
-| Replang remains part of Axys and APX reporting architecture. | Yes | Yes | Medium Confidence | SRC-007 |
+| Replang remains part of Axys/APX reporting architecture. | Yes | Yes | Medium Confidence | SRC-007 |
 | APX users have SQL Server/database reporting options including Stored Accounting Functions, Public Views, SSRS, and REST API. | N/A | Yes | Medium Confidence | SRC-007/SRC-008 |
 | Advent Connector for Axys/APX uses Advent standard reports and macros to generate data extracts. | Yes | Yes | Verified for connector | SRC-006 |
 | Advent Connector requires REP32.exe / Advent Client Tools and uses REP32 engine to extract data. | Yes | Yes | Verified for connector | SRC-006 |
@@ -479,7 +479,7 @@ Chapter 13 can use this structure:
 3. SS&C Advent. “A New Version of Axys – Just in Time for Upgrade Season.” https://www.advent.com/news-and-insights/blog/a-new-version-of-axys-just-in-time-for-upgrade-season/
 4. Client Server Specialists / CSSI. “How to Add Portfolio Code to Axys Reports.” https://assets.ctfassets.net/xhy36q2d1lqu/77QC4aNbyhPo9FfmjRYNzc/d00a0d6601214601543e30e34f203626/PortfolioCodetoAxys.pdf
 5. Salentica / Black Diamond. “Data Broker - SS&C|Advent APX & Axys.” https://engage.salentica.com/kb/article/247-data-broker-ss-c-advent-apx-axys/
-6. AdventGuru. “Using Visual Studio Code to Modify Advent Replang Reports in Axys and APX.” https://adventguru.com/2024/09/09/using-visual-studio-code-to-modify-advent-replang-reports-in-axys-and-apx/
+6. AdventGuru. “Using Visual Studio Code to Modify Advent Replang Reports in Axys/APX.” https://adventguru.com/2024/09/09/using-visual-studio-code-to-modify-advent-replang-reports-in-axys-and-apx/
 7. Microsoft. “SQL Server Reporting Services.” https://learn.microsoft.com/en-us/sql/reporting-services/create-deploy-and-manage-mobile-and-paginated-reports
 
 ---
@@ -516,7 +516,7 @@ Additional REP/IMEX boundary points:
 ## Deep Research Update Incorporated 2026-07-02
 
 The July 2026 addendum strengthens current practitioner evidence that Replang
-remains relevant for both Axys and APX. AdventGuru evidence says Axys/APX users
+remains relevant for both Axys/APX. AdventGuru evidence says Axys/APX users
 can still create reports with Report Writer Pro or direct Replang source edits;
 Axys Replang has roughly 100 keywords and current APX adds 100+ more. The
 exact keyword lists, compatibility rules, and report catalogs remain Unknown.

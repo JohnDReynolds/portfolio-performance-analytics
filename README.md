@@ -1,6 +1,6 @@
 # PPAR - Portfolio Performance Auditing & Analytics Reporting
 
-PPAR is a Python package that creates Performance Auditing and Performance
+PPAR is a Python package that creates Audit and Performance
 Analytics reports from local portfolio accounting data.
 
 1. You can generate standard charts, xlsx, and html output.
@@ -12,21 +12,21 @@ Analytics reports from local portfolio accounting data.
 
 ---
 
-## Performance Auditing
+## Audit
 
-Use Performance Auditing to answer: "Why did my reported performance change?"
+Use Audit to answer: "Why did my reported performance change?"
 
 - **Performance Comparison:** identifies changed portfolio and security
   performance for each time period, quantitatively attributes the differences
   to changes in holdings and transactions, and highlights anything that needs human
   review.
-- **Data Auditing:** flags suspicious source-data relationships — including price
-  ranges, dividend rates, accrued-interest rates, splits, and missing dividends — that
+- **Data Issues:** flags suspicious source-data relationships — including price
+  ranges, dividend rates, accrued-interest rates, and missing dividends — that
   may indicate data-quality issues.
 
 <img
   src="docs/images/readme/PerformanceAuditPortfolio.jpg"
-  alt="Portfolio Performance Auditing report"
+  alt="Portfolio Audit report"
   width="100%"
 />
 
@@ -191,7 +191,7 @@ The source-data files are typically IMEX-style CSV exports:
 - FX rates
 - split factors
 
-Performance Auditing uses two source-data snapshots, usually an older/original
+Audit uses two source-data snapshots, usually an older/original
 snapshot and a newer/restated snapshot.
 
 Performance Analytics uses portfolio performance, security performance, and security
@@ -204,7 +204,7 @@ local field names, transaction-code treatment, and report assumptions.
 
 ## Outputs
 
-Performance Auditing writes review packages:
+Audit writes review packages:
 
 To prevent unusably large report artifacts, Audit stops with a nonzero exit code
 before writing a report when any primary review table would exceed 100,000 rows.
@@ -228,7 +228,7 @@ audit/output/
 Use `--no-xlsx-output` for HTML-only output or `--no-html-output` for XLSX-only
 output. Supplying both options writes a CSV-only audit and promotes
 `performance_differences.csv`, `performance_difference_causes.csv`,
-`x_ref_issues.csv`, and `source_detail.csv` to each report directory.
+`data_issues.csv`, and `source_detail.csv` to each report directory.
 
 Use `--expand-all-supporting-files` to replace each `audit_support.zip` with an
 expanded `supporting_files/` directory.

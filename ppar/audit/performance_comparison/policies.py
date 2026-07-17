@@ -10,8 +10,8 @@ from typing import Final, cast
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.findings import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison.findings import (
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
@@ -25,7 +25,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
 )
-from ppar.performance_comparison.methods import (
+from ppar.audit.performance_comparison.methods import (
     ContributionImpactMethod,
     FxRateImpactMethod,
     ModifiedDietzDayCount,
@@ -36,17 +36,17 @@ from ppar.performance_comparison.methods import (
     PriceImpactMethod,
     TransactionImpactMethod,
 )
-from ppar.performance_comparison.modified_dietz import (
+from ppar.audit.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
     modified_dietz_float as _modified_dietz_float,
     usable_modified_dietz_denominator as _usable_modified_dietz_denominator,
     usable_modified_dietz_number as _usable_modified_dietz_number,
 )
-from ppar.performance_comparison.specification import (
+from ppar.audit.specification import (
     SECURITY_COMPARISON_LEVEL,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
 )
 
@@ -312,7 +312,7 @@ class _ModifiedDietzEligibility:
 
 
 def _transaction_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[str, _TransactionImpactPolicy]:
     """Return validated YAML-configured transaction impact policies.
 
@@ -441,7 +441,7 @@ def _transaction_impact_policies(
 
 
 def _security_return_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[str, _TransactionImpactPolicy]:
     """Return required security-return impact policies for security comparisons.
 
@@ -513,7 +513,7 @@ def _security_return_impact_policies(
 
 
 def _contribution_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[tuple[str, str], str]:
     """Return validated YAML-selected contribution impact policies.
 
@@ -585,7 +585,7 @@ def _contribution_impact_policies(
 
 
 def _holding_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[str, str]:
     """Return validated YAML-selected holding impact policies.
 
@@ -712,7 +712,7 @@ def _holding_impact_policies(
 
 
 def _validated_holding_quantity_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     policy_value: object,
 ) -> str:
     """Validate and return the configured holding quantity policy label."""
@@ -769,7 +769,7 @@ def _validated_holding_quantity_policy(
 
 
 def _validated_holding_evidence_only_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     source_column: str,
     policy_value: object,
 ) -> str:
@@ -801,7 +801,7 @@ def _validated_holding_evidence_only_policy(
 
 
 def _price_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[str, str]:
     """Return validated YAML-selected price impact policies.
 
@@ -871,7 +871,7 @@ def _price_impact_policies(
 
 
 def _fx_rate_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[str, str]:
     """Return validated YAML-selected FX rate impact policies.
 
@@ -961,7 +961,7 @@ def _fx_rate_impact_policies(
 
 
 def _evidence_only_impact_policies(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[tuple[str, str], str]:
     """Return validated YAML-selected evidence-only impact policies.
 
@@ -1030,7 +1030,7 @@ def _evidence_only_impact_policies(
 
 
 def _validated_portfolio_source_field_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     policy_value: object,
 ) -> dict[tuple[str, str], str]:
     """Validate portfolio source-field contribution policy configuration."""
@@ -1100,7 +1100,7 @@ def _validated_portfolio_source_field_policy(
 
 
 def _validated_evidence_only_source_fields(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     dataset: str,
     policy: Mapping[str, object],
 ) -> dict[tuple[str, str], str]:
@@ -1147,7 +1147,7 @@ def _validated_evidence_only_source_fields(
 
 
 def _validated_security_contribution_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     policy_value: object,
 ) -> dict[tuple[str, str], str]:
     """Validate vendor contribution-delta policy configuration."""
@@ -1187,7 +1187,7 @@ def _is_evidence_only_policy_label(value: object) -> bool:
 
 
 def _validated_security_return_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     policy_value: object,
 ) -> dict[tuple[str, str], str]:
     """Validate weighted security-return policy configuration."""
@@ -1226,7 +1226,7 @@ def _validated_security_return_policy(
 
 
 def _require_policy_mapping(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     root_key: str,
     policy_key: str,
     policy_value: object,
@@ -1241,7 +1241,7 @@ def _require_policy_mapping(
 
 
 def _validate_policy_keys(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     root_key: str,
     policy_key: str,
     policy: Mapping[str, object],
@@ -1271,7 +1271,7 @@ def _validate_policy_keys(
 
 
 def _validate_policy_method(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     root_key: str,
     policy_key: str,
     policy: Mapping[str, object],
@@ -1289,7 +1289,7 @@ def _validate_policy_method(
 
 
 def _validate_allowed_policy_values(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     root_key: str,
     policy_key: str,
     policy: Mapping[str, object],
@@ -1310,7 +1310,7 @@ def _validate_allowed_policy_values(
 
 
 def _validated_external_flow_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     external_flow_value: Mapping[str, object],
 ) -> _TransactionImpactPolicy:
     """Validate and preserve the external-flow YAML policy."""
@@ -1339,7 +1339,7 @@ def _validated_external_flow_policy(
 
 
 def _validated_performance_amount_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     performance_value: Mapping[str, object],
 ) -> _TransactionImpactPolicy:
     """Validate the performance transaction-amount impact YAML policy."""
@@ -1397,7 +1397,7 @@ def _validated_performance_amount_policy(
 
 
 def _validated_transaction_evidence_only_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     policy_key: str,
     policy_value: Mapping[str, object],
 ) -> _TransactionImpactPolicy:
@@ -1426,7 +1426,7 @@ def _validated_transaction_evidence_only_policy(
 
 
 def _validated_security_transaction_flow_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     policy_value: Mapping[str, object],
 ) -> _TransactionImpactPolicy:
     """Validate the security-level transaction-flow impact policy."""
@@ -1475,7 +1475,7 @@ def _validated_security_transaction_flow_policy(
 
 
 def _validated_modified_dietz_policy(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     external_flow_value: Mapping[str, object],
 ) -> _TransactionImpactPolicy:
     """Validate and preserve the Modified Dietz YAML policy shape."""
@@ -1598,7 +1598,7 @@ def _modified_dietz_flow_date(
 
 
 def _raise_unsupported_external_flow_method(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     method: object,
 ) -> None:
     """Raise for external-flow methods that are not implemented yet."""

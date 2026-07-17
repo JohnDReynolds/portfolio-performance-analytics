@@ -2,7 +2,7 @@
 Version 2.0
 
 > This document defines the editorial standards for the Axys/APX Reference Repository.
-> The repository exists to document **how Axys and APX actually work**.
+> The repository exists to document **how Axys/APX actually work**.
 > It is intended for both human readers and AI coding assistants (such as Codex).
 
 ---
@@ -54,7 +54,7 @@ Invented certainty is not.
 
 ---
 
-## Separate Axys and APX
+## Separate Axys/APX
 
 Whenever behavior differs, document each system independently.
 
@@ -108,11 +108,13 @@ so they remain available as provenance without competing with the chapters.
 | File group | Role | Source-of-truth boundary |
 |---|---|---|
 | `README.md` | Folder navigation hub. | Explains the reader path and file roles. |
+| `axys_apx_reference_blueprint.md` | Governing editorial specification. | Defines evidence standards, confidence labels, chapter structure, and repository workflow. |
 | `reference/Chapter_*.md` | Reader-facing reference. | Supported conclusions, Unknowns, implementation cautions, and cross-topic navigation. |
 | `evidence/Research_*.md` | Evidence archive. | Source notes, dated research history, provenance, and unresolved details. |
 | `contracts/*.md` | Implementation aid. | Cross-cutting contracts, generated summaries, and demo/test guidance. |
 | `contracts/*.yaml` | Machine-readable contract. | Structured validation and implementation inputs. |
 | `contracts/templates/*.yaml` | Site contract examples. | Site-level source-data contract shapes; not guaranteed vendor schemas. |
+| `axys_apx_common_core_export.md` | Starter export reference. | Common field shapes and candidate aliases for integration planning. |
 
 If a chapter and contract conflict, treat that as a cleanup issue. Contracts
 should summarize or operationalize chapter conclusions, not compete with them.
@@ -121,6 +123,8 @@ explanation into the relevant chapter and leave the research file as provenance.
 
 ```text
     README.md
+    axys_apx_reference_blueprint.md
+    axys_apx_common_core_export.md
     reference/Chapter_01_Overview.md
     reference/Chapter_02_Axys_Architecture.md
     reference/Chapter_03_APX_Architecture.md
@@ -226,107 +230,7 @@ using only this repository.
 
 ---
 
-# Appendix A - Standard ChatGPT Prompts
-
-## Prompt 1 – Research
-
-Use this example prompt to create or refresh evidence notes for a reference
-chapter:
-
-```text
-Please read the attached AXYS_APX_REFERENCE_BLUEPRINT.md before doing anything else.
-
-Treat it as the governing specification for this repository.
-
-Create extensive evidence notes for the following reference chapter:
-
-reference/Chapter_05_Transactions.md
-
-Save the resulting evidence file as:
-
-evidence/Research_05_Transactions.md
-
-The goal is to collect factual information about Axys and APX.
-
-Focus on:
-
-- Axys behavior
-- APX behavior
-- IMEX
-- REP
-- field names
-- report names
-- processing behavior
-- version differences
-- implementation quirks
-- examples
-- references
-
-Classify technical statements as:
-
-- Verified
-- High Confidence
-- Medium Confidence
-- Unknown
-
-Never invent unsupported behavior.
-
-I know this is a big long task, so take your time.  Stop and ask me questions if you need to.
-
-Produce a single downloadable Markdown evidence file suitable for the evidence folder.
-```
-
----
-
-## Prompt 2 – Write or Expand a Chapter
-
-Upload:
-
-- this Blueprint
-- the existing chapter (if any)
-- relevant evidence notes
-- relevant sample exports or reports
-
-Use this example prompt to create or refresh a reader-facing chapter:
-
-```text
-Please read the attached AXYS_APX_REFERENCE_BLUEPRINT.md before doing anything else.
-
-Treat it as the governing specification for this repository.
-
-Write or expand the following repository chapter:
-
-reference/Chapter_05_Transactions.md
-
-Use only the supplied evidence and source material.  If you feel that the supplied material is not sufficient, and you could do much better with additional resource material, then stop and tell me specifically what you need.  Do NOT give me a document and then turn right around and tell me that you can give me a better one.  Stop and ask me questions if you need to in order to produce a better document.  Conversely, if I uploaded an existing document that you think is generally sufficient, then just stop and tell me that you have no further edits.
-
-Write as a technical reference manual.
-
-Prefer:
-
-- factual statements
-- tables
-- field dictionaries
-- IMEX details
-- REP details
-- examples
-- version differences
-- known quirks
-
-Separate Axys and APX whenever their behavior differs.
-
-Mark unsupported information as Unknown.
-
-Do not invent field names, transaction codes, report behavior, or implementation details.
-
-I know this is a big long task, so take your time.
-
-Produce a single downloadable Markdown file only.
-```
-
----
-
-# Appendix B - Repository Workflow
+# 9. Repository Workflow
 
 For each chapter:
 
@@ -336,6 +240,8 @@ For each chapter:
    the evidence.
 4. Update the relevant `contracts/` file only when the chapter conclusion has
    an implementation-facing demo, validation, or test implication.
-5. Update the chapter as additional verified information becomes available.
+5. Integrate additional verified information into the relevant subject section
+   rather than appending dated update sections. Preserve chronology in the
+   evidence file and, when useful, in one compact chapter provenance note.
 
 The repository should evolve by accumulating verified knowledge, not by rewriting theory.

@@ -14,10 +14,10 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import field_roles as _field_roles
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import _transaction_diagnostics as tx_diagnostics
-from ppar.performance_comparison.findings import (
+from ppar.audit import field_roles as _field_roles
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison import _transaction_diagnostics as tx_diagnostics
+from ppar.audit.performance_comparison.findings import (
     CASH_FLOW_SIGN,
     CONTEXT,
     DATASET,
@@ -68,7 +68,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_SEMANTICS_SOURCE,
 )
-from ppar.performance_comparison.methods import (
+from ppar.audit.performance_comparison.methods import (
     ContributionImpactMethod,
     FxRateImpactMethod,
     ModifiedDietzDoubleCountPolicy,
@@ -76,10 +76,10 @@ from ppar.performance_comparison.methods import (
     PriceImpactMethod,
     TransactionImpactMethod,
 )
-from ppar.performance_comparison.modified_dietz import (
+from ppar.audit.performance_comparison.modified_dietz import (
     modified_dietz_flow_weight as _modified_dietz_flow_weight,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
@@ -92,6 +92,7 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     transaction_impact_semantics_available,
 )
+from ppar.audit.performance_comparison.vocabulary import CauseArea
 
 PORTFOLIO_RETURN_DELTA = "portfolio_return_delta"
 SECURITY_RETURN_DELTA = "security_return_delta"
@@ -209,13 +210,15 @@ IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
 ROOT_CAUSE_AREA = "root_cause_area"
-ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
-ROOT_CAUSE_MARKET_VALUE_OR_HOLDING = "market_value_or_holding"
-ROOT_CAUSE_TRANSACTION_ACTIVITY = "transaction_activity"
-ROOT_CAUSE_FX_RATE = "fx_rate"
-ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT = "portfolio_performance_input"
-ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE = "classification_or_reference"
-ROOT_CAUSE_UNEXPLAINED = "unexplained"
+ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = (
+    CauseArea.SECURITY_RETURN_OR_CONTRIBUTION.value
+)
+ROOT_CAUSE_MARKET_VALUE_OR_HOLDING = CauseArea.MARKET_VALUE_OR_HOLDING.value
+ROOT_CAUSE_TRANSACTION_ACTIVITY = CauseArea.TRANSACTION_ACTIVITY.value
+ROOT_CAUSE_FX_RATE = CauseArea.FX_RATE.value
+ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT = CauseArea.PORTFOLIO_PERFORMANCE_INPUT.value
+ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE = CauseArea.CLASSIFICATION_OR_REFERENCE.value
+ROOT_CAUSE_UNEXPLAINED = CauseArea.UNEXPLAINED.value
 TOP_CODES = "top_codes"
 CHANGED_FIELDS = "changed_fields"
 AMOUNT_DELTA = "amount_delta"
@@ -2583,17 +2586,17 @@ def _is_usable_number(value: object) -> bool:
 
 def _root_cause_area(row: dict[str, object]) -> str:
     """Return the coarse explanation bucket for a contribution candidate."""
-    root_cause_area_by_dataset = {
-        pc_cols.SECURITY_PERFORMANCE: ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
-        pc_cols.HOLDINGS: ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
-        pc_cols.TRANSACTIONS: ROOT_CAUSE_TRANSACTION_ACTIVITY,
-        pc_cols.FX_RATES: ROOT_CAUSE_FX_RATE,
-        pc_cols.PORTFOLIO_PERFORMANCE: ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
+    root_cause_area_by_dataset: dict[str, CauseArea] = {
+        pc_cols.SECURITY_PERFORMANCE: CauseArea.SECURITY_RETURN_OR_CONTRIBUTION,
+        pc_cols.HOLDINGS: CauseArea.MARKET_VALUE_OR_HOLDING,
+        pc_cols.TRANSACTIONS: CauseArea.TRANSACTION_ACTIVITY,
+        pc_cols.FX_RATES: CauseArea.FX_RATE,
+        pc_cols.PORTFOLIO_PERFORMANCE: CauseArea.PORTFOLIO_PERFORMANCE_INPUT,
     }
     dataset = row[DATASET]
     if not isinstance(dataset, str):
-        return ROOT_CAUSE_UNEXPLAINED
-    return root_cause_area_by_dataset.get(dataset, ROOT_CAUSE_UNEXPLAINED)
+        return CauseArea.UNEXPLAINED.value
+    return root_cause_area_by_dataset.get(dataset, CauseArea.UNEXPLAINED).value
 
 
 def _portfolio_period_cause_summary_row(

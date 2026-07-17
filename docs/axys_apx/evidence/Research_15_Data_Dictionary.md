@@ -6,7 +6,7 @@
 |---|---|
 | Repository chapter supported | `../reference/Chapter_15_Data_Dictionary.md` |
 | Research file | `docs/axys_apx/evidence/Research_15_Data_Dictionary.md` |
-| Governing specification | `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 |
+| Governing specification | `axys_apx_reference_blueprint.md`, Version 2.0 |
 | Research basis | Supplied blueprint only |
 | External vendor documentation supplied | No |
 | IMEX export samples supplied | No |
@@ -43,7 +43,7 @@ The blueprint explicitly instructs that unsupported information should be marked
 
 **Confidence:** Verified.
 
-The blueprint requires Axys and APX to be documented separately whenever their behavior differs.
+The blueprint requires Axys/APX to be documented separately whenever their behavior differs.
 
 **Confidence:** Verified.
 
@@ -418,7 +418,7 @@ No Axys/APX-specific data dictionary quirks were supplied.
 
 | Area | Known Issue / Quirk | Axys | APX | Confidence |
 |---|---|---|---|---|
-| Field naming | Whether Axys and APX use identical names for equivalent concepts | Unknown | Unknown | Unknown |
+| Field naming | Whether Axys/APX use identical names for equivalent concepts | Unknown | Unknown | Unknown |
 | Field aliases | Whether REP columns differ from IMEX field names | Unknown | Unknown | Unknown |
 | Date semantics | Whether same-named date fields have different meanings by object/report | Unknown | Unknown | Unknown |
 | Numeric precision | Decimal precision and rounding by export/report | Unknown | Unknown | Unknown |
@@ -476,7 +476,7 @@ The following items remain Unknown because they were not supplied.
 | Which fields are optional for exports? | Unknown |
 | Which fields are calculated rather than stored? | Unknown |
 | Which fields have version-dependent names or meanings? | Unknown |
-| Which fields differ between Axys and APX? | Unknown |
+| Which fields differ between Axys/APX? | Unknown |
 | Which report columns are aliases for IMEX fields? | Unknown |
 | Which fields are client-customizable? | Unknown |
 | Which fields are safe to use as persistent keys? | Unknown |
@@ -489,7 +489,7 @@ The following items remain Unknown because they were not supplied.
 
 | Reference | Type | Supplied? | Notes | Confidence |
 |---|---|---:|---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Repository governing specification | Yes | Defines standards, repository purpose, confidence labels, chapter list, field dictionary format, and success criteria | Verified |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Repository governing specification | Yes | Defines standards, repository purpose, confidence labels, chapter list, field dictionary format, and success criteria | Verified |
 
 ---
 
@@ -503,7 +503,7 @@ Verified facts available from the supplied blueprint:
 2. The repository should preserve factual, implementation-oriented knowledge.
 3. The repository should cover data fields, file layouts, IMEX, REP, reports, processing behavior, version differences, and quirks.
 4. Technical statements should be classified as Verified, High Confidence, Medium Confidence, or Unknown.
-5. Axys and APX should be separated whenever behavior differs.
+5. Axys/APX should be separated whenever behavior differs.
 6. Unsupported information should be marked Unknown.
 7. The required field dictionary format is: `Field`, `Description`, `Axys`, `APX`, `IMEX`, `REP`, `Confidence`.
 

@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from typing import Final
 
 # Project imports
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.specification import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
 
 __all__ = [
@@ -89,7 +89,7 @@ def source_data_contract() -> tuple[SourceDataDatasetContract, ...]:
 
 
 def comparison_required_dataset_names(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> tuple[str, ...]:
     """Return dataset names that must exist for a resolved comparison spec.
 

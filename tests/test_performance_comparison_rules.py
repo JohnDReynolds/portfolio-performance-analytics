@@ -11,19 +11,19 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import compare_snapshots, summarize_findings
-from ppar.performance_comparison.findings import (
+from ppar.audit import compare_snapshots, summarize_findings
+from ppar.audit.performance_comparison.findings import (
     FINDING_CODE,
     PC_SEC_RET,
     SECURITY_ID,
     SOURCE_COLUMN,
     SUPPRESSED,
 )
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 
 _AXYS_DATA_PATH = Path("tests/data/axys/snapshots").resolve()
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
 
 
@@ -43,7 +43,7 @@ def _write_suppression_specification(
         },
         "suppressions": suppressions,
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
     return specification_path
 

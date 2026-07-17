@@ -1,8 +1,8 @@
-"""Cross-reference consistency checks for performance-comparison reports.
+"""Source-data consistency checks for Audit reports.
 
 The checks in this module are intentionally separate from ``source_detail.csv``.
 Source-detail rows explain changed source rows between Snapshot A and Snapshot B;
-Data Audit Issues look for internally inconsistent source-data across the union
+Data Issues look for internally inconsistent source-data across the union
 of both snapshots.
 """
 
@@ -20,15 +20,17 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.holdings import HoldingsLoader
-from ppar.performance_comparison.portfolio_performance import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.data_issues.config import DATA_ISSUES_CONFIG_KEY
+from ppar.audit.holdings import HoldingsLoader
+from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
     SnapshotKey,
 )
-from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
-from ppar.performance_comparison.transactions import TransactionsLoader
+from ppar.audit.security_performance import SecurityPerformanceLoader
+from ppar.audit.specification import AuditSpecification
+from ppar.audit.transactions import TransactionsLoader
+from ppar.audit.data_issues.vocabulary import DataIssueType
 
 SNAPSHOT: Final[str] = "snapshot"
 AS_OF_DATE: Final[str] = "as_of_date"
@@ -41,17 +43,23 @@ TOLERANCE: Final[str] = "tolerance"
 EXPLANATION: Final[str] = "explanation"
 REVIEW_KEY: Final[str] = "review_key"
 
-ISSUE_DUPLICATE_TRANSACTIONS: Final[str] = "duplicate_transactions"
-ISSUE_DIVIDEND_RATE: Final[str] = "dividend_rate"
-ISSUE_HOLDINGS_ACCRUED_RATE: Final[str] = "holdings_accrued_rate"
-ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = "holdings_price_range"
-ISSUE_MISSING_DIVIDEND: Final[str] = "missing_dividend"
-ISSUE_PA_SA_RATE: Final[str] = "pa_sa_rate"
-ISSUE_PORTFOLIO_MV_CONTINUITY: Final[str] = "portfolio_market_value_continuity"
-ISSUE_SECURITY_MV_CONTINUITY: Final[str] = "security_market_value_continuity"
-ISSUE_TRANSACTIONS_PRICE_RANGE: Final[str] = "transactions_price_range"
+ISSUE_DUPLICATE_TRANSACTIONS: Final[str] = DataIssueType.DUPLICATE_TRANSACTIONS.value
+ISSUE_DIVIDEND_RATE: Final[str] = DataIssueType.DIVIDEND_RATE.value
+ISSUE_HOLDINGS_ACCRUED_RATE: Final[str] = DataIssueType.HOLDINGS_ACCRUED_RATE.value
+ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = DataIssueType.HOLDINGS_PRICE_RANGE.value
+ISSUE_MISSING_DIVIDEND: Final[str] = DataIssueType.MISSING_DIVIDEND.value
+ISSUE_PA_SA_RATE: Final[str] = DataIssueType.PA_SA_RATE.value
+ISSUE_PORTFOLIO_MV_CONTINUITY: Final[str] = (
+    DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY.value
+)
+ISSUE_SECURITY_MV_CONTINUITY: Final[str] = (
+    DataIssueType.SECURITY_MARKET_VALUE_CONTINUITY.value
+)
+ISSUE_TRANSACTIONS_PRICE_RANGE: Final[str] = (
+    DataIssueType.TRANSACTIONS_PRICE_RANGE.value
+)
 
-X_REF_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
+DATA_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
     SNAPSHOT,
     pc_cols.PORTFOLIO_ID,
     AS_OF_DATE,
@@ -66,7 +74,7 @@ X_REF_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
     REVIEW_KEY,
 )
 
-_X_REF_CONFIG_KEY: Final[str] = "data_audit_checks"
+_DATA_ISSUES_CONFIG_KEY: Final[str] = DATA_ISSUES_CONFIG_KEY
 _SNAPSHOT_A_LABEL: Final[str] = "Snapshot A"
 _SNAPSHOT_B_LABEL: Final[str] = "Snapshot B"
 _BUY_CODES: Final[frozenset[str]] = frozenset({"by"})
@@ -170,21 +178,21 @@ class _RowFilter:
         )
 
 
-def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
-    """Return cross-reference consistency issues for a comparison YAML.
+def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
+    """Return source-data consistency issues for an Audit YAML file.
 
     Args:
-        comparison_path: Performance-comparison YAML path. When omitted, an
+        comparison_path: Audit YAML path. When omitted, an
             empty table is returned because the source snapshots are unavailable.
 
     Returns:
-        Data Audit Issues rows built from the union of Snapshot A and Snapshot B.
+        Data Issues rows built from the union of Snapshot A and Snapshot B.
     """
     if comparison_path is None:
         return _empty_issues_table()
 
-    specification = PerformanceComparisonSpecification(comparison_path)
-    config = _x_ref_config(specification.values)
+    specification = AuditSpecification(comparison_path)
+    config = _data_issues_config(specification.values)
     portfolio_performance = _snapshot_frames(
         PortfolioPerformanceLoader(specification),
         pc_cols.PORTFOLIO_PERFORMANCE,
@@ -235,7 +243,7 @@ def _market_value_continuity_issues(
     """Return prior-ending versus next-beginning market-value issues.
 
     Continuity is a mandatory financial-integrity check. Unlike optional Data
-    Audit checks, it remains active when ``data_audit_checks.enabled`` is false
+    Issues checks, it remains active when ``data_issues.enabled`` is false
     because these values directly participate in Modified Dietz.
     """
     issue_type = (
@@ -378,12 +386,12 @@ def _market_value_continuity_candidates(
 
 
 def _empty_issues_table() -> pl.DataFrame:
-    """Return an empty Data Audit Issues table with stable columns."""
+    """Return an empty Data Issues table with stable columns."""
     return pl.DataFrame(schema=_ISSUE_SCHEMA)
 
 
 def _issues_table(rows: list[dict[str, object]]) -> pl.DataFrame:
-    """Return sorted Data Audit Issues rows with stable schema."""
+    """Return sorted Data Issues rows with stable schema."""
     if not rows:
         return _empty_issues_table()
     return pl.DataFrame(rows, schema=_ISSUE_SCHEMA).sort(
@@ -414,16 +422,18 @@ def _snapshot_labels() -> tuple[tuple[SnapshotKey, str], ...]:
     return (("a", _SNAPSHOT_A_LABEL), ("b", _SNAPSHOT_B_LABEL))
 
 
-def _x_ref_config(specification_values: Mapping[str, object]) -> Mapping[str, object]:
-    """Return the raw Data Audit YAML configuration mapping."""
-    raw_config = specification_values.get(_X_REF_CONFIG_KEY, {})
+def _data_issues_config(
+    specification_values: Mapping[str, object],
+) -> Mapping[str, object]:
+    """Return the normalized Data Issues configuration mapping."""
+    raw_config = specification_values.get(_DATA_ISSUES_CONFIG_KEY, {})
     if isinstance(raw_config, Mapping):
         return raw_config
     return {}
 
 
 def _config_enabled(config: Mapping[str, object]) -> bool:
-    """Return whether the Data Audit Issues worksheet is enabled."""
+    """Return whether optional Data Issues checks are enabled."""
     enabled = config.get("enabled", True)
     return not isinstance(enabled, bool) or enabled
 
@@ -437,7 +447,7 @@ def _check_config(config: Mapping[str, object], check_name: str) -> Mapping[str,
 
 
 def _check_enabled(config: Mapping[str, object], check_name: str) -> bool:
-    """Return whether one X-Ref check is enabled."""
+    """Return whether one Data Issues check is enabled."""
     check_config = _check_config(config, check_name)
     enabled = check_config.get("enabled", True)
     return not isinstance(enabled, bool) or enabled
@@ -535,7 +545,7 @@ def _holding_price_range_issues(
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security holdings.price range issues."""
-    check_name = "holdings_price_range"
+    check_name = ISSUE_HOLDINGS_PRICE_RANGE
     if not _check_enabled(config, check_name):
         return []
 
@@ -568,7 +578,7 @@ def _transaction_price_range_issues(
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security transactions.price range issues."""
-    check_name = "transactions_price_range"
+    check_name = ISSUE_TRANSACTIONS_PRICE_RANGE
     if not _check_enabled(config, check_name):
         return []
 
@@ -650,8 +660,8 @@ def _same_day_rate_issues(
 ) -> list[dict[str, object]]:
     """Return same-day same-security transaction-rate issues."""
     enabled_checks = (
-        _check_enabled(config, "dividend_rate"),
-        _check_enabled(config, "pa_sa_rate"),
+        _check_enabled(config, ISSUE_DIVIDEND_RATE),
+        _check_enabled(config, ISSUE_PA_SA_RATE),
     )
     if not any(enabled_checks):
         return []
@@ -663,7 +673,7 @@ def _same_day_rate_issues(
                 transactions,
                 holdings_by_key,
                 config,
-                check_name="dividend_rate",
+                check_name=ISSUE_DIVIDEND_RATE,
                 transaction_codes=_DIVIDEND_CODES,
                 issue_type=ISSUE_DIVIDEND_RATE,
                 dataset_field="transactions.amount",
@@ -675,7 +685,7 @@ def _same_day_rate_issues(
                 transactions,
                 holdings_by_key,
                 config,
-                check_name="pa_sa_rate",
+                check_name=ISSUE_PA_SA_RATE,
                 transaction_codes=_ACCRUAL_CODES,
                 issue_type=ISSUE_PA_SA_RATE,
                 dataset_field="transactions.amount",
@@ -800,7 +810,7 @@ def _missing_dividend_issues(
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return portfolios that appear to be missing same-date dividends."""
-    check_name = "missing_dividend"
+    check_name = ISSUE_MISSING_DIVIDEND
     if not _check_enabled(config, check_name):
         return []
 
@@ -1011,7 +1021,7 @@ def _holdings_accrued_rate_issues(
     config: Mapping[str, object],
 ) -> list[dict[str, object]]:
     """Return same-day same-security holdings.accrued rate issues."""
-    check_name = "holdings_accrued_rate"
+    check_name = ISSUE_HOLDINGS_ACCRUED_RATE
     if not _check_enabled(config, check_name):
         return []
 
@@ -1085,7 +1095,7 @@ def _issue_row(
     tolerance: str,
     explanation: str,
 ) -> dict[str, object]:
-    """Return one Data Audit Issues row."""
+    """Return one Data Issues row."""
     return {
         SNAPSHOT: snapshot,
         pc_cols.PORTFOLIO_ID: portfolio_id,
@@ -1219,8 +1229,9 @@ def _filter_column_name(field_name: str) -> str:
 
 def _text_filter_values(value: object) -> frozenset[str]:
     """Return lower-cased exact-match values from a YAML scalar or sequence."""
-    if isinstance(value, str):
-        return frozenset({value.strip().lower()})
+    if isinstance(value, (str, int, float, bool)):
+        text = str(value).strip().lower()
+        return frozenset({text}) if text else frozenset()
     if isinstance(value, Iterable):
         return frozenset(
             str(item).strip().lower()

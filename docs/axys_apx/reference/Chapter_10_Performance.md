@@ -3,7 +3,7 @@
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `Chapter_10_Performance.md`
 **Prepared from supplied research:** `../evidence/Research_10_Performance.md` plus supplied supporting research for IMEX, REP, transactions, holdings, cash, pricing, corporate actions, security master, and classifications.
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -17,7 +17,7 @@
 
 This chapter documents the currently supported facts and open questions about performance behavior in SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX).
 
-The available supplied research supports broad performance/reporting capability statements for Axys and APX, but it does **not** provide enough evidence to document exact native performance storage files, APX SQL tables, APX stored procedures, Axys `.REP` performance report files, official IMEX performance object names, or report-specific return calculation methods.
+The available supplied research supports broad performance/reporting capability statements for Axys/APX, but it does **not** provide enough evidence to document exact native performance storage files, APX SQL tables, APX stored procedures, Axys `.REP` performance report files, official IMEX performance object names, or report-specific return calculation methods.
 
 Therefore, this chapter is intentionally conservative. Unsupported implementation details are marked **Unknown**.
 
@@ -246,10 +246,23 @@ This table is a research checklist. It is **not** a verified Axys/APX IMEX field
 | Caution | Confidence |
 |---|---:|
 | Do not assume `portperf` or `secperf` are official object names. | Unknown until verified |
-| Do not assume Axys and APX use identical performance IMEX objects or fields. | Unknown |
+| Do not assume Axys/APX use identical performance IMEX objects or fields. | Unknown |
 | Do not assume an IMEX performance export contains stored values rather than report-calculated values. | Unknown |
 | Do not assume security-level rows foot to portfolio returns without explicit contribution fields or a report reconciliation. | Unknown |
 | Do not treat third-party output fields as native IMEX field names unless confirmed by IMEX documentation or actual exports. | High Confidence caution |
+
+### 5.5 Performance Extract Discovery and Report Boundary
+
+Performance remains a report/extract boundary area rather than a solved IMEX
+object dictionary.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| Performance history | Public conversion evidence mentions performance history as an IMEX/migration concern, but object names and fields remain Unknown. | Medium / Unknown |
+| `portperf` / `secperf` | Treat as normalized/local names unless a live IMEX object, report output, or vendor manual confirms native names. | Unknown |
+| Candidate live-discovery fields | Portfolio/security/classification/composite IDs, period dates, beginning/ending market value, return, contribution, external flow, income, fees, weights, benchmark, and currency fields. | Discovery guidance |
+| REP/report preference | Use REP/Replang/custom reports when reported performance must tie to user-visible Axys/APX output. | Design guidance |
+| Extraction metadata | Record source object/report, parameters, version, row lineage, and stored-vs-recalculated confidence. | Design guidance |
 
 ---
 
@@ -508,7 +521,7 @@ This chapter is based only on supplied repository research and source summaries.
 
 | Supplied file | Use in this chapter |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing chapter structure, confidence labels, and facts-first standard. |
+| `axys_apx_reference_blueprint.md` | Governing chapter structure, confidence labels, and facts-first standard. |
 | `../evidence/Research_10_Performance.md` | Primary performance research. |
 | `../evidence/Research_12_IMEX.md` | IMEX, REP32, file/interface, direct-file-access, and import/export cautions. |
 | `../evidence/Research_13_REP.md` | REP, RepLang, Report Writer Pro, REP32, SSRS/reporting-path evidence. |
@@ -563,7 +576,7 @@ To upgrade this chapter from conservative reference to implementation manual, co
 | Axys `.REP` source for performance reports | Confirm RepLang fields, calculations, stored vs recalculated behavior. |
 | APX Reports Guide / APX report catalog | Identify APX performance report names and parameters. |
 | APX SSRS/RDL files or dataset definitions | Identify report datasets, stored procedures, public views, and fields. |
-| IMEX object catalog for Axys and APX | Confirm portfolio/security performance object names and field lists. |
+| IMEX object catalog for Axys/APX | Confirm portfolio/security performance object names and field lists. |
 | Sample IMEX performance exports | Confirm actual field names, grain, identifiers, and stored/exported values. |
 | Same-period rerun examples | Determine whether historical performance changes after data corrections. |
 | Monthly vs annual report examples | Determine linking vs full-period recalculation. |
@@ -573,15 +586,7 @@ To upgrade this chapter from conservative reference to implementation manual, co
 | Multi-currency performance examples | Determine local/base/currency-effect support. |
 | Composite/GIPS report examples | Determine composite aggregation/storage/report behavior. |
 
-## 15. Deep IMEX Update
+## Research Provenance
 
-The deep IMEX research confirms that performance remains a report/extract
-boundary area rather than a solved IMEX object dictionary.
-
-| Topic | Chapter treatment | Confidence |
-|---|---|---:|
-| Performance history | Public conversion evidence mentions performance history as an IMEX/migration concern, but object names and fields remain Unknown. | Medium / Unknown |
-| `portperf` / `secperf` | Treat as normalized/local names unless a live IMEX object, report output, or vendor manual confirms native names. | Unknown |
-| Candidate live-discovery fields | Portfolio/security/classification/composite IDs, period dates, beginning/ending market value, return, contribution, external flow, income, fees, weights, benchmark, and currency fields. | Discovery guidance |
-| REP/report preference | Use REP/Replang/custom reports when reported performance must tie to user-visible Axys/APX output. | Design guidance |
-| Extraction metadata | Record source object/report, parameters, version, row lineage, and stored-vs-recalculated confidence. | Design guidance |
+The deep IMEX performance conclusions are incorporated into Section 5.5. Their
+supporting source history remains in `../evidence/Research_10_Performance.md`.

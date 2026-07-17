@@ -12,7 +12,7 @@
 
 ## 1. Overview
 
-The Security Master is the reference dataset used to identify and describe securities used in Axys and APX workflows. The supplied research verifies that both Axys and APX have a security-master concept and that third-party tools rely on security information for matching, translation, import, export, pricing, positions, transactions, and downstream reporting.
+The Security Master is the reference dataset used to identify and describe securities used in Axys/APX workflows. The supplied research verifies that both Axys/APX have a security-master concept and that third-party tools rely on security information for matching, translation, import, export, pricing, positions, transactions, and downstream reporting.
 
 The available material does **not** provide a complete native Axys or APX security-master schema. The strongest verified evidence comes from integration and conversion documentation, especially Custodial Integrator, AIA, AdvisorEngine, Morningstar conversion documentation, Salentica/Elements Data Broker documentation, and AdventGuru practitioner notes.
 
@@ -36,7 +36,7 @@ This chapter uses the confidence labels required by the repository blueprint.
 |---|---|
 | Verified | Directly supported by the supplied research notes or source excerpts summarized there. |
 | High Confidence | Strongly supported by vendor-adjacent, connector, conversion, or practitioner evidence, but not complete official schema documentation. |
-| Medium Confidence | Plausible and operationally useful, but source evidence is indirect, practitioner-specific, connector-specific, or not fully separated between Axys and APX. |
+| Medium Confidence | Plausible and operationally useful, but source evidence is indirect, practitioner-specific, connector-specific, or not fully separated between Axys/APX. |
 | Unknown | Not established by the supplied source material. Do not implement as fact without additional evidence. |
 
 ### 1.2 Scope Boundaries
@@ -75,7 +75,7 @@ The supplied material supports a practical identity model used by integration wo
 
 ### 2.2 Symbol + Type
 
-In the supplied research, `Symbol` plus `Type` is the clearest recurring operational identifier pair for both Axys and APX integration workflows.
+In the supplied research, `Symbol` plus `Type` is the clearest recurring operational identifier pair for both Axys/APX integration workflows.
 
 | Statement | Axys | APX | Confidence | Important Limitation |
 |---|---:|---:|---:|---|
@@ -308,7 +308,7 @@ The supplied research includes practitioner evidence that APX users may access A
 
 ### 5.1 IMEX Summary
 
-The supplied material verifies that Axys and APX import/export utilities participate in security workflows, including export of Security (`sec.inf`) and Security Type (`type.inf`) data in the CI context. The material does not establish official native IMEX object names, complete security import schemas, or complete field layouts.
+The supplied material verifies that Axys/APX import/export utilities participate in security workflows, including export of Security (`sec.inf`) and Security Type (`type.inf`) data in the CI context. The material does not establish official native IMEX object names, complete security import schemas, or complete field layouts.
 
 | Topic | Axys | APX | Confidence | Notes |
 |---|---:|---:|---:|---|
@@ -360,8 +360,24 @@ The supplied material verifies that Axys and APX import/export utilities partici
 | Is `type.inf` the complete native security-type storage model? | Unknown | Unknown | Not established. |
 | Are the official IMEX object names known? | Unknown | Unknown | Not supplied. |
 | Are required import fields known? | Unknown | Unknown | Not supplied. |
-| Are the layouts identical between Axys and APX? | Unknown | Unknown | Not established. |
+| Are the layouts identical between Axys/APX? | Unknown | Unknown | Not established. |
 | Are security-translation files, AIA `.veh` files, AdvisorEngine XLS labels, and CRM connector fields native security schemas? | No evidence | No evidence | Treat as integration/report artifacts unless separately verified. |
+
+### 5.5 CI Reference Artifacts and Live Discovery
+
+The available IMEX evidence supports `sec.inf` and `type.inf` as CI-observed
+Axys reference files, but not as complete public schemas.
+
+| Item | Chapter treatment | Confidence |
+|---|---|---:|
+| `sec.inf` | Security Information used by CI to map external securities and generate valid imports. | Verified for CI |
+| `type.inf` | Security Type Information used by CI with security master data. | Verified for CI |
+| `MISSINGPRICES_yyyymmdd.csv` | CI diagnostic with Symbol, Type, Name, WP Account, and Institution. | Verified for CI output |
+| `SECTRANSLATIONS_yyyymmdd.csv` | CI diagnostic/output mapping WebPortfolio identifiers to Axys Symbol and Type. | Verified for CI output |
+| Candidate live-discovery fields | Symbol/type, name, ticker, CUSIP, ISIN, currency, multiplier, factor, coupon, maturity, classifications, and user-defined fields. | Discovery guidance |
+
+Do not present the CI diagnostics or candidate live-discovery fields as an
+official universal Axys IMEX security-master schema.
 
 ---
 
@@ -435,7 +451,7 @@ Positions, transactions, prices, reports, performance, classifications
 
 ### 7.3 Classification Dependencies
 
-AdventGuru practitioner research states that security import/merge workflows can depend on referenced industry group and sector records already existing. The supplied evidence is not fully separated between Axys and APX.
+AdventGuru practitioner research states that security import/merge workflows can depend on referenced industry group and sector records already existing. The supplied evidence is not fully separated between Axys/APX.
 
 | Dependency | Axys | APX | Confidence | Notes |
 |---|---:|---:|---:|---|
@@ -542,7 +558,7 @@ The CI guide states that at least one of the `*` fields must be provided.
 
 ### 8.4 CI Missing Prices File Dictionary
 
-Both Axys and APX CI User Guides include an optional output file named `MISSINGPRICES_yyyymmdd.csv`. This is not a security-master file, but it verifies the security identifier vocabulary used by CI.
+Both Axys/APX CI User Guides include an optional output file named `MISSINGPRICES_yyyymmdd.csv`. This is not a security-master file, but it verifies the security identifier vocabulary used by CI.
 
 | Column Header | Required | Data Type | Axys Description | APX Description | Confidence |
 |---|---:|---|---|---|---:|
@@ -675,7 +691,7 @@ Interpretation:
 | APX public views exist but are limited. | N/A | Yes | Medium Confidence | Practitioner source. |
 | `.addlabel` script command works in Axys but is not valid in APX. | Yes | Not valid | Verified | Not a security-master command; relevant scripting/platform difference. |
 | APX equivalent workflow for the cited `.addlabel` context involves posting through the trade blotter. | N/A | Yes | Verified in supplied research | Not generalized beyond cited context. |
-| Exact security-master storage model is the same across Axys and APX. | Unknown | Unknown | Unknown | Not established. |
+| Exact security-master storage model is the same across Axys/APX. | Unknown | Unknown | Unknown | Not established. |
 | Version-by-version security-master schema differences. | Unknown | Unknown | Unknown | Not supplied. |
 
 ---
@@ -710,8 +726,8 @@ The following assumptions are safe for implementation planning, but only within 
 
 | Safe Assumption | Scope | Confidence |
 |---|---|---:|
-| Axys and APX security matching integrations need product-specific symbol and type. | CI/integration workflows. | Verified |
-| `sec.inf` and `type.inf` are important security/security-type exchange files in CI workflows for both Axys and APX. | CI context. | Verified |
+| Axys/APX security matching integrations need product-specific symbol and type. | CI/integration workflows. | Verified |
+| `sec.inf` and `type.inf` are important security/security-type exchange files in CI workflows for both Axys/APX. | CI context. | Verified |
 | External identifiers such as ticker and CUSIP can create ambiguous matches. | CI/AIA matching context. | Verified |
 | Security translations may be required when matching is ambiguous or undesired. | CI context. | Verified |
 | Report/export labels are not necessarily native schema fields. | Repository-wide caution. | High Confidence |
@@ -766,8 +782,8 @@ The following items remain Unknown and should not be documented as fact until su
 | Official IMEX object name for Security Type. | Unknown | Unknown | IMEX object list, sample `.imx`, or vendor documentation. |
 | Required fields for creating a security through IMEX/import. | Unknown | Unknown | Successful import sample or vendor import spec. |
 | Required fields for updating a security through IMEX/import. | Unknown | Unknown | Successful update sample or vendor import spec. |
-| Whether Axys and APX `sec.inf` layouts are identical. | Unknown | Unknown | Comparative sanitized files or documentation. |
-| Whether Axys and APX `type.inf` layouts are identical. | Unknown | Unknown | Comparative sanitized files or documentation. |
+| Whether Axys/APX `sec.inf` layouts are identical. | Unknown | Unknown | Comparative sanitized files or documentation. |
+| Whether Axys/APX `type.inf` layouts are identical. | Unknown | Unknown | Comparative sanitized files or documentation. |
 | Formal security-master primary key. | Unknown | Unknown | Vendor schema or tested behavior. |
 | REP security-master report names. | Unknown | Unknown | REP report catalog or `.rep` source. |
 | Whether REP exposes all security-master fields. | Unknown | Unknown | Report Writer field dictionary or tested extract. |
@@ -803,24 +819,6 @@ The following evidence would convert many Unknowns into documented facts.
 
 ---
 
-## 15.1 Deep IMEX Update
-
-The deep IMEX research reinforces that `sec.inf` and `type.inf` are supported
-as CI-observed Axys reference files, but not as complete public schemas.
-
-| Item | Chapter treatment | Confidence |
-|---|---|---:|
-| `sec.inf` | Security Information used by CI to map external securities and generate valid imports. | Verified for CI |
-| `type.inf` | Security Type Information used by CI with security master data. | Verified for CI |
-| `MISSINGPRICES_yyyymmdd.csv` | CI diagnostic with Symbol, Type, Name, WP Account, and Institution. | Verified for CI output |
-| `SECTRANSLATIONS_yyyymmdd.csv` | CI diagnostic/output mapping WebPortfolio identifiers to Axys Symbol and Type. | Verified for CI output |
-| Candidate live-discovery fields | Symbol/type, name, ticker, CUSIP, ISIN, currency, multiplier, factor, coupon, maturity, classifications, and user-defined fields. | Discovery guidance |
-
-Do not present the CI diagnostics or candidate live-discovery fields as an
-official universal Axys IMEX security-master schema.
-
----
-
 ## 16. References
 
 This chapter is based only on the supplied repository chapter and research material. Source names below are taken from the supplied research notes.
@@ -829,7 +827,7 @@ This chapter is based only on the supplied repository chapter and research mater
 
 | Source | Use |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Editorial standards, evidence labels, chapter structure, field dictionary standard, and requirement to preserve Unknowns. |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Editorial standards, evidence labels, chapter structure, field dictionary standard, and requirement to preserve Unknowns. |
 
 ### 16.2 Supplied Chapter / Research Files
 
@@ -856,3 +854,9 @@ This chapter is based only on the supplied repository chapter and research mater
 | AdventGuru Axys/APX integration and reporting articles | Security type handling cautions, security-master merge dependencies, public view limitations, APX reporting/database access options, Report Writer Pro/Replang usage. | Practitioner source; not official vendor schema. |
 | FinFolio Advent conversion page | Advent `INF` files used in conversion workflows to build target security master. | Conversion-vendor clue; Medium Confidence only. |
 | Advent / Thomson Reuters DataScope brief | General Advent ecosystem reference-data concepts. | Geneva-focused; not used for Axys/APX security-master behavior unless separately verified. |
+
+## Research Provenance
+
+The deep IMEX security-reference conclusions are incorporated into Section
+5.5. Their supporting source history remains in
+`../evidence/Research_04_Security_Master.md`.

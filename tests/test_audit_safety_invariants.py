@@ -1,4 +1,4 @@
-"""Tests for the executable Performance Auditing safety-invariant catalog."""
+"""Tests for the executable Audit safety-invariant catalog."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 import unittest
 
 # Project imports
-from ppar.performance_comparison.safety_invariants import (
+from ppar.audit.safety_invariants import (
     DIFFERENCE_DISPOSITION_RULE,
     MATERIAL_DIFFERENCE_DEFINITION,
     SAFETY_INVARIANTS,
@@ -18,11 +18,11 @@ from ppar.performance_comparison.safety_invariants import (
 )
 
 _SAFETY_DOCUMENT = Path(
-    "docs/audit/performance_comparison_safety_invariants.md"
+    "docs/audit/safety_invariants.md"
 )
 
 
-class TestPerformanceComparisonSafetyInvariants(unittest.TestCase):
+class TestAuditSafetyInvariants(unittest.TestCase):
     """Protect the stable safety-net definitions and enforcement catalog."""
 
     def test_completed_program_has_no_partial_invariants(self) -> None:
@@ -100,8 +100,9 @@ class TestPerformanceComparisonSafetyInvariants(unittest.TestCase):
                     f"| `{invariant.identifier}` | {invariant.name} |",
                     contents,
                 )
-        for phase in range(2, 7):
-            self.assertIn(f"### Phase {phase}", contents)
+        self.assertIn("## Current Guarantee Summary", contents)
+        self.assertIn("## Existing Enforcement Map", contents)
+        self.assertIn("## Change-Control Rule", contents)
 
     def test_unknown_invariant_identifier_raises_key_error(self) -> None:
         """Catalog lookup does not silently accept an unknown safety net."""

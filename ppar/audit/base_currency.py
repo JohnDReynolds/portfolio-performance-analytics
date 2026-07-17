@@ -7,7 +7,7 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 import ppar.utilities as util
 
 _NORMALIZED_PORTFOLIO_ID = "_ppar_normalized_portfolio_id"

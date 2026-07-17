@@ -28,5 +28,8 @@ complete vendor schema.
   validation, test, or user-facing extract implication.
 - Keep generated files generated. Update the source-data input or renderer first,
   then regenerate.
+- After changing `transaction_semantics_matrix.yaml`, run
+  `./.venv/bin/python scripts/render_transaction_semantics_matrix.py` and commit
+  the regenerated row table.
 - Keep site-contract templates vendor-aware but not vendor-guaranteed; they are
   examples for local source-data negotiation.

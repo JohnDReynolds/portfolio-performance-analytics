@@ -1,4 +1,4 @@
-"""Write Performance Auditing reports for a configured site folder."""
+"""Write Audit reports for a configured site folder."""
 
 from __future__ import annotations
 
@@ -14,15 +14,15 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
-    write_performance_comparison_report_bundle,
+from ppar.audit import (
+    write_audit_report_bundle,
 )
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import source_loader
-from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
-from ppar.performance_comparison import x_ref as _pc_x_ref
-from ppar.performance_comparison.runner import AuditComparisonViews
-from ppar.performance_comparison.specification import (
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import source_loader
+from ppar.audit import workbook_tables as _pc_workbook_tables
+from ppar.audit.data_issues import checks as _data_issue_checks
+from ppar.audit.runner import AuditComparisonViews
+from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
@@ -38,7 +38,7 @@ _REPORT_CHOICES: Final[tuple[str, ...]] = (
 _CSV_REVIEW_ARTIFACTS: Final[tuple[str, ...]] = (
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
-    _pc_review_model.X_REF_ISSUES_ARTIFACT,
+    _pc_review_model.DATA_ISSUES_ARTIFACT,
 )
 
 
@@ -166,7 +166,7 @@ def run_report(
         "review_paths": [],
     }
     output_root = output_directory or site_path / _OUTPUT_DIR
-    x_ref_issues = _pc_x_ref.x_ref_issues_table(config_path)
+    data_issues = _data_issue_checks.data_issues_table(config_path)
     comparison_views = AuditComparisonViews(
         config_path,
         include_suppressed=not exclude_suppressed,
@@ -186,7 +186,7 @@ def run_report(
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
             require_causal_attribution=require_causal_attribution,
             allow_incomplete_yaml=allow_incomplete_yaml,
-            _x_ref_issues=x_ref_issues,
+            _data_issues=data_issues,
             include_workbook=include_workbook,
             include_html_output=include_html_output,
             expand_all_supporting_files=expand_all_supporting_files,
@@ -205,7 +205,7 @@ def run_report(
                 include_reconstruction_diagnostics=include_reconstruction_diagnostics,
                 require_causal_attribution=require_causal_attribution,
                 allow_incomplete_yaml=allow_incomplete_yaml,
-                _x_ref_issues=x_ref_issues,
+                _data_issues=data_issues,
                 include_workbook=include_workbook,
                 include_html_output=include_html_output,
                 expand_all_supporting_files=expand_all_supporting_files,
@@ -229,7 +229,7 @@ def _argument_parser(
     """Return the site report argument parser."""
     parser = argparse.ArgumentParser(
         prog=prog,
-        description="Write Performance Auditing report bundles for a site setup.",
+        description="Write Audit report bundles for a site setup.",
         epilog=(
             (
                 "Examples:\n"
@@ -333,7 +333,7 @@ def _argument_parser(
 
 
 def _default_site_directory(site_directory: Path | None) -> Path:
-    """Return the explicit or conventional Performance Auditing site directory."""
+    """Return the explicit or conventional Audit site directory."""
     if site_directory is not None:
         return site_directory
     return Path.cwd()
@@ -380,7 +380,7 @@ def _write_report_bundle(
     include_reconstruction_diagnostics: bool,
     require_causal_attribution: bool,
     allow_incomplete_yaml: bool,
-    _x_ref_issues: Any,
+    _data_issues: Any,
     include_workbook: bool,
     include_html_output: bool,
     expand_all_supporting_files: bool,
@@ -388,11 +388,11 @@ def _write_report_bundle(
 ) -> list[Path]:
     """Write one report bundle and return its primary review paths."""
     report_title = title or (
-        "Portfolio Performance Auditing Report"
+        "Portfolio Audit Report"
         if comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        else "Security Performance Auditing Report"
+        else "Security Audit Report"
     )
-    paths = write_performance_comparison_report_bundle(
+    paths = write_audit_report_bundle(
         findings,
         output_directory,
         title=report_title,
@@ -404,7 +404,7 @@ def _write_report_bundle(
         comparison_path=config_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-        _x_ref_issues=_x_ref_issues,
+        _data_issues=_data_issues,
         _reconstruction_cache=_reconstruction_cache,
         expand_all_supporting_files=expand_all_supporting_files,
     )
@@ -453,7 +453,7 @@ def _is_missing_security_data(error: PpaError) -> bool:
 
 def _print_success(result: dict[str, Any]) -> None:
     """Print a concise user handoff."""
-    print("Open these files to review Performance Auditing output:")
+    print("Open these files to review Audit output:")
     for path in result["review_paths"]:
         print(f"  {path}")
     if "security_status" in result:

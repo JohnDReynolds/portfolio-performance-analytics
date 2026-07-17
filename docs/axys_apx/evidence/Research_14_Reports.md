@@ -3,7 +3,7 @@
 **Repository chapter target:** `../reference/Chapter_14_Reports.md`  
 **Research file:** `docs/axys_apx/evidence/Research_14_Reports.md`
 **Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -26,7 +26,7 @@ This research file intentionally preserves Unknowns where report behavior, field
 
 | Source | Type | Applies To | Use in This Research | Confidence Impact |
 |---|---:|---|---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Repository specification | Axys/APX repository | Governing editorial standard, required repository structure, required treatment of Unknowns | Verified |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Repository specification | Axys/APX repository | Governing editorial standard, required repository structure, required treatment of Unknowns | Verified |
 | SS&C / Advent Axys public product page | Vendor public product page | Axys | Confirms Axys positioning as portfolio accounting/reporting software with reporting capabilities | Verified for public product claims only |
 | SS&C / Advent APX public product page | Vendor public product page | APX | Confirms APX positioning as integrated portfolio/accounting/reporting solution | Verified for public product claims only |
 | Advent Portfolio Exchange Reports Guide, public PDF/search-indexed copy | Vendor report guide | APX | Confirms a library of APX report examples and several report names/visible output columns | Verified for visible report-guide content only |
@@ -572,7 +572,7 @@ Chapter 14 should remain organized around:
 
 ### 17.1 Governing Repository Source
 
-1. `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0. Defines repository purpose, editorial standards, confidence labels, standard chapter template, field dictionary format, and required repository structure.
+1. `axys_apx_reference_blueprint.md`, Version 2.0. Defines repository purpose, editorial standards, confidence labels, standard chapter template, field dictionary format, and required repository structure.
 
 ### 17.2 Public Vendor / Product Sources
 

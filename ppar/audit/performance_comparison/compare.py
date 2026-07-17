@@ -14,14 +14,14 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import lineage as pc_lineage
-from ppar.performance_comparison import field_roles as _field_roles
-from ppar.performance_comparison.financial_integrity import (
+from ppar.audit import schema as pc_cols
+from ppar.audit import lineage as pc_lineage
+from ppar.audit import field_roles as _field_roles
+from ppar.audit.financial_integrity import (
     validate_financial_input_integrity,
 )
-from ppar.performance_comparison.currency_basis import row_uses_foreign_currency
-from ppar.performance_comparison.findings import (
+from ppar.audit.currency_basis import row_uses_foreign_currency
+from ppar.audit.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     CONTEXT,
     DIRECT_INPUT,
@@ -65,14 +65,14 @@ from ppar.performance_comparison.findings import (
     SEVERITY_MATERIAL,
     Finding,
 )
-from ppar.performance_comparison.fx_rates import FxRatesLoader
-from ppar.performance_comparison.period_linking import (
+from ppar.audit.fx_rates import FxRatesLoader
+from ppar.audit.period_linking import (
     PortfolioPeriodLookup,
     period_context_for_dated_evidence,
     portfolio_period_lookup,
     portfolio_periods_from_snapshots,
 )
-from ppar.performance_comparison.policies import (
+from ppar.audit.performance_comparison.policies import (
     _EVIDENCE_ONLY_METHOD,
     _EXTERNAL_FLOW_KEY,
     _PERFORMANCE_KEY,
@@ -89,20 +89,20 @@ from ppar.performance_comparison.policies import (
     _security_return_impact_policies,
     _transaction_impact_policies,
 )
-from ppar.performance_comparison.modified_dietz import (
+from ppar.audit.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
     modified_dietz_float as _modified_dietz_float,
 )
-from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
-from ppar.performance_comparison.holdings import HoldingsLoader
-from ppar.performance_comparison.rules import apply_suppressions
-from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
-from ppar.performance_comparison.splits import SplitsLoader
-from ppar.performance_comparison.specification import (
+from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
+from ppar.audit.holdings import HoldingsLoader
+from ppar.audit.performance_comparison.rules import apply_suppressions
+from ppar.audit.security_performance import SecurityPerformanceLoader
+from ppar.audit.splits import SplitsLoader
+from ppar.audit.specification import (
     SECURITY_COMPARISON_LEVEL,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_CATEGORY_BUY,
     TRANSACTION_CATEGORY_SELL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
@@ -325,7 +325,7 @@ class PerformanceComparison:
             labels keyed by dataset and source column.
     """
 
-    def __init__(self, specification: PerformanceComparisonSpecification) -> None:
+    def __init__(self, specification: AuditSpecification) -> None:
         """Initialize a performance comparison.
 
         Args:

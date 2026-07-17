@@ -2,7 +2,7 @@
 
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `Chapter_15_Data_Dictionary.md`
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 **Prepared:** 2026-06-29
 **Status:** Technical reference chapter based only on supplied research and source material
 
@@ -702,43 +702,6 @@ This table maps concepts across observed labels. It does not assert identical se
 
 These examples are included because they are explicitly supported by supplied research. They are not general import/export templates unless stated.
 
-### 13.0 Candidate Performance Field Checklist
-
-Research 10 includes the following candidate performance field spellings as a checklist,
-not as verified Axys/APX field names. Replace them only after a sample export, report
-definition, IMEX object dictionary, or vendor documentation confirms the exact labels.
-
-```text
-PortfolioCode
-PortfolioName
-StartDate
-EndDate
-CurrencyCode
-BeginningMarketValue
-EndingMarketValue
-NetContributions
-Income
-Fees
-PortfolioReturn
-GrossReturn
-NetReturn
-BenchmarkCode
-BenchmarkReturn
-SecurityID
-Symbol
-SecurityName
-AssetClass
-Sector
-Industry
-Weight
-SecurityReturn
-Contribution
-LocalReturn
-CurrencyEffect
-AccruedIncome
-RunDate
-```
-
 ### 13.1 Axys Asset Export Field Order Example
 
 AdvisorEngine’s Axys asset import workflow expects this field order from an Axys XLS export:
@@ -915,97 +878,11 @@ These labels are valid report-output evidence. They do not establish formula def
 
 ---
 
-## 16. Required Field Sets for Common Use Cases
-
-These are recommended minimum **conceptual** field families for downstream use. They are not verified Axys/APX export schemas.
-
-### 16.1 Security Master Extract
-
-| Conceptual Field | Purpose | Native Field Known? | Confidence |
-|---|---|---:|---|
-| Security symbol | Security identity | Observed as Symbol/Axys Symbol/APX Symbol | Verified in integration contexts |
-| Security type | Disambiguates symbol and instrument behavior | Observed as Type/Security Type | Verified in integration contexts |
-| Security name / description | Display and matching | Observed as Security/Name/WP Name | Verified in report/integration contexts |
-| CUSIP | Matching identifier | Observed in integration contexts | Verified in integration contexts |
-| Ticker | Matching identifier | Observed in integration contexts | Verified in integration contexts |
-| Asset class | Classification | Observed in Axys export | Verified for export context |
-| Sector / industry / country / region | Classification | Report category supported; exact field unknown | Mixed |
-| Currency | Pricing/accounting currency | Conceptual; exact field unknown | Unknown |
-| Fixed-income terms | Accrual, coupon, maturity, factor, etc. | Not supplied | Unknown |
-
-### 16.2 Transaction Extract
-
-| Conceptual Field | Purpose | Native Field Known? | Confidence |
-|---|---|---:|---|
-| Portfolio/account identifier | Owner of transaction | Observed labels/tokens | High Confidence |
-| Trade date | Economic date | APX report label; conceptual Axys | High Confidence as concept |
-| Settlement date | Cash settlement date | APX report label; conceptual Axys | High Confidence as concept |
-| Transaction code | Accounting event type | Observed codes | Medium Confidence; complete matrix Unknown |
-| Security symbol/type | Security reference | Observed in example rows | Medium Confidence |
-| Quantity | Holding impact | Observed | High Confidence |
-| Price / unit price | Execution price | Observed as report label | Medium Confidence |
-| Amount | Cash/economic amount | Observed in APX report labels | Medium Confidence |
-| Source/destination type/symbol | Cash/security movement context | Observed in integration examples | Medium Confidence |
-| Cash impact | Signed normalized cash effect for audit and performance classification | Not verified as native field | Medium Confidence as recommended field |
-| Position impact | Signed normalized quantity or principal effect | Not verified as native field | Medium Confidence as recommended field |
-| Performance cash-flow flag | Explicit or derived external-flow treatment | Not verified as native field | Medium Confidence as recommended field |
-| Transaction classification | External flow, trade, income, fee, corporate action, correction, or unknown | Not verified as native field | Medium Confidence as recommended field |
-| Classification confidence | Confidence assigned by mapping/audit logic | Not verified as native field | Medium Confidence as recommended field |
-| Raw source line | Original source record retained for traceability | Not verified as native field | Medium Confidence as recommended field |
-| Broker / broker representative | Operational metadata | Observed in AIA workflow | Medium Confidence |
-| Comment | Operational note | Observed in AIA workflow | Medium Confidence |
-
-### 16.3 Holdings / Position Extract
-
-| Conceptual Field | Purpose | Native Field Known? | Confidence |
-|---|---|---:|---|
-| Portfolio/account identifier | Owner of holding | Observed | High Confidence |
-| Security identifier | Security held | Observed | High Confidence |
-| Quantity | Position units | Observed | Verified as report/export label |
-| Price | Valuation price | Observed | Verified as report label |
-| Market value | Valuation amount | Observed | Verified as report/export label |
-| Percent / weight | Allocation | Observed as `Pct Assets` / Percent of Portfolio / Avg Wgt | Verified as report labels |
-| Cost / cost basis | Tax/accounting basis | Observed in APX report labels | Verified as report labels |
-| Unrealized gain/loss | Valuation/cost difference | Observed in APX report description | Verified as report label |
-| Yield | Income/valuation field | Observed | Verified as report label |
-| Lot fields | Tax-lot detail | APX report labels include Open/Close Date; full lot schema Unknown | Mixed |
-
-### 16.4 Pricing Extract
-
-| Conceptual Field | Purpose | Native Field Known? | Confidence |
-|---|---|---:|---|
-| Security symbol/type | Price key | Likely from integration context; exact `.pri` layout Unknown | Medium Confidence |
-| Price date | Price key | Unknown | Unknown |
-| Price value | Valuation | Unknown native field | Unknown |
-| Price source / `SourceId` | Provenance/source selection | `SourceId` observed in APX AIA context | Verified only in workflow context |
-| Price set | APX price grouping | AIA Price Set Logic observed | Verified for AIA workflow |
-| Currency | Price currency | Unknown | Unknown |
-| Calculated price flag/source | Missing-price fallback | CI release notes mention calculated price | Verified for CI Axys |
-
-### 16.5 Performance Extract
-
-| Conceptual Field | Purpose | Native Field Known? | Confidence |
-|---|---|---:|---|
-| Portfolio/account identifier | Performance subject | Unknown native field | Unknown |
-| Start/end dates | Performance period | Unknown native field | Unknown |
-| Portfolio return | Return result | APX report label observed | Verified as APX report label |
-| Benchmark return | Benchmark result | APX report label observed | Verified as APX report label |
-| Active return | Relative return | APX report label observed | Verified as APX report label |
-| Weight / average weight | Performance weighting | APX `Avg Wgt` report label observed | Verified as report label |
-| Security return | Security-level return | Unknown native field | Unknown |
-| Contribution | Contribution result | APX `Contrib` report label observed | Verified as report label |
-| Classification | Segment/group | APX Industry Sector observed | Verified as report label |
-| Attribution effects | Allocation, selection, total effects | APX labels observed | Verified as report labels |
-| Gross/net flag | Fee basis | Unknown | Unknown |
-| Currency/local/base fields | Multi-currency performance | Unknown | Unknown |
-
----
-
-## 17. Unknowns
+## 16. Unknowns
 
 The following gaps should remain Unknown until supported by vendor documentation, sample exports, REP/SSRS source, report outputs, or production observations.
 
-### 17.1 Axys Unknowns
+### 16.1 Axys Unknowns
 
 | Unknown | Needed Evidence |
 |---|---|
@@ -1021,7 +898,7 @@ The following gaps should remain Unknown until supported by vendor documentation
 | Axys REP field dictionary / RepLang grammar | RepLang Programmer’s Guide or source dictionaries |
 | Whether Axys reports use stored or recalculated values for each report | REP source and controlled report tests |
 
-### 17.2 APX Unknowns
+### 16.2 APX Unknowns
 
 | Unknown | Needed Evidence |
 |---|---|
@@ -1037,7 +914,7 @@ The following gaps should remain Unknown until supported by vendor documentation
 | APX SSRS report RDL/dataset/stored procedure names | SSRS catalog/RDL files |
 | Relationship between APX REP/Replang reports and SSRS reports | APX reporting architecture documentation |
 
-### 17.3 IMEX Unknowns
+### 16.3 IMEX Unknowns
 
 | Unknown | Needed Evidence |
 |---|---|
@@ -1049,7 +926,7 @@ The following gaps should remain Unknown until supported by vendor documentation
 | Version differences across Axys/APX releases | Versioned docs and sample exports |
 | Whether APX fixed-format output is unavailable in all relevant APX versions | Versioned APX IMEX documentation |
 
-### 17.4 REP / Reports Unknowns
+### 16.4 REP / Reports Unknowns
 
 | Unknown | Needed Evidence |
 |---|---|
@@ -1063,11 +940,11 @@ The following gaps should remain Unknown until supported by vendor documentation
 
 ---
 
-## 17.5 Deep IMEX Normalized Schema Guidance
+### 16.5 Normalized Schema Guidance for IMEX Discovery
 
-The 2026-06-30 IMEX deep research adds normalized audit-schema candidates.
-These are not official Axys/APX field dictionaries and should remain separate
-from native field claims.
+The available IMEX evidence supports the following normalized audit-schema
+candidates. These are not official Axys/APX field dictionaries and should
+remain separate from native field claims.
 
 | Normalized object | Candidate field families |
 |---|---|
@@ -1089,13 +966,13 @@ export sample.
 
 ---
 
-## 18. References
+## 17. References
 
 This chapter is based on the supplied repository blueprint and supplied research files only.
 
 | Source Material | Use |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial standard, confidence labels, chapter structure, field dictionary format |
+| `axys_apx_reference_blueprint.md` | Governing editorial standard, confidence labels, chapter structure, field dictionary format |
 | `../evidence/Research_02_Axys_Architecture.md` | Axys architecture, files, IMEX, REP, version/file-format cautions |
 | `../evidence/Research_03_APX_Architecture.md` | APX architecture, SSRS reporting, APX IMEX, REP32, APX reports |
 | `../evidence/Research_04_Security_Master.md` | Security master fields/tokens, `sec.inf`, `type.inf`, security matching, symbol/type behavior |
@@ -1113,7 +990,7 @@ This chapter is based on the supplied repository blueprint and supplied research
 
 ---
 
-## 19. Chapter Maintenance Rules
+## 18. Chapter Maintenance Rules
 
 1. Do not add a field as a native Axys/APX field unless the source proves it is native.
 2. Mark report labels as report labels.

@@ -1,79 +1,36 @@
-# Repository Guide
+# Maintainer Guide
 
-This guide is the orientation layer for the repository. Use it when the root
-README, demo fixtures, commands, validators, and tests start to feel like too
-many disconnected entry points.
+This guide covers the repeatable workflows used to maintain, validate, and
+release PPAR. It assumes the reader already understands the product and system
+shape.
 
-## Start Here
+## Orientation
 
-| Need | Start With | Why |
-| --- | --- | --- |
-| Documentation map | [`docs/README.md`](README.md) | Routes maintainers to PPAR Audit, PPAR Analytics, shared integration material, and shared platform documentation. |
-| Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and user-facing outputs. |
-| Architecture map | [`docs/architecture.md`](architecture.md) | Compact map of the installed command surface, package boundaries, data flow, setup data, and report boundary. |
-| Performance Analytics demo refresh | [`docs/analytics/analytics_demo_refresh.md`](analytics/analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
-| PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
-| Performance Auditing concepts | [`docs/audit/performance_comparison_design.md`](audit/performance_comparison_design.md) | Deep notes for the Performance Comparison engine inside Performance Auditing, including YAML vocabulary, report bundle structure, and implementation status. |
-| Axys/APX export shape | [`docs/axys_apx/axysapx_common_core_export.md`](axys_apx/axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
-| Packaged Axys/APX demos | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | User-facing Axys/APX Performance Auditing and Performance Analytics demo inputs. |
-| Test Axys/APX configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys/APX snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
-| Historical checkpoint notes | [`docs/audit/archive/performance_comparison_checkpoint_notes.md`](audit/archive/performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
-
-## Directory Map
-
-| Path | Purpose |
-| --- | --- |
-| `ppar/` | Installable package code. |
-| `ppar/analytics/` | Core analytics engine, analytics column schema, attribution, contribution, and risk calculations. |
-| `ppar/axys/` | Axys/APX-specific ingestion and normalization support. |
-| `ppar/performance_comparison/` | Internal Performance Comparison engine used by Performance Auditing: loaders, comparison logic, explanation tables, report writers, and workbook export. |
-| `ppar/setup_templates/` | Packaged setup inputs and tutorial scripts shipped with source distributions and wheels. |
-| `ppar/setup_templates/axysapx_performance_comparison/` | Packaged user-facing Axys/APX Performance Auditing snapshots and YAML files. Use these for demos and review workflows. |
-| `tests/` | Unit, integration, metadata, packaging, and report tests. |
-| `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
-| `scripts/` | Repository-maintenance helpers; internal Performance Auditing commands live under `ppar.performance_comparison.cli`. |
-| `docs/` | Durable project documentation and design notes. |
-| `docs/audit/` | PPAR Audit product planning, implementation contracts, evidence review, and operational maintenance notes. |
-| `docs/analytics/` | PPAR Analytics product and demo-maintenance documentation. |
-| `docs/axys_apx/` | Shared Axys/APX research, contracts, reference chapters, and common-core export guidance. |
-| `docs/images/` | Durable documentation images. README-rendered analytics assets live under `docs/images/readme/`. |
-| `_demo_output/` | Generated demo/report output. This is intentionally ignored by Git. |
-
-## README Files
-
-| File | Audience | Contents |
-| --- | --- | --- |
-| [`README.md`](../README.md) | New users | Package overview, installation, public setup commands, and user-facing outputs. |
-| [`docs/architecture.md`](architecture.md) | Maintainers | Compact architecture map for commands, package boundaries, data flow, setup data, and report boundaries. |
-| [`docs/analytics/analytics_demo_refresh.md`](analytics/analytics_demo_refresh.md) | Maintainers | Performance Analytics demo data-generation, story, and README image refresh workflow. |
-| [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
-| [`docs/audit/performance_comparison_design.md`](audit/performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
-| [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, setup-installed Python runners, and expected workbook outputs. |
-| [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys/APX snapshots, test-only comparison YAML files, and validation matrix fixtures. |
-| Snapshot README files under `tests/data/axys/snapshots/*/README.md` | Test authors | Small notes about individual synthetic snapshot directories. |
+Start with the [documentation index](README.md) for document ownership, the
+[root README](../README.md) for the installed-user surface, and the
+[architecture map](architecture.md) for package, data-flow, configuration, and
+report boundaries. This guide begins where those orientation documents stop.
 
 ## Scripts
 
 The `scripts/` directory contains source-checkout maintenance helpers. Those
 helpers may be included in source distributions for maintainers, but they are
-not installed-package demo workflows. Performance Auditing command
-implementations live in `ppar.performance_comparison.cli` and can be run from a
-source checkout with `./.venv/bin/python -m <module>`. The package name still
-uses `performance_comparison` because that is the internal engine for the
-Performance Comparison sub-feature.
+not installed-package demo workflows. Audit command
+implementations live in `ppar.audit.cli` and can be run from a
+source checkout with `./.venv/bin/python -m <module>`.
 
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
 | `scripts/check_release_candidate.py` | Runs the maintained release-candidate demo, setup, and health-check sequence. | `./.venv/bin/python scripts/check_release_candidate.py` |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
-| `scripts/check_performance_comparison_demo_health.py` | Runs packaged Performance Auditing demo guardrails. | `./.venv/bin/python scripts/check_performance_comparison_demo_health.py` |
+| `scripts/check_audit_demo_health.py` | Runs packaged Audit demo guardrails. | `./.venv/bin/python scripts/check_audit_demo_health.py` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
-| `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
-| `scripts/audit_performance_comparison_demo_data.py` | Wrapper around the packaged demo-data audit. | Backward-compatible audit command. |
-| `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
-| `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check artifacts plus CSV/HTML/XLSX semantic parity and normalized integrity metadata. |
-| `ppar.performance_comparison.cli.validate_demo_matrix` | Validates Performance Comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
-| `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch source-data and YAML setup issues before generating reports. |
+| `scripts/operational_demo_data/rebuild_audit_demo_data.py` | Rebuilds and audits packaged Audit demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
+| `scripts/check_audit_demo_data.py` | Checks the packaged Audit demo data. | Focused demo-data validation. |
+| `ppar.audit.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for an Audit YAML. | Generate review bundles and workbooks. |
+| `ppar.audit.cli.validate_bundle` | Validates a generated report bundle. | Check artifacts plus CSV/HTML/XLSX semantic parity and normalized integrity metadata. |
+| `ppar.audit.cli.validate_demo_matrix` | Validates Performance Comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
+| `ppar.audit.cli.validate_config` | Validates an Audit YAML file. | Catch source-data and YAML setup issues before generating reports. |
 
 ## Maintainer Checks
 
@@ -81,7 +38,7 @@ Useful source-checkout checks:
 
 ```bash
 ./.venv/bin/python scripts/check_project.py --quick
-./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+./.venv/bin/python scripts/check_audit_demo_health.py
 ./.venv/bin/python scripts/render_readme_images.py
 ```
 
@@ -96,10 +53,10 @@ Do not recalibrate its warning or failure limits merely because a run fails. Tre
 failure as a regression investigation unless a deliberate benchmark-policy change is
 reviewed separately.
 
-To refresh only the Performance Auditing README screenshots:
+To refresh only the Audit README screenshots:
 
 ```bash
-./.venv/bin/python scripts/render_readme_images.py --only performance-comparison
+./.venv/bin/python scripts/render_readme_images.py --only audit
 ```
 
 ## Installed Commands
@@ -108,12 +65,12 @@ The installed command names are declared in `pyproject.toml`.
 
 | Command | Purpose |
 | --- | --- |
-| `ppar` | Top-level user command for setup, Performance Auditing, and Performance Analytics. |
+| `ppar` | Top-level user command for setup, Audit, and Performance Analytics. |
 
 The source-checkout smoke path uses setup-generated scripts:
 
 ```bash
-./.venv/bin/python scripts/check_performance_comparison_demo_health.py --skip-rebuild-audit
+./.venv/bin/python scripts/check_audit_demo_health.py --skip-rebuild-audit
 ```
 
 ## Demo Data
@@ -121,15 +78,15 @@ The source-checkout smoke path uses setup-generated scripts:
 Packaged demos and test configuration fixtures intentionally live in different
 places:
 
-- `ppar/setup_templates/axysapx_analytics/` is the public analytics setup seed
+- `ppar/setup_templates/axys_apx_analytics/` is the public analytics setup seed
   copied by `ppar setup`.
-- `ppar/setup_templates/axysapx_performance_comparison/` is the public
-  performance-comparison setup seed copied by `ppar setup` and is also used
+- `ppar/setup_templates/axys_apx_audit/` is the public
+  Audit setup seed copied by `ppar setup` and is also used
   for packaged examples that users and reviewers can run.
 - `ppar/setup_templates/generic_analytics/` is maintainer/demo infrastructure. It
   feeds README marketing images, analytics regression tests, and operational
   demo-data derivation; it is not advertised as the primary onboarding path.
-- `tests/data/axys/` is for synthetic Axys/APX snapshots, test-only comparison YAML
+- `tests/data/axys/` is for synthetic Axys/APX snapshots, test-only Audit YAML
   files, and validation matrix fixtures.
 
 The packaged Axys/APX YAML file is limited to user-facing marketing and onboarding
@@ -137,39 +94,39 @@ workflows. Broader scenario coverage lives under `tests/data/axys`.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
-| Workbook demos | `axysapx_performance_comparison.yaml` | `snapshot_a` | `snapshot_b` | Shared portfolio/security demo spec. Setup-generated scripts select the primary review level. |
+| Workbook demos | `axys_apx_audit.yaml` | `snapshot_a` | `snapshot_b` | Shared portfolio/security demo spec. Setup-generated scripts select the primary review level. |
 
 For the maintained XLSX workbook smoke paths and expected output, use
-[`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md).
+[`ppar/setup_templates/axys_apx_audit/README.md`](../ppar/setup_templates/axys_apx_audit/README.md).
 For the validation fixture matrix, use
 [`tests/data/axys/README.md`](../tests/data/axys/README.md).
 
-### Packaged Axys/APX Performance Comparison Maintenance
+### Packaged Axys/APX Audit Demo Maintenance
 
-Treat the packaged Axys/APX performance-comparison demo as a small accounting
+Treat the packaged Axys/APX Audit demo as a small accounting
 lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 
 | File | Owns |
 | --- | --- |
 | `scripts/operational_demo_data/derive_operational_demo_data.py` | Base portfolios, selected securities, baseline holdings, baseline transactions, and synthetic Axys/APX-style performance rows. |
-| `scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
-| `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and maintainer-only cost context. |
-| `scripts/operational_demo_data/performance_comparison_scenario_calendar.csv` | Operational map from physical scenario rows to reviewer story periods. |
-| `scripts/operational_demo_data/performance_comparison_scenario_inventory.csv` | Validated semantic contract that keeps each source period within the two-independent-change review target and protects report outcomes plus carry-forward behavior. |
-| `scripts/operational_demo_data/performance_comparison_period_split_plan.csv` | Empty split backlog. Add rows only when a future scenario makes a period too crowded again. |
-| `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
-| `ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
-| `ppar/setup_templates/axysapx_performance_comparison/README.md` | User-facing demo story and setup guidance. |
-| `ppar.performance_comparison.cli.validate_demo_matrix` | Test-only scenario coverage guardrail. It does not define the packaged demo story. |
+| `scripts/operational_demo_data/audit_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
+| `scripts/operational_demo_data/audit_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and maintainer-only cost context. |
+| `scripts/operational_demo_data/audit_scenario_calendar.csv` | Operational map from physical scenario rows to reviewer story periods. |
+| `scripts/operational_demo_data/audit_scenario_inventory.csv` | Validated semantic contract that keeps each source period within the two-independent-change review target and protects report outcomes plus carry-forward behavior. |
+| `scripts/operational_demo_data/audit_period_split_plan.csv` | Empty split backlog. Add rows only when a future scenario makes a period too crowded again. |
+| `scripts/operational_demo_data/rebuild_audit_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
+| `ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
+| `ppar/setup_templates/axys_apx_audit/README.md` | User-facing demo story and setup guidance. |
+| `ppar.audit.cli.validate_demo_matrix` | Test-only scenario coverage guardrail. It does not define the packaged demo story. |
 
 When changing packaged demo behavior, edit the generator/scenario source first,
 then run:
 
 ```bash
 ./.venv/bin/python scripts/operational_demo_data/derive_operational_demo_data.py
-./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py --write
-./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
+./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py --write
+./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
+./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
 ```
 
 Use `--write` only when you intend to rewrite tracked packaged CSV assets.
@@ -252,8 +209,25 @@ package-build check, so a release artifact cannot retain stale overview text.
 `--refresh-images` regenerates the README PNG/JPG assets as well as `PPAR.pdf`.
 `--include-generic-data-generation` runs the Yahoo-dependent generic analytics
 candidate-data generator.
-`--write-packaged-assets` lets the operational performance-comparison rebuild
+`--write-packaged-assets` lets the operational Audit rebuild
 script update tracked packaged CSV assets after intentional demo-data edits.
+
+### Tracked Generated Assets And Archives
+
+`PPAR.pdf` is a tracked release asset generated from `README.md`, not an
+independent documentation source. Refresh it with `scripts/render_readme_pdf.py`
+or the release-candidate `--build`/`--refresh-images` workflow, and commit it
+only with the source README change that required the refresh.
+
+Files under `docs/archive/` and product-specific `archive/` directories are
+frozen provenance. Do not revise their conclusions or status; only add an
+archival banner, repair a link after a move, or add a new clearly indexed
+historical snapshot. Current guidance must live outside an archive.
+
+`scripts/operational_demo_data/audit_period_split_plan.csv` is intentionally a
+header-only machine-readable backlog when no demo period needs splitting. Do
+not delete it while the rebuild and tests use its empty state as an explicit
+contract; add rows only when the documented density gate requires a split.
 
 ### Run Setup-Generated Smoke Scripts
 
@@ -266,9 +240,9 @@ examples that users see in their local setup folder:
 ./.venv/bin/python /tmp/ppar_smoke_site/analytics/run_analytics.py
 ./.venv/bin/python /tmp/ppar_smoke_site/audit/run_audit.py
 ./.venv/bin/python /tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
+./.venv/bin/python -m ppar.audit.cli.validate_bundle \
   /tmp/ppar_smoke_site/audit/output/portfolio
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
+./.venv/bin/python -m ppar.audit.cli.validate_bundle \
   /tmp/ppar_smoke_site/audit/output/security
 ```
 
@@ -281,7 +255,7 @@ audit traceability.
 For the full packaged-demo guardrail pass, run:
 
 ```bash
-./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+./.venv/bin/python scripts/check_audit_demo_health.py
 ```
 
 This consolidates the operational rebuild drift audit, extract-availability
@@ -291,8 +265,8 @@ packaged scenario-matrix validation.
 ### Generate A Custom Review Bundle
 
 ```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml \
+./.venv/bin/python -m ppar.audit.cli.report_bundle \
+  ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml \
   _demo_output/custom_portfolio \
   --comparison-level portfolio \
   --include-workbook \
@@ -305,15 +279,15 @@ you want a security-level bundle. The public user-facing path is `ppar setup`
 followed by `ppar audit`.
 
 Code that needs to inspect the generated report-bundle handoff surface should
-use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
+use `ppar.audit.report_bundle_contract()`. That helper returns
 the portfolio/security audit filenames, required artifact keys, manifest keys,
 review entrypoints, review-summary keys, Modified Dietz review basis, and review
 vocabulary keys. It also declares the normalization version and the exact
 timestamp/package metadata excluded from repeat-run equivalence.
 
 For Python integrations, prefer the package-root workflow helpers:
-`compare_snapshots()`, `write_performance_comparison_report_bundle()`,
-`write_performance_comparison_review_workbook()`, `report_bundle_contract()`,
+`compare_snapshots()`, `write_audit_report_bundle()`,
+`write_audit_review_workbook()`, `report_bundle_contract()`,
 and `report_bundle_validation_issues()`. More specialized policy and
 evidence-pack helpers, such as fixed-income boundaries, backlog gates,
 transaction boundary registry data, transaction summaries, and source-data
@@ -323,7 +297,7 @@ package-root exports.
 ### Validate The Packaged Demo Matrix
 
 ```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
+./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
 ```
 
 This is a scenario-coverage check. It is not just a bundle validator; it proves
@@ -332,17 +306,17 @@ that packaged fixtures still demonstrate the documented review situations.
 ### Validate A Generated Bundle
 
 ```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_portfolio
+./.venv/bin/python -m ppar.audit.cli.validate_bundle \
+  _demo_output/audit_portfolio
 ```
 
 Use this after generating report/workbook output.
 
-### Validate A Comparison YAML
+### Validate An Audit YAML
 
 ```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml
+./.venv/bin/python -m ppar.audit.cli.validate_config \
+  ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml
 ```
 
 Use this before report generation when you are editing YAML.
@@ -387,17 +361,17 @@ When changing report/workbook behavior, the most relevant focused tests are:
 ```bash
 ./.venv/bin/python -m unittest \
   tests.test_package_metadata \
-  tests.test_performance_comparison_report \
-  tests.test_performance_comparison_cli \
-  tests.test_performance_comparison_workbook_contract
+  tests.test_audit_report \
+  tests.test_audit_cli \
+  tests.test_audit_workbook_contract
 ```
 
 When changing demo data or YAML, also run:
 
 ```bash
-./.venv/bin/python scripts/audit_performance_comparison_demo_data.py
-./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
+./.venv/bin/python scripts/check_audit_demo_data.py
+./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
+./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
 ```
 
 ## Release Readiness
@@ -416,19 +390,22 @@ Use this pre-publish checklist after the maintainer decides to release:
    `ppar.__version__` value is read from installed package metadata; do not edit
    a second source constant.
 3. Decide whether the current version is still right for the release.
-4. Confirm the local release tag points at the intended final release commit:
+4. Read the selected version from the package metadata, then confirm the local
+   release tag points at the intended final release commit:
 
    ```bash
+   PPAR_RELEASE_VERSION=$(./.venv/bin/python -c \
+     'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
    git rev-parse --short HEAD
-   git rev-parse --short v0.1.5
-   git ls-remote --tags origin v0.1.5
+   git rev-parse --short "v${PPAR_RELEASE_VERSION}"
+   git ls-remote --tags origin "v${PPAR_RELEASE_VERSION}"
    ```
 
    If the local tag is stale and the remote tag does not exist, retag locally
    before pushing:
 
    ```bash
-   git tag -f v0.1.5 HEAD
+   git tag -f "v${PPAR_RELEASE_VERSION}" HEAD
    ```
 
 5. Build fresh artifacts:
@@ -436,12 +413,14 @@ Use this pre-publish checklist after the maintainer decides to release:
    ```bash
    rm -rf dist
    ./.venv/bin/python -m build --wheel --sdist --no-isolation --outdir dist
-   ./.venv/bin/python -m twine check dist/ppar-0.1.5-py3-none-any.whl dist/ppar-0.1.5.tar.gz
+   ./.venv/bin/python -m twine check \
+     "dist/ppar-${PPAR_RELEASE_VERSION}-py3-none-any.whl" \
+     "dist/ppar-${PPAR_RELEASE_VERSION}.tar.gz"
    ```
 
 6. Inspect the wheel:
    - only the `ppar` console script is exposed;
-   - Axys/APX analytics and performance-comparison starter files are included;
+   - Axys/APX Analytics and Audit starter files are included;
    - `_demo_output`, `scripts`, `tests`, `docs`, and obsolete demo paths are not
      present in the wheel.
 7. Install the wheel into a temporary environment and run:
@@ -463,11 +442,11 @@ are explicit.
 Generated output normally belongs under `_demo_output/`:
 
 - `_demo_output/generic_analytics`: Core analytics demo HTML/PNG artifacts.
-- `_demo_output/axysapx_analytics`: Axys/APX-backed analytics demo HTML artifacts.
-- `_demo_output/performance_comparison_portfolio`: Portfolio comparison review bundle.
-- `_demo_output/performance_comparison_security`: Security comparison review bundle.
+- `_demo_output/axys_apx_analytics`: Axys/APX-backed analytics demo HTML artifacts.
+- `_demo_output/audit_portfolio`: Portfolio comparison review bundle.
+- `_demo_output/audit_security`: Security comparison review bundle.
 
-Performance comparison report bundles include these visible files by default:
+Audit report bundles include these visible files by default:
 
 - `portfolio_audit.xlsx` or `security_audit.xlsx`: primary Excel reviewer artifact.
 - `portfolio_audit.html` or `security_audit.html`: browser-friendly review report.
@@ -496,19 +475,3 @@ and bundle CSV artifacts keep lower-level fields for troubleshooting. Optional
 reconstruction diagnostics can add `Reconstruction Summary`,
 `Return Reconstruction Checks`, and `Security Return Checks` sheets, but normal
 demo output excludes them by default.
-
-## Suggested Consolidation Rules
-
-Before moving files, prefer clarifying the map:
-
-1. Keep the root README short enough to answer "what is this project and how do
-   I run the main workflows?"
-2. Keep detailed packaged demo instructions in `ppar/setup_templates/axysapx_performance_comparison/README.md`.
-3. Keep future performance-comparison plans in
-   `docs/roadmap.md`.
-4. Keep deep design rationale in `docs/audit/performance_comparison_design.md`.
-5. Keep checkpoint/session notes in
-   `docs/audit/archive/performance_comparison_checkpoint_notes.md`, but treat them as
-   temporary working context.
-6. Add new scripts only when they serve automation or a distinct workflow.
-   Otherwise, prefer improving this guide or the existing script help text.

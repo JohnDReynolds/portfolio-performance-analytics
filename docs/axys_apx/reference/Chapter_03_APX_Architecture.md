@@ -4,7 +4,7 @@
 **Chapter:** `Chapter_03_APX_Architecture.md`
 **Status:** Technical reference chapter based on supplied research and source material
 **Prepared:** 2026-06-29
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -285,6 +285,21 @@ A practitioner APX-to-Axys conversion source lists these items as export candida
 | Whether APX IMEX exports stored performance or recalculates at export time. | Required for performance audit/reproducibility. | Vendor documentation or controlled test. |
 | Whether APX IMEX formats are stable across APX 15.x, 16.x, 17.x, and later. | Required for version-safe interfaces. | Versioned docs or regression samples. |
 
+### 7.4 IMEX Continuity and Alternative Extraction Surfaces
+
+The available Axys IMEX research provides APX contrast points that remain
+architecture-level, not field-level claims.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| APX IMEX continuity | Practitioner evidence says APX v1.x through v4.x retained IMEX functionality while fixed-format generation was eliminated. | Medium |
+| APX-to-Axys exports | Conversion evidence mentions APX exporting Axys v3-format reference data such as sectors, industries, asset classes, indexes, composites, and performance history. | Medium |
+| Performance history | Performance-history export through IMEX is mentioned as difficult; exact APX object and fields remain Unknown. | Medium / Unknown |
+| Alternative extraction surfaces | REP/RepLang, SSRS, SQL/public views/stored accounting functions, REST, and third-party ETL may be relevant depending on deployment. | Medium / High Confidence by surface |
+
+Do not assume APX IMEX object names, fields, command syntax, or fixed-format
+behavior match Axys without APX-specific documentation or samples.
+
 ---
 
 ## 8. APX Data Model — What Is Known and Unknown
@@ -552,7 +567,7 @@ This chapter is based on the supplied repository files only.
 
 | Reference | Supplied File | Use in This Chapter |
 |---|---|---|
-| Blueprint | `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing specification, chapter template, confidence discipline. |
+| Blueprint | `axys_apx_reference_blueprint.md` | Governing specification, chapter template, confidence discipline. |
 | APX architecture research | `../evidence/Research_03_APX_Architecture.md` | Primary source for APX architecture, reports, IMEX, REP, version references, quirks, Unknowns. |
 | Axys architecture research | `../evidence/Research_02_Axys_Architecture.md` | Axys/APX contrast, file-oriented Axys context, reporting and IMEX contrast. |
 | Security master research | `../evidence/Research_04_Security_Master.md` | APX Symbol, APX Security Type, `sec.inf`, `type.inf`, security matching quirks. |
@@ -668,17 +683,8 @@ The most important unresolved APX architecture facts are:
 | Exact relationship among SSRS, REP32, Replang, macros, and report packaging. | Needed for reporting architecture. |
 | Version-specific behavior across APX releases and deployment models. | Needed for safe implementation guidance. |
 
-## 17. Deep IMEX Update
+## Research Provenance
 
-The Axys IMEX deep research adds APX contrast points that should remain
-architecture-level, not field-level claims.
-
-| Topic | Chapter treatment | Confidence |
-|---|---|---:|
-| APX IMEX continuity | Practitioner evidence says APX v1.x through v4.x retained IMEX functionality while fixed-format generation was eliminated. | Medium |
-| APX-to-Axys exports | Conversion evidence mentions APX exporting Axys v3-format reference data such as sectors, industries, asset classes, indexes, composites, and performance history. | Medium |
-| Performance history | Performance-history export through IMEX is mentioned as difficult; exact APX object and fields remain Unknown. | Medium / Unknown |
-| Alternative extraction surfaces | REP/RepLang, SSRS, SQL/public views/stored accounting functions, REST, and third-party ETL may be relevant depending on deployment. | Medium / High Confidence by surface |
-
-Do not assume APX IMEX object names, fields, command syntax, or fixed-format
-behavior match Axys without APX-specific documentation or samples.
+The deep IMEX APX contrast conclusions are incorporated into Section 7.4.
+Their supporting source history remains in
+`../evidence/Research_03_APX_Architecture.md`.

@@ -17,7 +17,7 @@ import yaml
 from tests import test_utilities as test_util
 
 # Project Imports
-from ppar.axys import AxysData
+from ppar.axys_apx import AxysData
 import ppar.errors as errs
 from ppar.errors import PpaError
 

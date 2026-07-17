@@ -12,21 +12,21 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.fx_rates import FxRatesLoader
-from ppar.performance_comparison.holdings import HoldingsLoader
-from ppar.performance_comparison.period_linking import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.fx_rates import FxRatesLoader
+from ppar.audit.holdings import HoldingsLoader
+from ppar.audit.period_linking import (
     validate_dated_evidence_assignments,
 )
-from ppar.performance_comparison.portfolio_performance import (
+from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
     SnapshotKey,
 )
-from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
-from ppar.performance_comparison import source_loader
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
-from ppar.performance_comparison.splits import SplitsLoader
-from ppar.performance_comparison.transactions import TransactionsLoader
+from ppar.audit.security_performance import SecurityPerformanceLoader
+from ppar.audit import source_loader
+from ppar.audit.specification import AuditSpecification
+from ppar.audit.splits import SplitsLoader
+from ppar.audit.transactions import TransactionsLoader
 import ppar.utilities as util
 
 _CURRENCY_COLUMNS: Final[tuple[str, ...]] = (
@@ -55,7 +55,7 @@ _SnapshotFrames: TypeAlias = tuple[
 
 
 def validate_financial_input_integrity(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> None:
     """Enforce Phase 3 currency, unit, and period source contracts.
 
@@ -116,7 +116,7 @@ def validate_financial_input_integrity(
 
 
 def _validate_snapshot(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     snapshot_key: SnapshotKey,
     periods: pl.DataFrame,
     security_performance: pl.DataFrame | None,
@@ -179,7 +179,7 @@ def _validate_snapshot(
 
 
 def _validate_changed_evidence_assignments(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     snapshot_a: _SnapshotFrames,
     snapshot_b: _SnapshotFrames,
 ) -> None:
@@ -515,7 +515,7 @@ def _raise_missing_base_value(
 
 
 def _source_path(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
     dataset_name: str,
     snapshot_key: SnapshotKey,
 ) -> util.PathLike:

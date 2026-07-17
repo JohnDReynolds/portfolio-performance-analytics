@@ -11,12 +11,12 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
-    PerformanceComparisonSpecification,
+from ppar.audit import (
+    AuditSpecification,
     TransactionsLoader,
 )
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.backlog_gates import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison.backlog_gates import (
     CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
     CAPITAL_RETURN_POSSIBLE_ROLES,
     CAPITAL_RETURN_REQUIRED_EVIDENCE,
@@ -24,16 +24,16 @@ from ppar.performance_comparison.backlog_gates import (
     SHORT_SIDE_REQUIRED_EVIDENCE,
     transaction_backlog_gate,
 )
-from ppar.performance_comparison.config_validation import validate_config
-from ppar.performance_comparison.extract_contract import validate_extract_contract
-from ppar.performance_comparison.fixed_income import (
+from ppar.audit.config_validation import validate_config
+from ppar.audit.extract_contract import validate_extract_contract
+from ppar.audit.fixed_income import (
     FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES,
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     FIXED_INCOME_FORMULA_INPUTS,
     FIXED_INCOME_OUT_OF_SCOPE,
     fixed_income_transaction_boundary,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
@@ -64,7 +64,7 @@ from ppar.performance_comparison.transactions import (
     transaction_impact_semantics_available,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _SITE_EXTRACT_CONTRACT_TEMPLATE_PATH = Path(
     "docs/axys_apx/contracts/templates/site_extract_contract.yaml"
 )
@@ -79,7 +79,7 @@ _SITE_VARIANT_FIXTURES_PATH = Path("tests/data/axys/site_variants")
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path
 
@@ -246,7 +246,7 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_load_baseline_snapshot_a_transactions(self) -> None:
         """Transaction rows load with normalized internal columns."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
@@ -303,7 +303,7 @@ class TestTransactionsLoader(unittest.TestCase):
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
-                TransactionsLoader(PerformanceComparisonSpecification(path)).load("a")
+                TransactionsLoader(AuditSpecification(path)).load("a")
 
         message = str(context.exception)
         self.assertTrue(message.startswith("Error 504"))
@@ -311,7 +311,7 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_transaction_category_is_inferred_from_transaction_code(self) -> None:
         """Transaction codes are labeled with conservative normalized categories."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
@@ -479,7 +479,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -518,7 +518,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -564,7 +564,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -600,7 +600,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -646,7 +646,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -686,7 +686,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -724,7 +724,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -808,7 +808,7 @@ class TestTransactionsLoader(unittest.TestCase):
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 pl.DataFrame(rows).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -850,10 +850,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_imex_context_classifies_ambiguous_axys_codes(self) -> None:
         """Fixture-backed IMEX context rules classify every ambiguous Axys code."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "imex_context"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -975,10 +975,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_fixed_income_accruals_use_explicit_rules(self) -> None:
         """Fixed-income accrued-interest codes stay YAML-scoped, not built-in."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "fixed_income_accruals"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1027,10 +1027,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_ai_margin_interest_uses_explicit_rules(self) -> None:
         """Margin-style ``ai`` rows stay YAML-scoped, not built-in."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "ai_margin_interest"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1064,10 +1064,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_rc_return_of_capital_uses_explicit_rules(self) -> None:
         """Return-of-capital rows stay YAML-scoped for Modified Dietz treatment."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "rc_return_of_capital"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1103,10 +1103,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_pd_principal_paydown_uses_explicit_rules(self) -> None:
         """Principal-paydown rows stay YAML-scoped for Modified Dietz treatment."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "pd_principal_paydown"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1142,10 +1142,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_short_side_trades_use_explicit_rules(self) -> None:
         """Short-side rows stay YAML-scoped and lowercase-code specific."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "short_side_trades"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1194,10 +1194,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_rep_semantics_can_supply_ambiguous_flow_context(self) -> None:
         """REP/report semantics can be the reviewed context for ambiguous codes."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "rep_semantics"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1261,10 +1261,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_review_only_actions_stay_neutral(self) -> None:
         """Correction and synthetic corporate-action rows stay review-only."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "review_only_actions"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1360,7 +1360,7 @@ class TestTransactionsLoader(unittest.TestCase):
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 pl.DataFrame(rows).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -1423,10 +1423,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_code_only_imex_ambiguous_codes_fail_fast(self) -> None:
         """Code-only IMEX fixtures cannot classify ambiguous external flows."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "imex_code_only"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         with self.assertRaises(PpaError) as context:
@@ -1439,10 +1439,10 @@ class TestTransactionsLoader(unittest.TestCase):
 
     def test_site_variant_local_opt_out_classifies_code_only_rows(self) -> None:
         """Reviewed local opt-out allows code-only ambiguous rows by design."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _SITE_VARIANT_FIXTURES_PATH
             / "local_opt_out"
-            / "ppar_performance_comparison.yaml"
+            / "ppar_audit.yaml"
         )
 
         frame = TransactionsLoader(specification).load("a")
@@ -1507,7 +1507,7 @@ class TestTransactionsLoader(unittest.TestCase):
             validate_config(
                 _SITE_VARIANT_FIXTURES_PATH
                 / "local_opt_out"
-                / "ppar_performance_comparison.yaml",
+                / "ppar_audit.yaml",
                 require_complete_yaml_setup=False,
             )["enforce_ambiguous_axys_flows"]
         )
@@ -1545,7 +1545,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -1614,7 +1614,7 @@ class TestTransactionsLoader(unittest.TestCase):
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 pl.DataFrame(rows).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -1651,7 +1651,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -1693,7 +1693,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -1743,7 +1743,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -1854,7 +1854,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             frame = TransactionsLoader(specification).load("a")
             assert frame is not None
@@ -1884,7 +1884,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -1896,7 +1896,7 @@ class TestTransactionsLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             path = _write_yaml(directory, _minimal_specification(directory))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(TransactionsLoader(specification).load("a"))
 
@@ -1910,7 +1910,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 "transactions": "missing_transactions.csv",
             }
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(TransactionsLoader(specification).load("a"))
 
@@ -1932,7 +1932,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -1959,7 +1959,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")
@@ -1983,7 +1983,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     encoding="utf-8",
                 )
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 TransactionsLoader(specification).load("a")

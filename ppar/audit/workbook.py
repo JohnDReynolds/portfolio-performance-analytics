@@ -16,11 +16,11 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import explain as _pc_explain
-from ppar.performance_comparison import findings as _pc_findings
-from ppar.performance_comparison import rendering as _pc_rendering
-from ppar.performance_comparison import review_model as _pc_review_model
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison import explain as _pc_explain
+from ppar.audit.performance_comparison import findings as _pc_findings
+from ppar.audit import rendering as _pc_rendering
+from ppar.audit import review_model as _pc_review_model
 
 REVIEW_WORKBOOK_ARTIFACT = _pc_review_model.REVIEW_WORKBOOK_ARTIFACT
 WORKBOOK_NUMBER_FORMAT = "0.000000"
@@ -116,12 +116,12 @@ _KEY_COLUMNS = {
     "review_key",
     "reconstruction_review_key",
 }
-_DATA_AUDIT_AUTO_FIT_COLUMNS = {
+_DATA_ISSUES_AUTO_FIT_COLUMNS = {
     "issue_type",
     "tolerance",
 }
-_DATA_AUDIT_AUTO_FIT_WIDTH_FACTOR = 0.85
-_DATA_AUDIT_EXPLANATION_WIDTH = 60
+_DATA_ISSUES_AUTO_FIT_WIDTH_FACTOR = 0.85
+_DATA_ISSUES_EXPLANATION_WIDTH = 60
 _REVIEW_NEEDED_STATUSES = {"Partly Explained", "Unexplained"}
 _REVIEW_NEEDED_COLUMNS = {"unexplained_change", "review_status", "review_note"}
 _EXCEL_HEADER_LINE_BREAKS = {
@@ -166,7 +166,7 @@ REQUIRED_HEADERS = {
         "Performance Difference Explained",
         "Explanation",
     ),
-    _pc_review_model.X_REF_ISSUES_SHEET: (
+    _pc_review_model.DATA_ISSUES_SHEET: (
         "Snapshot",
         "Portfolio",
         "As Of Date",
@@ -605,9 +605,9 @@ def _append_and_format_workbook_data_rows(
     """
     explained_column = _workbook_column_index(columns, "estimated_impact")
     explanation_column = _workbook_column_index(columns, "review_guidance")
-    data_audit_explanation_column = (
+    data_issues_explanation_column = (
         _workbook_column_index(columns, "explanation")
-        if worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
+        if worksheet.title == _pc_review_model.DATA_ISSUES_SHEET
         else None
     )
     review_needed_columns = tuple(
@@ -645,10 +645,10 @@ def _append_and_format_workbook_data_rows(
                 worksheet.cell(row=row_number, column=column_index).number_format = (
                     WORKBOOK_NUMBER_FORMAT
                 )
-        if data_audit_explanation_column is not None:
+        if data_issues_explanation_column is not None:
             worksheet.cell(
                 row=row_number,
-                column=data_audit_explanation_column,
+                column=data_issues_explanation_column,
             ).alignment = styles["wrapped_alignment"]
         row_type_value = row.get("row_type")
         if row_type_value == "Explained Cause":
@@ -694,19 +694,19 @@ def _format_workbook_columns(
     ):
         column_letter = _column_letter(column_index)
         if (
-            worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
+            worksheet.title == _pc_review_model.DATA_ISSUES_SHEET
             and column_name == "explanation"
         ):
             worksheet.column_dimensions[column_letter].width = (
-                _DATA_AUDIT_EXPLANATION_WIDTH
+                _DATA_ISSUES_EXPLANATION_WIDTH
             )
         elif (
-            worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
-            and column_name in _DATA_AUDIT_AUTO_FIT_COLUMNS
+            worksheet.title == _pc_review_model.DATA_ISSUES_SHEET
+            and column_name in _DATA_ISSUES_AUTO_FIT_COLUMNS
         ):
             worksheet.column_dimensions[column_letter].width = min(
                 (max(max_width, len(_normalize_header(header))) + 2)
-                * _DATA_AUDIT_AUTO_FIT_WIDTH_FACTOR,
+                * _DATA_ISSUES_AUTO_FIT_WIDTH_FACTOR,
                 255,
             )
         else:

@@ -10,7 +10,7 @@ import unittest
 import pandas as pd
 
 # Project Imports
-from ppar.performance_comparison import compare_snapshots
+from ppar.audit import compare_snapshots
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]

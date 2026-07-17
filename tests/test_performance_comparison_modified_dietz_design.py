@@ -5,7 +5,7 @@ from datetime import date
 import unittest
 
 # Project imports
-from ppar.performance_comparison.modified_dietz import (
+from ppar.audit.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact,
     modified_dietz_float,
     modified_dietz_flow_weight,

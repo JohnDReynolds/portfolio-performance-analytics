@@ -9,8 +9,8 @@ from collections.abc import Mapping
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison import findings as _pc_findings
-from ppar.performance_comparison import rendering as _pc_rendering
+from ppar.audit.performance_comparison import findings as _pc_findings
+from ppar.audit import rendering as _pc_rendering
 
 __all__ = [
     "REVIEW_KEY",

@@ -37,11 +37,11 @@ def main(argv: list[str] | None = None) -> int:
 
         return _analytics.main(remaining_args)
     if command == "setup":
-        from ppar.performance_comparison.cli import setup as _setup
+        from ppar.audit.cli import setup as _setup
 
         return _setup.main(remaining_args)
     if command == "audit":
-        from ppar.performance_comparison.cli import site_report as _site_report
+        from ppar.audit.cli import site_report as _site_report
 
         return _site_report.main(remaining_args, prog="ppar audit")
 
@@ -62,7 +62,7 @@ def _top_level_help() -> str:
         "commands:\n"
         "  setup                   Create a local PPAR setup folder.\n"
         "  audit                   "
-        "Write Performance Auditing reports from a configured site.\n"
+        "Write Audit reports from a configured site.\n"
         "  analytics               "
         "Write Performance Analytics reports from a configured site.\n"
         "\n"
@@ -79,7 +79,7 @@ def _top_level_help() -> str:
 def _top_level_onboarding() -> str:
     """Return the first-run handoff for users who type ``ppar``."""
     return (
-        "PPAR creates Axys/APX Performance Auditing and Performance Analytics reports.\n"
+        "PPAR creates Axys/APX Audit and Performance Analytics reports.\n"
         "\n"
         "First-time setup:\n"
         "  ppar setup ./my_ppar_data\n"
@@ -123,7 +123,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     subparsers.add_parser(
         "audit",
-        help="Write Performance Auditing reports from a configured site.",
+        help="Write Audit reports from a configured site.",
     )
     return parser
 

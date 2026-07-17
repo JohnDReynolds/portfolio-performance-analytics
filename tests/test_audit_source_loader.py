@@ -12,14 +12,14 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import aliases
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import source_loader
-from ppar.performance_comparison.portfolio_performance import (
+from ppar.audit import aliases
+from ppar.audit import schema as pc_cols
+from ppar.audit import source_loader
+from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
 )
-from ppar.performance_comparison.specification import ComparisonSnapshot
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.audit.specification import ComparisonSnapshot
+from ppar.audit.specification import AuditSpecification
 
 
 class TestSourceLoader(unittest.TestCase):
@@ -82,7 +82,7 @@ class TestSourceLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             specification_path = _write_source_loader_specification(directory)
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             with mock.patch.object(
                 source_loader,
@@ -257,7 +257,7 @@ class TestSourceLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             specification_path = _write_source_loader_specification(directory)
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             snapshot_a_path = source_loader.optional_file_path(
                 specification,
@@ -278,7 +278,7 @@ class TestSourceLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             specification_path = _write_source_loader_specification(directory)
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             path = source_loader.optional_file_path(
                 specification,
@@ -293,7 +293,7 @@ class TestSourceLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             specification_path = _write_source_loader_specification(directory)
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             with self.assertRaises(PpaError) as context:
                 source_loader.optional_file_path(
@@ -327,7 +327,7 @@ def _write_source_loader_specification(directory: Path) -> Path:
             "fx_rates": "fx_rates.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 

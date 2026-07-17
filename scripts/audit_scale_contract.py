@@ -24,7 +24,7 @@ _EQUIVALENCE_TABLES = {
         "source_finding_fingerprints",
         "economic_effect_id",
     ),
-    "x_ref_issues.csv": (),
+    "data_issues.csv": (),
 }
 _SCALE_PORTFOLIO_SUFFIX_PATTERN = r"_SCALE_\d{3}"
 _SYNTHETIC_AGGREGATION_PHRASE = " and other portfolios"

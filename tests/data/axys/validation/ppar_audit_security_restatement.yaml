@@ -1,5 +1,5 @@
 # =========================
-# PPAR Security Performance Auditing Configuration
+# PPAR Security Audit Configuration
 # =========================
 # This fixture compares the baseline Axys snapshot with a controlled
 # restatement snapshot at the security-performance result level.

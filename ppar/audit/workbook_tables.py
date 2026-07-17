@@ -15,24 +15,24 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import conservation as _pc_conservation
-from ppar.performance_comparison import field_roles as _field_roles
-from ppar.performance_comparison import explain as _pc_explain
-from ppar.performance_comparison import findings as _pc_findings
-from ppar.performance_comparison import lineage as _pc_lineage
-from ppar.performance_comparison import rendering as _pc_rendering
-from ppar.performance_comparison import review_keys as _pc_review_keys
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import return_reconstruction as _pc_reconstruction
-from ppar.performance_comparison import workbook as _pc_workbook
-from ppar.performance_comparison import x_ref as _pc_x_ref
-from ppar.performance_comparison.modified_dietz import modified_dietz_flow_weight
-from ppar.performance_comparison.specification import (
+from ppar.audit import schema as pc_cols
+from ppar.audit import conservation as _pc_conservation
+from ppar.audit import field_roles as _field_roles
+from ppar.audit.performance_comparison import explain as _pc_explain
+from ppar.audit.performance_comparison import findings as _pc_findings
+from ppar.audit import lineage as _pc_lineage
+from ppar.audit import rendering as _pc_rendering
+from ppar.audit import review_keys as _pc_review_keys
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit.performance_comparison import return_reconstruction as _pc_reconstruction
+from ppar.audit import workbook as _pc_workbook
+from ppar.audit.data_issues import checks as _data_issue_checks
+from ppar.audit.performance_comparison.modified_dietz import modified_dietz_flow_weight
+from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
     TRANSACTION_CATEGORY_BUY,
     TRANSACTION_CATEGORY_EXTERNAL_FLOW,
@@ -42,9 +42,9 @@ from ppar.performance_comparison.transactions import (
 )
 
 __all__ = [
-    "performance_comparison_review_workbook_sheets",
+    "audit_review_workbook_sheets",
     "workbook_column_tooltip",
-    "write_performance_comparison_review_workbook",
+    "write_audit_review_workbook",
 ]
 
 _REVIEW_STATUS = "review_status"
@@ -462,7 +462,7 @@ def _security_reconstruction_active_keys(
     return reconstruction_keys
 
 
-def write_performance_comparison_review_workbook(
+def write_audit_review_workbook(
     findings: pl.DataFrame,
     output_path: util.PathLike,
     *,
@@ -502,7 +502,7 @@ def write_performance_comparison_review_workbook(
     active_findings = _active_findings(findings)
     del top_evidence_limit
     return _pc_workbook.write_review_workbook_sheets(
-        performance_comparison_review_workbook_sheets(
+        audit_review_workbook_sheets(
             findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
@@ -514,7 +514,7 @@ def write_performance_comparison_review_workbook(
     )
 
 
-def performance_comparison_review_workbook_sheets(
+def audit_review_workbook_sheets(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
@@ -522,7 +522,7 @@ def performance_comparison_review_workbook_sheets(
     include_reconstruction_diagnostics: bool = False,
     _reconstruction_cache: _WorkbookReconstructionCache | None = None,
     _table_cache: _WorkbookTableCache | None = None,
-    _x_ref_issues: pl.DataFrame | None = None,
+    _data_issues: pl.DataFrame | None = None,
     _finding_audit_trail: pl.DataFrame | None = None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return review workbook sheet specifications in reviewer-first order.
@@ -578,7 +578,7 @@ def performance_comparison_review_workbook_sheets(
             comparison_level=comparison_level,
             table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
-            x_ref_issues=_x_ref_issues,
+            data_issues=_data_issues,
             finding_audit_trail=_finding_audit_trail,
         ),
         *diagnostic_sheets,
@@ -697,7 +697,7 @@ def _shared_detail_sheets(
     comparison_level: str,
     table_cache: _WorkbookTableCache,
     reconstruction_cache: _WorkbookReconstructionCache,
-    x_ref_issues: pl.DataFrame | None,
+    data_issues: pl.DataFrame | None,
     finding_audit_trail: pl.DataFrame | None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return detail sheets shared by portfolio and security workflows."""
@@ -741,14 +741,14 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name=_pc_review_model.X_REF_ISSUES_ARTIFACT,
-            sheet_name=_pc_review_model.X_REF_ISSUES_SHEET,
+            artifact_name=_pc_review_model.DATA_ISSUES_ARTIFACT,
+            sheet_name=_pc_review_model.DATA_ISSUES_SHEET,
             table=(
-                _pc_x_ref.x_ref_issues_table(comparison_path)
-                if x_ref_issues is None
-                else x_ref_issues
+                _data_issue_checks.data_issues_table(comparison_path)
+                if data_issues is None
+                else data_issues
             ),
-            columns=_pc_x_ref.X_REF_ISSUE_COLUMNS,
+            columns=_data_issue_checks.DATA_ISSUE_COLUMNS,
             labels=_workbook_column_labels(),
         ),
     ]
@@ -4487,12 +4487,12 @@ def _workbook_column_labels() -> dict[str, str]:
         _REVIEW_KEY: "Review Key",
         _pc_findings.PORTFOLIO_ID: "Portfolio",
         _pc_findings.SECURITY_ID: "Security",
-        _pc_x_ref.SNAPSHOT: "Snapshot",
-        _pc_x_ref.ISSUE_TYPE: "Issue Type",
-        _pc_x_ref.VALUE_A: "Reference Value",
-        _pc_x_ref.VALUE_B: "Observed Value",
-        _pc_x_ref.DIFFERENCE: "Difference",
-        _pc_x_ref.TOLERANCE: "Tolerance",
+        _data_issue_checks.SNAPSHOT: "Snapshot",
+        _data_issue_checks.ISSUE_TYPE: "Issue Type",
+        _data_issue_checks.VALUE_A: "Reference Value",
+        _data_issue_checks.VALUE_B: "Observed Value",
+        _data_issue_checks.DIFFERENCE: "Difference",
+        _data_issue_checks.TOLERANCE: "Tolerance",
         _pc_findings.FROM_DATE: "From Date",
         _pc_findings.THRU_DATE: "Thru Date",
         _PERFORMANCE_CHANGE: "Performance Difference",
@@ -4599,14 +4599,14 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_findings.FROM_DATE: "Beginning date of the affected performance period.",
         _pc_findings.THRU_DATE: "Ending date of the affected performance period.",
         _pc_findings.SECURITY_ID: "Security identifier, when the discrepancy is security-level.",
-        _pc_x_ref.SNAPSHOT: "Snapshot whose internal source-data is being checked.",
-        _pc_x_ref.ISSUE_TYPE: "Type of cross-reference consistency issue.",
-        _pc_x_ref.VALUE_A: ("Expected value or minimum rate found for this consistency check."),
-        _pc_x_ref.VALUE_B: ("Observed value or maximum rate found for this consistency check."),
-        _pc_x_ref.DIFFERENCE: (
+        _data_issue_checks.SNAPSHOT: "Snapshot whose internal source-data is being checked.",
+        _data_issue_checks.ISSUE_TYPE: "Type of cross-reference consistency issue.",
+        _data_issue_checks.VALUE_A: ("Expected value or minimum rate found for this consistency check."),
+        _data_issue_checks.VALUE_B: ("Observed value or maximum rate found for this consistency check."),
+        _data_issue_checks.DIFFERENCE: (
             "Observed value minus expected value, or maximum rate minus minimum rate."
         ),
-        _pc_x_ref.TOLERANCE: (
+        _data_issue_checks.TOLERANCE: (
             "Configured threshold before the consistency check raises an issue."
         ),
         _pc_findings.SEVERITY: "Materiality/severity assigned to this discrepancy.",

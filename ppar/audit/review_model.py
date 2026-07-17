@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from ppar.performance_comparison.specification import (
+from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
@@ -22,7 +22,7 @@ SECURITY_AUDIT_FILE_STEM: Final[str] = "security_audit"
 PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
 PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT: Final[str] = "performance_difference_causes"
 CAUSE_LINEAGE_ARTIFACT: Final[str] = "cause_lineage"
-X_REF_ISSUES_ARTIFACT: Final[str] = "x_ref_issues"
+DATA_ISSUES_ARTIFACT: Final[str] = "data_issues"
 SOURCE_DETAIL_ARTIFACT: Final[str] = "raw_audit_trail"
 TRANSACTION_MATCHING_DIAGNOSTICS_ARTIFACT: Final[str] = (
     "transaction_matching_diagnostics"
@@ -38,7 +38,7 @@ RECONSTRUCTION_SUMMARY_SHEET: Final[str] = "Reconstruction Summary"
 RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Return Reconstruction Checks"
 SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Security Return Checks"
 PERFORMANCE_DIFFERENCE_CAUSES_SHEET: Final[str] = "Performance Difference Causes"
-X_REF_ISSUES_SHEET: Final[str] = "Data Audit Issues"
+DATA_ISSUES_SHEET: Final[str] = "Data Issues"
 TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: Final[str] = (
     "Transaction Match Diagnostics"
 )
@@ -79,7 +79,7 @@ PRIMARY_REVIEW_SHEETS: Final[tuple[str, ...]] = (
 )
 SHARED_REVIEW_SHEETS: Final[tuple[str, ...]] = (
     PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    X_REF_ISSUES_SHEET,
+    DATA_ISSUES_SHEET,
 )
 EXPECTED_REVIEW_SHEETS: Final[tuple[str, ...]] = (
     *PRIMARY_REVIEW_SHEETS,

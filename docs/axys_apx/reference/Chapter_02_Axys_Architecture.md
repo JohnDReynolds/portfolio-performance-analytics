@@ -3,14 +3,14 @@
 Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_02_Axys_Architecture.md`
 Prepared: 2026-06-29
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 Source basis: supplied research files only
 
 ---
 
 ## Related chapters
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
-- [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md) — contrasts Axys and APX architecture.
+- [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md) — contrasts Axys/APX architecture.
 - [Chapter_12_Imex.md](Chapter_12_Imex.md) — covers the import/export pathways that move Axys data.
 - [Chapter_13_Rep.md](Chapter_13_Rep.md) — covers REP/reporting workflows that sit alongside IMEX.
 
@@ -295,10 +295,26 @@ Acceptance step in the integration workflow
 | Official Axys IMEX object name for prices | Unknown |
 | Official Axys IMEX object name for performance | Unknown |
 | Official Axys IMEX object name for classifications/groups | Unknown |
-| Whether Axys and APX use identical IMEX object names | Unknown |
+| Whether Axys/APX use identical IMEX object names | Unknown |
 | Complete IMEX field lists, data types, required fields, error codes, and rollback behavior | Unknown |
 | Whether IMEX can be safely automated by command line in all versions | Unknown |
 | Whether `*.imx` control/configuration files exist in a given environment and define object behavior | Unknown |
+
+### 6.5 Live IMEX Discovery and Architectural Boundary
+
+IMEX is an integration utility rather than a public data model.
+
+| Artifact / concept | Architectural role | Confidence |
+|---|---|---:|
+| `imex32.exe` | Axys Import/Export utility used by CI workflows. | Verified for CI |
+| `pospos32.exe` | Axys Post Positions utility. | Verified for CI |
+| `$pathexe`, `$pathtrn`, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog` | CI-observed folder labels for executables, Trade Blotter, portfolio/client files, security/type information, prices, and logs. | Verified for CI |
+| IMEX object catalog | Must be discovered from live Axys, vendor docs, templates, layouts, and logs; not publicly complete. | Unknown |
+| REP/report extraction | Architectural alternative when report-shaped values or performance tie-outs are needed. | High Confidence |
+
+Implementation guidance: capture object names, field labels/tokens, templates,
+formats, logs, Axys version, source row lineage, and confidence per client
+installation. Do not treat a normalized audit schema as an Axys native schema.
 
 ---
 
@@ -558,7 +574,7 @@ Any Axys extract used for integration, audit, or research should record the foll
 |---|---:|---|
 | Do not assume Axys has APX SQL access. | Verified by absence / High Confidence | APX SQL evidence does not transfer to Axys. |
 | Do not assume APX native storage is Axys file storage. | High Confidence | APX can use compatibility/export artifacts, but native APX architecture is SQL-centered in supplied research. |
-| Do not assume Axys and APX IMEX field names are identical. | Unknown | Requires paired object dictionaries or exports. |
+| Do not assume Axys/APX IMEX field names are identical. | Unknown | Requires paired object dictionaries or exports. |
 | Do not assume report outputs equal IMEX outputs. | High Confidence | Reports can calculate, aggregate, format, or filter values. |
 | Do not assume direct files, IMEX, REP, and SQL/public views contain identical values at the same time. | High Confidence | Timing, report options, posting state, price source, and calculation paths may differ. |
 
@@ -807,25 +823,6 @@ Do not treat this example as a complete Axys transaction import layout.
 
 ---
 
-## 15.1 Deep IMEX Architecture Update
-
-The 2026-06-30 IMEX deep research reinforces the architectural position of
-IMEX as an integration utility rather than a public data model.
-
-| Artifact / concept | Architectural role | Confidence |
-|---|---|---:|
-| `imex32.exe` | Axys Import/Export utility used by CI workflows. | Verified for CI |
-| `pospos32.exe` | Axys Post Positions utility. | Verified for CI |
-| `$pathexe`, `$pathtrn`, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog` | CI-observed folder labels for executables, Trade Blotter, portfolio/client files, security/type information, prices, and logs. | Verified for CI |
-| IMEX object catalog | Must be discovered from live Axys, vendor docs, templates, layouts, and logs; not publicly complete. | Unknown |
-| REP/report extraction | Architectural alternative when report-shaped values or performance tie-outs are needed. | High Confidence |
-
-Implementation guidance: capture object names, field labels/tokens, templates,
-formats, logs, Axys version, source row lineage, and confidence per client
-installation. Do not treat a normalized audit schema as an Axys native schema.
-
----
-
 ## 16. Unsupported or Unknown Information
 
 The following items remain unsupported by the supplied material and must be documented as Unknown until additional evidence is provided.
@@ -854,7 +851,7 @@ This chapter is based on the supplied research and source material only.
 
 | Source file | Used for |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial specification, confidence-label discipline, chapter structure. |
+| `axys_apx_reference_blueprint.md` | Governing editorial specification, confidence-label discipline, chapter structure. |
 | `../evidence/Research_02_Axys_Architecture.md` | Core Axys/APX architecture findings, version differences, integration and reporting architecture. |
 | `../evidence/Research_04_Security_Master.md` | Security master, `sec.inf`, `type.inf`, `imex32.exe`, `APXIX.exe`, security matching, symbol/type identity. |
 | `../evidence/Research_05_Transactions.md` | Transaction lifecycle, Trade Blotter, `topost.trn`, observed transaction fields/codes, cancellation examples. |
@@ -885,3 +882,9 @@ Before upgrading any `Unknown` or `Medium Confidence` item in this chapter, obta
 10. APX architecture materials for the separate APX architecture chapter.
 
 Do not convert observed integration behavior into universal native Axys behavior without explicit support.
+
+## Research Provenance
+
+The 2026-06-30 deep IMEX architecture conclusions are incorporated into
+Section 6.5. Their supporting source history remains in
+`../evidence/Research_02_Axys_Architecture.md`.

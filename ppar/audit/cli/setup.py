@@ -12,20 +12,20 @@ from typing import Final
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison.config_validation import validate_config
+from ppar.audit.config_validation import validate_config
 import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _ANALYTICS_DIRECTORY: Final[str] = "analytics"
-_PERFORMANCE_COMPARISON_DIRECTORY: Final[str] = "audit"
+_AUDIT_DIRECTORY: Final[str] = "audit"
 _SNAPSHOT_A_DIR: Final[str] = "snapshot_a"
 _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
 _PACKAGED_DEMO_RESOURCE: Final[str] = "ppar.setup_templates"
-_PACKAGED_ANALYTICS_DIRECTORY: Final[str] = "axysapx_analytics"
-_PACKAGED_COMPARISON_DIRECTORY: Final[str] = "axysapx_performance_comparison"
+_PACKAGED_ANALYTICS_DIRECTORY: Final[str] = "axys_apx_analytics"
+_PACKAGED_AUDIT_DIRECTORY: Final[str] = "axys_apx_audit"
 _PACKAGED_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
-_PACKAGED_ANALYTICS_YAML: Final[str] = "axysapx_analytics.yaml"
-_PACKAGED_COMPARISON_YAML: Final[str] = "axysapx_performance_comparison.yaml"
+_PACKAGED_ANALYTICS_YAML: Final[str] = "axys_apx_analytics.yaml"
+_PACKAGED_AUDIT_YAML: Final[str] = "axys_apx_audit.yaml"
 _GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
@@ -39,8 +39,9 @@ _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "transactions.csv",
     "splits.csv",
 )
-_COMPARISON_TUTORIAL_SCRIPTS: Final[tuple[str, ...]] = (
+_AUDIT_SETUP_FILES: Final[tuple[str, ...]] = (
     "run_audit.py",
+    "axys_apx_column_mappings.yaml",
 )
 
 
@@ -52,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
 
     Returns:
         Process exit code. ``0`` indicates that the starter workspace exists
-        and performance comparison setup validates.
+        and Audit setup validates.
     """
     args = _argument_parser().parse_args(argv)
     try:
@@ -89,21 +90,21 @@ def run_setup(
 
     Raises:
         PpaError: If a destination path is an existing non-directory, if starter
-            files cannot be written, or if performance-comparison validation
+            files cannot be written, or if Audit validation
             fails.
     """
     site_path = Path(site_directory).expanduser()
     setup_status = _ensure_directory(site_path)
     analytics_path = site_path / _ANALYTICS_DIRECTORY
-    comparison_path = site_path / _PERFORMANCE_COMPARISON_DIRECTORY
+    audit_path = site_path / _AUDIT_DIRECTORY
     readme_status = _write_text_file(
         site_path / "README.md",
         _starter_readme_text(site_path),
         overwrite=overwrite,
     )
     analytics_status = _ensure_analytics_starter(analytics_path, overwrite=overwrite)
-    comparison_status = _ensure_comparison_starter(
-        comparison_path,
+    audit_status = _ensure_audit_starter(
+        audit_path,
         overwrite=overwrite,
     )
     generic_analytics_path = site_path / _GENERIC_ANALYTICS_DIRECTORY
@@ -113,7 +114,7 @@ def run_setup(
             generic_analytics_path,
             overwrite=overwrite,
         )
-    comparison_config_path = comparison_path / _CONFIG_FILE_NAME
+    audit_config_path = audit_path / _CONFIG_FILE_NAME
 
     result: dict[str, Path | str] = {
         "site_directory": site_path,
@@ -123,20 +124,20 @@ def run_setup(
         "analytics_directory": analytics_path,
         "analytics_status": analytics_status,
         "analytics_config_path": analytics_path / _CONFIG_FILE_NAME,
-        "comparison_directory": comparison_path,
-        "comparison_status": comparison_status,
-        "comparison_config_path": comparison_config_path,
+        "audit_directory": audit_path,
+        "audit_status": audit_status,
+        "audit_config_path": audit_config_path,
     }
     if generic_analytics_status is not None:
         result["generic_analytics_directory"] = generic_analytics_path
         result["generic_analytics_status"] = generic_analytics_status
-    missing_files = _missing_snapshot_files(comparison_path)
+    missing_files = _missing_snapshot_files(audit_path)
     if missing_files:
         result["missing_files"] = "\n".join(missing_files)
         return result
 
-    validate_config(comparison_config_path)
-    result["validation_status"] = "performance-comparison-ready"
+    validate_config(audit_config_path)
+    result["validation_status"] = "audit-ready"
     return result
 
 
@@ -146,7 +147,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         prog="ppar setup",
         description=(
             "Create an Axys/APX starter workspace with analytics and "
-            "Performance Auditing folders."
+            "Audit folders."
         ),
         epilog=(
             "Examples:\n"
@@ -193,7 +194,7 @@ def _missing_snapshot_files(site_path: Path) -> list[str]:
         for file_name in _PORTFOLIO_SETUP_FILES:
             if not (snapshot_path / file_name).exists():
                 missing_files.append(
-                    f"{_PERFORMANCE_COMPARISON_DIRECTORY}/{snapshot_dir}/{file_name}"
+                    f"{_AUDIT_DIRECTORY}/{snapshot_dir}/{file_name}"
                 )
     return missing_files
 
@@ -218,16 +219,16 @@ def _ensure_analytics_starter(directory: Path, *, overwrite: bool) -> str:
     return _combined_status(status, config_status)
 
 
-def _ensure_comparison_starter(directory: Path, *, overwrite: bool) -> str:
-    """Copy Axys/APX performance-comparison starter files into ``directory``."""
+def _ensure_audit_starter(directory: Path, *, overwrite: bool) -> str:
+    """Copy Axys/APX Audit starter files into ``directory``."""
     status = _ensure_directory(directory)
     source_directory = files(_PACKAGED_DEMO_RESOURCE).joinpath(
-        _PACKAGED_COMPARISON_DIRECTORY
+        _PACKAGED_AUDIT_DIRECTORY
     )
     config_status = _write_text_file(
         directory / _CONFIG_FILE_NAME,
-        _starter_comparison_config_text(
-            source_directory.joinpath(_PACKAGED_COMPARISON_YAML)
+        _starter_audit_config_text(
+            source_directory.joinpath(_PACKAGED_AUDIT_YAML)
         ),
         overwrite=overwrite,
     )
@@ -237,7 +238,7 @@ def _ensure_comparison_starter(directory: Path, *, overwrite: bool) -> str:
             directory / snapshot_dir,
             overwrite=overwrite,
         )
-    for file_name in _COMPARISON_TUTORIAL_SCRIPTS:
+    for file_name in _AUDIT_SETUP_FILES:
         _copy_resource_file(
             source_directory.joinpath(file_name),
             directory / file_name,
@@ -256,18 +257,9 @@ def _ensure_generic_analytics_starter(directory: Path, *, overwrite: bool) -> st
     return status
 
 
-def _starter_comparison_config_text(resource: Traversable) -> str:
-    """Return the documented one-file performance-comparison starter YAML."""
-    text = resource.read_text(encoding=util.ENCODING)
-    text = text.replace(
-        "name: Axys/APX performance comparison starter",
-        "name: PPAR performance comparison",
-    )
-    text = text.replace(
-        "    vendor: axys\n    schema: axysapx_column_mappings.yaml\n",
-        "    vendor: axysapx\n",
-    )
-    return text
+def _starter_audit_config_text(resource: Traversable) -> str:
+    """Return the documented one-file Audit starter YAML."""
+    return resource.read_text(encoding=util.ENCODING)
 
 
 def _starter_readme_text(site_path: Path) -> str:
@@ -288,20 +280,20 @@ your own data (see "Customizing With Your Own Data" below).
 
 ## Demos
 
-### Performance Auditing
+### Audit
 
-Use Performance Auditing to answer: "Why did my reported performance change?"
+Use Audit to answer: "Why did my reported performance change?"
 
 - **Performance Comparison:** identifies changed portfolio and security
   performance for each time period, quantitatively attributes the differences
   to changes in holdings and transactions, and highlights anything that needs human
   review.
-- **Data Auditing:** flags suspicious source-data relationships — including price
+- **Data Issues:** flags suspicious source-data relationships — including price
   ranges, dividend rates, accrued-interest rates, and missing dividends — that
   may indicate data-quality issues.
 
 ```bash
-ppar audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
+ppar audit {site_path / _AUDIT_DIRECTORY}
 ```
 
 ### Performance Analytics
@@ -319,9 +311,9 @@ ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 
 ## Customizing With Your Own Data
 
-### Performance Auditing
+### Audit
 
-Performance Auditing compares two snapshots:
+Audit compares two snapshots:
 
 - `snapshot_a`: the original or older source-data snapshot.
 - `snapshot_b`: the newer, corrected, or restated source-data snapshot.
@@ -331,7 +323,7 @@ Steps:
 1. Replace the CSV data in `audit/snapshot_a`.
 2. Replace the CSV data in `audit/snapshot_b`.
 3. Edit `audit/ppar.yaml`.
-4. Run `ppar audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
+4. Run `ppar audit {site_path / _AUDIT_DIRECTORY}`.
 
 #### Getting Data from Axys/APX
 
@@ -469,8 +461,8 @@ def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
     print(f"PPAR setup complete: {result['site_directory']}")
     print()
-    print("To run Performance Auditing:")
-    print(f"  ppar audit {result['comparison_directory']}")
+    print("To run Audit:")
+    print(f"  ppar audit {result['audit_directory']}")
     print()
     print("To run Performance Analytics:")
     print(f"  ppar analytics {result['analytics_directory']}")

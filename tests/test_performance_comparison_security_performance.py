@@ -11,21 +11,21 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
-    PerformanceComparisonSpecification,
+from ppar.audit import (
+    AuditSpecification,
     SecurityPerformanceLoader,
 )
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
-    path = directory / "ppar_performance_comparison.yaml"
+    path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path
 
@@ -57,7 +57,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
 
     def test_load_baseline_snapshot_a_security_performance(self) -> None:
         """Security performance rows load with normalized internal columns."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = SecurityPerformanceLoader(specification).load("a")
         assert frame is not None
 
@@ -76,7 +76,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
 
     def test_restatement_snapshot_b_loads_changed_security_return(self) -> None:
         """The restatement fixture exposes controlled security changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
+        specification = AuditSpecification(_RESTATEMENT_COMPARISON_PATH)
         frame = SecurityPerformanceLoader(specification).load("b")
         assert frame is not None
 
@@ -93,7 +93,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             path = _write_yaml(directory, _minimal_specification(directory))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(SecurityPerformanceLoader(specification).load("a"))
 
@@ -107,7 +107,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
                 "security_performance": "missing_secperf.csv",
             }
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             self.assertIsNone(SecurityPerformanceLoader(specification).load("a"))
 
@@ -130,7 +130,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "secperf.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 SecurityPerformanceLoader(specification).load("a")
@@ -159,7 +159,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "secperf.csv")
             path = _write_yaml(directory, configuration)
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 SecurityPerformanceLoader(specification).load("a")

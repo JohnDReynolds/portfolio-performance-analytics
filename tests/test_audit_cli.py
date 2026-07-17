@@ -19,22 +19,22 @@ from openpyxl import load_workbook
 import yaml
 
 from ppar.errors import PpaError
-from ppar.performance_comparison.cli import site_report as _site_report
+from ppar.audit.cli import site_report as _site_report
 
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml"
 )
-_PACKAGED_AXYS_DATA_PATH = Path("ppar/setup_templates/axysapx_performance_comparison")
+_PACKAGED_AXYS_APX_DATA_PATH = Path("ppar/setup_templates/axys_apx_audit")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
-_BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
-_VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
-_VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
-_VALIDATE_DEMO_MATRIX_MODULE = "ppar.performance_comparison.cli.validate_demo_matrix"
-_SETUP_MODULE = "ppar.performance_comparison.cli.setup"
-_SITE_REPORT_MODULE = "ppar.performance_comparison.cli.site_report"
+_BUNDLE_MODULE = "ppar.audit.cli.report_bundle"
+_VALIDATE_BUNDLE_MODULE = "ppar.audit.cli.validate_bundle"
+_VALIDATE_CONFIG_MODULE = "ppar.audit.cli.validate_config"
+_VALIDATE_DEMO_MATRIX_MODULE = "ppar.audit.cli.validate_demo_matrix"
+_SETUP_MODULE = "ppar.audit.cli.setup"
+_SITE_REPORT_MODULE = "ppar.audit.cli.site_report"
 _ANALYTICS_MODULE = "ppar.analytics.cli"
 _PPAR_MODULE = "ppar.cli"
 _DEMO_QUIET_PHRASES = (
@@ -43,12 +43,12 @@ _DEMO_QUIET_PHRASES = (
     "Analytics demo output written to:",
     "Report bundle written to:",
     "Bundle artifacts:",
-    "Portfolio Performance Auditing Report",
-    "Security Performance Auditing Report",
+    "Portfolio Audit Report",
+    "Security Audit Report",
 )
 
 
-class TestPerformanceComparisonCli(unittest.TestCase):
+class TestAuditCli(unittest.TestCase):
     """Verify command-line report generation and validation commands."""
 
     def test_site_audit_returns_nonzero_for_output_row_limit(self) -> None:
@@ -83,16 +83,16 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Write Axys/APX analytics reports"
             ),
             _SITE_REPORT_MODULE: (
-                "Write Performance Auditing report bundles"
+                "Write Audit report bundles"
             ),
             _BUNDLE_MODULE: (
-                "Write a Performance Auditing review artifact bundle."
+                "Write an Audit review artifact bundle."
             ),
             _VALIDATE_BUNDLE_MODULE: (
-                "Validate a performance comparison report bundle."
+                "Validate an Audit report bundle."
             ),
             _VALIDATE_CONFIG_MODULE: (
-                "Validate a performance comparison YAML configuration."
+                "Validate an Audit YAML configuration."
             ),
             _VALIDATE_DEMO_MATRIX_MODULE: (
                 "Validate performance comparison scenario coverage."
@@ -150,7 +150,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("analytics", result.stdout)
         self.assertIn("setup", result.stdout)
         self.assertIn("audit", result.stdout)
-        self.assertIn("Write Performance Auditing reports", result.stdout)
+        self.assertIn("Write Audit reports", result.stdout)
         self.assertIn("Write Performance Analytics reports", result.stdout)
         self.assertLess(
             result.stdout.index("audit"),
@@ -183,7 +183,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("PPAR creates Axys/APX Performance Auditing", result.stdout)
+        self.assertIn("PPAR creates Axys/APX Audit", result.stdout)
         self.assertIn("Performance Analytics reports.", result.stdout)
         self.assertIn("First-time setup:", result.stdout)
         self.assertIn("ppar setup ./my_ppar_data", result.stdout)
@@ -213,8 +213,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("site_directory", result.stderr)
         self.assertNotIn("--guide", result.stderr)
 
-    def test_setup_writes_one_yaml_config(self) -> None:
-        """Setup creates one user-facing YAML per starter workflow."""
+    def test_setup_writes_canonical_yaml_configs(self) -> None:
+        """Setup creates self-describing YAML for each starter workflow."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_data"
 
@@ -234,7 +234,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             readme = (site_directory / "README.md").read_text(encoding="utf-8")
             self.assertIn("PPAR setup complete:", result.stdout)
-            self.assertIn("To run Performance Auditing:", result.stdout)
+            self.assertIn("To run Audit:", result.stdout)
             self.assertIn("To run Performance Analytics:", result.stdout)
             self.assertIn("To customize with your own data:", result.stdout)
             self.assertIn(
@@ -278,7 +278,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "If you want to customize the workflows and outputs",
                 readme,
             )
-            self.assertIn("Performance Auditing compares two snapshots", readme)
+            self.assertIn("Audit compares two snapshots", readme)
             self.assertIn("#### Getting Data from Axys/APX", readme)
             self.assertIn("Start with the comments under `files:`", readme)
             self.assertIn("use a REP performance or attribution", readme)
@@ -289,7 +289,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertEqual(readme.count("splits.csv"), 2)
             demo_sequence = [
                 "## Demos",
-                "### Performance Auditing",
+                "### Audit",
                 f"ppar audit {site_directory / 'audit'}",
                 "### Performance Analytics",
                 f"ppar analytics {site_directory / 'analytics'}",
@@ -350,15 +350,20 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertFalse((site_directory / "generic_analytics").exists())
             self.assertEqual(config["snapshots"]["a"]["path"], "snapshot_a")
             self.assertEqual(config["snapshots"]["b"]["path"], "snapshot_b")
-            self.assertNotIn("schema", config["snapshots"]["a"])
-            self.assertNotIn("schema", config["snapshots"]["b"])
+            for snapshot_name in ("a", "b"):
+                snapshot = config["snapshots"][snapshot_name]
+                self.assertEqual(snapshot["vendor"], "axys_apx")
+                self.assertEqual(
+                    snapshot["schema"],
+                    "axys_apx_column_mappings.yaml",
+                )
             self.assertIn("security_return_reconstruction", config)
-            self.assertFalse(
-                (comparison_path / "axysapx_column_mappings.yaml").exists()
+            self.assertTrue(
+                (comparison_path / "axys_apx_column_mappings.yaml").exists()
             )
 
     def test_setup_creates_starter_workspace(self) -> None:
-        """Setup creates analytics and performance-comparison starter folders."""
+        """Setup creates Analytics and Audit starter folders."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_data"
 
@@ -409,7 +414,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 site_directory / "audit" / "run_audit.py"
             )
             analytics_config_path = site_directory / "analytics" / "ppar.yaml"
-            comparison_config_path = (
+            audit_config_path = (
                 site_directory / "audit" / "ppar.yaml"
             )
 
@@ -421,7 +426,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 + "\n# custom analytics note\n"
             )
             custom_comparison_config = (
-                comparison_config_path.read_text(encoding="utf-8")
+                audit_config_path.read_text(encoding="utf-8")
                 + "\n# custom performance comparison note\n"
             )
             readme_path.write_text(custom_readme, encoding="utf-8")
@@ -431,7 +436,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 custom_analytics_config,
                 encoding="utf-8",
             )
-            comparison_config_path.write_text(
+            audit_config_path.write_text(
                 custom_comparison_config,
                 encoding="utf-8",
             )
@@ -457,7 +462,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 custom_analytics_config,
             )
             self.assertEqual(
-                comparison_config_path.read_text(encoding="utf-8"),
+                audit_config_path.read_text(encoding="utf-8"),
                 custom_comparison_config,
             )
 
@@ -945,7 +950,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         """Programmatic entrypoints accept string paths as well as ``Path`` values."""
         from ppar.analytics.cli import run_analytics
         from ppar.errors import PpaError
-        from ppar.performance_comparison.cli.site_report import run_report
+        from ppar.audit.cli.site_report import run_report
 
         with tempfile.TemporaryDirectory() as directory:
             missing_analytics_path = str(Path(directory) / "missing_analytics")
@@ -966,12 +971,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "audit"
+            audit_directory = site_directory / "audit"
 
             result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(comparison_directory),
+                    str(audit_directory),
                 ),
                 check=True,
                 capture_output=True,
@@ -979,17 +984,17 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(
-                "Open these files to review Performance Auditing output:",
+                "Open these files to review Audit output:",
                 result.stdout,
             )
             self.assertIn("output/portfolio/portfolio_audit.xlsx", result.stdout)
             self.assertIn("output/security/security_audit.xlsx", result.stdout)
             self.assertIn("output/portfolio/portfolio_audit.html", result.stdout)
             self.assertIn("output/security/security_audit.html", result.stdout)
-            self.assertTrue((comparison_directory / "ppar.yaml").exists())
+            self.assertTrue((audit_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "portfolio"
                     / "portfolio_audit.xlsx"
@@ -997,7 +1002,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "portfolio"
                     / "portfolio_audit.html"
@@ -1005,7 +1010,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "security"
                     / "security_audit.xlsx"
@@ -1013,7 +1018,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "security"
                     / "security_audit.html"
@@ -1030,12 +1035,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "audit"
+            audit_directory = site_directory / "audit"
 
             subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(comparison_directory),
+                    str(audit_directory),
                     "--report",
                     "portfolio",
                     "--no-html-output",
@@ -1045,7 +1050,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            output_directory = comparison_directory / "output" / "portfolio"
+            output_directory = audit_directory / "output" / "portfolio"
             self.assertTrue((output_directory / "portfolio_audit.xlsx").exists())
             self.assertFalse((output_directory / "portfolio_audit.html").exists())
 
@@ -1059,12 +1064,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "audit"
+            audit_directory = site_directory / "audit"
 
             result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(comparison_directory),
+                    str(audit_directory),
                     "--report",
                     "portfolio",
                     "--no-xlsx-output",
@@ -1075,13 +1080,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            output_directory = comparison_directory / "output" / "portfolio"
+            output_directory = audit_directory / "output" / "portfolio"
             self.assertFalse((output_directory / "portfolio_audit.xlsx").exists())
             self.assertFalse((output_directory / "portfolio_audit.html").exists())
             for file_name in (
                 "performance_differences.csv",
                 "performance_difference_causes.csv",
-                "x_ref_issues.csv",
+                "data_issues.csv",
                 "source_detail.csv",
             ):
                 with self.subTest(file_name=file_name):
@@ -1089,7 +1094,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue((output_directory / "audit_support.zip").is_file())
             self.assertIn("performance_differences.csv", result.stdout)
             self.assertIn("performance_difference_causes.csv", result.stdout)
-            self.assertIn("x_ref_issues.csv", result.stdout)
+            self.assertIn("data_issues.csv", result.stdout)
             self.assertNotIn("source_detail.csv", result.stdout)
 
     def test_site_report_shares_reconstruction_cache_between_views(self) -> None:
@@ -1109,9 +1114,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     return_value=comparison_views,
                 ),
                 mock.patch.object(
-                    _site_report._pc_x_ref,
-                    "x_ref_issues_table",
-                    return_value=mock.sentinel.x_ref_issues,
+                    _site_report._data_issue_checks,
+                    "data_issues_table",
+                    return_value=mock.sentinel.data_issues,
                 ),
                 mock.patch.object(
                     _site_report,
@@ -1142,14 +1147,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "audit"
-            (comparison_directory / "snapshot_a" / "secperf.csv").unlink()
-            (comparison_directory / "snapshot_b" / "secperf.csv").unlink()
+            audit_directory = site_directory / "audit"
+            (audit_directory / "snapshot_a" / "secperf.csv").unlink()
+            (audit_directory / "snapshot_b" / "secperf.csv").unlink()
 
             portfolio_result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(comparison_directory),
+                    str(audit_directory),
                     "--report",
                     "portfolio",
                 ),
@@ -1158,7 +1163,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
             default_result = subprocess.run(
-                _module_command(_SITE_REPORT_MODULE, str(comparison_directory)),
+                _module_command(_SITE_REPORT_MODULE, str(audit_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -1166,7 +1171,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             security_result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(comparison_directory),
+                    str(audit_directory),
                     "--report",
                     "security",
                 ),
@@ -1182,7 +1187,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "portfolio"
                     / "portfolio_audit.xlsx"
@@ -1190,7 +1195,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "portfolio"
                     / "portfolio_audit.html"
@@ -1217,12 +1222,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "audit"
+            audit_directory = site_directory / "audit"
 
             result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(comparison_directory),
+                    str(audit_directory),
                     "--report",
                     "security",
                 ),
@@ -1232,14 +1237,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(
-                "Open these files to review Performance Auditing output:",
+                "Open these files to review Audit output:",
                 result.stdout,
             )
             self.assertIn("output/security/security_audit.xlsx", result.stdout)
             self.assertIn("output/security/security_audit.html", result.stdout)
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "security"
                     / "security_audit.xlsx"
@@ -1247,13 +1252,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "security"
                     / "security_audit.html"
                 ).exists()
             )
-            self.assertFalse((comparison_directory / "output" / "portfolio").exists())
+            self.assertFalse((audit_directory / "output" / "portfolio").exists())
 
     def test_analytics_cli_writes_site_outputs(self) -> None:
         """The production analytics command writes output from setup data."""
@@ -1296,7 +1301,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self,
     ) -> None:
         """Performance-comparison demo handoffs only list the workbook path."""
-        from ppar.performance_comparison.cli.site_report import (
+        from ppar.audit.cli.site_report import (
             _print_success,
         )
 
@@ -1306,14 +1311,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 {
                     "review_paths": [
                         Path("_demo_output")
-                        / "performance_comparison_portfolio"
+                        / "audit_portfolio"
                         / "portfolio_audit.xlsx",
                     ],
                 }
             )
 
         output = stdout.getvalue()
-        self.assertIn("Open these files to review Performance Auditing output:", output)
+        self.assertIn("Open these files to review Audit output:", output)
         self.assertIn("portfolio_audit.xlsx", output)
         self.assertNotIn("portfolio_audit.html", output)
         self.assertNotIn("manifest.json", output)
@@ -1375,7 +1380,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
             analytics_directory = site_directory / "analytics"
-            comparison_directory = site_directory / "audit"
+            audit_directory = site_directory / "audit"
 
             analytics_result = subprocess.run(
                 _module_command(_PPAR_MODULE, "analytics"),
@@ -1391,7 +1396,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     "--report",
                     "portfolio",
                 ),
-                cwd=comparison_directory,
+                cwd=audit_directory,
                 check=True,
                 capture_output=True,
                 text=True,
@@ -1402,7 +1407,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 analytics_result.stdout,
             )
             self.assertIn(
-                "Open these files to review Performance Auditing output:",
+                "Open these files to review Audit output:",
                 comparison_result.stdout,
             )
             self.assertTrue(
@@ -1410,7 +1415,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    comparison_directory
+                    audit_directory
                     / "output"
                     / "portfolio"
                     / "portfolio_audit.xlsx"
@@ -1708,6 +1713,18 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Contribution impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: none", result.stdout)
         self.assertIn("Evidence-only impact methods: fx_rates, splits", result.stdout)
+        self.assertIn("Data Issues optional checks enabled:", result.stdout)
+        self.assertIn("duplicate_transactions", result.stdout)
+        self.assertIn(
+            "Data Issues mandatory checks: portfolio_market_value_continuity, "
+            "security_market_value_continuity",
+            result.stdout,
+        )
+        self.assertIn(
+            "Data Issues policy: mandatory continuity checks remain active; "
+            "optional checks are enabled by default",
+            result.stdout,
+        )
         self.assertIn("Transaction rules configured: 15", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
@@ -1851,7 +1868,7 @@ def _absolute_restatement_configuration() -> dict[str, object]:
     configuration["snapshots"]["b"]["path"] = str(
         fixture_directory / "axys_b_restatement"
     )
-    schema_path = _PACKAGED_AXYS_DATA_PATH.resolve() / "axysapx_column_mappings.yaml"
+    schema_path = _PACKAGED_AXYS_APX_DATA_PATH.resolve() / "axys_apx_column_mappings.yaml"
     configuration["snapshots"]["a"]["schema"] = str(
         schema_path
     )
@@ -1865,11 +1882,11 @@ def _copy_site_snapshots(directory: Path) -> Path:
     """Copy packaged demo snapshots into a setup-style site folder."""
     site_directory = directory / "my_site_extracts"
     shutil.copytree(
-        _PACKAGED_AXYS_DATA_PATH / "snapshot_a",
+        _PACKAGED_AXYS_APX_DATA_PATH / "snapshot_a",
         site_directory / "snapshot_a",
     )
     shutil.copytree(
-        _PACKAGED_AXYS_DATA_PATH / "snapshot_b",
+        _PACKAGED_AXYS_APX_DATA_PATH / "snapshot_b",
         site_directory / "snapshot_b",
     )
     return site_directory

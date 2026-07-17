@@ -1,13 +1,13 @@
 # =========================
-# Axys/APX Performance Auditing Starter Configuration
+# Axys/APX Audit Starter Configuration
 # =========================
 # This file is copied to your setup folder as audit/ppar.yaml.
 # Treat it as both the configuration file and the onboarding guide for
-# Performance Auditing.
+# Audit.
 #
 # Big picture:
 # - Performance Comparison answers: "Why did my reported performance change?"
-# - Data Auditing answers: "Are there suspicious source-data inconsistencies?"
+# - Data Issues answers: "Are there suspicious source-data inconsistencies?"
 # - It compares two Axys/APX-style source-data snapshots.
 # - It then ties changed performance to changed Modified Dietz inputs:
 #   beginning market value, ending market value, and dated cash flows.
@@ -42,7 +42,7 @@
 
 comparison:
   # Human-readable name stored in generated report metadata.
-  name: Axys/APX performance comparison starter
+  name: PPAR Audit
 
   # Primary review level for lower-level bundle tooling.
   # Allowed values: portfolio, security.
@@ -71,20 +71,20 @@ snapshots:
   #   so the setup folder can move as one unit.
   #
   # vendor:
-  #   Selects the Axys/APX column mapping behavior. In an installed setup,
-  #   ppar setup simplifies this to the built-in Axys/APX mapping. Do not edit
-  #   unless you are deliberately replacing the vendor mapping behavior.
+  #   Identifies the combined Axys/APX integration boundary.
+  # schema:
+  #   Points to the explicit source-column mapping file copied with this setup.
   a:
     label: snapshot_a
     path: snapshot_a
-    vendor: axys
-    schema: axysapx_column_mappings.yaml
+    vendor: axys_apx
+    schema: axys_apx_column_mappings.yaml
 
   b:
     label: snapshot_b
     path: snapshot_b
-    vendor: axys
-    schema: axysapx_column_mappings.yaml
+    vendor: axys_apx
+    schema: axys_apx_column_mappings.yaml
 
 files:
   # Extraction checklist for users replacing the starter CSVs.
@@ -175,9 +175,9 @@ files:
   fx_rates: fx_rates.csv
   splits: splits.csv
 
-data_audit_checks:
+data_issues:
   # Purpose:
-  #   Writes the "Data Audit Issues" worksheet. These checks are independent
+  #   Writes the "Data Issues" worksheet. These checks are independent
   #   consistency checks across the union of Snapshot A and Snapshot B. They do
   #   not change Performance Difference Explained and they are not Source Detail
   #   rows.

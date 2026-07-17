@@ -3,7 +3,7 @@
 Repository: AXYS / APX Reference Repository
 Chapter file: `docs/axys_apx/reference/Chapter_06_Holdings.md`
 Prepared: 2026-06-29
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -23,7 +23,7 @@ principal, accrued income, lots, and cost-basis context.
 
 ## 1. Overview
 
-This chapter documents holdings and position-related behavior in Axys and APX using only the supplied research material.
+This chapter documents holdings and position-related behavior in Axys/APX using only the supplied research material.
 
 In this chapter, **holdings** means a portfolio's assets or positions as shown or extracted at a point in time. The available evidence is strongest for report output, reconciliation workflows, third-party integration workflows, and named artifacts. The available evidence is weaker for native storage models, canonical IMEX object names, and internal Axys/APX calculation rules.
 
@@ -49,7 +49,7 @@ A holdings change should be read as the outcome of posted transactions and assoc
 | APX Custodial Integrator position / lot blotter workflow | Strong evidence for that workflow only. |
 | Native Axys holdings storage | Unknown. |
 | Native APX holdings table/view names | Unknown. |
-| Canonical holdings IMEX object names | Unknown for both Axys and APX. |
+| Canonical holdings IMEX object names | Unknown for both Axys/APX. |
 | Complete default holdings report field dictionaries | Unknown. |
 
 ---
@@ -266,6 +266,22 @@ The supplied material does not provide a formal Axys or APX IMEX object dictiona
 | Whether lot-level holdings are available through APX IMEX outside Custodial Integrator. | Needed for APX lot-level extracts. |
 | Standard holdings import/export field list. | Needed for implementation. |
 | Position date semantics: trade date, settlement date, position date, close date, or report as-of date. | Critical for reconciliation and performance. |
+
+### 4.4 CI Position Artifacts and Live Discovery
+
+The available IMEX evidence adds position-import detail that belongs with
+holdings only as IMEX-adjacent position evidence.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| `ptopost.trn` | CI writes positions to `\CI\exported\ptopost.trn` in CSV format. | Verified for CI |
+| `.pos` files | Position Post can create replacement `.pos` files for configured Axys portfolios. | Verified for CI |
+| Position lots | If lots are enabled and available, position output may contain lot data and use `imexPositionLots.log`. | Verified for CI |
+| Candidate position fields | Portfolio/account, as-of date, symbol/type/name, quantity, price, market value, accrued income, cost, local/base currency, FX, stale flag, and custodian/account context. | Discovery guidance |
+| Candidate lot fields | Lot identifier, open/acquisition dates, quantity, cost, market value, tax-cost fields, currency, and source row lineage. | Discovery guidance |
+
+This evidence does not establish native holdings storage mechanics or standard
+Portfolio Appraisal columns.
 
 ---
 
@@ -486,7 +502,7 @@ quantity alone may be zero or insufficient for reconciliation.
 
 ### Supplied repository and research sources
 
-1. `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0. Governing repository specification.
+1. `axys_apx_reference_blueprint.md`, Version 2.0. Governing repository specification.
 2. `../evidence/Research_06_Holdings.md`. Primary research source for this chapter.
 3. `../evidence/Research_04_Security_Master.md`. Used only for security-master context where holdings depend on security identity/type.
 4. `../evidence/Research_05_Transactions.md`. Used only for transaction-to-holdings dependency context.
@@ -530,7 +546,7 @@ The following should remain **Unknown** until supported by vendor documentation,
 | Treatment of cash, shorts, accruals, unsettled trades, FX, and multicurrency holdings. | Critical for real-world holdings interpretation. | Report guides, report outputs, IMEX samples. |
 | Security identifier hierarchy used in holdings reports. | Needed for data dictionary. | Security master docs and report output samples. |
 | Whether `CDIhold.rep` is generic or WealthTechs-specific. | Avoids documenting a third-party report as a standard report. | Report source or vendor notes. |
-| Whether REP syntax and variables differ between Axys and APX. | Needed for REP cross-reference and APX report extraction. | Axys/APX Replang manuals and sample `.rep` files. |
+| Whether REP syntax and variables differ between Axys/APX. | Needed for REP cross-reference and APX report extraction. | Axys/APX Replang manuals and sample `.rep` files. |
 | Whether holdings report values are stored, recalculated, or mixed depending on date/report/settings. | Critical for audit and repeatability. | Controlled production tests or vendor reporting documentation. |
 
 ---
@@ -546,21 +562,11 @@ The supplied research is sufficient for this conservative chapter, but a more co
 5. One lot-level holdings report sample.
 6. Axys/APX IMEX or Import/Export manual pages for positions/holdings.
 7. Sample `.rep` files: `CDIhold.rep`, `aman.rep`, and any standard Portfolio Appraisal report definition.
-8. Sample current-date and historical holdings extracts from Axys and APX.
+8. Sample current-date and historical holdings extracts from Axys/APX.
 9. Client-specific notes documenting how holdings are calculated relative to transactions, prices, splits, and accruals.
 
-## 14. Deep IMEX Update
+## Research Provenance
 
-The deep IMEX research adds position-import detail that belongs with holdings
-only as IMEX-adjacent position evidence.
-
-| Topic | Chapter treatment | Confidence |
-|---|---|---:|
-| `ptopost.trn` | CI writes positions to `\CI\exported\ptopost.trn` in CSV format. | Verified for CI |
-| `.pos` files | Position Post can create replacement `.pos` files for configured Axys portfolios. | Verified for CI |
-| Position lots | If lots are enabled and available, position output may contain lot data and use `imexPositionLots.log`. | Verified for CI |
-| Candidate position fields | Portfolio/account, as-of date, symbol/type/name, quantity, price, market value, accrued income, cost, local/base currency, FX, stale flag, and custodian/account context. | Discovery guidance |
-| Candidate lot fields | Lot identifier, open/acquisition dates, quantity, cost, market value, tax-cost fields, currency, and source row lineage. | Discovery guidance |
-
-This evidence does not establish native holdings storage mechanics or standard
-Portfolio Appraisal columns.
+The deep IMEX position-import conclusions are incorporated into Section 4.4.
+Their supporting source history remains in
+`../evidence/Research_06_Holdings.md`.

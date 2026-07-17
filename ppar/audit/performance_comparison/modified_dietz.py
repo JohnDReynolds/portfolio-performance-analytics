@@ -7,7 +7,7 @@ import datetime as dt
 import math
 
 # Project imports
-from ppar.performance_comparison.methods import ModifiedDietzInclusionRule
+from ppar.audit.performance_comparison.methods import ModifiedDietzInclusionRule
 
 
 def modified_dietz_external_flow_impact(

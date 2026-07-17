@@ -19,7 +19,7 @@ build-backend = "setuptools.build_meta"
 # - `dependencies`: runtime requirements expressed as minimum compatible versions.
 name = "ppar"
 version = "0.1.5"
-description = "Portfolio attribution, contribution, and ex-post risk statistics."
+description = "Portfolio performance audit, attribution, contribution, and risk reporting."
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
 # README file included in the distribution and displayed on PyPI.
 readme = "README.md"
@@ -30,6 +30,9 @@ license-files = ["LICENSE"]
 keywords = [
     "portfolio",
     "performance",
+    "audit",
+    "reconciliation",
+    "data quality",
     "analytics",
     "attribution",
     "brinson",
@@ -121,18 +124,20 @@ min-public-methods = 0
 packages = [
     "ppar",
     "ppar.analytics",
-    "ppar.axys",
+    "ppar.axys_apx",
     "ppar.setup_templates",
-    "ppar.setup_templates.axysapx_analytics",
-    "ppar.setup_templates.axysapx_performance_comparison",
-    "ppar.setup_templates.axysapx_performance_comparison.snapshot_a",
-    "ppar.setup_templates.axysapx_performance_comparison.snapshot_b",
+    "ppar.setup_templates.axys_apx_analytics",
+    "ppar.setup_templates.axys_apx_audit",
+    "ppar.setup_templates.axys_apx_audit.snapshot_a",
+    "ppar.setup_templates.axys_apx_audit.snapshot_b",
     "ppar.setup_templates.generic_analytics",
     "ppar.setup_templates.generic_analytics.classifications",
     "ppar.setup_templates.generic_analytics.mappings",
     "ppar.setup_templates.generic_analytics.performance",
-    "ppar.performance_comparison",
-    "ppar.performance_comparison.cli",
+    "ppar.audit",
+    "ppar.audit.cli",
+    "ppar.audit.data_issues",
+    "ppar.audit.performance_comparison",
 ]
 include-package-data = true
 
@@ -143,10 +148,10 @@ include-package-data = true
 # Include demo CSVs used by examples so installed package is usable offline.
 ppar = ["py.typed"]
 "ppar.setup_templates" = ["*.md"]
-"ppar.setup_templates.axysapx_analytics" = ["*.yaml", "*.csv", "*.py"]
-"ppar.setup_templates.axysapx_performance_comparison" = ["*.yaml", "*.md", "*.py"]
-"ppar.setup_templates.axysapx_performance_comparison.snapshot_a" = ["*.csv"]
-"ppar.setup_templates.axysapx_performance_comparison.snapshot_b" = ["*.csv"]
+"ppar.setup_templates.axys_apx_analytics" = ["*.yaml", "*.csv", "*.py"]
+"ppar.setup_templates.axys_apx_audit" = ["*.yaml", "*.md", "*.py"]
+"ppar.setup_templates.axys_apx_audit.snapshot_a" = ["*.csv"]
+"ppar.setup_templates.axys_apx_audit.snapshot_b" = ["*.csv"]
 "ppar.setup_templates.generic_analytics" = ["*.py"]
 "ppar.setup_templates.generic_analytics.classifications" = ["*.csv"]
 "ppar.setup_templates.generic_analytics.mappings" = ["*.csv"]

@@ -100,7 +100,7 @@ _PERFORMANCE_AUDIT_ISSUE_TYPES = {
 _PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
     _REPO_ROOT
     / "_demo_output"
-    / "performance_comparison_portfolio"
+    / "audit_portfolio"
     / "portfolio_audit.html"
 )
 
@@ -143,7 +143,7 @@ def main() -> None:
                 encoding=util.ENCODING,
             )
             _render_cropped_jpg(chrome_path, html_path, temp_dir, "RiskStatistics")
-        if args.only in ("all", "performance-comparison"):
+        if args.only in ("all", "audit"):
             preview_html_path = temp_dir / "PerformanceAuditPortfolio.html"
             _write_performance_audit_preview(
                 _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
@@ -164,7 +164,7 @@ def _parse_args() -> argparse.Namespace:
         Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Render README analytics and performance-comparison images.",
+        description="Render README Analytics and Audit images.",
     )
     parser.add_argument(
         "--only",
@@ -173,7 +173,7 @@ def _parse_args() -> argparse.Namespace:
             "analytics",
             "security-attribution",
             "risk-statistics",
-            "performance-comparison",
+            "audit",
         ),
         default="all",
         help="Limit rendering to one image family. Defaults to all.",
@@ -499,7 +499,7 @@ def _retain_one_row_per_issue_type(section: HtmlElement) -> None:
 
 
 def _issue_matches_selected_scenario(values: Sequence[str]) -> bool:
-    """Return whether one Data Audit row belongs to a selected period."""
+    """Return whether one Data Issues row belongs to a selected period."""
     portfolio_id = values[1]
     as_of_date = values[2]
     return any(

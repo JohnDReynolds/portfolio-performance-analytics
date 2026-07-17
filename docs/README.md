@@ -5,23 +5,50 @@ infrastructure.
 
 | Area | Location | Purpose |
 | --- | --- | --- |
-| PPAR Audit | [`audit/`](audit/) | Audit product planning, source-data contracts, safety invariants, evidence review, and operational demo maintenance. |
-| PPAR Analytics | [`analytics/`](analytics/) | Analytics product maintenance and demo-refresh guidance. |
+| PPAR Audit | [`audit/README.md`](audit/README.md) | Audit product direction, active implementation, technical contracts, operator guidance, and historical references. |
+| PPAR Analytics | [`analytics/roadmap.md`](analytics/roadmap.md) | Analytics product direction and demo-refresh guidance. |
 | Axys/APX integration | [`axys_apx/`](axys_apx/) | Shared Axys/APX research, evidence, contracts, reference material, and common-core export guidance. |
-| Shared platform | This directory | Architecture, repository orientation, and the portfolio-level roadmap. |
+| Shared platform | This directory | Architecture, repository orientation, and the concise portfolio-level roadmap. |
 | Documentation assets | [`images/`](images/) | Generated images and product-overview maintenance guidance. |
 
 Start with:
 
 - [`architecture.md`](architecture.md) for the shared system boundary.
-- [`repository_guide.md`](repository_guide.md) for maintainer workflows.
-- [`roadmap.md`](roadmap.md) for cross-product direction and implementation history.
-- [`audit/PPAR_Audit_Foundational_Product_Design.md`](audit/PPAR_Audit_Foundational_Product_Design.md)
-  for the developing Audit product plan.
+- [`maintainer_guide.md`](maintainer_guide.md) for repeatable maintenance,
+  validation, demo, and release workflows.
+- [`roadmap.md`](roadmap.md) for current cross-product direction and document
+  ownership.
+- [`audit/README.md`](audit/README.md) for the Audit documentation map and
+  authority order.
+- [`analytics/roadmap.md`](analytics/roadmap.md) for Analytics product direction.
 - [`analytics/analytics_demo_refresh.md`](analytics/analytics_demo_refresh.md)
   for Analytics demo and README-asset maintenance.
 
 New product-specific documentation should go directly into the corresponding
 product directory. Shared architecture and integration material should remain outside
 the product directories. Historical working notes belong under the relevant
-product's `archive/` directory.
+product's `archive/` directory. Historical notes spanning multiple products
+belong under [`archive/`](archive/).
+
+## Documentation Ownership Rules
+
+1. Keep the root [`README.md`](../README.md) focused on what PPAR is and how a
+   new user runs the main workflows.
+2. Keep shared system structure and boundaries in
+   [`architecture.md`](architecture.md).
+3. Keep repeatable repository operations in
+   [`maintainer_guide.md`](maintainer_guide.md); keep detailed packaged-demo
+   instructions beside the packaged demo.
+4. Keep Audit product direction in its product constitution and active work in
+   its MVP implementation plan.
+5. Keep Analytics direction in [`analytics/roadmap.md`](analytics/roadmap.md)
+   and shared-platform direction in [`roadmap.md`](roadmap.md).
+6. Keep Axys/APX facts, evidence, and implementation contracts under
+   [`axys_apx/`](axys_apx/) according to that area's documented file roles.
+7. Keep deep implementation rationale in its owning product directory and
+   checkpoint or session notes in the relevant `archive/` directory.
+8. Keep the former cumulative roadmap frozen in
+   [`archive/roadmap_through_v0.1.5.md`](archive/roadmap_through_v0.1.5.md);
+   do not append new phase trains.
+9. Add a durable document only when it has a distinct audience, authority, and
+   maintenance lifecycle that an existing document cannot serve clearly.

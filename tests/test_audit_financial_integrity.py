@@ -14,18 +14,18 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import conservation
-from ppar.performance_comparison import financial_integrity
-from ppar.performance_comparison import findings as pc_findings
-from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
-from ppar.performance_comparison.period_linking import validate_portfolio_periods
-from ppar.performance_comparison.runner import compare_snapshots
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
-from ppar.performance_comparison import x_ref
+from ppar.audit import schema as pc_cols
+from ppar.audit import conservation
+from ppar.audit import financial_integrity
+from ppar.audit.performance_comparison import findings as pc_findings
+from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
+from ppar.audit.period_linking import validate_portfolio_periods
+from ppar.audit.runner import compare_snapshots
+from ppar.audit.specification import AuditSpecification
+from ppar.audit.data_issues import checks as data_issues
 
 
-class TestPerformanceComparisonFinancialIntegrity(unittest.TestCase):
+class TestAuditFinancialIntegrity(unittest.TestCase):
     """Enforce SN-04, SN-06, and SN-07 at their intended boundaries."""
 
     def test_changed_evidence_multiset_preserves_unmatched_duplicate_rows(self) -> None:
@@ -54,8 +54,8 @@ class TestPerformanceComparisonFinancialIntegrity(unittest.TestCase):
             [{"key": "A", "value": 1.0}, {"key": "C", "value": 3.0}],
         )
 
-    def test_continuity_mismatch_is_visible_even_when_data_audit_is_disabled(self) -> None:
-        """SN-04 cannot be hidden by disabling optional Data Audit checks."""
+    def test_continuity_mismatch_is_visible_even_when_data_issues_is_disabled(self) -> None:
+        """SN-04 cannot be hidden by disabling optional Data Issues checks."""
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             comparison_path = _write_site(
@@ -64,18 +64,18 @@ class TestPerformanceComparisonFinancialIntegrity(unittest.TestCase):
                     "P1,2026-01-01,2026-01-31,1000,1100,0.10,USD",
                     "P1,2026-02-01,2026-02-28,1090,1200,0.10,USD",
                 ),
-                extra_config={"data_audit_checks": {"enabled": False}},
+                extra_config={"data_issues": {"enabled": False}},
             )
 
-            issues = x_ref.x_ref_issues_table(comparison_path)
+            issues = data_issues.data_issues_table(comparison_path)
             continuity = issues.filter(
-                pl.col(x_ref.ISSUE_TYPE) == x_ref.ISSUE_PORTFOLIO_MV_CONTINUITY
+                pl.col(data_issues.ISSUE_TYPE) == data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY
             )
 
         self.assertEqual(continuity.height, 2)
-        self.assertEqual(set(continuity[x_ref.DIFFERENCE].to_list()), {-10.0})
+        self.assertEqual(set(continuity[data_issues.DIFFERENCE].to_list()), {-10.0})
         self.assertTrue(
-            all("SN-04" in value for value in continuity[x_ref.EXPLANATION].to_list())
+            all("SN-04" in value for value in continuity[data_issues.EXPLANATION].to_list())
         )
 
     def test_overlapping_performance_periods_fail_source_contract(self) -> None:
@@ -89,7 +89,7 @@ class TestPerformanceComparisonFinancialIntegrity(unittest.TestCase):
                     "P1,2026-01-15,2026-02-15,1100,1200,0.09,USD",
                 ),
             )
-            specification = PerformanceComparisonSpecification(comparison_path)
+            specification = AuditSpecification(comparison_path)
 
             with self.assertRaisesRegex(PpaError, "SN-07.*overlapping periods"):
                 PortfolioPerformanceLoader(specification).load("a")

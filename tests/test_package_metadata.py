@@ -23,42 +23,39 @@ import ppar
 import ppar.analytics.schema as core_schema
 import ppar.errors as core_errors
 import ppar.utilities as util
-from ppar import axys, performance_comparison
-from ppar.axys import (
+from ppar import audit, axys_apx
+from ppar.audit import data_issues, performance_comparison
+from ppar.axys_apx import (
     AxysClassificationSources,
     AxysData,
     AxysPortfolio,
     AxysSpecification,
 )
-from ppar.performance_comparison import runner as performance_comparison_runner
-from ppar.performance_comparison import report as performance_comparison_report
-from ppar.performance_comparison import findings as performance_comparison_findings
-from ppar.performance_comparison.methods import (
+from ppar.audit import report as audit_report
+from ppar.audit import runner as audit_runner
+from ppar.audit.performance_comparison import findings as performance_comparison_findings
+from ppar.audit.performance_comparison.methods import (
     ContributionImpactMethod,
-    FxRateImpactMethod,
-    HoldingImpactMethod,
     TransactionImpactMethod,
 )
-from ppar.performance_comparison import (
-    transactions as performance_comparison_transactions,
-)
-from ppar.performance_comparison import backlog_gates as performance_backlog_gates
-from ppar.performance_comparison import fixed_income as performance_fixed_income
-from ppar.performance_comparison import (
+from ppar.audit import transactions as audit_transactions
+from ppar.audit.performance_comparison import backlog_gates as performance_backlog_gates
+from ppar.audit import fixed_income as performance_fixed_income
+from ppar.audit import (
     transaction_summary as performance_transaction_summary,
 )
-from ppar.performance_comparison import (
+from ppar.audit import (
     source_data_contract as performance_source_data_contract,
 )
-from ppar.performance_comparison.transaction_boundary_registry import (
+from ppar.audit.performance_comparison.transaction_boundary_registry import (
     TRANSACTION_BOUNDARY_REGISTRY,
     registered_transaction_codes,
     transaction_boundary_groups,
 )
-from ppar.performance_comparison import (
+from ppar.audit.performance_comparison import (
     transaction_boundary_registry as performance_boundary_registry,
 )
-from ppar.performance_comparison.return_reconstruction import (
+from ppar.audit.performance_comparison.return_reconstruction import (
     DERIVED_RETURN_DIFFERENCE,
     RECONSTRUCTION_STATUS,
     RECONSTRUCTION_STATUS_ALIGNED,
@@ -68,32 +65,48 @@ from ppar.performance_comparison.return_reconstruction import (
     portfolio_return_reconstruction_checks,
     security_return_reconstruction_checks,
 )
-from ppar.performance_comparison import (
+from ppar.audit import (
     ComparisonFile,
     ComparisonSnapshot,
+    FxRatesLoader,
+    AuditSpecification,
+    PortfolioPerformanceLoader,
+    HoldingsLoader,
+    REPORT_BUNDLE_REQUIRED_ARTIFACTS,
+    SecurityPerformanceLoader,
+    TransactionsLoader,
+    schema,
+    compact_findings_table,
+    compare_snapshots,
+    report_bundle_contract,
+    report_bundle_validation_issues,
+    summarize_findings,
+    validate_causal_attribution_ready,
+    validate_yaml_setup_complete,
+    write_audit_report_bundle,
+    write_audit_review_workbook,
+)
+from ppar.audit.data_issues import (
+    DATA_ISSUE_REGISTRY,
+    DataIssueCategory,
+    DataIssueDefinition,
+    DataIssueType,
+)
+from ppar.audit.performance_comparison import (
     CONTEXT,
     DIRECT_INPUT,
     EVIDENCE_ROLE,
-    Finding,
-    FxRatesLoader,
     IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
     IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
     IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
-    PerformanceComparison,
-    PerformanceComparisonSpecification,
-    PortfolioPerformanceLoader,
-    HoldingsLoader,
-    REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     RELATED_OUTPUT,
-    SecurityPerformanceLoader,
-    SuppressionRule,
     TARGET_OUTPUT,
-    TransactionsLoader,
+    CauseArea,
+    Finding,
+    PerformanceComparison,
+    SuppressionRule,
     apply_suppressions,
-    schema,
-    compact_findings_table,
-    compare_snapshots,
     findings_to_polars,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
@@ -103,17 +116,10 @@ from ppar.performance_comparison import (
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
     rank_portfolio_period_evidence,
-    report_bundle_contract,
-    report_bundle_validation_issues,
     security_period_evidence_breakdown,
     security_period_summary,
-    summarize_findings,
     transaction_activity_summary,
     transaction_matching_diagnostics,
-    validate_causal_attribution_ready,
-    validate_yaml_setup_complete,
-    write_performance_comparison_report_bundle,
-    write_performance_comparison_review_workbook,
 )
 
 _INTENTIONAL_PORTFOLIO_RECONSTRUCTION_DIFFERENT_KEYS = {
@@ -318,7 +324,7 @@ class TestPackageMetadata(unittest.TestCase):
         scanned_paths = [Path("README.md")]
         for root in (
             Path("docs"),
-            Path("ppar/performance_comparison"),
+            Path("ppar/audit"),
             Path("tests"),
         ):
             scanned_paths.extend(
@@ -340,7 +346,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_demo_review_guidance_matches_current_bundle_shape(self) -> None:
         """Public docs describe report files as review surfaces and CSVs as audit aids."""
         root_readme = Path("README.md").read_text(encoding=util.ENCODING)
-        axys_readme = Path("ppar/setup_templates/axysapx_performance_comparison/README.md").read_text(
+        axys_readme = Path("ppar/setup_templates/axys_apx_audit/README.md").read_text(
             encoding=util.ENCODING
         )
         normalized_axys_readme = " ".join(axys_readme.split())
@@ -421,7 +427,7 @@ class TestPackageMetadata(unittest.TestCase):
         allowed_suffixes = {".csv", ".md", ".py", ".yaml"}
         axys_demo_files = [
             path
-            for path in Path("ppar/setup_templates/axysapx_performance_comparison").rglob("*")
+            for path in Path("ppar/setup_templates/axys_apx_audit").rglob("*")
             if path.is_file()
         ]
 
@@ -434,7 +440,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_axys_yaml_documents_onboarding_boundaries(self) -> None:
         """The packaged Axys/APX YAML names user-facing onboarding boundaries."""
-        yaml_text = Path("ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml").read_text(
+        yaml_text = Path("ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml").read_text(
             encoding=util.ENCODING
         )
 
@@ -469,7 +475,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_packaged_axys_analytics_yaml_documents_onboarding_boundaries(self) -> None:
         """The packaged Axys/APX analytics YAML names first-pass setup choices."""
         yaml_text = Path(
-            "ppar/setup_templates/axysapx_analytics/axysapx_analytics.yaml"
+            "ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml"
         ).read_text(encoding=util.ENCODING)
 
         for expected_text in [
@@ -495,12 +501,12 @@ class TestPackageMetadata(unittest.TestCase):
         docs_to_check = [
             Path("README.md"),
             Path("ppar/setup_templates/README.md"),
-            Path("ppar/setup_templates/axysapx_performance_comparison/README.md"),
+            Path("ppar/setup_templates/axys_apx_audit/README.md"),
             Path(
-                "ppar/setup_templates/axysapx_performance_comparison/"
-                "axysapx_performance_comparison.yaml"
+                "ppar/setup_templates/axys_apx_audit/"
+                "axys_apx_audit.yaml"
             ),
-            Path("ppar/setup_templates/axysapx_analytics/axysapx_analytics.yaml"),
+            Path("ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml"),
         ]
         retired_patterns = {
             "old roadmap filename": r"performance_comparison_roadmap",
@@ -519,7 +525,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_axys_setup_documents_onboarding_path(self) -> None:
         """The packaged Axys setup stays action-oriented for site onboarding."""
-        readme = Path("ppar/setup_templates/axysapx_performance_comparison/README.md").read_text(
+        readme = Path("ppar/setup_templates/axys_apx_audit/README.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -546,10 +552,10 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertNotIn("SETUP.md", readme)
         self.assertNotIn("ppar setup --guide", readme)
-        self.assertTrue(Path("ppar/setup_templates/axysapx_analytics/run_analytics.py").exists())
+        self.assertTrue(Path("ppar/setup_templates/axys_apx_analytics/run_analytics.py").exists())
         self.assertTrue(
             Path(
-                "ppar/setup_templates/axysapx_performance_comparison/"
+                "ppar/setup_templates/axys_apx_audit/"
                 "run_audit.py"
             ).exists()
         )
@@ -558,13 +564,17 @@ class TestPackageMetadata(unittest.TestCase):
         """The roadmap parks advanced Axys/APX integration publishing explicitly."""
         roadmap = Path("docs/roadmap.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("| Axys/APX integration reference |", roadmap)
-        self.assertIn("do not copy the full research archive", roadmap)
+        self.assertIn(
+            "Publishing an advanced Axys/APX integration reference remains "
+            "a candidate",
+            roadmap,
+        )
+        self.assertIn("should not copy the full research archive", roadmap)
         self.assertIn("available to installed-package users", roadmap)
 
     def test_common_core_export_reference_avoids_unverified_imex_recipes(self) -> None:
         """The export-planning note does not present invented native profiles."""
-        reference = Path("docs/axys_apx/axysapx_common_core_export.md").read_text(
+        reference = Path("docs/axys_apx/axys_apx_common_core_export.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -572,7 +582,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("## Extraction Planning Worksheet", reference)
         self.assertIn("PPAR-normalized filenames", reference)
         self.assertIn("REP performance report preferred", reference)
-        self.assertIn("Unknown pending local discovery", reference)
+        self.assertIn("## Field and Contract Ownership", reference)
+        self.assertIn("Chapter_15_Data_Dictionary.md", reference)
+        self.assertIn("demo_extract_availability.md", reference)
+        self.assertIn("transaction_semantics_matrix.yaml", reference)
         self.assertNotIn("PORTPERF_COMMON", reference)
         self.assertNotIn("SECPERF_COMMON", reference)
         self.assertNotIn("Axys/APX Native Dataset", reference)
@@ -581,7 +594,7 @@ class TestPackageMetadata(unittest.TestCase):
         """Installed analytics entrypoints avoid maintainer demo helper modules."""
         paths = [
             Path("ppar/analytics/cli.py"),
-            Path("ppar/setup_templates/axysapx_analytics/run_analytics.py"),
+            Path("ppar/setup_templates/axys_apx_analytics/run_analytics.py"),
             Path("ppar/setup_templates/generic_analytics/run_generic_analytics.py"),
         ]
 
@@ -596,23 +609,23 @@ class TestPackageMetadata(unittest.TestCase):
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
         self.assertIn(
-            "PPAR is a Python package that creates Performance Auditing and Performance\n"
+            "PPAR is a Python package that creates Audit and Performance\n"
             "Analytics reports from local portfolio accounting data.",
             readme,
         )
         self.assertLess(
-            readme.index("## Performance Auditing"),
+            readme.index("## Audit"),
             readme.index("## Performance Analytics"),
         )
         self.assertIn("**Performance Comparison:**", readme)
-        self.assertIn("**Data Auditing:**", readme)
+        self.assertIn("**Data Issues:**", readme)
         self.assertIn("**Performance Attribution:**", readme)
         self.assertIn("**Ex-Post Risk:**", readme)
         self.assertIn("docs/images/readme/PerformanceAuditPortfolio.jpg", readme)
-        self.assertIn("alt=\"Portfolio Performance Auditing report\"", readme)
+        self.assertIn("alt=\"Portfolio Audit report\"", readme)
         self.assertNotIn("PerformanceComparisonPortfolio.jpg", readme)
         self.assertNotIn("PerformanceComparisonSecurity.jpg", readme)
-        self.assertNotIn("DataAuditIssues.jpg", readme)
+        self.assertNotIn("DataIssues.jpg", readme)
         self.assertIn("## Setup", readme)
         self.assertNotIn("## Quick Setup", readme)
         self.assertIn("ppar setup ./my_ppar_data", readme)
@@ -634,12 +647,12 @@ class TestPackageMetadata(unittest.TestCase):
         refresh_guide = Path("docs/analytics/analytics_demo_refresh.md").read_text(
             encoding=util.ENCODING
         )
-        repository_guide = Path("docs/repository_guide.md").read_text(
+        maintainer_guide = Path("docs/maintainer_guide.md").read_text(
             encoding=util.ENCODING
         )
         normalized_demo_data_readme = " ".join(demo_data_readme.split())
         normalized_refresh_guide = " ".join(refresh_guide.split())
-        normalized_repository_guide = " ".join(repository_guide.split())
+        normalized_maintainer_guide = " ".join(maintainer_guide.split())
 
         self.assertIn("The public onboarding path starts", demo_data_readme)
         self.assertIn(
@@ -651,22 +664,22 @@ class TestPackageMetadata(unittest.TestCase):
             "Installed setup users do not need this refresh path",
             normalized_refresh_guide,
         )
-        self.assertIn("maintainer/demo infrastructure", normalized_repository_guide)
+        self.assertIn("maintainer/demo infrastructure", normalized_maintainer_guide)
         self.assertIn(
             "not advertised as the primary onboarding path",
-            normalized_repository_guide,
+            normalized_maintainer_guide,
         )
 
     def test_architecture_doc_maps_current_project_boundaries(self) -> None:
         """The compact architecture map stays tied to current public boundaries."""
         architecture = Path("docs/architecture.md").read_text(encoding=util.ENCODING)
         normalized_architecture = " ".join(architecture.split())
-        repository_guide = Path("docs/repository_guide.md").read_text(
+        maintainer_guide = Path("docs/maintainer_guide.md").read_text(
             encoding=util.ENCODING
         )
 
-        self.assertIn("Architecture map", repository_guide)
-        self.assertIn("docs/architecture.md", repository_guide)
+        self.assertIn("# Maintainer Guide", maintainer_guide)
+        self.assertIn("[architecture map](architecture.md)", maintainer_guide)
         for expected_text in [
             "# PPAR Architecture",
             "The public installed command is:",
@@ -674,10 +687,10 @@ class TestPackageMetadata(unittest.TestCase):
             "ppar analytics <site_directory>/analytics",
             "ppar audit <site_directory>/audit",
             "`ppar.analytics`",
-            "`ppar.axys`",
-            "`ppar.performance_comparison`",
+            "`ppar.axys_apx`",
+            "`ppar.audit`",
             "`ppar.setup_templates`",
-            "The performance-comparison engine does not try to rebuild a full accounting ledger.",
+            "The Performance Comparison sub-feature does not try to rebuild a full accounting ledger.",
             "Setup Data Versus Maintainer Data",
             "The YAML files are the main configuration and onboarding surface.",
             "`Performance Differences`",
@@ -697,22 +710,68 @@ class TestPackageMetadata(unittest.TestCase):
         )
         expected_paths = (
             Path("docs/audit/performance_comparison_design.md"),
-            Path("docs/audit/performance_comparison_safety_invariants.md"),
-            Path("docs/audit/performance_comparison_demo_source_contract.md"),
+            Path("docs/audit/safety_invariants.md"),
+            Path("docs/audit/demo_source_contract.md"),
+            Path("docs/audit/README.md"),
+            Path("docs/audit/product_constitution.md"),
+            Path("docs/audit/mvp_plan.md"),
+            Path("docs/audit/product_specifications_index.md"),
             Path("docs/analytics/analytics_demo_refresh.md"),
-            Path("docs/axys_apx/axysapx_common_core_export.md"),
+            Path("docs/analytics/roadmap.md"),
+            Path("docs/maintainer_guide.md"),
+            Path("docs/axys_apx/axys_apx_common_core_export.md"),
+            Path("docs/archive/roadmap_through_v0.1.5.md"),
+            Path(
+                "docs/audit/archive/"
+                "PPAR_Audit_Foundational_Product_Design_v0.10.md"
+            ),
+            Path("docs/audit/archive/PPAR_Audit_Work_App_Handoff_Prompt.md"),
         )
         retired_root_paths = (
             Path("docs/performance_comparison_design.md"),
-            Path("docs/performance_comparison_safety_invariants.md"),
-            Path("docs/performance_comparison_demo_source_contract.md"),
+            Path("docs/safety_invariants.md"),
+            Path("docs/demo_source_contract.md"),
             Path("docs/analytics_demo_refresh.md"),
+            Path("docs/audit/PPAR_Audit_Foundational_Product_Design_v0.10.md"),
+            Path("docs/audit/PPAR_Audit_Work_App_Handoff_Prompt.md"),
+            Path("docs/repository_guide.md"),
         )
 
         self.assertIn("PPAR Audit", documentation_index)
         self.assertIn("PPAR Analytics", documentation_index)
+        for documented_path in (
+            "audit/README.md",
+            "analytics/roadmap.md",
+            "archive/roadmap_through_v0.1.5.md",
+            "maintainer_guide.md",
+        ):
+            self.assertIn(documented_path, documentation_index)
         self.assertTrue(all(path.is_file() for path in expected_paths))
         self.assertFalse(any(path.exists() for path in retired_root_paths))
+
+    def test_local_documentation_links_resolve(self) -> None:
+        """Checked-in documentation does not contain broken local file links."""
+        markdown_paths = [Path("README.md"), *sorted(Path("docs").rglob("*.md"))]
+        markdown_link = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
+        html_link = re.compile(
+            r'<(?:img|a)\b[^>]*(?:src|href)=["\']([^"\']+)["\']'
+        )
+
+        for markdown_path in markdown_paths:
+            contents = markdown_path.read_text(encoding=util.ENCODING)
+            targets = markdown_link.findall(contents) + html_link.findall(contents)
+            for target in targets:
+                normalized = target.strip().split()[0].strip("<>")
+                if normalized.startswith(("http://", "https://", "mailto:", "#")):
+                    continue
+                local_path = normalized.split("#", 1)[0]
+                if not local_path:
+                    continue
+                with self.subTest(
+                    markdown_path=markdown_path.as_posix(),
+                    target=target,
+                ):
+                    self.assertTrue((markdown_path.parent / local_path).exists())
 
     def test_repository_readme_image_references_exist(self) -> None:
         """The marketing README only embeds checked-in README image artifacts."""
@@ -728,9 +787,9 @@ class TestPackageMetadata(unittest.TestCase):
         """The site extract-contract starter template remains linked from docs."""
         template_path = Path("docs/axys_apx/contracts/templates/site_extract_contract.yaml")
         source_contract = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         )
-        demo_readme = Path("ppar/setup_templates/axysapx_performance_comparison/README.md")
+        demo_readme = Path("ppar/setup_templates/axys_apx_audit/README.md")
 
         self.assertTrue(template_path.exists())
         self.assertIn(
@@ -750,194 +809,79 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml_path = Path(
             "docs/axys_apx/contracts/transaction_semantics_matrix.yaml"
         )
-        boundary_snapshot_path = Path(
-            "docs/audit/performance_comparison_transaction_boundary_snapshot.md"
-        )
         evidence_pack_review_path = Path(
             "docs/audit/archive/performance_comparison_evidence_pack_review.md"
         )
         source_contract = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         )
         roadmap = Path("docs/roadmap.md")
 
         self.assertTrue(matrix_path.exists())
         self.assertTrue(matrix_yaml_path.exists())
-        self.assertTrue(boundary_snapshot_path.exists())
         self.assertTrue(evidence_pack_review_path.exists())
         self.assertIn(
             "axys_apx/contracts/transaction_semantics_matrix.md",
             source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "performance_comparison_transaction_boundary_snapshot.md",
-            source_contract.read_text(encoding=util.ENCODING),
-        )
-        self.assertIn(
             "archive/performance_comparison_evidence_pack_review.md",
             source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "axys_apx/contracts/transaction_semantics_matrix.md",
-            roadmap.read_text(encoding=util.ENCODING),
+            "axys_apx/contracts/transaction_semantics_matrix.yaml",
+            source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
-            "performance_comparison_transaction_boundary_snapshot.md",
-            roadmap.read_text(encoding=util.ENCODING),
-        )
-        self.assertIn(
-            "archive/performance_comparison_evidence_pack_review.md",
+            "axys_apx/contracts/transaction_semantics_matrix.yaml",
             roadmap.read_text(encoding=util.ENCODING),
         )
 
-    def test_demo_transaction_expansion_gate_is_documented(self) -> None:
-        """The roadmap keeps future packaged Axys transaction additions gated."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("Phase 8A: Realistic Transaction Expansion Gate", roadmap)
-        self.assertIn("packaged-demo contribution scenario", roadmap)
-        self.assertIn("source/destination type", roadmap)
-        self.assertIn("source/destination symbol", roadmap)
-        self.assertIn("REP/report\n  semantic fields", roadmap)
-        self.assertIn("context, not from an ambiguous code alone", roadmap)
-        self.assertIn("generated ending `CASHUSD` holding", roadmap)
-        self.assertIn("portfolio Modified Dietz\n  reconstruction", roadmap)
-        self.assertIn("without double-counting", roadmap)
-        self.assertIn("Implemented contribution recipe", roadmap)
-        self.assertIn("inserted transaction scenario", roadmap)
-        self.assertIn("`SRC_DEST_TYPE=$pty`", roadmap)
-        self.assertIn("positive `AMOUNT`", roadmap)
-        self.assertIn("`li`/`lo`, additional `dp`/`wd`", roadmap)
-        self.assertIn("actual historical split date", roadmap)
-
-    def test_reinvestment_pair_gate_is_documented(self) -> None:
-        """The roadmap keeps dividend-reinvestment pairs test-only until safe."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("Phase 8B: Reinvestment Pair Feasibility Gate", roadmap)
-        self.assertIn("Status: partial test-only coverage", roadmap)
-        self.assertIn("`dv` income leg plus a related `by` purchase leg", roadmap)
-        self.assertIn("formula-role evidence", roadmap)
-        self.assertIn("no portfolio-level external-flow treatment", roadmap)
-        self.assertIn("must not count the buy\n  leg as an external contribution", roadmap)
-        self.assertIn("must not count\n  the dividend income twice", roadmap)
-        self.assertIn("likely related income and buy\n  evidence", roadmap)
-        self.assertIn("synthetic reinvestment examples belong in test-only data", roadmap)
-
-    def test_fixed_income_transaction_boundary_gate_is_documented(self) -> None:
-        """The roadmap keeps under-evidenced fixed-income transaction rows gated."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
+    def test_fixed_income_transaction_boundary_is_current(self) -> None:
+        """Current contracts keep fixed-income treatment context-gated."""
         source_contract = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         ).read_text(encoding=util.ENCODING)
-
-        self.assertIn("Phase 8C: Fixed-Income Transaction Boundary Gate", roadmap)
-        self.assertIn("ordinary `in` interest rows", roadmap)
-        self.assertIn("`holdings.accrued`", roadmap)
-        self.assertIn("broad `pd` treatment still proves cash movement", roadmap)
-        self.assertIn("`ai` as a backlog code", roadmap)
-        self.assertIn("local mapping or\n  REP/report semantics", roadmap)
-        self.assertIn("quantity or principal\n  exposure", roadmap)
-        self.assertIn("before it is\n  treated as performance income", roadmap)
-        self.assertIn(
-            "four proved fixed-income Modified Dietz input\nfamilies",
-            source_contract,
-        )
-        self.assertIn("amortization/accretion engine", source_contract)
-        self.assertIn("bond principal schedule", source_contract)
-
-    def test_fixed_income_modified_dietz_phase_is_documented(self) -> None:
-        """The roadmap keeps Phase 10 scoped to Modified Dietz formula inputs."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("Phase 10: Fixed-Income Modified Dietz Boundary", roadmap)
-        self.assertIn("Phase 10A: Fixed-Income Formula Boundary", roadmap)
-        self.assertIn("ordinary `in` interest transaction amounts", roadmap)
-        self.assertIn("configured `holdings.accrued` changes", roadmap)
-        self.assertIn(
-            "paired purchase/sale accrued-interest adjunct amounts",
-            roadmap,
-        )
-        self.assertIn("amortization/accretion engines", roadmap)
-        self.assertIn("bond principal schedule reconstruction", roadmap)
-        self.assertIn("Phase 10B: Test-Only Ordinary Interest + Accrued Audit", roadmap)
-        self.assertIn("`INCOME0603` remains an ordinary `in` transaction", roadmap)
-        self.assertIn("positive `91282Y2Y1` `holdings.accrued` values", roadmap)
-        self.assertIn(
-            "Phase 10C: Principal Paydown / Accrued-Interest Backlog Contract",
-            roadmap,
-        )
-        self.assertIn("backlog codes remain `unknown` by code alone", roadmap)
-        self.assertIn("Phase 10D: Fixed-Income Reviewer Reporting", roadmap)
-        self.assertIn("not silently inferred income or flows", roadmap)
-
-    def test_test_only_transaction_semantics_phase_is_documented(self) -> None:
-        """The roadmap keeps Phase 11 in the test-only semantics lane."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("Phase 11: Test-Only Transaction Semantics Expansion", roadmap)
-        self.assertIn("Phase 11A: Reversal / Cancellation Boundary", roadmap)
-        self.assertIn("`CXL` stays transfer-neutral", roadmap)
-        self.assertIn("`REV` stays transfer-neutral", roadmap)
-        self.assertIn("Phase 11B: Expanded `dp` / `wd` Context Matrix", roadmap)
-        self.assertIn("fee-like `dp` is performance-impacting", roadmap)
-        self.assertIn("sweep-like `wd` stays neutral transfer evidence", roadmap)
-        self.assertIn("Phase 11C: Synthetic Corporate-Action Quarantine", roadmap)
-        self.assertIn("neutral corporate-action row", roadmap)
-        self.assertIn("without turning it into a Modified Dietz formula\ninput", roadmap)
-        self.assertIn("Phase 11D: Demo Matrix + Roadmap Reporting", roadmap)
-        self.assertIn("review-only action quarantine", roadmap)
-
-    def test_return_capital_and_short_backlog_phase_is_documented(self) -> None:
-        """The roadmap and matrix keep high-risk code-only gates explicit."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
         matrix_yaml = _load_yaml(
             Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
+        rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
 
-        self.assertIn(
-            "Phase 12: Return-of-Capital And Short-Side Backlog Gates",
-            roadmap,
-        )
-        self.assertIn("Phase 12A: Return-of-Capital Policy Boundary", roadmap)
-        self.assertIn("Code-only `rc` rows stay `unknown`", roadmap)
-        self.assertIn(
-            "Phase 12B: Principal / Capital Return Vocabulary Alignment",
-            roadmap,
-        )
-        self.assertIn("`pd` remains aligned with the capital-return gate", roadmap)
-        self.assertIn("Phase 12C: Short Sale / Cover Short Evidence Gate", roadmap)
-        self.assertIn("Code-only short-side rows stay `unknown`", roadmap)
-        self.assertIn("Phase 12D: Matrix + Validator Reporting", roadmap)
-        self.assertIn("`Capital-return and short-side backlog\ngates`", roadmap)
+        self.assertIn("four proved fixed-income Modified Dietz input", source_contract)
+        self.assertIn("amortization/accretion engine", source_contract)
+        self.assertIn("bond principal schedule", source_contract)
+        for code in ("pa", "sa", "pd"):
+            with self.subTest(code=code):
+                fixtures = _yaml_string_list(
+                    rows[code]["fixtures"],
+                    label=f"rows.{code}.fixtures",
+                )
+                self.assertIn("packaged_demo", fixtures)
+                self.assertIn(
+                    "code-only treatment remains unknown",
+                    str(rows[code]["coverage_notes"]).lower(),
+                )
 
-        partial_fixture_expectations = {
+    def test_return_capital_and_short_boundaries_are_current(self) -> None:
+        """High-risk capital-return and short codes remain context-gated."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
+        )
+        rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+        expected_fixtures = {
             "rc": ["packaged_demo", "site_variants/rc_return_of_capital"],
             "pd": ["packaged_demo", "site_variants/pd_principal_paydown"],
             "ss": ["packaged_demo", "site_variants/short_side_trades"],
             "cs": ["packaged_demo", "site_variants/short_side_trades"],
         }
-        for code, expected_fixtures in partial_fixture_expectations.items():
+
+        for code, fixtures in expected_fixtures.items():
             with self.subTest(code=code):
-                rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
-                row = rows[code]
-                self.assertEqual(row["coverage_status"], "partial")
-                self.assertEqual(row["fixtures"], expected_fixtures)
+                self.assertEqual(rows[code]["coverage_status"], "partial")
+                self.assertEqual(rows[code]["fixtures"], fixtures)
                 self.assertIn(
                     "Code-only treatment remains unknown",
-                    str(row["coverage_notes"]),
+                    str(rows[code]["coverage_notes"]),
                 )
 
     def test_candidate_override_profiles_are_documented_as_test_only(self) -> None:
@@ -980,285 +924,58 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(profile_name, checklist)
                 self.assertIn(profile_name, fixture_readme)
 
-    def test_matrix_consolidation_phase_is_documented(self) -> None:
-        """The roadmap documents the release-readiness consolidation phase."""
-        roadmap = Path("docs/roadmap.md").read_text(
+    def test_transaction_matrix_has_one_current_human_view(self) -> None:
+        """The human matrix is generated from the machine-readable authority."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
+        )
+        matrix_contract = Path(
+            "docs/axys_apx/contracts/transaction_semantics_matrix.md"
+        ).read_text(encoding=util.ENCODING)
+        rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+
+        required_codes = _yaml_string_list(
+            matrix_yaml["required_matrix_codes"],
+            label="required_matrix_codes",
+        )
+        self.assertEqual(set(rows), set(required_codes))
+        self.assertIn("BEGIN GENERATED TRANSACTION ROWS", matrix_contract)
+        self.assertIn("Core Observed Code Matrix", matrix_contract)
+        self.assertIn("External-Flow Decision Rules", matrix_contract)
+        self.assertIn("Coverage Backlog", matrix_contract)
+
+    def test_portfolio_roadmap_separates_current_direction_from_history(self) -> None:
+        """Current roadmap authority stays concise and separate from history."""
+        portfolio_roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
-        snapshot = Path(
-            "docs/audit/performance_comparison_transaction_boundary_snapshot.md"
+        archived_roadmap = Path(
+            "docs/archive/roadmap_through_v0.1.5.md"
         ).read_text(encoding=util.ENCODING)
 
-        self.assertIn("Phase 13: Matrix Consolidation And Release Readiness", roadmap)
-        self.assertIn("Phase 13A: Transaction Boundary Registry", roadmap)
-        self.assertIn("transaction_boundary_registry", roadmap)
-        self.assertIn("Phase 13B: Demo Matrix Validator Cleanup", roadmap)
-        self.assertIn("baseline and\nattribution checks", roadmap)
-        self.assertIn("Phase 13C: Roadmap / Matrix Consistency Audit", roadmap)
-        self.assertIn("Phase 13D: Pre-Commit Release Snapshot", roadmap)
-        self.assertIn("Covered Formula Inputs", snapshot)
-        self.assertIn("Context-Required Rows", snapshot)
-        self.assertIn("Backlog Gates", snapshot)
-
-    def test_final_review_pack_phase_is_documented(self) -> None:
-        """The roadmap and review pack document commit-preparation scope."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-        review_pack = Path(
-            "docs/audit/archive/performance_comparison_evidence_pack_review.md"
-        ).read_text(encoding=util.ENCODING)
-
-        self.assertIn("Phase 14: Final Review Pack And Commit Preparation", roadmap)
-        self.assertIn("Phase 14A: Change Inventory", roadmap)
-        self.assertIn("Phase 14B: Public API / Package Surface Check", roadmap)
-        self.assertIn("Phase 14C: Diff Hygiene Pass", roadmap)
-        self.assertIn("Phase 14D: Commit-Ready Validation", roadmap)
-        self.assertIn("Change Inventory", review_pack)
-        self.assertIn("Public Surface", review_pack)
-        self.assertIn("Suggested Commit Message", review_pack)
-        self.assertIn("Add performance comparison evidence-pack boundaries", review_pack)
-
-    def test_phase_roadmap_sections_are_unique_after_review_pack(self) -> None:
-        """The active roadmap keeps one section per late phase train."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        for phase in range(9, 15):
-            with self.subTest(phase=phase):
-                self.assertEqual(roadmap.count(f"### Phase {phase}:"), 1)
-        self.assertEqual(roadmap.count("## Guiding Principle"), 1)
-        self.assertEqual(roadmap.count("## Transaction-Type Backlog"), 1)
-
-    def test_project_roadmap_starts_with_current_status(self) -> None:
-        """The project roadmap separates active backlog from historical phase notes."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("# PPAR Roadmap", roadmap)
-        self.assertIn("Axys/APX-focused analytics", roadmap)
-        self.assertIn("performance auditing, onboarding", roadmap)
-        for heading in (
-            "## How To Read This Roadmap",
-            "## Current Status",
-            "## Current Open Items",
-            "### Near-Term Release Hardening",
-            "### Transaction And Policy Backlog",
-            "### Transaction Coverage Expansion",
-            "### Longer-Term Deliverables",
-            "## Axys/APX Extract Contract Review Map",
-            "## Implementation Phases",
+        self.assertIn("# PPAR Portfolio Roadmap", portfolio_roadmap)
+        self.assertIn("PPAR has two products", portfolio_roadmap)
+        self.assertIn("It is not a\nthird PPAR product", portfolio_roadmap)
+        for expected_path in (
+            "audit/product_constitution.md",
+            "audit/mvp_plan.md",
+            "analytics/roadmap.md",
+            "axys_apx/reference/Chapter_01_Overview.md#axys_apx-blockers",
+            "archive/roadmap_through_v0.1.5.md",
         ):
-            self.assertIn(heading, roadmap)
-
-        self.assertLess(
-            roadmap.index("## Current Open Items"),
-            roadmap.index("## Implementation Phases"),
-        )
-        self.assertIn("The remaining work is backlog expansion", roadmap)
-        self.assertIn("The phase notes below are an implementation journal", roadmap)
-        self.assertIn("Completed guardrails now cover:", roadmap)
-        self.assertIn("Phase 37: Roadmap Readability Refactor", roadmap)
-        self.assertIn("Evidence-blocked backlog", roadmap)
-        self.assertIn("Policy expansion", roadmap)
-        self.assertIn("PyPI wheel package-data surface includes packaged demo", roadmap)
-        self.assertIn("excludes source-checkout generation internals", roadmap)
-        self.assertIn("minimum source-data contract is documented", roadmap)
-        self.assertIn("required datasets and required normalized columns", roadmap)
-        self.assertIn("default report/workbook review order starts", roadmap)
-        self.assertIn("optional", roadmap)
-        self.assertIn("reconstruction diagnostics stay opt-in", roadmap)
-        self.assertIn("Phase 82: Setup Python Runner Scripts", roadmap)
-        self.assertIn("installs optional Python runner scripts", roadmap)
-        self.assertIn("Phase 84: Open-Item Reconciliation", roadmap)
-        self.assertIn("Standing maintenance criteria", roadmap)
-        self.assertIn("Phase 85: Documentation Freshness Guardrail Sweep", roadmap)
-        self.assertIn("retired setup/command terminology", roadmap)
-        self.assertIn("Phase 86: Compact Architecture Map", roadmap)
-        self.assertIn("keep new docs rare", roadmap)
-        self.assertIn("Phase 87: Setup Site Dry Run And User Surface Audit", roadmap)
-        self.assertIn("generated output clutter", roadmap)
-        self.assertIn("Phase 88: Release Package Smoke Audit", roadmap)
-        self.assertIn("exposes only `ppar = ppar.cli:main`", roadmap)
-        self.assertIn(
-            "Phase 89: Release Candidate Tagging And Version Readiness Audit",
-            roadmap,
-        )
-        self.assertIn("no tag was created", roadmap)
-        self.assertIn("single package-version authority", roadmap)
-        self.assertIn("explicit version decision", roadmap)
-        self.assertIn("Phase 90: Version Decision And Release Tag Prep", roadmap)
-        self.assertIn("selected `0.1.5` as the next public version", roadmap)
-        self.assertIn("built metadata reporting `Version: 0.1.5`", roadmap)
-        self.assertIn("Phase 91: Publish Dry Run And Final Artifact Audit", roadmap)
-        self.assertIn("artifacts passed `twine check`", roadmap)
-        self.assertIn("only `ppar = ppar.cli:main`", roadmap)
-        self.assertIn("No artifact was uploaded and no tag was pushed", roadmap)
-        self.assertIn("### Release Notes Stub", roadmap)
-        self.assertIn("`v0.1.5`: Axys/APX setup", roadmap)
-        self.assertIn(
-            "Phase 92: Tag Placement Decision And Release Notes Stub",
-            roadmap,
-        )
-        self.assertIn("final audited release-record commit", roadmap)
-        self.assertIn("Phase 93: Remote Release Readiness Check", roadmap)
-        self.assertIn("remote tag `v0.1.5` does not exist yet", roadmap)
-        self.assertIn("tag or branch was pushed.", roadmap)
-        self.assertIn("Phase 95: Public Version API And Fresh RC Pass", roadmap)
-        self.assertIn("The package now exposes `ppar.__version__`", roadmap)
-        self.assertIn(
-            "./.venv/bin/python scripts/check_release_candidate.py --build",
-            roadmap,
-        )
-        self.assertIn("Phase 96: Axys/APX Demo Simplification", roadmap)
-        self.assertIn("period split backlog is now empty", roadmap)
-        self.assertIn("plausible/defensible examples", roadmap)
-        self.assertIn("Data Audit Issues worksheet", roadmap)
-        self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
-        self.assertIn("not the primary installed-user onboarding path", roadmap)
-        self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
-        self.assertIn("intentional `Unexplained`", roadmap)
-        self.assertIn("Do not add \"all transaction types\"", roadmap)
-        self.assertIn("more packaged rows", roadmap)
-        self.assertIn("merely for symmetry", roadmap)
-        self.assertIn("Richer APX demo", roadmap)
-        self.assertIn("multi-currency data must affect comparison behavior", roadmap)
-        self.assertIn("Vendor YAML presets", roadmap)
-        self.assertIn("`vendor: axys`", roadmap)
-        self.assertIn("Overrides have deterministic precedence", roadmap)
-        self.assertIn("accepted packaged Axys/APX demo/source contract", roadmap)
-        self.assertIn("simplify code only when", roadmap)
-        self.assertIn("profile only when", roadmap)
-        self.assertIn("Documentation freshness", roadmap)
-        self.assertIn("Axys/APX Demo Freeze Decision Packet", roadmap)
-        self.assertIn("mapped to concrete packaged-data", roadmap)
-        self.assertIn("accepted as the future `vendor: axys` preset seed", roadmap)
-        self.assertIn("Vendor-preset infrastructure is deliberately", roadmap)
-        self.assertIn("parked in Eventual Deliverables", roadmap)
-        self.assertIn("versioned Axys/APX preset seed", roadmap)
-        self.assertIn("**Axys/APX blockers**", roadmap)
-        self.assertIn(
-            "axys_apx/reference/Chapter_01_Overview.md#axysapx-blockers",
-            roadmap,
-        )
-        self.assertIn("canonical Axys/APX blocker summary", roadmap)
-        self.assertIn("Phase 38: Packaging Surface And Product Boundary Audit", roadmap)
-        self.assertIn(
-            "Phase 40: YAML Strictness And Misleading-Report Prevention",
-            roadmap,
-        )
-        self.assertNotIn("| Packaging surface |", roadmap)
-        self.assertNotIn("| User-facing input contract |", roadmap)
-        self.assertNotIn("| YAML strictness |", roadmap)
-        self.assertIn("validate_config` now uses the same complete-YAML", roadmap)
-        self.assertIn("`--allow-incomplete-yaml`", roadmap)
-        self.assertIn("Phase 41: Artifact Taxonomy And Polars Recon", roadmap)
-        self.assertIn("first-stop review surfaces", roadmap)
-        self.assertIn("no Pandas import or `to_pandas` conversion", roadmap)
-        self.assertIn("security return reconstruction checks", roadmap)
-        self.assertIn("filter().collect()", roadmap)
-        self.assertIn("Phase 42: Reconstruction Diagnostics Cache", roadmap)
-        self.assertIn("share a per-build reconstruction diagnostics", roadmap)
-        self.assertIn("cache is scoped to one comparison path", roadmap)
-        self.assertIn("9.2 seconds to about 3.6 seconds", roadmap)
-        self.assertIn("Phase 43: Cleanup And Artifact Retention Sweep", roadmap)
-        self.assertIn("removed a stale workbook helper", roadmap)
-        self.assertIn("transaction row-identity audit support", roadmap)
-        self.assertIn("Phase 44: Public API And Compatibility Shim Audit", roadmap)
-        self.assertIn("package-root `ppar.performance_comparison` API", roadmap)
-        self.assertIn("direct-submodule imports", roadmap)
-        self.assertIn("Phase 45: Documentation Freshness And Reader Path Sweep", roadmap)
-        self.assertIn("former", roadmap)
-        self.assertIn("`Other Data Differences` sheet", roadmap)
-        self.assertIn("canonical opt-in", roadmap)
-        self.assertIn("reconstruction diagnostic worksheet names", roadmap)
-        self.assertIn(
-            "Phase 46: Optional Reconstruction Diagnostics UX Audit",
-            roadmap,
-        )
-        self.assertIn("default reviewer path first", roadmap)
-        self.assertIn("Manifest review entrypoints", roadmap)
-        self.assertIn(
-            "Phase 47: Roadmap Pruning And Release Backlog Reconciliation",
-            roadmap,
-        )
-        self.assertIn("release-hardening watchlist", roadmap)
-        self.assertIn(
-            "Phase 49: Portfolio/Security Explanation Consistency Audit",
-            roadmap,
-        )
-        self.assertIn(
-            "portfolio-return role, while security reports explain",
-            roadmap,
-        )
-        self.assertIn("Phase 54: Axys/APX Blocker Alignment", roadmap)
-        self.assertIn("native performance extract dictionaries", roadmap)
-        self.assertIn("Phase 55: Release Candidate Reality Check", roadmap)
-        self.assertIn("The full test suite passed with 605 tests", roadmap)
-        self.assertIn("did not alter generated", roadmap)
-        self.assertIn("report content", roadmap)
-        self.assertIn("Phase 56: Vendor Preset Design Spike", roadmap)
-        self.assertIn(
-            "engine defaults < vendor preset < site YAML overrides",
-            roadmap,
-        )
-        self.assertIn("blocks implementation until", roadmap)
-        self.assertIn("Phase 57: Axys/APX Demo Finalization Gate", roadmap)
-        self.assertIn("Axys/APX demo completion gate", roadmap)
-        self.assertIn("Vendor preset implementation remains blocked", roadmap)
-        self.assertIn("Phase 58: Axys/APX Demo YAML Seed Readiness Audit", roadmap)
-        self.assertIn("candidate seed for a future `vendor: axys` preset", roadmap)
-        self.assertIn("reserved", roadmap)
-        self.assertIn("guardrail semantics for `lo` and `;`", roadmap)
-        self.assertIn("Phase 59: Axys/APX Demo Completion Gate Audit", roadmap)
-        self.assertIn("Gate status: near-pass", roadmap)
-        self.assertIn("not declared fully passed until", roadmap)
-        self.assertIn("frozen as a preset seed", roadmap)
-        self.assertIn("report.html` hashes were unchanged", roadmap)
-        self.assertIn("Phase 60: Axys/APX Demo Freeze Readiness Sweep", roadmap)
-        self.assertIn("current freeze-readiness framing", roadmap)
-        self.assertIn("remaining step is a maintainer/product", roadmap)
-        self.assertIn("near-pass, not preset implementation", roadmap)
-        self.assertIn(
-            "Phase 61: Freeze Decision Prep And Release Backlog Slimming",
-            roadmap,
-        )
-        self.assertIn("complete for freeze-decision prep", roadmap)
-        self.assertIn("concise acceptance checklist", roadmap)
-        self.assertIn("universal Axys/APX behavior", roadmap)
-        self.assertIn("Phase 62: Freeze Packet Acceptance Audit", roadmap)
-        self.assertIn("current freeze-packet auditability", roadmap)
-        self.assertIn("At that time, the spot audit confirmed", roadmap)
-        self.assertIn("later phases promoted", roadmap)
-        self.assertIn("packaged `lo`", roadmap)
-        self.assertIn("fixed-income `pa`/`sa` rows", roadmap)
-        self.assertIn("`;` remains guardrail-only", roadmap)
-        self.assertIn("Phase 63: Release Candidate Confidence Sweep", roadmap)
-        self.assertIn("current release-candidate confidence", roadmap)
-        self.assertIn("full test suite passed with 608 tests", roadmap)
-        self.assertIn("build succeeded for both", roadmap)
-        self.assertIn("observed transaction codes then limited to", roadmap)
-        self.assertIn("include `lo`, `pa`, and `sa`", roadmap)
-        self.assertIn("stale-term sweep found only intentional", roadmap)
-        self.assertIn("Phase 64: Axys/APX Demo Preset Seed Acceptance", roadmap)
-        self.assertIn("docs-only preset-seed acceptance", roadmap)
-        self.assertIn("accepted seed for the packaged Axys/APX demo scope", roadmap)
-        self.assertIn("does not add hidden runtime policy", roadmap)
-        self.assertIn("remaining vendor-preset work is now implementation", roadmap)
-        self.assertIn("Phase 65: Post-Freeze Backlog Reorientation", roadmap)
-        self.assertIn("docs-only post-freeze reorientation", roadmap)
-        self.assertIn("should not drift back into `vendor: axys` implementation", roadmap)
-        self.assertIn("richer APX", roadmap)
-        self.assertIn("transaction-policy expansion", roadmap)
-        self.assertIn("Phase 66: Packaged `lo` Deliver-Out Scenario", roadmap)
-        self.assertIn("one packaged external-cash `lo` promotion", roadmap)
-        self.assertIn("external\ncash deliver-out", roadmap)
-        self.assertIn("changes the generated portfolio and security report content", roadmap)
-        self.assertNotIn("| Report bundle cleanup |", roadmap)
-        self.assertNotIn("| Axys/APX demo freeze readiness |", roadmap)
-        self.assertNotIn("| Polars execution audit |", roadmap)
+            self.assertIn(expected_path, portfolio_roadmap)
+        for heading in (
+            "## Where Roadmap Decisions Live",
+            "## Current Portfolio Priorities",
+            "## Shared Platform Priorities",
+            "## Candidate Cross-Product Work",
+            "## Maintenance Rule",
+        ):
+            self.assertIn(heading, portfolio_roadmap)
+        self.assertNotIn("## Implementation Phases", portfolio_roadmap)
+        self.assertNotIn("### Phase ", portfolio_roadmap)
+        self.assertLess(len(portfolio_roadmap.splitlines()), 200)
+        self.assertIn("**Archived implementation journal.**", archived_roadmap)
 
     def test_axys_apx_reference_documents_blockers(self) -> None:
         """The Axys/APX reference keeps a single blocker summary discoverable."""
@@ -1308,52 +1025,11 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, design)
 
-    def test_evidence_pack_hardening_phase_is_documented(self) -> None:
-        """The roadmap keeps the reviewer-readiness train tied to evidence packs."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("Phase 9: Evidence-Pack Hardening And Reviewer Readiness", roadmap)
-        self.assertIn("Phase 9A: Bundle Navigation Manifest", roadmap)
-        self.assertIn("reviewer entrypoints", roadmap)
-        self.assertIn("comparison YAML path", roadmap)
-        self.assertIn("extract-contract summary metadata", roadmap)
-        self.assertIn("Phase 9B: Site Extract Readiness", roadmap)
-        self.assertIn("missing transaction context columns", roadmap)
-        self.assertIn("Phase 9C: Test-Only Semantics Expansion", roadmap)
-        self.assertIn("Modified Dietz formula role", roadmap)
-        self.assertIn("Phase 9D: Manifest Validation And Extract Context Summary", roadmap)
-        self.assertIn("review_entrypoints", roadmap)
-        self.assertIn("required\n  transaction context columns", roadmap)
-        self.assertIn("observed transaction codes", roadmap)
-        self.assertIn("Phase 9E: Bundle Validation Completion", roadmap)
-        self.assertIn("source_context.extract_contract", roadmap)
-        self.assertIn("Phase 9F: Extract Context Operator Readiness", roadmap)
-        self.assertIn("Phase 9G: Shared Transaction Semantics Summary", roadmap)
-        self.assertIn("codes without YAML rules", roadmap)
-        self.assertIn("Phase 9H: Operator Checklist Docs", roadmap)
-        self.assertIn("site_extract_readiness_checklist.md", roadmap)
-        self.assertIn("Phase 9I: Test-Only Ambiguous Flow Matrix", roadmap)
-        self.assertIn("Ambiguous flow context variants", roadmap)
-        self.assertIn("Phase 9J: Code-Only Failure Fixtures", roadmap)
-        self.assertIn("Code-only failure guard", roadmap)
-        self.assertIn("Phase 9K: Local Opt-Out Boundary", roadmap)
-        self.assertIn("Reviewed local opt-out", roadmap)
-        self.assertIn("Phase 9L: Demo Matrix Reporting Polish", roadmap)
-        self.assertIn("Phase 9M: Evidence-Pack Golden Bundle Fixture", roadmap)
-        self.assertIn("manifest_version", roadmap)
-        self.assertIn("Phase 9N: README / CLI Review Flow Tightening", roadmap)
-        self.assertIn("Phase 9O: Bundle Manifest Regression Contract", roadmap)
-        self.assertIn("Phase 9P: Final Phase-9 Consolidation", roadmap)
-        self.assertIn("Status: complete.", roadmap)
-        self.assertIn("release-ready evidence-pack baseline", roadmap)
-
     def test_site_extract_readiness_checklist_is_documented(self) -> None:
         """The site extract readiness checklist remains linked from setup docs."""
         checklist = Path("docs/audit/site_extract_readiness_checklist.md")
         source_contract = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         )
         template = Path("docs/axys_apx/contracts/templates/site_extract_contract.yaml")
 
@@ -1379,10 +1055,10 @@ class TestPackageMetadata(unittest.TestCase):
             encoding=util.ENCODING
         )
         source_contract = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         )
         local_opt_out = Path(
-            "tests/data/axys/site_variants/local_opt_out/ppar_performance_comparison.yaml"
+            "tests/data/axys/site_variants/local_opt_out/ppar_audit.yaml"
         )
 
         self.assertTrue(local_opt_out.exists())
@@ -1392,18 +1068,6 @@ class TestPackageMetadata(unittest.TestCase):
             "local_opt_out",
             source_contract.read_text(encoding=util.ENCODING),
         )
-
-    def test_reinvestment_gate_stays_modified_dietz_scoped(self) -> None:
-        """Dividend reinvestment docs avoid requiring accounting-style matching."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        self.assertIn("does\nnot require accounting-style pair matching", roadmap)
-        self.assertIn("The required formula boundary is narrower", roadmap)
-        self.assertIn("`dv` is income", roadmap)
-        self.assertIn("`by` is a\nsecurity-level flow", roadmap)
-        self.assertIn("optional\nreviewer polish", roadmap)
 
     def test_transaction_semantics_matrix_yaml_matches_contract_codes(self) -> None:
         """The machine-readable transaction matrix stays aligned with the contract."""
@@ -1528,7 +1192,12 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml = _load_yaml(
             Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
-        demo_yaml = _load_yaml(Path("ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"))
+        demo_yaml = _load_yaml(
+            Path(
+                "ppar/setup_templates/axys_apx_audit/"
+                "axys_apx_audit.yaml"
+            )
+        )
 
         matrix_codes = set(_yaml_mapping_rows(matrix_yaml["rows"], label="rows"))
         demo_codes = set(
@@ -1549,8 +1218,8 @@ class TestPackageMetadata(unittest.TestCase):
             _yaml_mapping(
                 _load_yaml(
                     Path(
-                        "ppar/setup_templates/axysapx_performance_comparison/"
-                        "axysapx_performance_comparison.yaml"
+                        "ppar/setup_templates/axys_apx_audit/"
+                        "axys_apx_audit.yaml"
                     )
                 )["transaction_rules"],
                 label="transaction_rules",
@@ -1601,20 +1270,18 @@ class TestPackageMetadata(unittest.TestCase):
             imex_context_codes & rep_semantics_codes & code_only_codes,
         )
 
-    def test_packaged_demo_transaction_coverage_triage_is_documented(self) -> None:
-        """Packaged transaction rows require a reviewer story, not symmetry."""
-        roadmap = Path("docs/roadmap.md").read_text(
-            encoding=util.ENCODING
-        )
+    def test_packaged_demo_transaction_coverage_matches_current_contract(self) -> None:
+        """Packaged transaction data agrees with current matrix coverage."""
         matrix_yaml = _load_yaml(
             Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
+        rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
         packaged_demo_rule_codes = set(
             _yaml_mapping(
                 _load_yaml(
                     Path(
-                        "ppar/setup_templates/axysapx_performance_comparison/"
-                        "axysapx_performance_comparison.yaml"
+                        "ppar/setup_templates/axys_apx_audit/"
+                        "axys_apx_audit.yaml"
                     )
                 )["transaction_rules"],
                 label="transaction_rules",
@@ -1622,78 +1289,32 @@ class TestPackageMetadata(unittest.TestCase):
         )
         packaged_demo_data_codes = (
             _transaction_codes_in_csv(
-                Path("ppar/setup_templates/axysapx_performance_comparison/snapshot_a/transactions.csv")
+                Path(
+                    "ppar/setup_templates/axys_apx_audit/"
+                    "snapshot_a/transactions.csv"
+                )
             )
             | _transaction_codes_in_csv(
-                Path("ppar/setup_templates/axysapx_performance_comparison/snapshot_b/transactions.csv")
+                Path(
+                    "ppar/setup_templates/axys_apx_audit/"
+                    "snapshot_b/transactions.csv"
+                )
             )
         )
 
-        self.assertIn(
-            "Phase 48: Packaged Demo Transaction Coverage Triage",
-            roadmap,
-        )
-        self.assertIn("No new transaction row was promoted", roadmap)
-        self.assertIn("later phases promoted `lo` and a narrow paired `pa`/`sa`", roadmap)
-        self.assertIn("Phase 66: Packaged `lo` Deliver-Out Scenario", roadmap)
-        self.assertIn("Phase 71: `pa` / `sa` Packaged Demo Promotion", roadmap)
-        self.assertIn("Synthetic or\nsurgical coverage remains test-only", roadmap)
-
-        self.assertIn("li", packaged_demo_rule_codes)
-        self.assertIn("lo", packaged_demo_rule_codes)
-        self.assertIn("li", packaged_demo_data_codes)
-        self.assertIn("wd", packaged_demo_data_codes)
-        self.assertIn("dp", packaged_demo_data_codes)
-        self.assertIn("lo", packaged_demo_data_codes)
-        self.assertIn("pa", packaged_demo_data_codes)
-        self.assertIn("sa", packaged_demo_data_codes)
-        self.assertEqual(
-            _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["li"]["coverage_status"],
-            "covered_packaged_demo",
-        )
-        self.assertEqual(
-            _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["coverage_status"],
-            "covered_packaged_demo",
-        )
-        self.assertIn(
-            "packaged_demo",
-            _yaml_string_list(
-                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["fixtures"],
-                label="rows.lo.fixtures",
-            ),
-        )
-        self.assertIn(
-            "site_variants/imex_context",
-            _yaml_string_list(
-                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["fixtures"],
-                label="rows.lo.fixtures",
-            ),
-        )
-        self.assertIn(
-            "site_variants/rep_semantics",
-            _yaml_string_list(
-                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["fixtures"],
-                label="rows.lo.fixtures",
-            ),
-        )
-        self.assertEqual(
-            _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["pa"]["coverage_status"],
-            "partial",
-        )
-        self.assertIn(
-            "packaged_demo",
-            _yaml_string_list(
-                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["pa"]["fixtures"],
-                label="rows.pa.fixtures",
-            ),
-        )
-        self.assertIn(
-            "packaged_demo",
-            _yaml_string_list(
-                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["sa"]["fixtures"],
-                label="rows.sa.fixtures",
-            ),
-        )
+        self.assertLessEqual(packaged_demo_data_codes, packaged_demo_rule_codes)
+        for code in ("li", "lo", "wd", "dp", "pa", "sa"):
+            with self.subTest(code=code):
+                self.assertIn(code, packaged_demo_data_codes)
+                fixtures = _yaml_string_list(
+                    rows[code]["fixtures"],
+                    label=f"rows.{code}.fixtures",
+                )
+                self.assertIn("packaged_demo", fixtures)
+        self.assertEqual(rows["li"]["coverage_status"], "covered_packaged_demo")
+        self.assertEqual(rows["lo"]["coverage_status"], "covered_packaged_demo")
+        self.assertEqual(rows["pa"]["coverage_status"], "partial")
+        self.assertEqual(rows["sa"]["coverage_status"], "partial")
 
     def test_review_only_action_fixture_is_documented(self) -> None:
         """Synthetic review-only action rows remain a test-only quarantine."""
@@ -1705,7 +1326,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
         fixture = Path(
             "tests/data/axys/site_variants/review_only_actions/"
-            "ppar_performance_comparison.yaml"
+            "ppar_audit.yaml"
         )
 
         self.assertTrue(fixture.exists())
@@ -1732,10 +1353,10 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml = _load_yaml(
             Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             Path(
                 "tests/data/axys/site_variants/imex_context/"
-                "ppar_performance_comparison.yaml"
+                "ppar_audit.yaml"
             )
         )
         frame = TransactionsLoader(specification).load("a")
@@ -1785,15 +1406,15 @@ class TestPackageMetadata(unittest.TestCase):
         with open("pyproject.toml", "rb") as file:
             pyproject = tomllib.load(file)
 
-        self.assertIn("ppar.axys", pyproject["tool"]["setuptools"]["packages"])
+        self.assertIn("ppar.axys_apx", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn("ppar.analytics", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn("ppar.setup_templates", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn(
-            "ppar.setup_templates.axysapx_analytics",
+            "ppar.setup_templates.axys_apx_analytics",
             pyproject["tool"]["setuptools"]["packages"],
         )
         self.assertIn(
-            "ppar.setup_templates.axysapx_performance_comparison",
+            "ppar.setup_templates.axys_apx_audit",
             pyproject["tool"]["setuptools"]["packages"],
         )
         self.assertIn(
@@ -1802,11 +1423,11 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertNotIn("ppar.demos", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn(
-            "ppar.performance_comparison",
+            "ppar.audit",
             pyproject["tool"]["setuptools"]["packages"],
         )
         self.assertIn(
-            "ppar.performance_comparison.cli",
+            "ppar.audit.cli",
             pyproject["tool"]["setuptools"]["packages"],
         )
 
@@ -1822,9 +1443,9 @@ class TestPackageMetadata(unittest.TestCase):
             },
         )
 
-    def test_repository_guide_documents_demo_onboarding_commands(self) -> None:
-        """The repository guide keeps the Axys/APX demo smoke path discoverable."""
-        guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
+    def test_maintainer_guide_documents_demo_onboarding_commands(self) -> None:
+        """The maintainer guide keeps the Axys/APX demo smoke path discoverable."""
+        guide = Path("docs/maintainer_guide.md").read_text(encoding=util.ENCODING)
 
         for expected_text in [
             "Run Setup-Generated Smoke Scripts",
@@ -1842,10 +1463,10 @@ class TestPackageMetadata(unittest.TestCase):
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
             "/tmp/ppar_smoke_site/audit/run_audit.py",
             "/tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py",
-            "ppar.performance_comparison.cli.validate_bundle",
-            "ppar.performance_comparison.cli.validate_config",
-            "ppar.performance_comparison.cli.validate_demo_matrix",
-            "scripts/check_performance_comparison_demo_health.py",
+            "ppar.audit.cli.validate_bundle",
+            "ppar.audit.cli.validate_config",
+            "ppar.audit.cli.validate_demo_matrix",
+            "scripts/check_audit_demo_health.py",
             "/tmp/ppar_smoke_site/audit/output/portfolio",
             "/tmp/ppar_smoke_site/audit/output/security",
             "portfolio_audit.xlsx",
@@ -1869,21 +1490,21 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("Residual Evidence", guide)
         self.assertNotIn("Return Reconstruction Summary", guide)
 
-    def test_repository_guide_documents_packaged_demo_inventory(self) -> None:
-        """The repository guide keeps demo source ownership and scenarios visible."""
-        guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
+    def test_maintainer_guide_documents_packaged_demo_inventory(self) -> None:
+        """The maintainer guide keeps demo source ownership and scenarios visible."""
+        guide = Path("docs/maintainer_guide.md").read_text(encoding=util.ENCODING)
 
         for expected_text in [
-            "Packaged Axys/APX Performance Comparison Maintenance",
-            "Treat the packaged Axys/APX performance-comparison demo as a small accounting",
+            "Packaged Axys/APX Audit Demo Maintenance",
+            "Treat the packaged Axys/APX Audit demo as a small accounting",
             "derive_operational_demo_data.py",
-            "performance_comparison_transaction_scenarios.csv",
-            "performance_comparison_holding_scenarios.csv",
-            "performance_comparison_scenario_calendar.csv",
-            "performance_comparison_period_split_plan.csv",
+            "audit_transaction_scenarios.csv",
+            "audit_holding_scenarios.csv",
+            "audit_scenario_calendar.csv",
+            "audit_period_split_plan.csv",
             "two-independent-change review target",
             "Empty split backlog",
-            "rebuild_performance_comparison_demo_data.py",
+            "rebuild_audit_demo_data.py",
             "Use `--write` only when you intend to rewrite tracked packaged CSV assets.",
             "Current packaged scenario inventory",
             "`CVNA` split row",
@@ -1897,20 +1518,22 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, guide)
 
-    def test_repository_guide_documents_release_readiness_checklist(self) -> None:
-        """The repository guide keeps release-tag readiness checks explicit."""
-        guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
+    def test_maintainer_guide_documents_release_readiness_checklist(self) -> None:
+        """The maintainer guide keeps release-tag readiness checks explicit."""
+        guide = Path("docs/maintainer_guide.md").read_text(encoding=util.ENCODING)
 
         for expected_text in [
             "## Release Readiness",
             "./.venv/bin/python scripts/check_release_candidate.py --build",
             "`pyproject.toml` is the only package-version authority",
             "`ppar.__version__` value is read from installed package metadata",
-            "git rev-parse --short v0.1.5",
-            "git ls-remote --tags origin v0.1.5",
-            "git tag -f v0.1.5 HEAD",
+            "PPAR_RELEASE_VERSION=$(./.venv/bin/python -c",
+            'git rev-parse --short "v${PPAR_RELEASE_VERSION}"',
+            'git ls-remote --tags origin "v${PPAR_RELEASE_VERSION}"',
+            'git tag -f "v${PPAR_RELEASE_VERSION}" HEAD',
             "./.venv/bin/python -m build --wheel --sdist --no-isolation --outdir dist",
-            "./.venv/bin/python -m twine check dist/ppar-0.1.5-py3-none-any.whl dist/ppar-0.1.5.tar.gz",
+            '"dist/ppar-${PPAR_RELEASE_VERSION}-py3-none-any.whl"',
+            '"dist/ppar-${PPAR_RELEASE_VERSION}.tar.gz"',
             "only the `ppar` console script is exposed",
             "ppar setup /tmp/ppar_release_site",
             "Do not move, create, or push a release tag until the version and release commit",
@@ -1920,12 +1543,12 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_readme_uses_current_report_sheet_names(self) -> None:
         """The packaged Axys README names the current workbook review path."""
-        readme = Path("ppar/setup_templates/axysapx_performance_comparison/README.md").read_text(
+        readme = Path("ppar/setup_templates/axys_apx_audit/README.md").read_text(
             encoding=util.ENCODING
         )
 
         for expected_text in [
-            "ppar.performance_comparison.cli.validate_config",
+            "ppar.audit.cli.validate_config",
             "minimum required datasets",
             "required normalized columns",
             "complete YAML treatment",
@@ -1971,12 +1594,12 @@ class TestPackageMetadata(unittest.TestCase):
     def test_axys_demo_resources_are_packaged(self) -> None:
         """The Axys/APX demos use packaged resources instead of test fixtures."""
         demo_data = files("ppar.setup_templates")
-        axysapx_analytics_data = demo_data / "axysapx_analytics"
-        axys_demo_data = demo_data / "axysapx_performance_comparison"
+        axys_apx_analytics_data = demo_data / "axys_apx_analytics"
+        axys_demo_data = demo_data / "axys_apx_audit"
         expected_resources = (
             "README.md",
-            "axysapx_column_mappings.yaml",
-            "axysapx_performance_comparison.yaml",
+            "axys_apx_column_mappings.yaml",
+            "axys_apx_audit.yaml",
             "snapshot_a/portperf.csv",
             "snapshot_b/transactions.csv",
         )
@@ -1985,18 +1608,18 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(resource_path=resource_path):
                 self.assertTrue((axys_demo_data / resource_path).is_file())
         for resource_path in (
-            "axysapx_analytics.yaml",
+            "axys_apx_analytics.yaml",
             "portperf.csv",
             "secperf.csv",
             "secref.csv",
         ):
-            with self.subTest(resource_path=f"axysapx_analytics/{resource_path}"):
-                self.assertTrue((axysapx_analytics_data / resource_path).is_file())
+            with self.subTest(resource_path=f"axys_apx_analytics/{resource_path}"):
+                self.assertTrue((axys_apx_analytics_data / resource_path).is_file())
 
     def test_setup_template_scripts_do_not_depend_on_demo_helpers(self) -> None:
         """Installed setup scripts are self-contained tutorial surfaces."""
         demo_modules = (
-            Path("ppar/setup_templates/axysapx_analytics/run_analytics.py"),
+            Path("ppar/setup_templates/axys_apx_analytics/run_analytics.py"),
             Path("ppar/setup_templates/generic_analytics/run_generic_analytics.py"),
         )
 
@@ -2009,7 +1632,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_portfolio_demo_uses_operational_mega_cap_data(self) -> None:
         """The user-facing comparison demo packages the promoted operational data."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         holdings_path = Path(
             str(axys_demo_data / "snapshot_a" / "holdings.csv")
         )
@@ -2038,7 +1661,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_changed_transactions_have_matching_holdings(self) -> None:
         """Material transaction demo changes have matching month-end holdings evidence."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
 
@@ -2101,7 +1724,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_buy_transaction_amounts_include_commission(self) -> None:
         """Packaged buy rows use a stable signed cash-amount convention."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot=snapshot_name):
                 snapshot = Path(str(axys_demo_data / snapshot_name))
@@ -2125,7 +1748,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_fee_transactions_reduce_cash_and_income(self) -> None:
         """Packaged fee changes reduce ending cash and cash security income."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("INCOME", "2026-01-20", "CASHUSD", "dp")
@@ -2179,7 +1802,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_omits_synthetic_future_splits(self) -> None:
         """Packaged comparison demo avoids fictional future split transactions."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
 
@@ -2196,7 +1819,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_withdrawal_changes_cash_and_flow_return(self) -> None:
         """Packaged withdrawal changes cash, flow, and reconstructed return."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("ALPHA", "2026-01-20", "CASHUSD", "wd")
@@ -2262,7 +1885,7 @@ class TestPackageMetadata(unittest.TestCase):
             amount_delta,
             places=2,
         )
-        comparison_path = Path(str(axys_demo_data / "axysapx_performance_comparison.yaml"))
+        comparison_path = Path(str(axys_demo_data / "axys_apx_audit.yaml"))
         checks = _reconstruction_rows_by_key(
             portfolio_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "from_date", "thru_date"),
@@ -2284,7 +1907,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
         """Security performance demo rows stay consistent with holdings."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot=snapshot_name):
                 snapshot = Path(str(axys_demo_data / snapshot_name))
@@ -2333,8 +1956,8 @@ class TestPackageMetadata(unittest.TestCase):
         self,
     ) -> None:
         """Portfolio demo performance rows match configured reconstruction rules."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
-        comparison_path = Path(str(axys_demo_data / "axysapx_performance_comparison.yaml"))
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
+        comparison_path = Path(str(axys_demo_data / "axys_apx_audit.yaml"))
         checks = _reconstruction_rows_by_key(
             portfolio_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "from_date", "thru_date"),
@@ -2403,7 +2026,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_security_return_deltas_match_reconstruction(self) -> None:
         """Security demo return deltas match configured reconstruction rules."""
-        axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         holdings_a = _csv_rows_by_key(
@@ -2422,7 +2045,7 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "secperf.csv",
             ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
         )
-        comparison_path = Path(str(axys_demo_data / "axysapx_performance_comparison.yaml"))
+        comparison_path = Path(str(axys_demo_data / "axys_apx_audit.yaml"))
         checks = _reconstruction_rows_by_key(
             security_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "security_id", "from_date", "thru_date"),
@@ -2503,7 +2126,9 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_readme_documents_field_role_model(self) -> None:
         """The packaged Axys/APX demo README describes the user-facing role model."""
-        matrix = Path("ppar/setup_templates/axysapx_performance_comparison/README.md").read_text(encoding=util.ENCODING)
+        matrix = Path(
+            "ppar/setup_templates/axys_apx_audit/README.md"
+        ).read_text(encoding=util.ENCODING)
         expected_terms = {
             "performance_input",
             "input_component",
@@ -2519,57 +2144,38 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(term=term):
                 self.assertIn(term, matrix)
 
-    def test_axys_demo_source_contract_documents_completion_gate(self) -> None:
-        """The source contract defines when Axys/APX YAML can seed a vendor preset."""
+    def test_axys_demo_source_contract_has_stable_demo_boundaries(self) -> None:
+        """The source contract owns demo behavior without historical gates."""
         contract_doc = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         ).read_text(
             encoding=util.ENCODING
         )
 
         for expected_text in [
-            "## Axys/APX Demo Completion Gate",
-            "accepted future seed for an Axys/APX vendor YAML",
-            "preset",
-            "complete enough to seed `vendor: axys`",
-            "packaged CSV fields are limited",
-            "internal scenario/rebuild fields",
-            "stable transaction semantics",
-            "Fully Explained",
-            "Partly Explained",
-            "Unexplained",
-            "ambiguous Axys/APX-style `dp`, `li`, `lo`, and `wd`",
-            "report HTML content is intentionally changed only",
-            "Vendor presets still",
-            "remain design-only until implementation",
-            "inspectable resolved YAML",
-            "not universal Axys/APX behavior",
-            "## Axys/APX Demo Freeze Decision Packet",
-            "product decision",
-            "accepted as the future",
-            "versioned preset semantics",
-            "packaged transaction families",
-            "guardrail-only YAML rule",
-            "context-gated",
-            "conservative no-ID matching",
-            "net-of-fees reported performance",
-            "review evidence",
-            "ppar's versioned Axys/APX preset semantics",
-            "Freeze-packet evidence map",
-            "Current evidence",
-            "demo data audit tests",
-            "validate_config` reports ambiguous-flow enforcement as enabled",
-            "Packaged transaction CSV headers omit `TRANSACTION_ID`",
-            "generated portfolio and security report bundles",
+            "## Governing References",
+            "## Extraction Requirement Labels",
+            "## Minimum Source-Data Contract",
+            "## Field Role Contract",
+            "## Scenario Preservation Contract",
+            "## Cash-Balance Policy",
+            "## Date Policy",
+            "## Transaction-Code Policy",
+            "transaction_semantics_matrix.yaml",
+            "## Fixed-Income Transaction Boundary",
+            "## Site Extract Contract Setup",
+            "## What This Contract Excludes",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, contract_doc)
+        self.assertNotIn("## Axys/APX Demo Completion Gate", contract_doc)
+        self.assertNotIn("## Axys/APX Demo Freeze Decision Packet", contract_doc)
 
     def test_minimum_source_data_contract_is_documented(self) -> None:
         """The source-data contract helper and user-facing docs stay aligned."""
         root_readme = Path("README.md").read_text(encoding=util.ENCODING)
         contract_doc = Path(
-            "docs/audit/performance_comparison_demo_source_contract.md"
+            "docs/audit/demo_source_contract.md"
         ).read_text(
             encoding=util.ENCODING
         )
@@ -2660,8 +2266,8 @@ class TestPackageMetadata(unittest.TestCase):
             ),
         )
 
-    def test_public_axys_import_contract(self) -> None:
-        """The documented Axys package exports remain importable."""
+    def test_public_axys_apx_import_contract(self) -> None:
+        """The documented Axys/APX package exports remain importable."""
         expected_exports = {
             "AxysClassificationSources",
             "AxysData",
@@ -2669,86 +2275,99 @@ class TestPackageMetadata(unittest.TestCase):
             "AxysSpecification",
         }
 
-        self.assertEqual(set(axys.__all__), expected_exports)
-        self.assertIs(AxysClassificationSources, axys.AxysClassificationSources)
-        self.assertIs(AxysData, axys.AxysData)
-        self.assertIs(AxysPortfolio, axys.AxysPortfolio)
-        self.assertIs(AxysSpecification, axys.AxysSpecification)
+        self.assertEqual(set(axys_apx.__all__), expected_exports)
+        self.assertIs(
+            AxysClassificationSources,
+            axys_apx.AxysClassificationSources,
+        )
+        self.assertIs(AxysData, axys_apx.AxysData)
+        self.assertIs(AxysPortfolio, axys_apx.AxysPortfolio)
+        self.assertIs(AxysSpecification, axys_apx.AxysSpecification)
 
-    def test_public_performance_comparison_import_contract(self) -> None:
-        """The documented performance comparison exports remain importable."""
+    def test_public_audit_import_contract(self) -> None:
+        """The Audit root exposes only shared workflow and report APIs."""
         expected_exports = {
             "ComparisonFile": ComparisonFile,
             "ComparisonSnapshot": ComparisonSnapshot,
-            "CONTEXT": CONTEXT,
-            "DIRECT_INPUT": DIRECT_INPUT,
-            "EVIDENCE_ROLE": EVIDENCE_ROLE,
-            "Finding": Finding,
             "FxRatesLoader": FxRatesLoader,
-            "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD": IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-            "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED": IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
-            "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT": (
-                IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT
-            ),
-            "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV": (
-                IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV
-            ),
-            "PerformanceComparison": PerformanceComparison,
             "PortfolioPerformanceLoader": PortfolioPerformanceLoader,
-            "PerformanceComparisonSpecification": PerformanceComparisonSpecification,
+            "AuditSpecification": AuditSpecification,
             "HoldingsLoader": HoldingsLoader,
             "REPORT_BUNDLE_REQUIRED_ARTIFACTS": REPORT_BUNDLE_REQUIRED_ARTIFACTS,
             "SecurityPerformanceLoader": SecurityPerformanceLoader,
-            "SuppressionRule": SuppressionRule,
-            "RELATED_OUTPUT": RELATED_OUTPUT,
-            "TARGET_OUTPUT": TARGET_OUTPUT,
             "TransactionsLoader": TransactionsLoader,
-            "apply_suppressions": apply_suppressions,
             "schema": schema,
             "compact_findings_table": compact_findings_table,
             "compare_snapshots": compare_snapshots,
-            "findings_to_polars": findings_to_polars,
-            "portfolio_period_cause_summary": portfolio_period_cause_summary,
-            "portfolio_period_contribution_candidates": (
-                portfolio_period_contribution_candidates
-            ),
-            "portfolio_period_evidence_breakdown": portfolio_period_evidence_breakdown,
-            "portfolio_period_flow_cross_check_reconciliation": (
-                portfolio_period_flow_cross_check_reconciliation
-            ),
-            "portfolio_period_impact_coverage_summary": (
-                portfolio_period_impact_coverage_summary
-            ),
-            "portfolio_period_summary": portfolio_period_summary,
-            "portfolio_period_transaction_cross_checks": (
-                portfolio_period_transaction_cross_checks
-            ),
-            "rank_portfolio_period_evidence": rank_portfolio_period_evidence,
             "report_bundle_contract": report_bundle_contract,
             "report_bundle_validation_issues": report_bundle_validation_issues,
-            "security_period_evidence_breakdown": security_period_evidence_breakdown,
-            "security_period_summary": security_period_summary,
             "summarize_findings": summarize_findings,
             "validate_causal_attribution_ready": validate_causal_attribution_ready,
             "validate_yaml_setup_complete": validate_yaml_setup_complete,
-            "transaction_activity_summary": transaction_activity_summary,
-            "transaction_matching_diagnostics": transaction_matching_diagnostics,
-            "write_performance_comparison_report_bundle": (
-                write_performance_comparison_report_bundle
-            ),
-            "write_performance_comparison_review_workbook": (
-                write_performance_comparison_review_workbook
-            ),
+            "write_audit_report_bundle": write_audit_report_bundle,
+            "write_audit_review_workbook": write_audit_review_workbook,
         }
 
-        self.assertEqual(set(performance_comparison.__all__), set(expected_exports))
+        self.assertEqual(set(audit.__all__), set(expected_exports))
         for name, imported_object in expected_exports.items():
             with self.subTest(name=name):
-                self.assertIs(imported_object, getattr(performance_comparison, name))
+                self.assertIs(imported_object, getattr(audit, name))
+
+    def test_subfeature_import_contracts_are_owned_by_subpackages(self) -> None:
+        """Specialized vocabulary is exported by its owning sub-feature."""
+        expected_performance_comparison_exports = {
+            "CONTEXT",
+            "DIRECT_INPUT",
+            "EVIDENCE_ROLE",
+            "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD",
+            "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED",
+            "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT",
+            "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV",
+            "RELATED_OUTPUT",
+            "TARGET_OUTPUT",
+            "CauseArea",
+            "Finding",
+            "PerformanceComparison",
+            "SuppressionRule",
+            "apply_suppressions",
+            "findings_to_polars",
+            "portfolio_period_cause_summary",
+            "portfolio_period_contribution_candidates",
+            "portfolio_period_evidence_breakdown",
+            "portfolio_period_flow_cross_check_reconciliation",
+            "portfolio_period_impact_coverage_summary",
+            "portfolio_period_summary",
+            "portfolio_period_transaction_cross_checks",
+            "rank_portfolio_period_evidence",
+            "security_period_evidence_breakdown",
+            "security_period_summary",
+            "transaction_activity_summary",
+            "transaction_matching_diagnostics",
+        }
+        expected_data_issues_exports = {
+            "DATA_ISSUES_CONFIG_KEY",
+            "DATA_ISSUE_REGISTRY",
+            "DataIssueCategory",
+            "DataIssueDefinition",
+            "DataIssueType",
+            "data_issues_config_summary",
+            "validate_data_issues_config",
+        }
+
+        self.assertEqual(
+            set(performance_comparison.__all__),
+            expected_performance_comparison_exports,
+        )
+        self.assertEqual(set(data_issues.__all__), expected_data_issues_exports)
+        self.assertIs(
+            PerformanceComparison,
+            performance_comparison.PerformanceComparison,
+        )
+        self.assertIs(DataIssueType, data_issues.DataIssueType)
 
     def test_performance_comparison_boundary_helpers_are_submodules(self) -> None:
         """Boundary helper modules are importable without top-level export churn."""
-        top_level_exports = set(performance_comparison.__all__)
+        top_level_exports = set(audit.__all__)
         helper_modules = {
             "backlog_gates": performance_backlog_gates,
             "fixed_income": performance_fixed_income,
@@ -2774,7 +2393,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertTrue(top_level_exports.isdisjoint(helper_modules))
 
-    def test_public_performance_comparison_runner_import_contract(self) -> None:
+    def test_public_audit_runner_import_contract(self) -> None:
         """The runner module exposes only the compact workflow helper surface."""
         expected_exports = {
             "compact_findings_table",
@@ -2784,52 +2403,52 @@ class TestPackageMetadata(unittest.TestCase):
             "validate_yaml_setup_complete",
         }
 
-        self.assertEqual(set(performance_comparison_runner.__all__), expected_exports)
+        self.assertEqual(set(audit_runner.__all__), expected_exports)
         self.assertIs(
             compact_findings_table,
-            performance_comparison_runner.compact_findings_table,
+            audit_runner.compact_findings_table,
         )
-        self.assertIs(compare_snapshots, performance_comparison_runner.compare_snapshots)
-        self.assertIs(summarize_findings, performance_comparison_runner.summarize_findings)
+        self.assertIs(compare_snapshots, audit_runner.compare_snapshots)
+        self.assertIs(summarize_findings, audit_runner.summarize_findings)
         self.assertIs(
             validate_causal_attribution_ready,
-            performance_comparison_runner.validate_causal_attribution_ready,
+            audit_runner.validate_causal_attribution_ready,
         )
         self.assertIs(
             validate_yaml_setup_complete,
-            performance_comparison_runner.validate_yaml_setup_complete,
+            audit_runner.validate_yaml_setup_complete,
         )
 
-    def test_public_performance_comparison_report_import_contract(self) -> None:
+    def test_public_audit_report_import_contract(self) -> None:
         """The report module exposes only report rendering and writing helpers."""
         expected_exports = {
-            "write_performance_comparison_report_bundle",
-            "write_performance_comparison_review_workbook",
+            "write_audit_report_bundle",
+            "write_audit_review_workbook",
         }
 
-        self.assertEqual(set(performance_comparison_report.__all__), expected_exports)
+        self.assertEqual(set(audit_report.__all__), expected_exports)
         self.assertIs(
-            write_performance_comparison_report_bundle,
-            performance_comparison_report.write_performance_comparison_report_bundle,
+            write_audit_report_bundle,
+            audit_report.write_audit_report_bundle,
         )
         self.assertIs(
-            write_performance_comparison_review_workbook,
-            performance_comparison_report.write_performance_comparison_review_workbook,
+            write_audit_review_workbook,
+            audit_report.write_audit_review_workbook,
         )
         self.assertNotIn(
             "report_bundle_validation_issues",
-            performance_comparison_report.__all__,
+            audit_report.__all__,
         )
 
     def test_performance_comparison_vocabulary_exports_are_explicit(self) -> None:
         """Vocabulary modules export every declared public schema/code name."""
         module_paths = {
-            schema: Path("ppar/performance_comparison/schema.py"),
+            schema: Path("ppar/audit/schema.py"),
             performance_comparison_findings: Path(
-                "ppar/performance_comparison/findings.py"
+                "ppar/audit/performance_comparison/findings.py"
             ),
-            performance_comparison_transactions: Path(
-                "ppar/performance_comparison/transactions.py"
+            audit_transactions: Path(
+                "ppar/audit/transactions.py"
             ),
         }
 

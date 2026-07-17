@@ -1,4 +1,4 @@
-"""Guard Performance Auditing output against unusably large review tables."""
+"""Guard Audit output against unusably large review tables."""
 
 from __future__ import annotations
 
@@ -7,16 +7,16 @@ from collections.abc import Sequence
 import polars as pl
 
 from ppar.errors import PpaError
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import workbook as _pc_workbook
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import schema as pc_cols
+from ppar.audit import workbook as _pc_workbook
 
 
 _MAX_PRIMARY_REVIEW_ROWS = 100_000
 _ROW_LIMIT_ARTIFACTS = {
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
-    _pc_review_model.X_REF_ISSUES_ARTIFACT,
+    _pc_review_model.DATA_ISSUES_ARTIFACT,
 }
 
 

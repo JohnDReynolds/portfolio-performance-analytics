@@ -1,7 +1,7 @@
 # Performance Comparison Design Notes
 
 Performance Comparison is the attribution sub-feature inside the broader
-Performance Auditing workflow. The public workflow asks whether reported
+Audit workflow. The public workflow asks whether reported
 performance changed and whether source-data relationships look suspicious. This
 design note focuses on the internal comparison engine that explains changed
 reported performance between two source-data snapshots.
@@ -11,12 +11,14 @@ reported performance between two source-data snapshots.
 The performance comparison feature explains why calculated performance for the
 same portfolio and period changed between two source-data extraction dates.
 
-This document is the deep design/reference note. Active forward-looking work is
-tracked in the central
-[`PPAR Roadmap`](../roadmap.md).
+This document is the deep design/reference note. Active Audit implementation is
+tracked in the
+[`PPAR Audit MVP Completion Plan`](mvp_plan.md), and
+broader Audit direction is governed by the
+[`PPAR Audit Product Constitution and Roadmap`](product_constitution.md).
 The maintainer-facing safety guarantees and their audited enforcement baseline
 are defined in
-[`Performance Auditing Safety Invariants`](performance_comparison_safety_invariants.md).
+[`Audit Safety Invariants`](safety_invariants.md).
 
 The core question is:
 
@@ -37,148 +39,13 @@ transactions rows, report material changes, and produce a
 clear finding model. Deeper causal inference can be added after the finding
 model is stable.
 
-## Current Checkpoint
+## Document Boundary
 
-The current implementation has crossed from pure design into a usable
-comparison, explanation, and report checkpoint. It can load two snapshot
-directories, compare the first set of normalized datasets, emit stable finding
-records, apply explicit suppressions, and produce reviewer-oriented tables,
-HTML, XLSX, CSV, and handoff bundles.
-
-Implemented normalized comparison datasets:
-
-- `portfolio_performance`
-- `security_performance`
-- `fx_rates`
-- `transactions`
-- `holdings`
-
-Implemented output helpers:
-
-- full audit findings
-- compact active findings
-- finding summaries by code, dataset, evidence role, and suppression state
-- portfolio-period summaries
-- portfolio-period evidence breakdowns
-- portfolio-period evidence rankings
-- portfolio-period contribution candidates
-- portfolio-period cause summaries
-- transaction activity summaries
-- context evidence summaries and context evidence detail
-- security-period summaries
-- security-period evidence breakdowns
-- HTML and XLSX review reports
-- reproducible report bundles with manifest and validation helpers
-
-User-facing entry point:
-
-- `ppar setup`: creates an Axys/APX starter workspace.
-- `ppar audit`: writes portfolio and security comparison report
-  bundles from a configured workspace.
-
-Developer/internal helper commands:
-
-- `scripts/check_performance_comparison_demo_health.py`: source-checkout smoke
-  command that runs `ppar setup`, executes the setup-generated portfolio and
-  security scripts, and validates the generated bundles.
-- `ppar.performance_comparison.cli.report_bundle`: source-checkout command
-  for writing a report bundle from a comparison YAML file.
-
-Current workbook field roles:
-
-- `performance_input`: source fields that directly feed return calculation,
-  such as `holdings.market_value`, `holdings.base_market_value`,
-  `holdings.accrued`, and
-  `transactions.amount`. These can receive `Performance Difference Explained`
-  values when the required denominator or weight inputs are available.
-- `input_component`: fields that explain or reconcile a performance input, such
-  as holding quantity/price, FX rates, and transaction
-  quantity/price/commission. Holding quantity can appear beside a related
-  holding market-value input. Transaction quantity, price, and commission may
-  appear beside a related `transactions.amount` row, while non-promoted support
-  remains in `supporting_files/source_detail.csv`, so transaction arithmetic is not
-  double-counted or treated as a rebuilt accounting-system formula.
-- `reported_performance_component`: portfolio/security performance output
-  fields such as return, income, gain/loss, contribution, weight, and market
-  value. These remain reporting diagnostics and are not treated as underlying
-  causes.
-- `context`: explicitly classified review-only supporting fields such as
-  holding cost and security reference fields. These remain in the
-  `supporting_files/source_detail.csv` unless they are direct inputs to a supported performance
-  explanation.
-
-Unknown compared fields do not default to context. They stop processing until
-their accounting role is explicitly classified; suppression cannot bypass that
-decision. YAML impact-policy requirements are derived from these roles rather
-than maintained in a second field-name list.
-
-Cash has one normalized representation: a holding such as `CASHUSD`, `CASHEUR`,
-or `CASHGBP`. A source-specific adapter may convert a cash-ledger export into
-holding rows, but `cash` is not a separate comparison dataset. This prevents
-two source files from claiming the same beginning or ending valuation effect.
-
-Financial-input integrity is fail-closed. Currency codes are normalized and
-shape-validated; foreign countable monetary values require explicit base-value
-counterparts; same-currency local/base values must agree; portfolio FX quotes
-must target the portfolio base currency; and performance periods may not be
-reversed or overlap. Changed dated evidence is audited for unambiguous period
-assignment. Historical/carry-forward evidence may stay visible, but only
-in-period transaction/split rows and explicit prior-day beginning holdings/FX
-rows may own explained performance.
-
-Current report vocabulary:
-
-- `Performance Differences`: the main review sheet. It compares reported
-  performance between Snapshot A and Snapshot B, shows the explained portion,
-  and leaves `Unexplained Difference` blank when a row is fully explained.
-- `Performance Difference Causes`: source-data rows that are counted in
-  `Explained Difference`.
-- `supporting_files/findings.csv`: complete lossless finding audit trail,
-  including suppressed rows, stable logical source-record locators, and
-  explicit safety dispositions.
-- `supporting_files/cause_lineage.csv`: internal cause rows with backward
-  finding fingerprints, stable locators, lineage type, economic-effect ID, and
-  counted-owner disposition. It supports integration and invariant validation;
-  it is not another reviewer-facing workbook sheet.
-- `supporting_files/source_detail.csv`: reviewer-friendly active finding rows
-  used for audit and troubleshooting.
-- `transaction_matching_diagnostics.csv`: supplementary transaction row-identity
-  counts, confidence, interpretation, and review notes for audit use.
-- `Transaction Code`: the source transaction code from the input file, such as
-  an Axys/APX IMEX code.
-- `Transaction Category`: ppar's normalized interpretation of a transaction code
-  for comparison logic and reviewer explanations.
-
-Report construction enforces this vocabulary as an arithmetic invariant. At
-portfolio and security grain, the sum of `Performance Difference Explained` in
-the causes table must equal `Explained Difference` in the main table. A `Fully
-Explained` result must also have equal performance and explained differences
-and zero unexplained difference. The checks run before workbook construction
-and again on the serialized six-decimal workbook cells; a mismatch stops report
-generation as an unexpected logic error.
-
-Future workbook vocabulary:
-
-- `Data Audit Issues`: consistency issues found inside the union of Snapshot A and
-  Snapshot B. These rows are not additive Modified Dietz causes and are not
-  `source_detail.csv` findings. They answer a different reviewer question:
-  "Which source-data relationships look internally inconsistent?"
-
-- `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
-  for validating an existing report bundle.
-- `ppar.performance_comparison.cli.validate_config`: source-checkout command
-  for validating a comparison YAML file and its default report-readiness
-  guardrails.
-- `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
-  command for validating packaged scenario coverage.
-- [Axys/APX Common-Core Export Reference](../axys_apx/axysapx_common_core_export.md): starter
-  export shape for Axys/APX-oriented source-data.
-
-This checkpoint is still a comparison and evidence organization layer. It is
-not yet a causal attribution engine or a full return calculator. The report
-layer is intentionally conservative: it presents evidence, review cues, and
-documented estimates without claiming more precision than the current model
-supports.
+This document owns stable comparison-engine and reviewer-model design. It does
+not own implementation status or current priorities. Use the
+[`MVP Completion Plan`](mvp_plan.md) for those questions and executable behavior,
+tests, generated artifacts, and machine-readable contracts for implementation
+truth.
 
 ## Supported Vocabulary
 
@@ -227,161 +94,27 @@ Finding and review classification values are centralized in:
   `matched_by_singleton_fallback`, `added_in_snapshot_b`,
   `missing_from_snapshot_b`, `ambiguous_fallback_match`,
   `transaction_id_unmatched`, and `strict_fallback_unmatched`.
+- `CauseArea`: the seven current coarse performance-cause areas.
+
+Data Issues vocabulary is specified separately in
+[`Data Issues Design`](data_issues_design.md).
 
 When a value crosses into Polars tables, CSVs, HTML, XLSX, or YAML, it
 should be serialized as its plain string value. Enum members are primarily for
 construction, validation, and package-internal type clarity.
 
-## Data Audit Issues Worksheet Design
+## Data Issues Sibling Sub-Feature
 
-The `Data Audit Issues` worksheet surfaces source-data consistency problems that
-are useful to reviewers but are not themselves performance attribution rows.
-It is the user-facing Data Auditing surface inside Performance Comparison. The
-internal YAML key remains `data_audit_checks` because these checks cross-reference
-related source-data fields.
-
-Purpose:
-
-> Flag source-data relationships that should usually agree, reconcile, or move
-> together, without treating those issues as additive Modified Dietz causes.
-
-This worksheet is deliberately separate from both primary evidence sheets:
-
-- `Performance Difference Causes` explains changed performance.
-- `source_detail.csv` records row-level A-versus-B differences.
-- `Data Audit Issues` reports consistency checks across source-data relationships,
-  whether or not those checks explain a performance difference.
-
-Beginning/ending market-value continuity is a mandatory financial-integrity
-check at portfolio and security grain. A mismatch remains visible in this
-worksheet even when optional Data Audit checks are disabled because both values
-participate directly in return calculations.
-
-Checks should run on the union of Snapshot A and Snapshot B. A reviewer should
-be able to see an issue that appears only in Snapshot A, only in Snapshot B, or
-in both snapshots. Include a `Snapshot` column so the report can distinguish
-`Snapshot A`, `Snapshot B`, and, when useful, `A and B`.
-
-Worksheet columns:
-
-```text
-Snapshot
-Portfolio
-As Of Date
-Dataset Field
-Security
-Issue Type
-Reference Value
-Observed Value
-Difference
-Tolerance
-Explanation
-Review Key
-```
-
-### YAML Configuration
-
-Consistency checks need YAML tolerances to avoid noisy output. Price checks are
-the first place where this matters. Transaction prices can vary widely intraday,
-while holdings prices are usually as-of or closing prices and should normally
-have much narrower tolerance.
-
-YAML shape:
-
-```yaml
-data_audit_checks:
-  enabled: true
-
-  dividend_rate:
-    enabled: true
-    only:
-      security_type: stock
-    exclude:
-      portfolio_id:
-        - TEST_PORTFOLIO
-    absolute_tolerance: 0.01
-    percent_tolerance: 0.50
-```
-
-Interpretation:
-
-- `data_audit_checks.enabled`: master switch for optional consistency checks;
-  mandatory beginning/ending continuity findings remain active.
-- Each issue type is enabled by default when the worksheet is enabled. Set
-  `enabled: false` under one issue type to opt out of that check.
-- `only`: optional exact-match include filters. A row must match every listed
-  field to enter the check.
-- `exclude`: optional exact-match exclude filters. A row is dropped when it
-  matches any listed field.
-- Filter values can be scalars or lists. Field names may be common normalized
-  names such as `security_id`, `security_type`, and `portfolio_id`, or
-  dataset-qualified names such as `holdings.security_type` and
-  `transactions.transaction_code`.
-- Tolerances stay per issue type because noisy fields need different limits.
-
-### Initial Checks
-
-Implemented checks should stay high signal, available from the current
-normalized datasets, and easy to explain:
-
-1. `holdings_price_range`: for each snapshot, security, and holding date,
-   compare same-day same-security `holdings.price` values across portfolios.
-2. `transactions_price_range`: for each snapshot, security, and transaction
-   date, compare same-day same-security `transactions.price` values across
-   portfolios.
-3. `duplicate_transactions`: for each snapshot, flag exact duplicate
-   transaction rows with the same portfolio, date, security, code, amount,
-   quantity, and price.
-4. `dividend_rate`: for each snapshot, security, and dividend date, compare
-   same-day same-security dividend rates across portfolios.
-5. `missing_dividend`: for each snapshot, security, and dividend date where at
-   least one portfolio has a dividend, flag other portfolios that
-   conservatively appear eligible for that dividend. A portfolio qualifies only
-   when it has positive beginning-period quantity, or positive buy activity
-   before the dividend date, and has no pre-dividend transaction activity other
-   than buys.
-6. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
-   same-day same-security purchase-accrued and sale-accrued rates across
-   portfolios.
-7. `holdings_accrued_rate`: for each snapshot, security, and holding date,
-   compare same-day same-security `holdings.accrued` per unit across
-   portfolios.
-
-Defer checks that require extra reference data or more source-system evidence:
-
-- paydown amount/rate checks;
-- bond accrued-interest expectation checks;
-- split factor versus quantity-jump plausibility;
-- cash roll-forward checks.
-
-Those deferred checks are valuable, but they should not be first because they
-can easily imply security-master, dividend-rate, pool-factor, coupon/accrual,
-or cash-ledger data that is not yet part of the normalized source contract.
-
-### Report Semantics
-
-Data Audit issue types use compact codes such as `duplicate_transactions` and
-`transactions_price_range`. The worksheet intentionally avoids a severity column;
-the reviewer-facing explanation, values, and tolerance carry the useful context
-without implying false precision.
-
-Do not make Data Audit rows blocking by default. A future YAML option can promote a
-specific check to blocking once the project has enough real-world evidence that
-the check is stable for a site's source-data.
-
-Data Audit issues should not change:
-
-- `Performance Difference Explained`;
-- `Unexplained Difference`;
-- `Performance Difference Causes`;
-- `source_detail.csv` row counts.
-
-They may be referenced from README/handoff text as a separate review surface.
+Data Issues is a sibling of Performance Comparison within Audit. Its report,
+configuration, and issue vocabulary are specified in
+[`Data Issues Design`](data_issues_design.md). Performance Comparison may
+surface Data Issues context, but Data Issues are not additive performance
+causes.
 
 ## Non-Goals For The First Pass
 
 - Recalculate full portfolio performance from transactions and holdings.
-- Replace existing `ppar.axys` loading behavior.
+- Replace existing `ppar.axys_apx` loading behavior.
 - Produce final audit conclusions with false certainty.
 - Handle every possible source-system schema variant.
 - Make the comparison YAML a vendor-specific rule language.
@@ -405,7 +138,7 @@ schema details.
 ## Current Package Shape
 
 ```text
-ppar/performance_comparison/
+ppar/audit/
   __init__.py
   aliases.py
   schema.py
@@ -1149,7 +882,7 @@ values to uppercase at the boundary.
 The existing Axys/APX column mapping configuration and the new comparison
 configuration serve different purposes and should have distinct names:
 
-- `axysapx_column_mappings.yaml`: Describes how Axys/APX source columns map to
+- `axys_apx_column_mappings.yaml`: Describes how Axys/APX source columns map to
   normalized internal column names for reusable Axys/APX datasets.
 - `performance_comparison.yaml`: Describes which snapshots and files to
   compare, plus comparison tolerances, materiality, and suppressions.
@@ -1157,10 +890,10 @@ configuration serve different purposes and should have distinct names:
 A comparison probably needs one YAML file for the comparison run, not a separate
 YAML file inside each snapshot. The comparison YAML can point at both snapshot
 directories, define shared rules, and optionally reference vendor schema files
-such as `axysapx_column_mappings.yaml`.
+such as `axys_apx_column_mappings.yaml`.
 
 The performance comparison feature has its own normalization/default alias
-layer. Referencing `axysapx_column_mappings.yaml` is a reuse mechanism for shared
+layer. Referencing `axys_apx_column_mappings.yaml` is a reuse mechanism for shared
 Axys/APX datasets, not a requirement that performance comparison become
 Axys/APX-only.
 Comparison-only datasets such as FX rates, transactions, holdings,
@@ -1172,7 +905,7 @@ shared, source-agnostic sections for files, tolerances, materiality, and
 suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
-See [Axys/APX Common-Core Export Reference](../axys_apx/axysapx_common_core_export.md) for an
+See [Axys/APX Common-Core Export Reference](../axys_apx/axys_apx_common_core_export.md) for an
 operational Axys/APX export template and starter field-reference tables. Those
 tables are guidance only; explicit local schema mappings remain authoritative.
 
@@ -1190,14 +923,14 @@ Path resolution should be predictable:
    that comparison YAML file.
 3. Snapshot data files resolve relative to the configured snapshot directory.
 4. Relative paths inside a referenced schema YAML, such as
-   `axysapx_column_mappings.yaml`, resolve relative to that schema YAML file.
+   `axys_apx_column_mappings.yaml`, resolve relative to that schema YAML file.
 
 A suggested project layout is:
 
 ```text
 comparisons/
   performance_comparison.yaml
-  axysapx_column_mappings.yaml
+  axys_apx_column_mappings.yaml
 
 snapshots/
   2026-05-01/
@@ -1220,13 +953,13 @@ snapshots:
     label: run_2026_05_01
     path: snapshots/2026-05-01
     vendor: axys
-    schema: axysapx_column_mappings.yaml
+    schema: axys_apx_column_mappings.yaml
 
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
     vendor: axys
-    schema: axysapx_column_mappings.yaml
+    schema: axys_apx_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
@@ -1359,7 +1092,7 @@ Column mappings should resolve in this order:
 
 1. Snapshot-specific mapping in `performance_comparison.yaml`.
 2. Shared comparison-level mapping in `performance_comparison.yaml`.
-3. Referenced vendor schema file, such as `axysapx_column_mappings.yaml`.
+3. Referenced vendor schema file, such as `axys_apx_column_mappings.yaml`.
 4. Built-in default aliases.
 5. Error when the column is missing or ambiguous.
 
@@ -1376,7 +1109,7 @@ aliases remain the fallback for columns not mapped in the schema file.
 
 Comparison-only datasets such as FX rates, transactions, and holdings currently
 use the performance-comparison alias/default layer. They do
-not require entries in `axysapx_column_mappings.yaml`.
+not require entries in `axys_apx_column_mappings.yaml`.
 
 Inline snapshot-specific schema mappings remain a future step. The current
 test fixtures use one referenced Axys/APX column-mapping file plus
@@ -1445,8 +1178,8 @@ Current module ownership:
   used by `explain.py`; it does not build Polars output tables.
 - `__init__.py` re-exports the stable public helpers so callers do not need to
   care which internal module owns the implementation.
-- `runner.py` also re-exports explanation helpers and constants as a
-  compatibility bridge for earlier imports.
+- `ppar.audit` exposes selected workflow and report entrypoints; explanation
+  helpers are owned by the Performance Comparison sub-feature.
 
 Current output layers:
 
@@ -1861,8 +1594,8 @@ emitting a numeric residual. Report helper tables include a
 `residual_review_note` field that explains why each withheld status should not
 be interpreted as a calculated residual.
 
-Report bundles can be written with `write_performance_comparison_report_bundle()`.
-The public bundle API retains HTML output by default for compatibility. The
+Report bundles can be written with `write_audit_report_bundle()`.
+The bundle API includes HTML output by default. The
 user-facing `ppar audit` command defaults to XLSX plus HTML. `--no-xlsx-output`
 selects HTML-only output, `--no-html-output` selects XLSX-only output, and both
 options select promoted CSV-only review output. Every bundle therefore contains
@@ -1897,7 +1630,7 @@ The generated artifacts fall into a small taxonomy:
 - reviewer handoff metadata: `README.md`, `manifest.json`, and
   `review_summary.json`;
 - audit/export backbone: `findings.csv`, `performance_differences.csv`,
-  `performance_difference_causes.csv`, `x_ref_issues.csv`,
+  `performance_difference_causes.csv`, `data_issues.csv`,
   `needs_review_summary.csv`,
   `portfolio_period_summary.csv`, `cause_summary.csv`, `impact_estimates.csv`,
   `impact_coverage.csv`, `top_evidence.csv`, and `residual_status.csv`;
@@ -1922,10 +1655,10 @@ and promote `source_detail.csv` to the report root. The
 `--expand-all-supporting-files` option retains the equivalent individual files
 under `supporting_files/` for integrations and detailed troubleshooting.
 
-The `ppar.performance_comparison.cli.report_bundle` package CLI module
+The `ppar.audit.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
-`ppar.performance_comparison.cli.validate_bundle`, which verifies required
+`ppar.audit.cli.validate_bundle`, which verifies required
 artifacts, manifest metadata, typed CSV content, canonical HTML/XLSX review
 content, empty-table headers, and whichever HTML/XLSX primary artifacts the
 manifest includes. Manifest version 4 records the selected output modes and
@@ -1933,7 +1666,7 @@ excludes only its generation timestamp and
 XLSX creation/package timestamps from normalized repeatability; statuses,
 financial values, labels, causes, evidence rows, and ordering remain covered.
 Packaged demo scenario coverage can be checked with
-`ppar.performance_comparison.cli.validate_demo_matrix`, which verifies that
+`ppar.audit.cli.validate_demo_matrix`, which verifies that
 the current YAML fixtures still produce the reviewer-facing scenarios named in
 the demo matrix.
 
@@ -2020,22 +1753,22 @@ The remaining YAML files are scenario-coverage fixtures for tests and
 validators:
 
 - `performance_comparison.yaml`: Clean baseline.
-- `ppar_performance_comparison_restatement.yaml`: Controlled single
+- `ppar_audit_restatement.yaml`: Controlled single
   restatement with missing transaction setup.
-- `ppar_performance_comparison_restatement_transaction_rules.yaml`: Same data
+- `ppar_audit_restatement_transaction_rules.yaml`: Same data
   with explicit transaction rules and transaction impact setup.
-- `ppar_performance_comparison_multi_restatement.yaml`: Multiple portfolios,
+- `ppar_audit_multi_restatement.yaml`: Multiple portfolios,
   multiple periods, context rows, and residual/coverage behavior.
-- `ppar_performance_comparison_policy_gap_demo.yaml`: Missing-YAML actions such
+- `ppar_audit_policy_gap_demo.yaml`: Missing-YAML actions such
   as selecting `contribution_impact_methods`, configuring
   `transaction_impact_methods`, setting `denominator_source`, and defining
   transaction sign/flow semantics.
-- `ppar_performance_comparison_modified_dietz.yaml`: Cross-check-only Modified
+- `ppar_audit_modified_dietz.yaml`: Cross-check-only Modified
   Dietz external-flow diagnostics.
-- `ppar_performance_comparison_suppressed.yaml`: Active-vs-suppressed finding
+- `ppar_audit_suppressed.yaml`: Active-vs-suppressed finding
   behavior and audit visibility.
 
-The compact demo scenario matrix lives in `ppar/setup_templates/axysapx_performance_comparison/README.md`.
+The compact demo scenario matrix lives in `ppar/setup_templates/axys_apx_audit/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which
 scenarios are intentionally planned rather than covered. It also tracks the
 goal that every supported public YAML impact method should have at least one
@@ -2106,170 +1839,26 @@ captions for browser review rather than separate HTML-specific analytics logic.
 The bundle writer is the only report path; standalone HTML
 rendering helpers remain internal implementation details.
 
-## Historical Near-Term Roadmap
-
-This section records the earlier near-term plan that led to the current
-implementation checkpoint. For current next work, use the central
-[`PPAR Roadmap`](../roadmap.md).
-
-The design work should continue to move slowly and favor reviewer clarity over
-broad new machinery.
-
-1. Tighten YAML specification documentation and examples.
-   Make it easier to decide when a changed field should be additive,
-   review-only, diagnostic, or unsupported. Keep examples concrete enough that
-   a larger real-data review can start from known policy choices.
-2. Add tests around real-world edge cases before adding new attribution logic.
-   Prefer small fixture rows that capture ambiguous or risky cases: missing
-   denominators, overlapping explanations, unmatched transactions, no
-   underlying causes, evidence-only fields, and strict attribution failures.
-   Initial coverage protects workbook wording for configured methods that
-   still cannot estimate because required source inputs, such as a usable
-   return denominator, are missing.
-3. Expand and validate against more realistic performance comparison data.
-   Use larger multi-portfolio, multi-period inputs once the expected workbook
-   behavior is clear from smaller fixtures.
-   Initial coverage validates that the packaged multi-restatement fixture keeps
-   a large clean background portfolio with many periods while still surfacing
-   the intended smaller restatement issues.
-4. Revisit `explain.py` only when a new feature makes a natural split obvious.
-   Avoid splitting it merely because it is large; split only around stable
-   responsibilities such as impact estimates, transaction diagnostics, or
-   summary tables when active work creates that boundary. Initial transaction
-   diagnostic presentation helpers now live in `_transaction_diagnostics.py`;
-   keep additional extraction similarly narrow and behavior-preserving.
-
-Guardrails for all four phases:
-
-- Strengthen the contribution-candidate helper only where the math is
-  defensible.
-- Keep external-flow diagnostics visible while Modified Dietz is limited to
-  cross-check-only estimates. Diagnostics should name missing inputs and
-  inactive methods without implying that an estimate has been accepted into
-  contribution totals.
-- Add a residual concept only after there are enough credible contribution
-  estimates. A residual emitted too early would imply precision the system does
-  not have.
-- Keep report/export formats separate from comparison logic. CSV, HTML, and
-  XLSX outputs should remain presentation layers over stable helper
-  tables.
-- Avoid adding new datasets unless real source files expose evidence that is
-  not adequately represented by the current normalized datasets.
-
-## Implementation Status
-
-### Milestone 1: Portfolio Performance Difference Engine - Implemented
-
-The core difference engine is implemented for the current normalized dataset
-surface.
-
-- Read comparison YAML.
-- Load two snapshot directories.
-- Normalize required `portfolio_performance` and any available optional
-  `security_performance` source using built-in inference where practical.
-- Compare rows by configured keys.
-- Emit findings for added/dropped rows and changed portfolio/security returns,
-  weights, and contributions.
-- Apply tolerances and suppressions.
-- Return findings as a Polars DataFrame.
-- Provide compact findings and summary helper tables.
-
-### Milestone 2: Human Report - Implemented
-
-The reviewer-facing report layer is implemented.
-
-- Add HTML and XLSX output using the current findings helpers.
-- Group by portfolio and period.
-- Rank largest return and contribution deltas.
-- Include impact summaries, cross-check summaries, evidence sections, and
-  audit appendices.
-- Surface context-only evidence separately from modeled impact estimates.
-- Summarize context evidence by dataset, source column, context use, affected
-  identifiers, and reviewer priority.
-- Include residual withheld statuses and residual review notes without
-  calculating numeric residuals from incomplete estimates.
-- Include accessible table captions while keeping HTML presentation separate
-  from analytics logic.
-- Write reproducible report bundles with manifest and validation helpers.
-  Current bundles include `context_evidence_summary.csv` and
-  `context_evidence.csv` alongside impact, transaction, residual, and
-  top-evidence tables.
-
-### Milestone 3: Supporting-File Explanations - Implemented Evidence Layer
-
-Supporting-file comparisons are implemented at the evidence-linking level for
-the current datasets. Causal attribution and contribution-ranking estimates
-remain intentionally conservative.
-
-- Compare holding price values for securities with changed returns.
-- Compare transactions for affected portfolio/security/period rows.
-- Compare holdings and cash balances.
-- Compare FX rates when present.
-- Add confidence, residual, and needs-review findings where the evidence is
-  incomplete or method-dependent.
-
-### Milestone 4: Public API And Demo - Implemented
-
-The public command and demo surface is implemented for the current checkpoint.
-
-- Add stable public entry points.
-- Add sample comparison fixture directories.
-- Add public setup/report commands and source-checkout report/bundle commands.
-- Document configuration and finding codes.
-
 ## Long-Term Dataset Watchlist
 
-The current normalized dataset set already covers the first useful comparison
-surface: portfolio performance, security performance, holdings, transactions,
-and FX rates. Additional
-datasets should be added only when real source files expose evidence that is
-not adequately represented by those existing datasets.
-
-Potential long-term datasets to keep in mind:
-
-- `market_values` or `valuations`: Portfolio/security valuation totals when a
-  vendor provides them separately from holdings.
-- `tax_lots`: Lot-level cost, realized gain/loss, acquisition-date, or
-  tax-basis differences.
-- `corporate_actions`: Splits, mergers, spinoffs, symbol changes,
-  return-of-capital events, and similar security events.
-- `benchmark_performance`: Benchmark-relative performance deltas if benchmark
-  comparison becomes part of the explanation question.
-- `fees_expenses`: Management fees, custody fees, advisory fees, expense
-  accruals, or other charges when they are not represented as transactions.
-- `realized_gain_loss`: Realized profit/loss supplied as a separate accounting
-  output rather than derivable from transactions or lots.
-- `extract_manifest`: Snapshot timestamps, vendor version, accounting basis,
-  source system, extraction parameters, and other run metadata.
-
-These are open design items, not near-term implementation targets. Before
-adding any of them, prefer strengthening comparisons for useful columns already
-present in existing datasets, such as holding cost/accrued values or
-transaction quantity, price, and commission.
+The current normalized surface—portfolio performance, security performance,
+holdings, transactions, and FX rates—remains the implementation boundary.
+Additional datasets require real source evidence and an approved product need;
+this document does not maintain a speculative dataset catalog.
 
 ## Open Design Issues
 
-1. What is the minimum set of fields required to match transactions reliably
-   when `transaction_id` is unavailable?
-2. Should suppression reasons remain optional, or should production-style
-   workflows require them for audit discipline?
-3. Should row matching allow fuzzy keys, such as ticker fallback when security
-   id changes?
-4. Should row-level tolerances stay simple, or should more finding types support
-   relative/materiality-aware tolerances?
-5. Which contribution-ranking methods, if any, should be added next after the
-   initial YAML-gated portfolio/security/transaction methods?
-6. When contribution ranking exists, when should an unexplained residual be
-   emitted?
-7. How much of the existing `ppar.axys` inference code should be shared with
-   future vendor adapters, and how much should remain Axys/APX-specific?
-8. Which additional supporting-file columns, if any, provide enough explanatory
-   value to justify expanding the current normalized comparison surface?
+Current MVP decisions belong in the MVP plan. Other technical questions should
+be recorded only when repository evidence or active implementation makes them
+actionable. Historical question lists remain available in Git history and must
+not be interpreted as current commitments.
 
 ## Current Roadmap Location
 
 Treat the current comparison engine, evidence layer, report bundle, return
-reconstruction checks, and workbook model as the baseline. Current next work
-should be tracked in
-[`roadmap.md`](../roadmap.md), not
-added here as a competing roadmap.
+reconstruction checks, and workbook model as the baseline. Current Audit work
+belongs in the
+[`PPAR Audit MVP Completion Plan`](mvp_plan.md), and
+product direction belongs in the
+[`PPAR Audit Product Constitution and Roadmap`](product_constitution.md),
+not here as a competing roadmap.

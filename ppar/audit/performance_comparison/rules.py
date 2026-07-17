@@ -8,8 +8,8 @@ from typing import Final, Sequence
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison.findings import Finding
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.audit.performance_comparison.findings import Finding
+from ppar.audit.specification import AuditSpecification
 
 _SUPPRESSIONS_KEY: Final[str] = "suppressions"
 _CODE_KEY: Final[str] = "code"
@@ -117,7 +117,7 @@ class SuppressionRule:
 
 
 def suppression_rules(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> list[SuppressionRule]:
     """Return suppression rules from a comparison specification.
 
@@ -144,7 +144,7 @@ def suppression_rules(
 
 def apply_suppressions(
     findings: Sequence[Finding],
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> list[Finding]:
     """Mark findings suppressed when they match configured suppression rules.
 

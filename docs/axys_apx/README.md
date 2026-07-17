@@ -1,6 +1,6 @@
 # Axys/APX Reference
 
-This folder is a technical reference for SS&C Advent Axys and APX behavior that
+This folder is a technical reference for SS&C Advent Axys/APX behavior that
 matters to source-data extraction, performance comparison, and implementation
 decisions.
 
@@ -17,20 +17,24 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
    evidence, dated research notes, or unresolved open questions.
 4. Use the contracts and YAML files when implementing or validating ppar demo
    behavior.
-5. Use [axysapx_common_core_export.md](axysapx_common_core_export.md) as the
+5. Use [axys_apx_common_core_export.md](axys_apx_common_core_export.md) as the
    starter field-shape reference, subject to the confidence boundaries in the
    chapters and contracts.
+6. Use [axys_apx_reference_blueprint.md](axys_apx_reference_blueprint.md) when
+   maintaining the repository's editorial standards, evidence rules, or
+   chapter structure.
 
 ## File Roles
 
 | File group | Role | Use for | Do not use as |
 |---|---|---|---|
+| `axys_apx_reference_blueprint.md` | Governing editorial specification | Evidence standards, confidence labels, chapter structure, and repository workflow. | Axys/APX product evidence or implementation behavior. |
 | `reference/Chapter_*.md` | Reader-facing reference | Supported conclusions, Unknowns, implementation cautions, and cross-topic navigation. | Full vendor specifications or complete source-system schemas. |
 | `evidence/Research_*.md` | Evidence archive | Source-by-source notes, research history, provenance, and unresolved details. | The first reading path for a new reader. |
 | `contracts/*.md` | Implementation aid | Cross-cutting contracts, generated summaries, and demo/test guidance. | A replacement for the chapters or official vendor documentation. |
 | `contracts/*.yaml` | Machine-readable contract | Validation, test fixtures, and structured implementation inputs. | Narrative explanation. |
 | `contracts/templates/*.yaml` | Site contract examples | Starting points for site-specific extract contracts. | Guaranteed Axys/APX schemas. |
-| `axysapx_common_core_export.md` | Starter export reference | Common field shapes and candidate aliases for integration planning. | An official or guaranteed Axys/APX export specification. |
+| `axys_apx_common_core_export.md` | Starter export reference | Common field shapes and candidate aliases for integration planning. | An official or guaranteed Axys/APX export specification. |
 
 ## Where to Put New Information
 
@@ -89,6 +93,10 @@ visible without leaving loose files in the repository root.
 - If a research file contains the clearest current explanation of a topic, fold
   that explanation into the relevant chapter and leave the research file as
   provenance.
+- Integrate durable conclusions into the relevant subject section rather than
+  appending dated `Update` or `Addendum` sections. When chronology matters,
+  retain one compact `Research Provenance` note that points to the evidence
+  archive.
 - Keep Unknowns explicit. Unsupported certainty is worse than a documented gap.
 - Keep implementation contracts conservative. They should describe supported
   ppar behavior, not imply official vendor methodology.

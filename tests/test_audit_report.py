@@ -19,35 +19,37 @@ from polars.testing import assert_frame_equal
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
-    DIRECT_INPUT,
-    Finding,
+from ppar.audit import (
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
-    TARGET_OUTPUT,
     compare_snapshots,
-    findings_to_polars,
     report_bundle_contract,
     report_bundle_validation_issues,
-    write_performance_comparison_report_bundle,
-    write_performance_comparison_review_workbook,
+    write_audit_report_bundle,
+    write_audit_review_workbook,
 )
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import explain as _pc_explain
-from ppar.performance_comparison import output_policy as _pc_output_policy
-from ppar.performance_comparison import report as _pc_report
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison import workbook as _pc_workbook
-from ppar.performance_comparison.findings import (
+from ppar.audit.performance_comparison import (
+    DIRECT_INPUT,
+    Finding,
+    TARGET_OUTPUT,
+    findings_to_polars,
+)
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison import explain as _pc_explain
+from ppar.audit import output_policy as _pc_output_policy
+from ppar.audit import report as _pc_report
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit import workbook as _pc_workbook
+from ppar.audit.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     PC_PORT_MV,
     PC_PORT_RET,
     SEVERITY_MATERIAL,
 )
-from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
-from ppar.performance_comparison.transaction_summary import (
+from ppar.audit import workbook_tables as _pc_workbook_tables
+from ppar.audit.transaction_summary import (
     transaction_semantics_summary,
 )
-from ppar.performance_comparison.workbook_tables import (
+from ppar.audit.workbook_tables import (
     _workbook_changed_item_row,
     _workbook_portfolio_changes_table,
     _workbook_raw_audit_trail_table,
@@ -57,27 +59,27 @@ from ppar.performance_comparison.workbook_tables import (
     _workbook_with_primary_review_key,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 _SECURITY_RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_security_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_security_restatement.yaml"
 )
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement_transaction_rules.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement_transaction_rules.yaml"
 )
 _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_multi_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
+    "tests/data/axys/validation/ppar_audit_policy_gap_demo.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
 _original_import = __import__
 
@@ -103,7 +105,7 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
             encoding="utf-8",
         )
 
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(
         "\n".join(
             [
@@ -148,7 +150,7 @@ def _write_transaction_commission_review_specification(directory: Path) -> Path:
             encoding="utf-8",
         )
 
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(
         "\n".join(
             [
@@ -225,7 +227,7 @@ def _write_holding_estimate_specification(
             ]
         )
 
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return specification_path
 
@@ -402,7 +404,7 @@ def _entrypoint_files(entrypoints: Mapping[str, object]) -> set[str]:
     return files
 
 
-class TestPerformanceComparisonReport(unittest.TestCase):
+class TestAuditReport(unittest.TestCase):
     """Verify report rendering and artifact generation for comparison findings."""
 
     def test_primary_review_row_limit_allows_100000_and_stops_at_100001(self) -> None:
@@ -448,22 +450,22 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             pl.lit("P1").alias(pc_cols.PORTFOLIO_ID)
         )
         oversized_sheet = _pc_workbook.ReviewWorkbookSheet(
-            artifact_name=_pc_review_model.X_REF_ISSUES_ARTIFACT,
-            sheet_name=_pc_review_model.X_REF_ISSUES_SHEET,
+            artifact_name=_pc_review_model.DATA_ISSUES_ARTIFACT,
+            sheet_name=_pc_review_model.DATA_ISSUES_SHEET,
             table=oversized_table,
         )
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "oversized_bundle"
             with mock.patch(
-                "ppar.performance_comparison.workbook_tables."
-                "performance_comparison_review_workbook_sheets",
+                "ppar.audit.workbook_tables."
+                "audit_review_workbook_sheets",
                 return_value=(oversized_sheet,),
             ):
                 with self.assertRaisesRegex(
                     PpaError,
                     "No files were written for the oversized report",
                 ):
-                    write_performance_comparison_report_bundle(
+                    write_audit_report_bundle(
                         findings,
                         output_directory,
                         require_complete_yaml_setup=False,
@@ -496,7 +498,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 require_complete_yaml_setup=False,
@@ -532,11 +534,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             with mock.patch(
-                "ppar.performance_comparison.output_integrity."
+                "ppar.audit.output_integrity."
                 "report_bundle_output_integrity_issues",
                 return_value=[],
             ) as deep_validation:
-                write_performance_comparison_report_bundle(
+                write_audit_report_bundle(
                     findings,
                     directory,
                     require_complete_yaml_setup=False,
@@ -551,7 +553,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(
             report_bundle_contract(),
             {
-                "bundle_type": "performance_comparison_report",
+                "bundle_type": "audit_report",
                 "audit_artifact_files": {
                     "portfolio": {
                         "html_report": "portfolio_audit.html",
@@ -569,14 +571,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                         "csv_only": [
                             "performance_differences.csv",
                             "performance_difference_causes.csv",
-                            "x_ref_issues.csv",
+                            "data_issues.csv",
                             "source_detail.csv",
                         ],
                     },
                     "expanded_directory": "supporting_files",
                     "expand_option": "--expand-all-supporting-files",
                 },
-                "manifest_version": 4,
+                "manifest_version": 5,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -592,7 +594,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "source_detail",
                     "performance_differences",
                     "performance_difference_causes",
-                    "x_ref_issues",
+                    "data_issues",
                     "cause_lineage",
                     "needs_review_summary",
                     "portfolio_period_summary",
@@ -614,7 +616,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "csv": [
                         "performance_differences",
                         "performance_difference_causes",
-                        "x_ref_issues",
+                        "data_issues",
                     ],
                 },
                 "required_manifest_keys": [
@@ -702,7 +704,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 title="Bundle Restatement",
@@ -800,7 +802,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
-            self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
+            self.assertEqual(manifest["bundle_type"], "audit_report")
             self.assertEqual(manifest["manifest_version"], contract["manifest_version"])
             self.assertEqual(manifest["title"], "Bundle Restatement")
             self.assertEqual(
@@ -900,7 +902,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 {
                     "performance_differences",
                     "performance_difference_causes",
-                    "x_ref_issues",
+                    "data_issues",
                 },
             )
             for metadata in manifest["tables"].values():
@@ -1115,7 +1117,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         classify = _workbook_row_kind
 
         with mock.patch(
-            "ppar.performance_comparison.workbook_tables._workbook_row_kind",
+            "ppar.audit.workbook_tables._workbook_row_kind",
             wraps=classify,
         ) as classify_spy:
             changed_item = _workbook_changed_item_row(row)
@@ -1153,15 +1155,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
     def test_write_report_bundle_reuses_workbook_sheets_for_html_and_xlsx(self) -> None:
         """Bundle generation avoids rebuilding workbook-style tables twice."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        sheet_builder = _pc_workbook_tables.performance_comparison_review_workbook_sheets
+        sheet_builder = _pc_workbook_tables.audit_review_workbook_sheets
 
         with tempfile.TemporaryDirectory() as directory:
             with mock.patch.object(
                 _pc_workbook_tables,
-                "performance_comparison_review_workbook_sheets",
+                "audit_review_workbook_sheets",
                 wraps=sheet_builder,
             ) as wrapped_sheet_builder:
-                paths = write_performance_comparison_report_bundle(
+                paths = write_audit_report_bundle(
                     findings,
                     Path(directory) / "bundle",
                     include_workbook=True,
@@ -1195,7 +1197,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     formula_builder.__name__,
                     wraps=formula_builder,
                 ) as wrapped_formula_builder:
-                    _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+                    _pc_workbook_tables.audit_review_workbook_sheets(
                         findings,
                         comparison_path=_PORTFOLIO_COMPARISON_PATH,
                         comparison_level=comparison_level,
@@ -1234,7 +1236,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "_workbook_formula_source_candidates",
                     wraps=candidate_search,
                 ) as candidate_search_spy:
-                    _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+                    _pc_workbook_tables.audit_review_workbook_sheets(
                         findings,
                         comparison_path=_PORTFOLIO_COMPARISON_PATH,
                         comparison_level=comparison_level,
@@ -1264,7 +1266,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Report bundle manifests summarize comparison and extract-contract context."""
         findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 comparison_path=_RESTATEMENT_TRANSACTION_RULES_PATH,
@@ -1282,7 +1284,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             extract_contract["path"],
-            "packaged:ppar.setup_templates/axysapx_performance_comparison/"
+            "packaged:ppar.setup_templates/axys_apx_audit/"
             "demo_extract_availability.yaml",
         )
         self.assertTrue(extract_contract["enforce_ambiguous_axys_flows"])
@@ -1303,7 +1305,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(PpaError, "YAML setup is incomplete"):
-                write_performance_comparison_report_bundle(findings, directory)
+                write_audit_report_bundle(findings, directory)
 
     def test_workbook_tables_follow_review_accounting_invariants(self) -> None:
         """Workbook review tables stay internally consistent across demos."""
@@ -1718,7 +1720,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=True,
@@ -1780,7 +1782,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 [
                     "Performance Differences",
                     "Performance Difference Causes",
-                    "Data Audit Issues",
+                    "Data Issues",
                 ],
             )
             self.assertTrue(
@@ -1792,41 +1794,41 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             performance_change_sheet = workbook["Performance Differences"]
             self.assertEqual(performance_change_sheet.column_dimensions["B"].width, 12)
             self.assertEqual(performance_change_sheet.column_dimensions["H"].width, 32)
-            data_audit_sheet = workbook["Data Audit Issues"]
-            data_audit_headers = [
-                _normalized_header(cell.value) for cell in data_audit_sheet[1]
+            data_issues_sheet = workbook["Data Issues"]
+            data_issues_headers = [
+                _normalized_header(cell.value) for cell in data_issues_sheet[1]
             ]
             for header in ("Issue Type", "Tolerance"):
-                column_index = data_audit_headers.index(header) + 1
-                column_letter = data_audit_sheet.cell(
+                column_index = data_issues_headers.index(header) + 1
+                column_letter = data_issues_sheet.cell(
                     row=1,
                     column=column_index,
                 ).column_letter
                 expected_width = max(
-                    len(str(data_audit_sheet.cell(row=row, column=column_index).value or ""))
-                    for row in range(1, data_audit_sheet.max_row + 1)
+                    len(str(data_issues_sheet.cell(row=row, column=column_index).value or ""))
+                    for row in range(1, data_issues_sheet.max_row + 1)
                 )
                 expected_width = (expected_width + 2) * 0.85
                 self.assertEqual(
-                    data_audit_sheet.column_dimensions[column_letter].width,
+                    data_issues_sheet.column_dimensions[column_letter].width,
                     expected_width,
                 )
-            explanation_column = data_audit_headers.index("Explanation") + 1
-            explanation_letter = data_audit_sheet.cell(
+            explanation_column = data_issues_headers.index("Explanation") + 1
+            explanation_letter = data_issues_sheet.cell(
                 row=1,
                 column=explanation_column,
             ).column_letter
             self.assertEqual(
-                data_audit_sheet.column_dimensions[explanation_letter].width,
+                data_issues_sheet.column_dimensions[explanation_letter].width,
                 60,
             )
             self.assertTrue(
                 all(
-                    data_audit_sheet.cell(
+                    data_issues_sheet.cell(
                         row=row,
                         column=explanation_column,
                     ).alignment.wrap_text
-                    for row in range(2, data_audit_sheet.max_row + 1)
+                    for row in range(2, data_issues_sheet.max_row + 1)
                 )
             )
             underlying_causes_sheet = workbook["Performance Difference Causes"]
@@ -1989,14 +1991,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
-            initial_paths = write_performance_comparison_report_bundle(
+            initial_paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 require_complete_yaml_setup=False,
             )
             self.assertTrue(initial_paths["html_report"].exists())
 
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=True,
@@ -2037,7 +2039,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=False,
@@ -2051,7 +2053,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 {
                     "performance_differences",
                     "performance_difference_causes",
-                    "x_ref_issues",
+                    "data_issues",
                     "source_detail",
                     "readme",
                     "audit_support",
@@ -2067,7 +2069,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 for artifact_name in (
                     "performance_differences",
                     "performance_difference_causes",
-                    "x_ref_issues",
+                    "data_issues",
                     "source_detail",
                 ):
                     self.assertEqual(
@@ -2081,7 +2083,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 [
                     "performance_differences.csv",
                     "performance_difference_causes.csv",
-                    "x_ref_issues.csv",
+                    "data_issues.csv",
                 ],
             )
             readme = paths["readme"].read_text(encoding="utf-8")
@@ -2098,7 +2100,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 report_bundle_validation_issues(output_directory),
             )
 
-            rebuilt_paths = write_performance_comparison_report_bundle(
+            rebuilt_paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=True,
@@ -2111,7 +2113,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             for stale_file_name in (
                 "performance_differences.csv",
                 "performance_difference_causes.csv",
-                "x_ref_issues.csv",
+                "data_issues.csv",
             ):
                 self.assertFalse((output_directory / stale_file_name).exists())
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
@@ -2122,7 +2124,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=False,
@@ -2134,7 +2136,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             for artifact_name in (
                 "performance_differences",
                 "performance_difference_causes",
-                "x_ref_issues",
+                "data_issues",
                 "source_detail",
             ):
                 with self.subTest(artifact_name=artifact_name):
@@ -2166,7 +2168,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with mock.patch("builtins.__import__", side_effect=_import_without_openpyxl):
                 with self.assertRaises(PpaError) as context:
-                    write_performance_comparison_review_workbook(
+                    write_audit_review_workbook(
                         findings,
                         Path(directory) / "report.xlsx",
                     )
@@ -2179,7 +2181,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Report bundles write stable CSV headers for baseline empty tables."""
         findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2245,7 +2247,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation reports required artifact files that are absent."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2263,7 +2265,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation rejects missing required top-level manifest keys."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2284,7 +2286,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation rejects review entrypoints outside declared artifacts."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2310,7 +2312,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation rejects drift in required review-entrypoint names."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2330,7 +2332,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation checks source-context manifest metadata shape."""
         findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 comparison_path=_RESTATEMENT_TRANSACTION_RULES_PATH,
@@ -2359,7 +2361,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation checks transaction-semantics manifest metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2382,7 +2384,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation checks compact review-summary metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2402,7 +2404,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation rejects drift in compact review-summary keys."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2435,7 +2437,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             for obsolete_path in obsolete_paths:
                 obsolete_path.write_text("stale", encoding="utf-8")
 
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=False,
@@ -2451,7 +2453,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation reports workbook artifacts that are absent."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 include_workbook=True,
@@ -2469,7 +2471,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 include_workbook=True,
@@ -2490,7 +2492,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation compares manifest row counts to CSV row counts."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 directory,
                 require_complete_yaml_setup=False,
@@ -2509,7 +2511,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             baseline = root / "baseline"
-            paths = write_performance_comparison_report_bundle(
+            paths = write_audit_report_bundle(
                 findings,
                 baseline,
                 include_workbook=True,
@@ -2595,13 +2597,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            first_paths = write_performance_comparison_report_bundle(
+            first_paths = write_audit_report_bundle(
                 findings,
                 root / "first",
                 include_workbook=True,
                 require_complete_yaml_setup=False,
             )
-            second_paths = write_performance_comparison_report_bundle(
+            second_paths = write_audit_report_bundle(
                 findings,
                 root / "second",
                 include_workbook=True,
@@ -2651,12 +2653,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
 
         with mock.patch(
-            "ppar.performance_comparison.report._pc_bundle.report_bundle_validation_issues",
+            "ppar.audit.report._pc_bundle.report_bundle_validation_issues",
             return_value=["simulated validation issue"],
         ):
             with tempfile.TemporaryDirectory() as directory:
                 with self.assertRaisesRegex(PpaError, "simulated validation issue"):
-                    write_performance_comparison_report_bundle(
+                    write_audit_report_bundle(
                         findings,
                         directory,
                         require_complete_yaml_setup=False,

@@ -1,17 +1,20 @@
 # Research Notes: Cash
 
+> Historical evidence corpus. Preserve provenance here; maintain current
+> reader explanations in `../reference/Chapter_07_Cash.md`.
+
 **Repository:** AXYS / APX Reference Repository  
 **Research file:** `docs/axys_apx/evidence/Research_07_Cash.md`
 **Target chapter:** `docs/axys_apx/reference/Chapter_07_Cash.md`
 **Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0  
 **Scope:** Cash behavior, cash-related transaction handling, cash fields, import/export considerations, reporting gaps, and known unknowns for SS&C Axys and SS&C APX.
 
 ---
 
 ## 1. Research Standard Applied
 
-The attached blueprint requires the repository to document how Axys and APX actually work, to separate Axys and APX behavior when they differ, and to classify important technical statements as `Verified`, `High Confidence`, `Medium Confidence`, or `Unknown`.
+The attached blueprint requires the repository to document how Axys/APX actually work, to separate Axys/APX behavior when they differ, and to classify important technical statements as `Verified`, `High Confidence`, `Medium Confidence`, or `Unknown`.
 
 This research file follows that standard.
 
@@ -38,7 +41,7 @@ This research file follows that standard.
 
 ## 2. Executive Summary
 
-Publicly available source material confirms that Axys and APX are portfolio accounting/reporting systems and that both are used in workflows involving holdings, transactions, and performance. Publicly available source material also confirms several practical cash-adjacent implementation details:
+Publicly available source material confirms that Axys/APX are portfolio accounting/reporting systems and that both are used in workflows involving holdings, transactions, and performance. Publicly available source material also confirms several practical cash-adjacent implementation details:
 
 1. Cash activity is part of custodian/portfolio data flows into Advent products.
 2. Cash activity is commonly represented through transaction activity rather than only as a standalone cash-balance object.
@@ -477,7 +480,7 @@ until those are supported by direct source material.
 
 ### Governing Repository Reference
 
-1. `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0. Defines editorial standards, confidence labels, repository structure, and chapter template.
+1. `axys_apx_reference_blueprint.md`, Version 2.0. Defines editorial standards, confidence labels, repository structure, and chapter template.
 
 ### Public / External References Inspected
 

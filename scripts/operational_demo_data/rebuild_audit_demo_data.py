@@ -1,6 +1,6 @@
-"""Audit or rebuild derived performance-comparison demo CSV files.
+"""Audit or rebuild derived Audit demo CSV files.
 
-The packaged performance-comparison demos keep user-visible operational inputs
+The packaged Audit demo keeps user-visible operational inputs
 in ``holdings.csv`` and ``transactions.csv``. The ``secperf.csv`` and
 ``portperf.csv`` files are derived review targets. This script keeps the derived
 performance files internally aligned by:
@@ -30,41 +30,41 @@ from typing import Any, Final
 import pandas as pd
 
 # Project imports
-from ppar.performance_comparison import compare_snapshots
-from ppar.performance_comparison.methods import ReturnReconstructionMethod
-from ppar.performance_comparison.modified_dietz import modified_dietz_flow_weight
-from ppar.performance_comparison.specification import (
-    PerformanceComparisonSpecification,
+from ppar.audit import compare_snapshots
+from ppar.audit.performance_comparison.methods import ReturnReconstructionMethod
+from ppar.audit.performance_comparison.modified_dietz import modified_dietz_flow_weight
+from ppar.audit.specification import (
+    AuditSpecification,
     PortfolioReturnReconstruction,
     SecurityReturnReconstruction,
 )
-from ppar.performance_comparison.workbook_tables import (
+from ppar.audit.workbook_tables import (
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
 )
-from ppar.performance_comparison.x_ref import x_ref_issues_table
+from ppar.audit.data_issues.checks import data_issues_table
 
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
-_DEFAULT_AXYS_DIRECTORY: Final = (
-    _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
+_DEFAULT_AXYS_APX_DIRECTORY: Final = (
+    _REPO_ROOT / "ppar" / "setup_templates" / "axys_apx_audit"
 )
-_DEFAULT_COMPARISON_PATH: Final = _DEFAULT_AXYS_DIRECTORY / "axysapx_performance_comparison.yaml"
+_DEFAULT_COMPARISON_PATH: Final = _DEFAULT_AXYS_APX_DIRECTORY / "axys_apx_audit.yaml"
 _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
-    Path(__file__).resolve().parent / "performance_comparison_holding_scenarios.csv"
+    Path(__file__).resolve().parent / "audit_holding_scenarios.csv"
 )
 _DEFAULT_TRANSACTION_SCENARIOS_PATH: Final = (
-    Path(__file__).resolve().parent / "performance_comparison_transaction_scenarios.csv"
+    Path(__file__).resolve().parent / "audit_transaction_scenarios.csv"
 )
 _DEFAULT_SCENARIO_CALENDAR_PATH: Final = (
-    Path(__file__).resolve().parent / "performance_comparison_scenario_calendar.csv"
+    Path(__file__).resolve().parent / "audit_scenario_calendar.csv"
 )
 _DEFAULT_SCENARIO_INVENTORY_PATH: Final = (
-    Path(__file__).resolve().parent / "performance_comparison_scenario_inventory.csv"
+    Path(__file__).resolve().parent / "audit_scenario_inventory.csv"
 )
 _DEFAULT_PERIOD_SPLIT_PLAN_PATH: Final = (
-    Path(__file__).resolve().parent / "performance_comparison_period_split_plan.csv"
+    Path(__file__).resolve().parent / "audit_period_split_plan.csv"
 )
 _SNAPSHOT_DIRECTORIES: Final = ("snapshot_a", "snapshot_b")
 _BASE_SNAPSHOT_DIRECTORY: Final = "snapshot_a"
@@ -162,7 +162,7 @@ _HOLDING_SCENARIO_TYPES: Final = {
     "quantity_valuation_correction",
     "accrual_correction",
     "cost_only_correction",
-    "x_ref_holdings_accrued_rate",
+    "data_issues_holdings_accrued_rate",
 }
 _TRANSACTION_NUMERIC_COLUMNS: Final = [
     "QTY",
@@ -246,7 +246,7 @@ _SCENARIO_INVENTORY_NUMERIC_COLUMNS: Final = [
 ]
 _SCENARIO_REPORT_DISPOSITIONS: Final = {
     "counted_cause",
-    "data_audit_issue",
+    "data_issues_issue",
     "fixture_only_context",
     "review_evidence",
 }
@@ -260,10 +260,10 @@ _SCENARIO_CARRY_FORWARD_STATUSES: Final = {
     "carry_forward_effect",
     "originating_change",
 }
-_SCENARIO_X_REF_ISSUE_TYPES: Final = {
-    "x_ref_dividend_rate": "dividend_rate",
-    "x_ref_holdings_accrued_rate": "holdings_accrued_rate",
-    "x_ref_pa_sa_rate": "pa_sa_rate",
+_SCENARIO_DATA_ISSUE_TYPES: Final = {
+    "data_issues_dividend_rate": "dividend_rate",
+    "data_issues_holdings_accrued_rate": "holdings_accrued_rate",
+    "data_issues_pa_sa_rate": "pa_sa_rate",
 }
 _SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES: Final = 2
 _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS: Final = 2
@@ -419,7 +419,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "cost_only_correction": 1,
             "quantity_valuation_correction": 2,
             "valuation_mark": 3,
-            "x_ref_holdings_accrued_rate": 1,
+            "data_issues_holdings_accrued_rate": 1,
         },
     }
 }
@@ -529,7 +529,7 @@ class TransactionScenarioSet:
 
 
 def main() -> int:
-    """Audit or rewrite packaged performance-comparison demo performance files."""
+    """Audit or rewrite packaged Audit demo performance files."""
     args = _parse_args()
     summary = rebuild_demo_performance_files(
         args.axys_directory,
@@ -574,7 +574,7 @@ def main() -> int:
 
 def audit_demo_data(
     *,
-    axys_directory: Path = _DEFAULT_AXYS_DIRECTORY,
+    axys_directory: Path = _DEFAULT_AXYS_APX_DIRECTORY,
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
     holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
     transaction_scenarios_path: Path = _DEFAULT_TRANSACTION_SCENARIOS_PATH,
@@ -694,7 +694,7 @@ def _audit_protected_scenario_inventory(
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
     holding_scenarios: HoldingScenarioSet | None = None,
     transaction_scenarios: TransactionScenarioSet | None = None,
-    axys_directory: Path = _DEFAULT_AXYS_DIRECTORY,
+    axys_directory: Path = _DEFAULT_AXYS_APX_DIRECTORY,
 ) -> list[AuditIssue]:
     """Return issues when a protected demo scenario changes meaning or outcome.
 
@@ -953,7 +953,7 @@ def _audit_scenario_report_contract(
         findings,
         comparison_path=comparison_path,
     )
-    x_ref_issues = x_ref_issues_table(comparison_path)
+    data_issues = data_issues_table(comparison_path)
     statuses = {
         (
             str(row["portfolio_id"]),
@@ -964,7 +964,7 @@ def _audit_scenario_report_contract(
     }
     finding_rows = list(findings.iter_rows(named=True))
     cause_rows = list(causes.iter_rows(named=True))
-    x_ref_rows = list(x_ref_issues.iter_rows(named=True))
+    data_issues_rows = list(data_issues.iter_rows(named=True))
     issues: list[AuditIssue] = []
     for row in inventory.itertuples(index=False):
         period_key = (
@@ -1007,13 +1007,13 @@ def _audit_scenario_report_contract(
                     )
                 )
             continue
-        if str(row.expected_report_disposition) == "data_audit_issue":
-            expected_issue_type = _SCENARIO_X_REF_ISSUE_TYPES.get(
+        if str(row.expected_report_disposition) == "data_issues_issue":
+            expected_issue_type = _SCENARIO_DATA_ISSUE_TYPES.get(
                 str(row.scenario_family)
             )
-            matching_x_ref = [
+            matching_data_issues = [
                 issue
-                for issue in x_ref_rows
+                for issue in data_issues_rows
                 if str(issue.get("portfolio_id") or "") == str(row.portfolio)
                 and str(issue.get("security_id") or "") == str(row.primary_security)
                 and str(issue.get("issue_type") or "") == expected_issue_type
@@ -1027,11 +1027,11 @@ def _audit_scenario_report_contract(
                 issues.append(
                     _scenario_disposition_issue(
                         row,
-                        "Data Audit scenario family has no protected issue type.",
+                        "Data Issues scenario family has no protected issue type.",
                     )
                 )
-            elif not matching_x_ref:
-                issues.append(_scenario_disposition_issue(row, "Data Audit issue is absent."))
+            elif not matching_data_issues:
+                issues.append(_scenario_disposition_issue(row, "Data Issues issue is absent."))
             continue
 
         if not matching_findings and not matching_causes:
@@ -1221,7 +1221,7 @@ def rebuild_demo_performance_files(
     Returns:
         JSON-serializable audit summary with one entry per snapshot.
     """
-    specification = PerformanceComparisonSpecification(comparison_path)
+    specification = AuditSpecification(comparison_path)
     portfolio_reconstruction = specification.portfolio_return_reconstruction
     security_reconstruction = specification.security_return_reconstruction
     if portfolio_reconstruction is None or security_reconstruction is None:
@@ -2596,7 +2596,7 @@ def _validate_holding_scenario_deltas(
             "ACCRUED",
         },
         "cost_only_correction": {"COST"},
-        "x_ref_holdings_accrued_rate": {"ACCRUED"},
+        "data_issues_holdings_accrued_rate": {"ACCRUED"},
     }
     allowed_columns = allowed_columns_by_type[scenario_type]
     if not changed_columns.issubset(allowed_columns):
@@ -4079,13 +4079,13 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Audit or rebuild derived portperf/secperf files for the packaged "
-            "performance-comparison demos."
+            "Audit demos."
         )
     )
     parser.add_argument(
         "--axys-directory",
         type=Path,
-        default=_DEFAULT_AXYS_DIRECTORY,
+        default=_DEFAULT_AXYS_APX_DIRECTORY,
         help="Directory containing snapshot_a and snapshot_b.",
     )
     parser.add_argument(

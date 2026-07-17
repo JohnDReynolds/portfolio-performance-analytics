@@ -14,13 +14,13 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
+from ppar.audit import AuditSpecification
+from ppar.audit.performance_comparison import (
     PerformanceComparison,
-    PerformanceComparisonSpecification,
     findings_to_polars,
 )
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.policies import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison.policies import (
     _fx_rate_impact_policies,
     _modified_dietz_external_flow_eligibility,
     _holding_impact_policies,
@@ -28,11 +28,11 @@ from ppar.performance_comparison.policies import (
     _transaction_impact_policies,
     _validated_modified_dietz_policy,
 )
-from ppar.performance_comparison.explain import (
+from ppar.audit.performance_comparison.explain import (
     ESTIMATED_RETURN_IMPACT,
     portfolio_period_contribution_candidates,
 )
-from ppar.performance_comparison.findings import (
+from ppar.audit.performance_comparison.findings import (
     CASH_FLOW_SIGN,
     CONTEXT,
     DELTA_B_MINUS_A,
@@ -93,19 +93,19 @@ from ppar.performance_comparison.findings import (
     PERFORMANCE_FLOW_SIGN,
     Finding,
 )
-from ppar.performance_comparison.methods import (
+from ppar.audit.performance_comparison.methods import (
     ModifiedDietzDayCount,
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzFlowTiming,
     ModifiedDietzInclusionRule,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement_transaction_rules.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement_transaction_rules.yaml"
 )
 
 
@@ -135,7 +135,7 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
             "transactions": "transactions.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -189,7 +189,7 @@ def _write_no_id_transaction_date_move_specification(directory: Path) -> Path:
             },
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -221,7 +221,7 @@ def _write_duplicate_transaction_fallback_specification(directory: Path) -> Path
             "transactions": "transactions.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -265,7 +265,7 @@ def _write_transaction_singleton_duplicate_specification(
             "transactions": "transactions.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -307,7 +307,7 @@ def _write_transaction_case_sensitive_singleton_specification(
             "transactions": "transactions.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -340,7 +340,7 @@ def _write_transaction_period_specification(directory: Path) -> Path:
             "transactions": "transactions.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -386,7 +386,7 @@ def _write_security_transaction_period_specification(directory: Path) -> Path:
             },
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -423,7 +423,7 @@ def _write_security_case_sensitive_specification(directory: Path) -> Path:
             },
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -456,7 +456,7 @@ def _write_transaction_outside_period_specification(directory: Path) -> Path:
             "transactions": "transactions.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -515,7 +515,7 @@ def _write_transaction_changed_period_fallback_specification(
             },
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -549,7 +549,7 @@ def _write_holding_period_specification(directory: Path) -> Path:
             "holdings": "holdings.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -603,7 +603,7 @@ def _write_multi_portfolio_holding_price_specification(
                 "weight_source": "snapshot_a_weight",
             },
         }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -631,7 +631,7 @@ def _write_duplicate_portfolio_specification(directory: Path) -> Path:
         },
         "files": {"portfolio_performance": "portperf.csv"},
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -655,7 +655,7 @@ def _write_blank_portfolio_key_specification(directory: Path) -> Path:
         },
         "files": {"portfolio_performance": "portperf.csv"},
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -687,7 +687,7 @@ def _write_blank_holding_key_specification(directory: Path) -> Path:
             "holdings": "holdings.csv",
         },
     }
-    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -695,8 +695,8 @@ def _write_blank_holding_key_specification(directory: Path) -> Path:
 class TestPerformanceComparison(unittest.TestCase):
     """Verify portfolio performance comparison findings."""
 
-    _baseline_specification: PerformanceComparisonSpecification
-    _restatement_specification: PerformanceComparisonSpecification
+    _baseline_specification: AuditSpecification
+    _restatement_specification: AuditSpecification
     _baseline_combined_findings: list[Finding]
     _restatement_combined_findings: list[Finding]
     _baseline_portfolio_findings: list[Finding]
@@ -713,10 +713,10 @@ class TestPerformanceComparison(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Cache shared fixture comparisons for the class."""
-        cls._baseline_specification = PerformanceComparisonSpecification(
+        cls._baseline_specification = AuditSpecification(
             _BASELINE_COMPARISON_PATH
         )
-        cls._restatement_specification = PerformanceComparisonSpecification(
+        cls._restatement_specification = AuditSpecification(
             _RESTATEMENT_COMPARISON_PATH
         )
         baseline = PerformanceComparison(cls._baseline_specification)
@@ -821,7 +821,7 @@ class TestPerformanceComparison(unittest.TestCase):
         comparison = PerformanceComparison(self._restatement_specification)
 
         with mock.patch(
-            "ppar.performance_comparison.compare."
+            "ppar.audit.performance_comparison.compare."
             "_modified_dietz_external_flow_eligibility"
         ) as eligibility:
             estimate = comparison._transaction_impact_diagnostic_estimate(
@@ -842,7 +842,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Duplicate comparison keys are invalid because joins would multiply rows."""
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_duplicate_portfolio_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 PerformanceComparison(specification).compare_portfolio_performance()
@@ -855,7 +855,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Blank portfolio keys fail clearly before comparison output is built."""
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_blank_portfolio_key_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 PerformanceComparison(specification).compare_portfolio_performance()
@@ -869,7 +869,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Blank optional evidence keys fail clearly before unmatched findings."""
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_blank_holding_key_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             with self.assertRaises(PpaError) as context:
                 PerformanceComparison(specification).compare_holdings()
@@ -960,7 +960,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Security identifiers that differ only by case are not the same key."""
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_security_case_sensitive_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             findings = [
                 finding.to_dict()
@@ -1116,7 +1116,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Changed holding rows inherit the containing portfolio period."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_holding_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_holdings()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -1144,7 +1144,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -1200,7 +1200,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -1247,7 +1247,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_holdings()
             quantity_finding = next(
@@ -1283,7 +1283,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             policies = _holding_impact_policies(specification)
             findings = PerformanceComparison(specification).compare_holdings()
@@ -1327,7 +1327,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -1377,7 +1377,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     f"PORT_A,AAPL,2025-05-31,10,1000.00,{cost},25.00\n",
                     encoding="utf-8",
                 )
-            specification_path = root / "ppar_performance_comparison.yaml"
+            specification_path = root / "ppar_audit.yaml"
             specification_path.write_text(
                 yaml.safe_dump(
                     {
@@ -1398,7 +1398,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             policies = _holding_impact_policies(specification)
             findings = PerformanceComparison(specification).compare_holdings()
@@ -1442,7 +1442,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 Path(temp_dir),
                 include_price_impact_methods=True,
             )
-            specification = PerformanceComparisonSpecification(path)
+            specification = AuditSpecification(path)
 
             findings = PerformanceComparison(specification).compare()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -1499,7 +1499,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
     def test_fx_rate_evidence_only_policy_is_loaded_from_yaml(self) -> None:
         """Explicit FX rate review-only policy is carried into findings."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _RESTATEMENT_TRANSACTION_RULES_PATH
         )
 
@@ -1583,7 +1583,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self,
     ) -> None:
         """YAML transaction rules fill sign/flow semantics in Axys findings."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _RESTATEMENT_TRANSACTION_RULES_PATH
         )
 
@@ -1620,7 +1620,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     f"100.00,{commission},cash out,external\n",
                     encoding="utf-8",
                 )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             comparison = PerformanceComparison(specification)
             findings = comparison.compare_transactions()
@@ -1663,7 +1663,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             policies = _transaction_impact_policies(specification)
             findings = PerformanceComparison(specification).compare_transactions()
@@ -1688,7 +1688,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Changed transaction rows inherit the containing portfolio period."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             comparison = PerformanceComparison(specification)
             findings = comparison.compare_transactions()
@@ -1718,7 +1718,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             comparison = PerformanceComparison(specification)
             findings = comparison.compare_transactions()
@@ -1769,7 +1769,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 yaml.safe_dump(configuration),
                 encoding="utf-8",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             amount_finding = next(
@@ -1798,7 +1798,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self,
     ) -> None:
         """Transaction source fields can be marked review-only in YAML."""
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             _RESTATEMENT_TRANSACTION_RULES_PATH
         )
 
@@ -1846,7 +1846,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Modified Dietz policy keeps every explicit YAML convention."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
             external_flow_value = {
                 "method": "modified_dietz",
                 "flow_timing": "settlement_date",
@@ -1880,7 +1880,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Modified Dietz eligibility requires explicit row, period, and policy inputs."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
             policy = _validated_modified_dietz_policy(
                 specification,
                 {
@@ -1949,7 +1949,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """The flow date comes from the YAML-selected timing convention."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
             policy = _validated_modified_dietz_policy(
                 specification,
                 {
@@ -1985,7 +1985,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """External-flow dates must fall inside the linked portfolio period."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
             policy = _validated_modified_dietz_policy(
                 specification,
                 {
@@ -2029,7 +2029,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
             with self.assertRaises(PpaError) as context:
                 PerformanceComparison(
-                    PerformanceComparisonSpecification(specification_path)
+                    AuditSpecification(specification_path)
                 )
 
             self.assertIn("external_flow.method", str(context.exception))
@@ -2076,7 +2076,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2102,7 +2102,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn("external_flow.method", str(context.exception))
@@ -2131,7 +2131,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
             findings = PerformanceComparison(specification).compare_transactions()
             amount_finding = next(
                 finding.to_dict()
@@ -2180,7 +2180,7 @@ class TestPerformanceComparison(unittest.TestCase):
             )
 
             findings = PerformanceComparison(
-                PerformanceComparisonSpecification(specification_path)
+                AuditSpecification(specification_path)
             ).compare_transactions()
             amount_finding = next(
                 finding.to_dict()
@@ -2234,7 +2234,7 @@ class TestPerformanceComparison(unittest.TestCase):
             )
 
             findings = PerformanceComparison(
-                PerformanceComparisonSpecification(specification_path)
+                AuditSpecification(specification_path)
             ).compare_transactions()
             amount_finding = next(
                 finding.to_dict()
@@ -2279,7 +2279,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
             findings = findings_to_polars(
                 PerformanceComparison(
-                    PerformanceComparisonSpecification(specification_path)
+                    AuditSpecification(specification_path)
                 ).compare()
             )
             candidates = portfolio_period_contribution_candidates(findings)
@@ -2316,7 +2316,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
             with self.assertRaisesRegex(PpaError, "external_flow.double_count_policy"):
                 PerformanceComparison(
-                    PerformanceComparisonSpecification(specification_path)
+                    AuditSpecification(specification_path)
                 ).compare()
 
     def test_transaction_impact_methods_reject_malformed_yaml(self) -> None:
@@ -2401,7 +2401,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2417,7 +2417,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
             with self.assertRaises(PpaError) as context:
                 PerformanceComparison(
-                    PerformanceComparisonSpecification(specification_path)
+                    AuditSpecification(specification_path)
                 )
 
             self.assertIn("security_return_impact_methods is required", str(context.exception))
@@ -2474,7 +2474,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2561,7 +2561,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2650,7 +2650,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2699,7 +2699,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2749,7 +2749,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2805,7 +2805,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     with self.assertRaises(PpaError) as context:
                         PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
+                            AuditSpecification(specification_path)
                         )
 
                     self.assertIn(expected_message, str(context.exception))
@@ -2816,7 +2816,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_outside_period_specification(
                 Path(temp_dir)
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -2839,7 +2839,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_changed_period_fallback_specification(
                 Path(temp_dir)
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             comparison = PerformanceComparison(specification)
             findings = comparison.compare_transactions()
@@ -2877,7 +2877,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 Path(temp_dir),
                 ambiguous=True,
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             comparison = PerformanceComparison(specification)
             findings = comparison.compare_transactions()
@@ -2902,7 +2902,7 @@ class TestPerformanceComparison(unittest.TestCase):
         """Exact singleton no-ID transaction keys can compare changed fields."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_fallback_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -2930,7 +2930,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_no_id_transaction_date_move_specification(
                 Path(temp_dir)
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -2991,7 +2991,7 @@ class TestPerformanceComparison(unittest.TestCase):
                             snapshot_b_count=snapshot_b_count,
                         )
                     )
-                    specification = PerformanceComparisonSpecification(specification_path)
+                    specification = AuditSpecification(specification_path)
 
                     findings = PerformanceComparison(specification).compare_transactions()
                     finding_dicts = [finding.to_dict() for finding in findings]
@@ -3018,7 +3018,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 snapshot_a_security="AAPL",
                 snapshot_b_security="aapl",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             finding_codes = [finding.to_dict()[FINDING_CODE] for finding in findings]
@@ -3035,7 +3035,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 snapshot_a_code="BUY",
                 snapshot_b_code="buy",
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             finding_codes = [finding.to_dict()[FINDING_CODE] for finding in findings]
@@ -3050,7 +3050,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_duplicate_transaction_fallback_specification(
                 Path(temp_dir)
             )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
             finding_dicts = [finding.to_dict() for finding in findings]
@@ -3103,7 +3103,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     "100.00,cash out,external\n",
                     encoding="utf-8",
                 )
-            specification = PerformanceComparisonSpecification(specification_path)
+            specification = AuditSpecification(specification_path)
 
             with self.assertRaises(PpaError):
                 PerformanceComparison(specification).compare_transactions()

@@ -5,11 +5,11 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Final
 
-from ppar.performance_comparison.backlog_gates import (
+from ppar.audit.performance_comparison.backlog_gates import (
     CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
     SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
 )
-from ppar.performance_comparison.fixed_income import (
+from ppar.audit.fixed_income import (
     FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES,
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     FIXED_INCOME_SAFE_TRANSACTION_CODES,

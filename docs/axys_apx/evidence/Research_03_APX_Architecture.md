@@ -4,7 +4,7 @@
 **Chapter target:** `../reference/Chapter_03_APX_Architecture.md`  
 **Research file:** `docs/axys_apx/evidence/Research_03_APX_Architecture.md`
 **Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -39,7 +39,7 @@ Per the repository blueprint, every important technical statement is classified 
 
 | Source ID | Source | Type | Notes | Confidence Use |
 |---|---|---|---|---|
-| S1 | `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | User-supplied governing specification | Defines editorial rules, repository structure, confidence labels, and required standards. | Verified for repository policy only. |
+| S1 | `axys_apx_reference_blueprint.md`, Version 2.0 | User-supplied governing specification | Defines editorial rules, repository structure, confidence labels, and required standards. | Verified for repository policy only. |
 | S2 | SS&C Advent APX product page, `Advent Portfolio Exchange®` | Vendor product page | Describes APX as integrated portfolio and client management, portfolio accounting/reporting, and an enterprise platform for front/middle/back offices. | Verified for product-positioning statements. Not sufficient for database internals. |
 | S3 | SS&C product brief for Advent Portfolio Exchange | Vendor brief | Describes reporting framework, report customization, external-source inclusion, portals, and client reporting. | Verified for high-level reporting capabilities. |
 | S4 | Advent Portfolio Exchange Reports Guide / `REP_APX.pdf` search-accessible text | Vendor report guide / report brochure | Lists APX report names and states APX reports are built on Microsoft SQL Server Reporting Services. Search-accessible text includes selected report descriptions and sample field labels. | Verified for listed report names and high-level report framework. |
@@ -61,7 +61,7 @@ Per the repository blueprint, every important technical statement is classified 
 | APX standard reports | Public APX report-guide text lists reports including Account Distribution, Attribution by Classification, Attribution Summary, Contribution reports, Risk Statistics, Portfolio Appraisal, Realized Gains and Losses, and Transaction Summary. | Verified | S4 |
 | APX report customization | APX reporting materials describe customizable reports, branding, charts/graphs, customized data elements, and inclusion of data from Advent suite components or external sources. | Verified | S3, S4 |
 | REP32 integration dependency | A third-party Advent connector requires Advent client tools, specifically REP32, and uses standard reports, macros, and RepLang scripting for extraction. | High Confidence | S5 |
-| IMEX availability | Practitioner and integration documentation identify IMEX / Import Export Utility as a mechanism used with Axys and APX. | High Confidence | S6, S7 |
+| IMEX availability | Practitioner and integration documentation identify IMEX / Import Export Utility as a mechanism used with Axys/APX. | High Confidence | S6, S7 |
 | IMEX importing `.mac` / `.scr` | Third-party setup documentation describes importing `.mac` and `.scr` files into APX through IMEX. | High Confidence | S6 |
 | APX REST API | Practitioner documentation states recent APX versions include a RESTful API option not available when earlier IMEX-focused articles were written. | Medium Confidence | S7 |
 | APX-to-Axys export | Practitioner documentation says APX data can be exported via IMEX to Axys 3 format for items such as prices, portfolios, splits, security information, sectors, industries, asset classes, indexes, and composites. | Medium Confidence | S7 |
@@ -490,7 +490,7 @@ The following statements must not be asserted in the chapter unless future sourc
 
 ## 16. References
 
-1. `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0. User-supplied governing specification.
+1. `axys_apx_reference_blueprint.md`, Version 2.0. User-supplied governing specification.
 2. SS&C Advent, `Advent Portfolio Exchange®` product page. Public vendor page accessed via web search on 2026-06-29.
 3. SS&C Advent, `Product Brief: Advent Portfolio Exchange`. Public vendor brief accessed via web search on 2026-06-29.
 4. SS&C Advent, `Advent Portfolio Exchange Reports Guide` / `REP_APX.pdf`. Public vendor report guide text available via search snippets and mirrored text.
@@ -507,7 +507,7 @@ The following statements must not be asserted in the chapter unless future sourc
 
 ### S1 — Governing Blueprint
 
-The blueprint requires facts-first documentation, separation of Axys and APX, preservation of Unknowns, use of field dictionaries, examples, version differences, known quirks, and confidence labels. It defines this research file as part of the repository structure.
+The blueprint requires facts-first documentation, separation of Axys/APX, preservation of Unknowns, use of field dictionaries, examples, version differences, known quirks, and confidence labels. It defines this research file as part of the repository structure.
 
 ### S2 / S3 — Vendor APX Product Material
 

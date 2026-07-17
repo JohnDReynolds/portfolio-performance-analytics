@@ -9,8 +9,8 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.period_linking import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.period_linking import (
     period_context_for_dated_evidence,
     portfolio_periods_from_snapshots,
     security_periods_from_snapshots,

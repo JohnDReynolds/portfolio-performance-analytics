@@ -13,19 +13,19 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.currency_basis import base_currency_monetary_value
-from ppar.performance_comparison.holdings import HoldingsLoader
-from ppar.performance_comparison.modified_dietz import modified_dietz_flow_weight
-from ppar.performance_comparison.methods import ReturnReconstructionMethod
-from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
-from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
-from ppar.performance_comparison.specification import (
-    PerformanceComparisonSpecification,
+from ppar.audit import schema as pc_cols
+from ppar.audit.currency_basis import base_currency_monetary_value
+from ppar.audit.holdings import HoldingsLoader
+from ppar.audit.performance_comparison.modified_dietz import modified_dietz_flow_weight
+from ppar.audit.performance_comparison.methods import ReturnReconstructionMethod
+from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
+from ppar.audit.security_performance import SecurityPerformanceLoader
+from ppar.audit.specification import (
+    AuditSpecification,
     PortfolioReturnReconstruction,
     SecurityReturnReconstruction,
 )
-from ppar.performance_comparison.transactions import TransactionsLoader
+from ppar.audit.transactions import TransactionsLoader
 import ppar.utilities as util
 
 RECONSTRUCTION_REVIEW_KEY: Final[str] = "review_key"
@@ -297,7 +297,7 @@ def portfolio_return_reconstruction_checks(
     """Return portfolio return-reconstruction diagnostics for a comparison YAML.
 
     Args:
-        comparison_path: Path to a performance comparison YAML file. ``None``
+        comparison_path: Path to an Audit YAML file. ``None``
             returns an empty table because reconstruction needs source-data.
         _input_cache: Optional package-internal cache shared by report views.
 
@@ -313,7 +313,7 @@ def portfolio_return_reconstruction_checks(
     if comparison_path is None:
         return _empty_portfolio_return_reconstruction_checks()
 
-    specification = PerformanceComparisonSpecification(comparison_path)
+    specification = AuditSpecification(comparison_path)
     reconstruction = specification.portfolio_return_reconstruction
     if reconstruction is None:
         return _empty_portfolio_return_reconstruction_checks()
@@ -335,7 +335,7 @@ def security_return_reconstruction_checks(
     """Return security return-reconstruction diagnostics for a comparison YAML.
 
     Args:
-        comparison_path: Path to a performance comparison YAML file. ``None``
+        comparison_path: Path to an Audit YAML file. ``None``
             returns an empty table because reconstruction needs source-data.
         active_keys: Optional portfolio/security/period keys to check. When
             omitted, all configured security performance rows are checked.
@@ -353,7 +353,7 @@ def security_return_reconstruction_checks(
     if comparison_path is None:
         return _empty_security_return_reconstruction_checks()
 
-    specification = PerformanceComparisonSpecification(comparison_path)
+    specification = AuditSpecification(comparison_path)
     reconstruction = specification.security_return_reconstruction
     if reconstruction is None:
         return _empty_security_return_reconstruction_checks()
@@ -374,7 +374,7 @@ def return_reconstruction_summary(
     """Return summary counts for available return-reconstruction diagnostics.
 
     Args:
-        comparison_path: Path to a performance comparison YAML file. ``None``
+        comparison_path: Path to an Audit YAML file. ``None``
             returns an empty summary.
         _input_cache: Optional package-internal cache shared by report views.
 
@@ -416,7 +416,7 @@ class _PortfolioReturnReconstructionEngine:
 
     def __init__(
         self,
-        specification: PerformanceComparisonSpecification,
+        specification: AuditSpecification,
         reconstruction: PortfolioReturnReconstruction,
         *,
         input_cache: _SnapshotDataIndexCache | None = None,
@@ -581,7 +581,7 @@ class _SecurityReturnReconstructionEngine:
 
     def __init__(
         self,
-        specification: PerformanceComparisonSpecification,
+        specification: AuditSpecification,
         reconstruction: SecurityReturnReconstruction,
         *,
         input_cache: _SnapshotDataIndexCache | None = None,

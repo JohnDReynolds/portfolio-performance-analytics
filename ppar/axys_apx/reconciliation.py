@@ -17,7 +17,7 @@ import polars as pl
 
 # Project imports
 import ppar.analytics.schema as cols
-from ppar.axys.weight_solver import derive_reconciled_weights
+from ppar.axys_apx.weight_solver import derive_reconciled_weights
 from ppar.errors import PpaError
 
 ErrorMessage = Callable[[str], str]

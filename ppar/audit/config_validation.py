@@ -1,4 +1,4 @@
-"""Validate performance comparison YAML configurations."""
+"""Validate Audit YAML configurations."""
 
 from __future__ import annotations
 
@@ -9,23 +9,24 @@ import sys
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as _pc_cols
-from ppar.performance_comparison.compare import PerformanceComparison
-from ppar.performance_comparison.extract_contract import extract_contract_summary
-from ppar.performance_comparison.findings import findings_to_polars
-from ppar.performance_comparison.runner import validate_yaml_setup_complete
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
-from ppar.performance_comparison.source_data_contract import (
+from ppar.audit import schema as _pc_cols
+from ppar.audit.performance_comparison.compare import PerformanceComparison
+from ppar.audit.data_issues.config import data_issues_config_summary
+from ppar.audit.extract_contract import extract_contract_summary
+from ppar.audit.performance_comparison.findings import findings_to_polars
+from ppar.audit.runner import validate_yaml_setup_complete
+from ppar.audit.specification import AuditSpecification
+from ppar.audit.source_data_contract import (
     comparison_required_dataset_names,
     source_data_contract_summary,
 )
-from ppar.performance_comparison.transaction_summary import (
+from ppar.audit.transaction_summary import (
     format_codes,
     format_semantics_source_counts,
     transaction_rule_codes,
     transaction_semantics_summary,
 )
-from ppar.performance_comparison.transactions import TransactionsLoader
+from ppar.audit.transactions import TransactionsLoader
 
 __all__ = [
     "main",
@@ -34,7 +35,7 @@ __all__ = [
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Validate a performance comparison YAML file from the command line.
+    """Validate an Audit YAML file from the command line.
 
     Args:
         argv: Optional command-line arguments excluding the executable name.
@@ -66,6 +67,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Price impact methods: {summary['price_impact_methods']}")
     print(f"FX rate impact methods: {summary['fx_rate_impact_methods']}")
     print(f"Evidence-only impact methods: {summary['evidence_only_impact_methods']}")
+    print(
+        "Data Issues optional checks enabled: "
+        f"{summary['data_issues_optional_checks_enabled']}"
+    )
+    print(f"Data Issues mandatory checks: {summary['data_issues_mandatory_checks']}")
+    print(f"Data Issues policy: {summary['data_issues_policy']}")
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
     print(f"Transaction files checked: {summary['transaction_files_checked']}")
@@ -99,7 +106,7 @@ def validate_config(
     """Validate one comparison YAML file and return a compact summary.
 
     Args:
-        comparison_path: Path to a performance comparison YAML file.
+        comparison_path: Path to an Audit YAML file.
         require_complete_yaml_setup: Whether to reject changed source-data
             fields that lack additive, evidence-only, or suppression YAML.
 
@@ -123,7 +130,7 @@ def _validate_config(
     require_complete_yaml_setup: bool,
 ) -> dict[str, object]:
     """Validate one comparison YAML file with explicit YAML setup strictness."""
-    specification = PerformanceComparisonSpecification(comparison_path)
+    specification = AuditSpecification(comparison_path)
     comparison = PerformanceComparison(specification)
     findings = findings_to_polars(comparison.compare())
     if require_complete_yaml_setup:
@@ -144,6 +151,7 @@ def _validate_config(
             specification.security_return_reconstruction is not None
         ),
     )
+    data_issues_summary = data_issues_config_summary(specification.values)
     return {
         "snapshot_a": specification.snapshot_a.path,
         "snapshot_b": specification.snapshot_b.path,
@@ -158,6 +166,11 @@ def _validate_config(
         "price_impact_methods": _price_impact_methods(specification),
         "fx_rate_impact_methods": _fx_rate_impact_methods(specification),
         "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
+        "data_issues_optional_checks_enabled": data_issues_summary[
+            "optional_checks_enabled"
+        ],
+        "data_issues_mandatory_checks": data_issues_summary["mandatory_checks"],
+        "data_issues_policy": data_issues_summary["policy"],
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
         "extract_contract": contract_summary["path"],
@@ -179,7 +192,7 @@ def _validate_config(
 
 
 def _validate_transactions(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> dict[str, object]:
     """Validate configured transaction files and return preview fields."""
     if _pc_cols.TRANSACTIONS not in specification.files:
@@ -215,7 +228,7 @@ def _validate_transactions(
 
 
 def _missing_optional_files(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return a readable list of configured optional files that are absent."""
     missing_files: list[str] = []
@@ -232,7 +245,7 @@ def _missing_optional_files(
 
 
 def _transaction_rule_count(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> int:
     """Return the number of configured transaction code rules."""
     rules_value = specification.values.get("transaction_rules", {})
@@ -240,7 +253,7 @@ def _transaction_rule_count(
 
 
 def _transaction_impact_methods(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return configured transaction impact method keys."""
     methods_value = specification.values.get("transaction_impact_methods", {})
@@ -250,7 +263,7 @@ def _transaction_impact_methods(
 
 
 def _contribution_impact_methods(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return configured contribution impact method keys."""
     methods_value = specification.values.get("contribution_impact_methods", {})
@@ -260,7 +273,7 @@ def _contribution_impact_methods(
 
 
 def _holding_impact_methods(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return configured holding impact method keys."""
     methods_value = specification.values.get("holding_impact_methods", {})
@@ -270,7 +283,7 @@ def _holding_impact_methods(
 
 
 def _price_impact_methods(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return configured price impact method keys."""
     methods_value = specification.values.get("price_impact_methods", {})
@@ -280,7 +293,7 @@ def _price_impact_methods(
 
 
 def _fx_rate_impact_methods(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return configured FX rate impact method keys."""
     methods_value = specification.values.get("fx_rate_impact_methods", {})
@@ -290,7 +303,7 @@ def _fx_rate_impact_methods(
 
 
 def _evidence_only_impact_methods(
-    specification: PerformanceComparisonSpecification,
+    specification: AuditSpecification,
 ) -> str:
     """Return configured evidence-only impact method keys."""
     methods_value = specification.values.get("evidence_only_impact_methods", {})
@@ -302,12 +315,12 @@ def _evidence_only_impact_methods(
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Validate a performance comparison YAML configuration.",
+        description="Validate an Audit YAML configuration.",
     )
     parser.add_argument(
         "comparison_path",
         type=Path,
-        help="Path to a performance comparison YAML file.",
+        help="Path to an Audit YAML file.",
     )
     parser.add_argument(
         "--allow-incomplete-yaml",

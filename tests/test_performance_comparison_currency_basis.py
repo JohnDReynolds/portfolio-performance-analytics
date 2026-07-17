@@ -10,8 +10,8 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.currency_basis import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.currency_basis import (
     CURRENCY_PAIR_BASIS,
     FROM_CURRENCY_BASIS,
     PORTFOLIO_BASE_CURRENCY_BASIS,
@@ -20,7 +20,7 @@ from ppar.performance_comparison.currency_basis import (
     monetary_field_currency_basis,
     normalize_currency_columns,
 )
-from ppar.performance_comparison import return_reconstruction as _reconstruction
+from ppar.audit.performance_comparison import return_reconstruction as _reconstruction
 
 
 class TestPerformanceComparisonCurrencyBasis(unittest.TestCase):

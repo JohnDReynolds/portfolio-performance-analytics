@@ -27,7 +27,7 @@ from ppar.analytics.cli import (
     write_png_file,
 )
 import ppar.analytics.schema as cols
-from ppar.axys import AxysData
+from ppar.axys_apx import AxysData
 
 
 # All relative paths are anchored to this file. You can therefore run this

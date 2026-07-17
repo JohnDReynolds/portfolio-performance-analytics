@@ -52,7 +52,7 @@ datasets:
         imex_confidence: high
         rep_confidence: high
         comments: Core portfolio/client identifier in position and appraisal workflows.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -76,7 +76,7 @@ datasets:
         imex_confidence: high
         rep_confidence: high
         comments: Security identifiers are supported by CI/security-resolution and report evidence.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -101,7 +101,7 @@ datasets:
         imex_confidence: high
         rep_confidence: high
         comments: Position exports and appraisal reports are inherently as-of-date based.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -134,7 +134,7 @@ datasets:
         imex_confidence: high
         rep_confidence: high
         comments: Quantity is directly supported by transaction and appraisal report evidence.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -159,7 +159,7 @@ datasets:
         imex_confidence: high
         rep_confidence: high
         comments: Price import/export evidence and appraisal/report labels support availability.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -182,7 +182,7 @@ datasets:
         imex_confidence: high
         rep_confidence: high
         comments: Market value appears in report evidence and is a core position/appraisal value.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:

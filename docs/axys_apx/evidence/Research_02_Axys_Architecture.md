@@ -3,7 +3,7 @@
 Research status: Draft research notes  
 Repository chapter target: `../reference/Chapter_02_Axys_Architecture.md`  
 Prepared: 2026-06-29  
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -32,7 +32,7 @@ This file is research material, not a finished repository chapter.
 
 | Source ID | Source | Type | Relevance | Notes |
 |---|---|---|---|---|
-| S1 | `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | User-supplied repository specification | Governing editorial rules | Requires facts first, Axys/APX separation, confidence labels, Unknowns, tables, IMEX/REP/report detail where supported. |
+| S1 | `axys_apx_reference_blueprint.md`, Version 2.0 | User-supplied repository specification | Governing editorial rules | Requires facts first, Axys/APX separation, confidence labels, Unknowns, tables, IMEX/REP/report detail where supported. |
 | S2 | SS&C Advent Axys product page, https://www.advent.com/solutions/axys/ | Vendor product page | Axys feature-level behavior and storage positioning | Supports Axys portfolio accounting, reporting, performance measurement, Report Writer Pro, security types, accounting options, grouping, GIPS-related statements, and proprietary-database product positioning. |
 | S3 | SS&C Advent APX product page, https://www.advent.com/solutions/advent-portfolio-exchange/ | Vendor product page | APX contrast | Supports APX as integrated client relationship and portfolio management solution, single platform, centralized/scalable, standard reports, report packaging, cloud/local deployment statements. |
 | S4 | Advent Software 2007 SEC filing, https://www.sec.gov/Archives/edgar/data/1002225/000110465907025400/a07-7653_110ka.htm | Regulatory filing | Historical product descriptions | Supports historical descriptions of APX as SQL database/browser UI and Axys as portfolio management/reporting system with Report Writer Pro and multi-currency capabilities. |
@@ -215,7 +215,7 @@ Chapter warning: these tokens should be included only as examples from a specifi
 | IMEX executable/module name and invocation syntax | Vendor manual or installed-system examples. |
 | Whether IMEX is GUI-only, command-line capable, macro-driven, or batch schedulable in specific versions | Vendor manual or production scripts. |
 | IMEX object list for portfolios, transactions, securities, prices, holdings, groups, performance | IMEX object catalog or sample `*.imx` configuration. |
-| Whether Axys and APX use identical IMEX object names | Side-by-side IMEX documentation or exports. |
+| Whether Axys/APX use identical IMEX object names | Side-by-side IMEX documentation or exports. |
 | Error/log file behavior | IMEX manual or production logs. |
 | Import validation behavior and transaction rollback behavior | IMEX manual or production tests. |
 | REP versus IMEX export equivalence for common extracts | Sample reports/exports. |

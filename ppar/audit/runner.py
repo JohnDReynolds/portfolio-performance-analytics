@@ -1,4 +1,4 @@
-"""Public runner functions for Performance Auditing workflows."""
+"""Public runner functions for Audit workflows."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison.compare import PerformanceComparison
-import ppar.performance_comparison.explain as _pc_explain
-import ppar.performance_comparison.field_roles as _field_roles
-import ppar.performance_comparison.lineage as _pc_lineage
-from ppar.performance_comparison.findings import (
+from ppar.audit.performance_comparison.compare import PerformanceComparison
+import ppar.audit.performance_comparison.explain as _pc_explain
+import ppar.audit.field_roles as _field_roles
+import ppar.audit.lineage as _pc_lineage
+from ppar.audit.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
     EVIDENCE_ROLE,
@@ -30,12 +30,12 @@ from ppar.performance_comparison.findings import (
     Finding,
     findings_to_polars,
 )
-from ppar.performance_comparison.specification import (
+from ppar.audit.specification import (
     COMPARISON_LEVELS,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
-import ppar.performance_comparison.schema as pc_cols
-from ppar.performance_comparison.transactions import (
+import ppar.audit.schema as pc_cols
+from ppar.audit.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
 )
 import ppar.utilities as util
@@ -75,7 +75,7 @@ class AuditComparisonViews:
         """Initialize one lazy, canonical comparison run.
 
         Args:
-            specification_path: Path to a performance comparison YAML file.
+            specification_path: Path to an Audit YAML file.
             include_suppressed: Whether returned views include suppressed rows.
             require_causal_attribution: Whether returned views must have all
                 setup needed by supported causal-attribution methods.
@@ -138,7 +138,7 @@ class AuditComparisonViews:
     def _comparison(self, comparison_level: str) -> PerformanceComparison:
         """Return the cached comparison engine for one result level."""
         if comparison_level not in self._comparisons:
-            specification = PerformanceComparisonSpecification(
+            specification = AuditSpecification(
                 self.specification_path,
                 comparison_level=comparison_level,
             )
@@ -158,7 +158,7 @@ def compare_snapshots(
     """Compare two configured snapshots and return a findings table.
 
     Args:
-        specification_path: Path to a performance comparison YAML file.
+        specification_path: Path to an Audit YAML file.
         include_suppressed: Whether to include findings marked suppressed by
             configured suppression rules.
         require_causal_attribution: Whether changed portfolio periods must have
@@ -177,7 +177,7 @@ def compare_snapshots(
         PpaError: If the comparison specification is invalid, required files
             are missing, or source columns cannot be resolved.
     """
-    specification = PerformanceComparisonSpecification(
+    specification = AuditSpecification(
         specification_path,
         comparison_level=comparison_level,
     )

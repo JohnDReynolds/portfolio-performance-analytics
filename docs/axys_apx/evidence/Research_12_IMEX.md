@@ -4,7 +4,7 @@
 **Research file:** `docs/axys_apx/evidence/Research_12_IMEX.md`
 **Target chapter:** `docs/axys_apx/reference/Chapter_12_Imex.md`
 **Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
+**Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0  
 
 ---
 
@@ -292,7 +292,7 @@ This is **not** a native SS&C IMEX file definition. It is a CI-generated file li
 | Which IMEX object exports security master? | Unknown. CI exports Axys `sec.inf` and `type.inf` for its own use; native IMEX object names are not verified. | Unknown | IMEX manual; sample `sec.inf` export control file. |
 | Which fields are required by native IMEX transaction import? | Unknown. | Unknown | Vendor IMEX data dictionary and sample valid/invalid imports. |
 | Does IMEX import prices by `.pri` file date/security type/symbol? | Partially observed for CI; native field requirements unknown. | Unknown | IMEX price import examples and logs. |
-| Are Axys and APX IMEX field names identical? | Unknown. | Unknown | Axys and APX IMEX manuals or paired sample exports. |
+| Are Axys/APX IMEX field names identical? | Unknown. | Unknown | Axys/APX IMEX manuals or paired sample exports. |
 
 ---
 
@@ -500,7 +500,7 @@ The following should remain explicitly marked **Unknown** in
 6. Exact IMEX control file syntax, including `.inf` file structure, command-line switches, source/target file options, delimiter options, and fixed-vs-delimited behavior.
 7. Whether Axys IMEX export can export performance values from stored performance files or only import/export accounting/security/price data.
 8. Whether `portperf`, `secperf`, security master, and classifications are native IMEX objects, report outputs, stored files, or firm-specific report conventions.
-9. Whether Axys and APX standard report names for performance/security performance are stable across versions.
+9. Whether Axys/APX standard report names for performance/security performance are stable across versions.
 10. Exact REP report names for portfolio performance, security performance, holdings, transactions, classifications, and prices.
 11. Whether APX public views / Stored Accounting Functions are official supported data-access layers for third-party integrations or only internal/reporting tools.
 12. Whether direct SQL querying of APX database is vendor-supported, tolerated, or discouraged.
@@ -524,7 +524,7 @@ To turn this research into a stronger chapter, request any of the following if a
 | Sample Axys `sec.inf`, `type.inf`, `.pri`, `.cli`, `.pos`, `topost.trn` files | Confirms file layout and fields; sensitive data can be anonymized. |
 | Sample REP reports: performance, holdings, security master, classifications | Reveals report names, RepLang variables, output fields. |
 | APX public view / Stored Accounting Function documentation | Needed for APX database/report extraction chapter overlap. |
-| Screenshots of IMEX dialogs from Axys and APX | Confirms UI labels, selectable objects, export/import options. |
+| Screenshots of IMEX dialogs from Axys/APX | Confirms UI labels, selectable objects, export/import options. |
 | SS&C release notes for Axys 3.7/3.8 and APX versions | Needed for version-difference table. |
 
 ---
@@ -631,7 +631,7 @@ URL: `https://adventguru.com/tag/imex/`
 [S13] AdventGuru, **REP**. Key reviewed lines: Report Writer Pro; `.RPW` vs `.REP`; Replang source; checksum caveat; backup and manual modification workflow.  
 URL: `https://adventguru.com/tag/rep/`
 
-[S14] AdventGuru, **APX category / State of Reporting Development for Axys and APX Users**. Key reviewed lines: APX SQL Server database; Stored Accounting Functions; Public Views; SSRS; REST API; Replang remains part of Axys/APX reporting architecture.  
+[S14] AdventGuru, **APX category / State of Reporting Development for Axys/APX Users**. Key reviewed lines: APX SQL Server database; Stored Accounting Functions; Public Views; SSRS; REST API; Replang remains part of Axys/APX reporting architecture.  
 URL: `https://adventguru.com/category/portfolio-management-systems/apx/`
 
 [S15] Consultant tutorial, **How to Add Portfolio Code to Axys Reports**. Key reviewed lines: Axys reports written in Replang; AMAN.REP; example path `e:\axys34\rep`; copying reports before modification.  

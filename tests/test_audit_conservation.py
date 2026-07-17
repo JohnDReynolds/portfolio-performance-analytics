@@ -12,16 +12,16 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import bundle as _pc_bundle
-from ppar.performance_comparison import conservation as _conservation
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import workbook_tables as _workbook_tables
-from ppar.performance_comparison.runner import compare_snapshots
-from ppar.performance_comparison.safety_invariants import DifferenceDisposition
+from ppar.audit import bundle as _pc_bundle
+from ppar.audit import conservation as _conservation
+from ppar.audit import schema as pc_cols
+from ppar.audit import workbook_tables as _workbook_tables
+from ppar.audit.runner import compare_snapshots
+from ppar.audit.safety_invariants import DifferenceDisposition
 
 _CASH_HOLDING_COMPARISON_PATH = Path(
-    "ppar/setup_templates/axysapx_performance_comparison/"
-    "axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axys_apx_audit/"
+    "axys_apx_audit.yaml"
 )
 
 
@@ -49,7 +49,7 @@ def _cause_row(
     }
 
 
-class TestPerformanceComparisonConservation(unittest.TestCase):
+class TestAuditConservation(unittest.TestCase):
     """Verify Phase 2 safety nets fail closed on broken internal states."""
 
     def test_finding_audit_trail_is_lossless_and_includes_suppressed_rows(self) -> None:

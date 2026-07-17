@@ -4,9 +4,9 @@ This note sketches a PPAR-normalized Axys/APX extract shape for analytics and
 performance auditing. It is an extraction-planning aid, not an official
 Axys/APX schema, executable export recipe, or generic implementation contract.
 
-See [Performance Comparison Design Notes](../audit/performance_comparison_design.md) for
-the broader comparison model, implemented checkpoint, YAML semantics, and report
-bundle workflow that can consume these normalized export shapes.
+See [Performance Comparison Design Notes](../audit/performance_comparison_design.md)
+for the stable comparison model and the
+[Audit MVP plan](../audit/mvp_plan.md) for current implementation scope.
 
 Axys/APX installations vary by site. The current evidence does not establish a
 universal IMEX object catalog, performance object names, field mnemonics,
@@ -30,100 +30,18 @@ the exact object/profile names, fields, parameters, and date/currency basis.
 | `splits.csv` | `split.inf` or an equivalent local split-factor export. | Is the factor a multiplier or inverse? Which date is represented? |
 | `secref.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
 
-## Starter Field Reference
+## Field and Contract Ownership
 
-These tables list candidate source or report labels that a local export may use
-for values normalized by PPAR. They do not establish official Axys/APX field
-names. Confidence describes availability of the underlying value, not confidence
-that the candidate label is exact. The local extract and PPAR column mapping
-remain authoritative.
+This planning aid does not maintain a second field dictionary. Use:
 
-### Portfolio Performance
+- [Chapter 15 — Data Dictionary](reference/Chapter_15_Data_Dictionary.md) for
+  observed Axys/APX fields, artifacts, aliases, and confidence;
+- [generated extract requirements](contracts/demo_extract_availability.md) for
+  PPAR dataset requirements and likely IMEX/REP source paths;
+- [transaction semantics YAML](contracts/transaction_semantics_matrix.yaml) for
+  executable PPAR transaction treatment; and
+- the local comparison YAML column mappings for the accepted site-specific
+  source labels.
 
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| `portperf` | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| `portperf` | `DATE` | `period_end_date` | `AS_OF_DATE`, `PERIOD_END` | High |
-| `portperf` | `BEG_MV` | `beginning_market_value` | `BEGIN_MV`, `BMV`, `BEGIN_VALUE` | Medium |
-| `portperf` | `END_MV` | `ending_market_value` | `EMV`, `ENDING_VALUE`, `MARKET_VALUE` | Medium |
-| `portperf` | `RETURN` | `portfolio_return` | `RET`, `PERF`, `PERFORMANCE` | Medium |
-| `portperf` | `FLOW` | `net_external_flow` | `NET_FLOW`, `CONTRIB_WITHDRAW`, `CASH_FLOW` | Medium |
-| `portperf` | `INCOME` | `income` | `INC`, `DIV_INT`, `INV_INCOME` | Medium |
-| `portperf` | `GAIN_LOSS` | `gain_loss` | `GL`, `GAIN`, `REAL_UNREAL_GL` | Low/Medium |
-
-### Security Performance
-
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| `secperf` | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| `secperf` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| `secperf` | `DATE` | `period_end_date` | `AS_OF_DATE`, `PERIOD_END` | High |
-| `secperf` | `BEG_MV` | `beginning_market_value` | `BEGIN_MV`, `BMV`, `BEGIN_VALUE` | Medium |
-| `secperf` | `END_MV` | `ending_market_value` | `EMV`, `ENDING_VALUE`, `MARKET_VALUE` | Medium |
-| `secperf` | `WEIGHT` | `portfolio_weight` | `WGT`, `PCT_ASSETS`, `PERCENT_ASSETS` | Medium |
-| `secperf` | `RETURN` | `security_return` | `RET`, `PERF`, `PERFORMANCE` | Medium |
-| `secperf` | `CONTRIB` | `return_contribution` | `CONTRIBUTION`, `CTR`, `RET_CONTRIB` | Medium |
-| `secperf` | `INCOME` | `income` | `INC`, `DIV_INT`, `INV_INCOME` | Medium |
-| `secperf` | `GAIN_LOSS` | `gain_loss` | `GL`, `GAIN`, `REAL_UNREAL_GL` | Low/Medium |
-
-### Security Master
-
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| `secref` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| `secref` | `DESC` | `security_description` | `DESCRIPTION`, `NAME`, `SEC_DESC` | High |
-| `secref` | `CUSIP` | `cusip` | `CUSIP_NO`, `CUSIP_NUMBER` | High |
-| `secref` | `SYMBOL` | `ticker_symbol` | `TICKER`, `TICKER_SYMBOL` | Medium |
-| `secref` | `TYPE` | `security_type` | `SEC_TYPE`, `ASSET_TYPE`, `INV_TYPE` | Medium |
-| `secref` | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `LOCAL_CCY` | Medium |
-| `secref` | `COUNTRY` | `country` | `CNTRY`, `ISSUE_COUNTRY` | Medium |
-| `secref` | `INDUSTRY` | `industry` | `IND`, `INDUSTRY_CODE`, `SECTOR` | Medium |
-| `secref` | `MATURITY` | `maturity_date` | `MAT_DATE`, `MATURITY_DATE` | Medium |
-| `secref` | `COUPON` | `coupon_rate` | `CPN`, `COUPON_RATE` | Medium |
-
-### Transactions
-
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| transactions | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| transactions | `DATE` | `trade_date` | `TRADE_DATE`, `TRD_DATE` | High |
-| transactions | `SETTLE_DATE` | `settlement_date` | `SETTLE`, `SET_DATE`, `STL_DATE` | Medium |
-| transactions | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| transactions | `TRAN` | `transaction_code` | `TRAN_CODE`, `TRANS_CODE`, `ACTIVITY` | Medium |
-| transactions | `QTY` | `quantity` | `QUANTITY`, `SHARES`, `UNITS` | High |
-| transactions | `PRICE` | `transaction_price` | `PX`, `TRADE_PRICE` | High |
-| transactions | `AMOUNT` | `net_amount` | `AMT`, `NET_AMOUNT`, `NET_AMT` | High |
-| transactions | `COMMISSION` | `commission` | `COMM`, `COMMISH` | Medium |
-| transactions | `BROKER` | `broker` | `BRKR`, `BROKER_CODE` | Low/Medium |
-
-### Holdings
-
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| holdings | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| holdings | `DATE` | `as_of_date` | `AS_OF_DATE`, `HOLDING_DATE` | High |
-| holdings | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| holdings | `QTY` | `quantity` | `QUANTITY`, `SHARES`, `UNITS` | High |
-| holdings | `PRICE` | `price` | `PX`, `MARKET_PRICE` | High |
-| holdings | `MV` | `market_value` | `MKT_VAL`, `MARKET_VALUE`, `VALUE` | High |
-| holdings | `COST` | `cost_basis` | `BOOK_COST`, `TAX_COST`, `ORIG_COST` | Medium |
-| holdings | `ACCRUED` | `accrued_income` | `ACCRUED_INT`, `ACCRUAL` | Medium |
-| holdings | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
-
-### FX Rates
-
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| FX / currency | `DATE` | `fx_rate_date` | `AS_OF_DATE`, `RATE_DATE` | Unknown pending local discovery |
-| FX / currency | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `FROM_CCY` | Unknown pending local discovery |
-| FX / currency | `BASE_CURRENCY` | `base_currency_code` | `BASE_CURR`, `BASE_CCY`, `TO_CCY` | Unknown pending local discovery |
-| FX / currency | `RATE` | `fx_rate` | `FX_RATE`, `EXCH_RATE`, `EXCHANGE_RATE` | Unknown pending local discovery |
-
-### Cash Holdings
-
-PPAR does not define a separate cash dataset. Normalize cash balances as
-holdings such as `CASHUSD`, `CASHEUR`, or `CASHGBP`. Use holding `quantity` for
-the currency units, `price` (normally `1.0`) for local unit value,
-`market_value` for row-currency value, and `base_market_value` for translated
-portfolio-base value. A cash-ledger export requires an adapter into that single
-holdings representation.
+Keep this file limited to the administrator/report-writer discovery worksheet.
+Add candidate labels to the data dictionary, not here.

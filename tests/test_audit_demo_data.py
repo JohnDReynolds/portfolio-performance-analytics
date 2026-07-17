@@ -1,4 +1,4 @@
-"""Tests for packaged performance-comparison demo data accounting guardrails."""
+"""Tests for packaged Audit demo data accounting guardrails."""
 
 from __future__ import annotations
 
@@ -13,24 +13,24 @@ import pandas as pd
 import polars as pl
 import yaml
 
-from ppar.performance_comparison import (
-    PerformanceComparisonSpecification,
+from ppar.audit import (
+    AuditSpecification,
     TransactionsLoader,
     compare_snapshots,
-    portfolio_period_cause_summary,
 )
-from ppar.performance_comparison.explain import (
+from ppar.audit.performance_comparison import portfolio_period_cause_summary
+from ppar.audit.performance_comparison.explain import (
     IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
     ROOT_CAUSE_FX_RATE,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
 )
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.config_validation import validate_config
-from ppar.performance_comparison.fixed_income import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.config_validation import validate_config
+from ppar.audit.fixed_income import (
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     fixed_income_transaction_boundary,
 )
-from ppar.performance_comparison.transactions import (
+from ppar.audit.transactions import (
     TRANSACTION_CATEGORY_EXTERNAL_FLOW,
     TRANSACTION_CATEGORY_FEE_EXPENSE,
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
@@ -38,7 +38,7 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
 )
-from ppar.performance_comparison.workbook_tables import (
+from ppar.audit.workbook_tables import (
     _workbook_raw_audit_trail_table,
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
@@ -47,31 +47,34 @@ from ppar.performance_comparison.workbook_tables import (
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_AUDIT_SCRIPT_PATH = _REPO_ROOT / "scripts" / "audit_performance_comparison_demo_data.py"
+_AUDIT_SCRIPT_PATH = _REPO_ROOT / "scripts" / "check_audit_demo_data.py"
 _REBUILD_SCRIPT_PATH = (
     _REPO_ROOT
     / "scripts"
     / "operational_demo_data"
-    / "rebuild_performance_comparison_demo_data.py"
+    / "rebuild_audit_demo_data.py"
 )
 _RENDER_EXTRACT_AVAILABILITY_SCRIPT_PATH = (
     _REPO_ROOT / "scripts" / "render_demo_extract_availability.py"
 )
-_PACKAGED_COMPARISON_PATH = (
+_RENDER_TRANSACTION_MATRIX_SCRIPT_PATH = (
+    _REPO_ROOT / "scripts" / "render_transaction_semantics_matrix.py"
+)
+_PACKAGED_AUDIT_PATH = (
     _REPO_ROOT
     / "ppar"
     / "setup_templates"
-    / "axysapx_performance_comparison"
-    / "axysapx_performance_comparison.yaml"
+    / "axys_apx_audit"
+    / "axys_apx_audit.yaml"
 )
 _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT
     / "docs"
     / "audit"
-    / "performance_comparison_demo_source_contract.md"
+    / "demo_source_contract.md"
 )
 _PACKAGED_AXYS_DIRECTORY = (
-    _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
+    _REPO_ROOT / "ppar" / "setup_templates" / "axys_apx_audit"
 )
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
 _DEMO_EXTRACT_AVAILABILITY_PATH = _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
@@ -133,11 +136,11 @@ _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
 def _load_audit_module():
     """Load the demo-data audit script as a test module."""
     spec = importlib.util.spec_from_file_location(
-        "audit_performance_comparison_demo_data",
+        "check_audit_demo_data",
         _AUDIT_SCRIPT_PATH,
     )
     if spec is None or spec.loader is None:
-        raise AssertionError("Could not load performance-comparison demo-data audit.")
+        raise AssertionError("Could not load Audit demo-data audit.")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -147,11 +150,11 @@ def _load_audit_module():
 def _load_rebuild_module():
     """Load the demo-data rebuild script as a test module."""
     spec = importlib.util.spec_from_file_location(
-        "rebuild_performance_comparison_demo_data",
+        "rebuild_audit_demo_data",
         _REBUILD_SCRIPT_PATH,
     )
     if spec is None or spec.loader is None:
-        raise AssertionError("Could not load performance-comparison demo-data rebuild.")
+        raise AssertionError("Could not load Audit demo-data rebuild.")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -166,6 +169,20 @@ def _load_extract_availability_renderer():
     )
     if spec is None or spec.loader is None:
         raise AssertionError("Could not load extract-availability renderer.")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_transaction_matrix_renderer():
+    """Load the transaction-matrix renderer as a test module."""
+    spec = importlib.util.spec_from_file_location(
+        "render_transaction_semantics_matrix",
+        _RENDER_TRANSACTION_MATRIX_SCRIPT_PATH,
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError("Could not load transaction-matrix renderer.")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -208,7 +225,7 @@ def _resolved_transaction_semantics(row: dict[str, object]) -> dict[str, object]
     }
 
 
-class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
+class TestAuditDemoData(unittest.TestCase):
     """Verify packaged demo data remains internally consistent."""
 
     def test_packaged_demo_source_contract_documents_boundaries(self) -> None:
@@ -223,7 +240,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "portperf.csv",
             "secperf.csv",
             "CASHUSD",
-            "transaction_rules",
+            "transaction_semantics_matrix.yaml",
         ]:
             self.assertIn(expected_text, normalized_text)
 
@@ -235,20 +252,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             self.assertIn(expected_text, normalized_lower_text)
 
         for expected_text in [
-            "reported performance-extract context",
-            "defensible as report-style gain/loss components",
-            "must not be described as recomputed tax-lot or accounting-ledger values",
-            "review evidence unless a future explicit settlement-date rule",
-            "conservative no-id path",
-            "does not prove a durable native transaction identifier",
+            "field-role registry and comparison configuration own field-level",
+            "extract requirements",
+            "intentionally omit a stable transaction id",
+            "settlement date remains review evidence",
+            "unknown fields remain fail-closed",
             "not a full accounting-system export",
         ]:
             self.assertIn(expected_text, normalized_lower_text)
-
-        self.assertIn(
-            "Review evidence unless a future explicit settlement-date rule",
-            normalized_text,
-        )
 
     def test_packaged_demo_transaction_fields_stay_user_facing(self) -> None:
         """Packaged transaction extracts omit internal IDs but keep rule context."""
@@ -256,7 +267,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             _REPO_ROOT
             / "scripts"
             / "operational_demo_data"
-            / "performance_comparison_transaction_scenarios.csv"
+            / "audit_transaction_scenarios.csv"
         )
 
         for snapshot_directory in ("snapshot_a", "snapshot_b"):
@@ -470,9 +481,15 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertEqual(renderer.main(["--check"]), 0)
 
+    def test_transaction_semantics_markdown_matrix_is_current(self) -> None:
+        """The human-readable transaction rows are rendered from YAML."""
+        renderer = _load_transaction_matrix_renderer()
+
+        self.assertEqual(renderer.main(["--check"]), 0)
+
     def test_packaged_demo_transaction_rules_cover_observed_codes(self) -> None:
         """Packaged demo YAML explicitly defines every observed transaction code."""
-        summary = validate_config(_PACKAGED_COMPARISON_PATH)
+        summary = validate_config(_PACKAGED_AUDIT_PATH)
 
         self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
 
@@ -487,7 +504,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 str(code).strip() for code in transactions["TRAN"].dropna() if str(code).strip()
             )
 
-        configuration = yaml.safe_load(_PACKAGED_COMPARISON_PATH.read_text(encoding="utf-8"))
+        configuration = yaml.safe_load(_PACKAGED_AUDIT_PATH.read_text(encoding="utf-8"))
         configured_codes = set(configuration["transaction_rules"].keys())
 
         self.assertTrue(observed_codes.issubset(configured_codes))
@@ -495,7 +512,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_resolves_ambiguous_axys_flow_examples(self) -> None:
         """Packaged ambiguous-code examples resolve only through reviewed context."""
-        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
 
         for snapshot_key in ("a", "b"):
             with self.subTest(snapshot_key=snapshot_key):
@@ -602,7 +619,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_fixed_income_boundary_stays_evidenced(self) -> None:
         """Fixed-income demo rows use proved income/accrual inputs only."""
-        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
 
         for snapshot_key, snapshot_directory in (
             ("a", "snapshot_a"),
@@ -708,7 +725,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_wd_uses_contextual_external_flow_rule(self) -> None:
         """Packaged Axys wd rows classify external flow from context, not code alone."""
-        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
@@ -731,7 +748,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_dp_uses_contextual_fee_rule(self) -> None:
         """Packaged Axys dp fee rows stay performance items, not external flows."""
-        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
@@ -756,7 +773,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
         """Performance Difference Causes only contains approved demo fields."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
 
@@ -769,7 +786,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_audit_fields_match_source_contract(self) -> None:
         """Cost is not exposed in the packaged Axys/APX demo evidence surface."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
 
@@ -784,7 +801,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_accrual_changes_are_performance_causes(self) -> None:
         """Configured accrual amount changes remain performance-cause rows."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
 
@@ -798,7 +815,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_split_factor_supports_holding_cause(self) -> None:
         """Split-factor evidence supports the CVNA holding-value correction."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
 
@@ -821,7 +838,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_rc_row_explains_return_of_capital_cash_effect(self) -> None:
         """Return-of-capital row has explicit reviewer-facing cash wording."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
 
@@ -843,7 +860,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_pd_row_explains_principal_paydown_cash_effect(self) -> None:
         """Principal-paydown row has explicit reviewer-facing cash wording."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
 
@@ -863,10 +880,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
         """Packaged reports preserve intentional partial and unresolved periods."""
-        portfolio_findings = compare_snapshots(_PACKAGED_COMPARISON_PATH)
+        portfolio_findings = compare_snapshots(_PACKAGED_AUDIT_PATH)
         portfolio_changes = _workbook_portfolio_changes_table(
             portfolio_findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         )
         portfolio_statuses = {
             (
@@ -887,12 +904,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertGreater(abs(unexplained["unexplained_change"]), 0.0)
 
         security_findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             comparison_level="security",
         )
         security_changes = _workbook_security_changes_table(
             security_findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
             comparison_level="security",
         )
         security_statuses = {
@@ -929,7 +946,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         rebuild_module = _load_rebuild_module()
 
         summary = rebuild_module.rebuild_demo_performance_files(
-            rebuild_module._DEFAULT_AXYS_DIRECTORY,
+            rebuild_module._DEFAULT_AXYS_APX_DIRECTORY,
             write=False,
         )
         snapshots = {snapshot["snapshot"]: snapshot for snapshot in summary["snapshots"]}
@@ -987,7 +1004,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "cost_only_correction": 1,
                 "quantity_valuation_correction": 2,
                 "valuation_mark": 3,
-                "x_ref_holdings_accrued_rate": 1,
+                "data_issues_holdings_accrued_rate": 1,
             },
         )
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_drift"])
@@ -1014,7 +1031,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "quantity_valuation_correction": 2,
                 "accrual_correction": 1,
                 "cost_only_correction": 1,
-                "x_ref_holdings_accrued_rate": 1,
+                "data_issues_holdings_accrued_rate": 1,
             },
         )
 
@@ -1054,7 +1071,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             calendar=calendar,
             holding_scenarios=holding_scenarios,
             transaction_scenarios=transaction_scenarios,
-            axys_directory=rebuild_module._DEFAULT_AXYS_DIRECTORY,
+            axys_directory=rebuild_module._DEFAULT_AXYS_APX_DIRECTORY,
         )
 
         self.assertEqual(issues, [])
@@ -1227,7 +1244,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         issues = rebuild_module._audit_scenario_report_contract(
             inventory=changed_inventory,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         )
 
         self.assertTrue(any(issue.check == "scenario_report_status" for issue in issues))
@@ -1287,12 +1304,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_balanced_april_has_one_new_story_and_keeps_inherited_inputs(self) -> None:
         """Each April period has one new story without hiding inherited inputs."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
         causes = _workbook_underlying_causes_table(
             findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         ).filter(
             (pl.col("portfolio_id") == "BALANCED")
             & pl.col("from_date").cast(pl.String).str.starts_with("2026-04")
@@ -1328,16 +1345,16 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_march_contribution_is_standalone_and_fully_explained(self) -> None:
         """The restored contribution remains visible without affecting April."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
         portfolio_changes = _workbook_portfolio_changes_table(
             findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         ).filter(pl.col("portfolio_id") == "BALANCED_CONTRIBUTION")
         causes = _workbook_underlying_causes_table(
             findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         ).filter(pl.col("portfolio_id") == "BALANCED_CONTRIBUTION")
 
         self.assertEqual(portfolio_changes.height, 1)
@@ -1358,12 +1375,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_balanced_periods_keep_inherited_inputs_and_isolate_new_stories(self) -> None:
         """BALANCED keeps AAPL and CVNA in separate periods without hiding inputs."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
         causes = _workbook_underlying_causes_table(
             findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         )
         balanced_may = causes.filter(
             (pl.col("portfolio_id") == "BALANCED")
@@ -1396,7 +1413,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
 
         issues = rebuild_module._audit_generated_causal_story_coverage(
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
             calendar=calendar,
         )
 
@@ -1474,7 +1491,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_transaction_scenarios_create_expected_holding_impacts(self) -> None:
         """Transaction changes create the expected cash and security adjustments."""
         rebuild_module = _load_rebuild_module()
-        axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
+        axys_directory = rebuild_module._DEFAULT_AXYS_APX_DIRECTORY
         base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
@@ -1795,7 +1812,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_transaction_scenarios_can_insert_external_cash_flows(self) -> None:
         """Explicit inserted li/lo rows can drive cash-flow scenarios."""
         rebuild_module = _load_rebuild_module()
-        axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
+        axys_directory = rebuild_module._DEFAULT_AXYS_APX_DIRECTORY
         base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
@@ -1884,7 +1901,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_transaction_scenarios_can_insert_accrued_interest_adjuncts(self) -> None:
         """Explicit pa/sa rows can drive cash settlement scenarios."""
         rebuild_module = _load_rebuild_module()
-        axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
+        axys_directory = rebuild_module._DEFAULT_AXYS_APX_DIRECTORY
         base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
@@ -1982,7 +1999,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_counts_base_values_and_links_fx_support(self) -> None:
         """Foreign base values are counted while the changed FX rate is support."""
         findings = compare_snapshots(
-            _PACKAGED_COMPARISON_PATH,
+            _PACKAGED_AUDIT_PATH,
             require_causal_attribution=True,
         )
         summary = portfolio_period_cause_summary(findings).filter(
@@ -2003,7 +2020,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         workbook_causes = _workbook_underlying_causes_table(
             findings,
-            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_path=_PACKAGED_AUDIT_PATH,
         )
         explained_fields = set(
             workbook_causes.filter(pl.col("estimated_impact").is_not_null())["dataset_field"]

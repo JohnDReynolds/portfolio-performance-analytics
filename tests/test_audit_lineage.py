@@ -12,25 +12,25 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import conservation
-from ppar.performance_comparison import field_roles
-from ppar.performance_comparison import findings as pc_findings
-from ppar.performance_comparison import lineage
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.runner import (
+from ppar.audit import conservation
+from ppar.audit import field_roles
+from ppar.audit.performance_comparison import findings as pc_findings
+from ppar.audit import lineage
+from ppar.audit import schema as pc_cols
+from ppar.audit.runner import (
     compare_snapshots,
     validate_yaml_setup_complete,
 )
-from ppar.performance_comparison.workbook_tables import (
+from ppar.audit.workbook_tables import (
     _workbook_underlying_causes_table,
 )
 
 _COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 
 
-class TestPerformanceComparisonLineage(unittest.TestCase):
+class TestAuditLineage(unittest.TestCase):
     """Verify Phase 4 fails closed at lineage and policy boundaries."""
 
     def test_source_locator_uses_logical_keys_not_changed_values(self) -> None:

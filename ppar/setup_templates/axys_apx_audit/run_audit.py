@@ -1,4 +1,4 @@
-"""Understand and customize the standard Performance Auditing workflow.
+"""Understand and customize the standard Audit workflow.
 
 The normal command is ``ppar audit ./audit``. This script produces the same
 review bundles while showing the comparison and report-writing steps. PPAR
@@ -19,16 +19,16 @@ from typing import Any
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
+from ppar.audit import (
     compare_snapshots,
-    write_performance_comparison_report_bundle,
+    write_audit_report_bundle,
 )
-from ppar.performance_comparison import source_loader
-from ppar.performance_comparison.cli.site_report import (
+from ppar.audit import source_loader
+from ppar.audit.cli.site_report import (
     is_missing_security_data,
     script_run_settings,
 )
-from ppar.performance_comparison.specification import (
+from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
@@ -49,8 +49,8 @@ class ReportSpec:
 
 
 REPORTS = (
-    ReportSpec(PORTFOLIO_COMPARISON_LEVEL, "Portfolio Performance Auditing Report"),
-    ReportSpec(SECURITY_COMPARISON_LEVEL, "Security Performance Auditing Report"),
+    ReportSpec(PORTFOLIO_COMPARISON_LEVEL, "Portfolio Audit Report"),
+    ReportSpec(SECURITY_COMPARISON_LEVEL, "Security Audit Report"),
 )
 
 
@@ -61,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     # 1. Resolve this run's presentation and validation choices
     # ---------------------------------------------------------------------
     # Source files, transaction rules, tolerances, reconstruction policy, and
-    # Data Audit checks remain in ppar.yaml where they are reviewable and
+    # Data Issues checks remain in ppar.yaml where they are reviewable and
     # reproducible. CLI-style options control only this particular run.
     settings = script_run_settings(SITE_DIRECTORY, argv)
     selected_reports = (
@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
             # This writes the level-specific audit workbook, optional HTML,
             # supporting CSVs, a manifest, and bundle guidance. Edit the call
             # below when building a custom reporting or downstream-review workflow.
-            bundle_paths = write_performance_comparison_report_bundle(
+            bundle_paths = write_audit_report_bundle(
                 findings,
                 settings.output_directory / report.comparison_level,
                 title=settings.title or report.title,
@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             primary_artifacts = presentation_artifacts or (
                 "performance_differences",
                 "performance_difference_causes",
-                "x_ref_issues",
+                "data_issues",
             )
             for artifact_name in primary_artifacts:
                 review_path = bundle_paths.get(artifact_name)
@@ -137,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
     # ---------------------------------------------------------------------
     # 4. Hand the primary review files back to the user
     # ---------------------------------------------------------------------
-    print("Open these files to review Performance Auditing output:")
+    print("Open these files to review Audit output:")
     for review_path in review_paths:
         print(f"  {review_path}")
     if security_skipped:

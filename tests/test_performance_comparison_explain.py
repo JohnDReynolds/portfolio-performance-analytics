@@ -9,9 +9,9 @@ import unittest
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison import (
+from ppar.audit import compare_snapshots
+from ppar.audit.performance_comparison import (
     Finding,
-    compare_snapshots,
     findings_to_polars,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
@@ -26,8 +26,8 @@ from ppar.performance_comparison import (
     transaction_activity_summary,
     transaction_matching_diagnostics,
 )
-from ppar.performance_comparison import explain as pc_explain
-from ppar.performance_comparison.explain import (
+from ppar.audit.performance_comparison import explain as pc_explain
+from ppar.audit.performance_comparison.explain import (
     AMOUNT_DELTA,
     CHANGED_FIELDS,
     CONTEXT_FINDING_COUNT,
@@ -109,8 +109,8 @@ from ppar.performance_comparison.explain import (
     TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
 )
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.findings import (
+from ppar.audit import schema as pc_cols
+from ppar.audit.performance_comparison.findings import (
     CONTEXT,
     DATASET,
     DELTA_B_MINUS_A,
@@ -148,18 +148,18 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_SEMANTICS_SOURCE,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement.yaml"
 )
 _SECURITY_RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_security_restatement.yaml"
+    "tests/data/axys/validation/ppar_audit_security_restatement.yaml"
 )
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_restatement_transaction_rules.yaml"
+    "tests/data/axys/validation/ppar_audit_restatement_transaction_rules.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
 
 

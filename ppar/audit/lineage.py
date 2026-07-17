@@ -16,8 +16,8 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import conservation as pc_conservation
-from ppar.performance_comparison import findings as pc_findings
+from ppar.audit import conservation as pc_conservation
+from ppar.audit.performance_comparison import findings as pc_findings
 
 SOURCE_LINEAGE_TYPE: Final[str] = "source_lineage_type"
 SOURCE_FINDING_FINGERPRINTS: Final[str] = "source_finding_fingerprints"

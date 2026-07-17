@@ -1,4 +1,4 @@
-"""Run packaged performance-comparison demo health checks.
+"""Run packaged Audit demo health checks.
 
 This source-checkout helper consolidates the existing demo guardrails into one
 command. It intentionally runs the real validators and demo commands instead of
@@ -34,13 +34,13 @@ def _require_venv_python() -> None:
     if not _VENV_PYTHON.exists():
         raise SystemExit(
             "Missing .venv/bin/python. Create the project virtual environment before "
-            "running scripts/check_performance_comparison_demo_health.py."
+            "running scripts/check_audit_demo_health.py."
         )
 
     if Path(sys.executable).resolve() != _VENV_PYTHON.resolve():
         raise SystemExit(
             "Run this check with the project virtual environment:\n"
-            "  ./.venv/bin/python scripts/check_performance_comparison_demo_health.py"
+            "  ./.venv/bin/python scripts/check_audit_demo_health.py"
         )
 
 
@@ -70,7 +70,7 @@ def _run_setup_generated_smoke_tests() -> None:
     """
     with tempfile.TemporaryDirectory(prefix="ppar_setup_smoke_") as directory:
         site_directory = Path(directory) / "my_ppar_data"
-        comparison_directory = site_directory / "audit"
+        audit_directory = site_directory / "audit"
 
         _run(
             [
@@ -86,7 +86,7 @@ def _run_setup_generated_smoke_tests() -> None:
         _run(
             [
                 _VENV_PYTHON,
-                comparison_directory / "run_audit.py",
+                audit_directory / "run_audit.py",
             ]
         )
         _run(
@@ -99,16 +99,16 @@ def _run_setup_generated_smoke_tests() -> None:
             [
                 _VENV_PYTHON,
                 "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
-                comparison_directory / "output" / "portfolio",
+                "ppar.audit.cli.validate_bundle",
+                audit_directory / "output" / "portfolio",
             ]
         )
         _run(
             [
                 _VENV_PYTHON,
                 "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
-                comparison_directory / "output" / "security",
+                "ppar.audit.cli.validate_bundle",
+                audit_directory / "output" / "security",
             ]
         )
 
@@ -116,7 +116,7 @@ def _run_setup_generated_smoke_tests() -> None:
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Run packaged performance-comparison demo health checks."
+        description="Run packaged Audit demo health checks."
     )
     parser.add_argument(
         "--skip-rebuild-audit",
@@ -142,7 +142,7 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run selected performance-comparison demo health checks.
+    """Run selected Audit demo health checks.
 
     Args:
         argv: Optional command-line arguments. Defaults to ``sys.argv[1:]``.
@@ -158,7 +158,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             [
                 _VENV_PYTHON,
                 "scripts/operational_demo_data/"
-                "rebuild_performance_comparison_demo_data.py",
+                "rebuild_audit_demo_data.py",
             ]
         )
 
@@ -170,14 +170,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "--check",
             ]
         )
+        _run(
+            [
+                _VENV_PYTHON,
+                "scripts/render_transaction_semantics_matrix.py",
+                "--check",
+            ]
+        )
 
     if not args.skip_bundles:
         _run_setup_generated_smoke_tests()
 
     if not args.skip_demo_matrix:
-        _run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
+        _run([_VENV_PYTHON, "-m", "ppar.audit.cli.validate_demo_matrix"])
 
-    print("\nPackaged performance-comparison demo health checks passed.", flush=True)
+    print("\nPackaged Audit demo health checks passed.", flush=True)
     return 0
 
 

@@ -1,7 +1,7 @@
 # Axys/APX Demo Data
 
 The packaged Axys/APX demo data is the starter workspace source for
-Performance Auditing. Run it first, then replace the CSVs with your own
+Audit. Run it first, then replace the CSVs with your own
 Axys/APX exports.
 
 ## First Run
@@ -14,13 +14,13 @@ ppar analytics ./my_ppar_data/analytics
 
 Open the files printed by each command.
 
-Start with Performance Auditing if reported returns changed or you want to
+Start with Audit if reported returns changed or you want to
 check source-data quality. Start with Performance Analytics if you want
 attribution and Ex-Post Risk reports.
 
 Output goes here:
 
-- Performance Auditing: `audit/output/portfolio/portfolio_audit.xlsx` and
+- Audit: `audit/output/portfolio/portfolio_audit.xlsx` and
   `audit/output/security/security_audit.xlsx`
 - Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
 
@@ -44,14 +44,14 @@ my_ppar_data/
 There is one packaged Axys/APX audit YAML file. Portfolio and security reports
 use the same source snapshots and choose the review level at runtime.
 
-Performance Auditing includes Performance Comparison, which explains changed
-reported performance, and Data Auditing, which flags suspicious source-data
+Audit includes Performance Comparison, which explains changed
+reported performance, and Data Issues, which flags suspicious source-data
 relationships.
 
 ## Details
 
 The packaged CSV files follow the
-[Performance Comparison Demo Source Contract](../../../docs/audit/performance_comparison_demo_source_contract.md).
+[Performance Comparison Demo Source Contract](../../../docs/audit/demo_source_contract.md).
 They are normalized demo extracts, not official Axys/APX native schemas.
 The audit YAML comments and extract-availability contract use three practical
 extraction labels: **Required**, **Required only when applicable**, and
@@ -68,15 +68,20 @@ The FX estimate is a ppar screening formula using an explicit unchanged local
 exposure; it is not a claim about proprietary Axys/APX calculation mechanics.
 
 Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
-Performance Auditing validation checks minimum required datasets, required normalized columns,
-and complete YAML treatment for changed source-data fields before report bundles are written.
+Audit validation checks minimum required datasets, required normalized columns,
+complete YAML treatment for changed source-data fields, and the strict Data Issues check
+contract before report bundles are written. Unknown Data Issues issue types, unsupported
+per-check keys, malformed filters, non-Boolean enablement, and invalid tolerances stop with
+the exact YAML path. Mandatory portfolio/security market-value continuity remains active
+when optional Data Issues checks are disabled.
 The same validation is available through
-`ppar.performance_comparison.cli.validate_config` when maintainers need to
-check a YAML file without writing reports.
+`ppar.audit.cli.validate_config` when maintainers need to
+check a YAML file without writing reports; its success summary lists effective optional
+checks and mandatory continuity policy.
 
 | Role | YAML |
 | --- | --- |
-| Workbook demos | `axysapx_performance_comparison.yaml` |
+| Workbook demos | `axys_apx_audit.yaml` |
 
 ## Optional: Create One Workbook
 
@@ -114,7 +119,7 @@ ppar audit ./my_ppar_data/audit --no-xlsx-output
 
 Generate XLSX without HTML with `--no-html-output`. Supplying both options
 creates a CSV-only audit with `performance_differences.csv`,
-`performance_difference_causes.csv`, `x_ref_issues.csv`, and
+`performance_difference_causes.csv`, `data_issues.csv`, and
 `source_detail.csv` promoted to each report directory.
 
 Use `--expand-all-supporting-files` to expand every supporting CSV and JSON file
@@ -143,7 +148,7 @@ differences from identifiable input differences and other evidence:
   the counted amount.
   Yellow cells are included in explained performance difference. Gold cells are
   possible causes for remaining unexplained differences.
-- `Data Audit Issues` sheet: consistency checks across the union of Snapshot A
+- `Data Issues` sheet: consistency checks across the union of Snapshot A
   and Snapshot B. The packaged demo includes focused examples for holdings and
   transaction price ranges and duplicate transactions,
   mismatches, dividend-rate mismatches, fixed-income accrued-interest
@@ -307,9 +312,9 @@ distinguishing identifiable input causes from reported-performance diagnostics.
 After generating the workbook demo bundle, validate it with:
 
 ```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
+./.venv/bin/python -m ppar.audit.cli.validate_bundle \
   my_ppar_data/audit/output/portfolio
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
+./.venv/bin/python -m ppar.audit.cli.validate_bundle \
   my_ppar_data/audit/output/security
 ```
 
@@ -317,7 +322,7 @@ For a full packaged-demo health pass from a source checkout, maintainers can use
 the consolidated maintenance script:
 
 ```bash
-./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+./.venv/bin/python scripts/check_audit_demo_health.py
 ```
 
 That script is not part of the installed-package demo workflow. It runs the
@@ -382,7 +387,7 @@ From a source checkout, maintainers keep the derived `secperf.csv` and
 `portperf.csv` files aligned with:
 
 ```bash
-./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
+./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
 ```
 
 The default mode audits the checked-in files without writing. Add `--write`

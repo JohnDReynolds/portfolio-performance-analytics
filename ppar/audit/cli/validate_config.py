@@ -1,7 +1,7 @@
-"""Validate a performance comparison YAML configuration."""
+"""Validate an Audit YAML configuration."""
 
 # Project imports
-from ppar.performance_comparison.config_validation import main
+from ppar.audit.config_validation import main
 
 
 if __name__ == "__main__":

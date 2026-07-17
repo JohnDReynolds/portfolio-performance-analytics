@@ -7,19 +7,19 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import aliases
-from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.base_currency import with_authoritative_base_currency
-from ppar.performance_comparison.currency_basis import normalize_currency_columns
-from ppar.performance_comparison.period_linking import validate_portfolio_periods
-from ppar.performance_comparison import source_loader
-from ppar.performance_comparison.portfolio_performance import (
+from ppar.audit import aliases
+from ppar.audit import schema as pc_cols
+from ppar.audit.base_currency import with_authoritative_base_currency
+from ppar.audit.currency_basis import normalize_currency_columns
+from ppar.audit.period_linking import validate_portfolio_periods
+from ppar.audit import source_loader
+from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
     SnapshotKey,
 )
-from ppar.performance_comparison.specification import (
+from ppar.audit.specification import (
     SECURITY_COMPARISON_LEVEL,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
 import ppar.utilities as util
 
@@ -31,7 +31,7 @@ class SecurityPerformanceLoader:
         _specification: Parsed comparison specification.
     """
 
-    def __init__(self, specification: PerformanceComparisonSpecification) -> None:
+    def __init__(self, specification: AuditSpecification) -> None:
         """Initialize the security performance loader.
 
         Args:

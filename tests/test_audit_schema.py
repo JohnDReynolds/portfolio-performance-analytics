@@ -4,10 +4,10 @@
 import unittest
 
 # Project imports
-from ppar.performance_comparison import schema as pc_cols
+from ppar.audit import schema as pc_cols
 
 
-class TestPerformanceComparisonSchema(unittest.TestCase):
+class TestAuditSchema(unittest.TestCase):
     """Verify the first normalized comparison dataset column contract."""
 
     def test_portfolio_performance_required_columns_are_stable(self) -> None:

@@ -2,8 +2,8 @@
 
 **Repository chapter target:** `../reference/Chapter_10_Performance.md`  
 **Research file:** `docs/axys_apx/evidence/Research_10_Performance.md`
-**Prepared under:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
-**Purpose:** Collect factual, implementation-oriented research for documenting Axys and APX performance behavior.
+**Prepared under:** `axys_apx_reference_blueprint.md`, Version 2.0  
+**Purpose:** Collect factual, implementation-oriented research for documenting Axys/APX performance behavior.
 
 ---
 
@@ -11,7 +11,7 @@
 
 This file is research material for the reader-facing performance chapter. It is not a performance-measurement textbook and does not attempt to explain portfolio performance theory except where needed to identify system behavior.
 
-The governing repository standard requires factual, implementation-oriented knowledge about Axys and APX, including architecture, accounting data, IMEX, REP, reports, file layouts, data fields, processing behavior, version differences, and quirks. It also requires important technical statements to be classified as **Verified**, **High Confidence**, **Medium Confidence**, or **Unknown**.
+The governing repository standard requires factual, implementation-oriented knowledge about Axys/APX, including architecture, accounting data, IMEX, REP, reports, file layouts, data fields, processing behavior, version differences, and quirks. It also requires important technical statements to be classified as **Verified**, **High Confidence**, **Medium Confidence**, or **Unknown**.
 
 ### Confidence meanings used in this file
 
@@ -24,7 +24,7 @@ The governing repository standard requires factual, implementation-oriented know
 
 ### Primary source limitations
 
-Only the blueprint was supplied as local source material. Public web research found high-level vendor statements about Axys and APX, but not enough public detail to verify internal performance tables, exact IMEX object names, exact REP source files, exact field names, or calculation storage/recalculation behavior.
+Only the blueprint was supplied as local source material. Public web research found high-level vendor statements about Axys/APX, but not enough public detail to verify internal performance tables, exact IMEX object names, exact REP source files, exact field names, or calculation storage/recalculation behavior.
 
 Therefore, this research file intentionally preserves many Unknowns.
 
@@ -34,7 +34,7 @@ Therefore, this research file intentionally preserves many Unknowns.
 
 | Source | Type | Relevant content | Use in this research | Confidence |
 |---|---|---|---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Supplied repository specification | Defines repository purpose, chapter/research structure, standards, confidence labels, and preference for field dictionaries, IMEX exports, REP reports, examples, version differences, and quirks. | Governing specification for this research file. | Verified |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Supplied repository specification | Defines repository purpose, chapter/research structure, standards, confidence labels, and preference for field dictionaries, IMEX exports, REP reports, examples, version differences, and quirks. | Governing specification for this research file. | Verified |
 | SS&C Advent Axys product page | Public vendor/product page | Axys is positioned as portfolio reporting/accounting software with predefined reports, report customization, and portfolio performance visibility. | Supports only high-level Axys capability statements. | Verified for public marketing claims; not verified for implementation details |
 | SS&C Advent APX product page / product brief | Public vendor/product page/brief | APX is positioned as integrated portfolio management, accounting, reporting, CRM, and performance analytics. | Supports only high-level APX capability statements. | Verified for public marketing claims; not verified for implementation details |
 | SS&C/APX index data product brief | Public vendor PDF snippet | States APX has integrated performance analytics and benchmark/index data support for performance analytics. | Supports high-level APX performance analytics and benchmark dependency. | Verified for public marketing claims; not verified for implementation details |
@@ -48,7 +48,7 @@ Therefore, this research file intentionally preserves many Unknowns.
 
 | Finding | Axys | APX | Confidence | Notes |
 |---|---:|---:|---|---|
-| Both Axys and APX are used for portfolio accounting/reporting workflows that include performance reporting. | Yes | Yes | Verified for high-level capability | Public vendor material supports performance/reporting capability but not internal calculation details. |
+| Both Axys/APX are used for portfolio accounting/reporting workflows that include performance reporting. | Yes | Yes | Verified for high-level capability | Public vendor material supports performance/reporting capability but not internal calculation details. |
 | Axys has predefined reports and customizable reporting. | Yes | Not Axys-specific | Verified for high-level capability | Vendor material supports an extensive library of predefined reports and customization for Axys. |
 | APX includes performance analytics as part of its integrated platform. | Not APX-specific | Yes | Verified for high-level capability | Public APX product material supports this. |
 | APX performance analytics can use benchmarks/index data. | Not APX-specific | Yes | Verified for high-level capability | Public APX index data material supports benchmark data for APX performance analytics. |
@@ -363,7 +363,7 @@ The following are not final facts. They are operational hypotheses commonly rele
 | Legacy Axys vs current Axys | Unknown | N/A | Unknown | Axys release notes and installed version documentation. |
 | APX pre/post performance analytics module changes | N/A | Unknown | Unknown | APX release notes/performance analytics documentation. |
 | APX SSRS report changes across versions | N/A | Unknown | Unknown | APX report guide versioned PDFs/RDL inventory. |
-| IMEX object differences between Axys and APX | Unknown | Unknown | Unknown | IMEX catalogs from both systems. |
+| IMEX object differences between Axys/APX | Unknown | Unknown | Unknown | IMEX catalogs from both systems. |
 | Gross/net or fee treatment changes | Unknown | Unknown | Unknown | Versioned documentation and regression examples. |
 | Multi-currency calculation changes | Unknown | Unknown | Unknown | Versioned documentation and multi-currency examples. |
 | Fixed income/accrual behavior changes | Unknown | Unknown | Unknown | Release notes and examples. |
@@ -519,7 +519,7 @@ These are research leads, not exhaustive citations.
 
 When using this research to maintain `Chapter_10_Performance.md`:
 
-1. Keep Axys and APX sections separate.
+1. Keep Axys/APX sections separate.
 2. Do not promote any candidate field, report, or object name to fact without evidence.
 3. Use tables for:
    - report inventory,

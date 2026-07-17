@@ -15,7 +15,7 @@ Status: Technical reference chapter based only on supplied source material.
 
 ## 1. Overview
 
-REP is the Advent reporting layer associated with report files, report source, report execution, report customization, and report-driven data extraction in Axys and APX environments.
+REP is the Advent reporting layer associated with report files, report source, report execution, report customization, and report-driven data extraction in Axys/APX environments.
 
 This chapter documents REP as a technical interface. It does **not** attempt to catalog every Axys or APX standard report. Standard report content belongs primarily in `Chapter_14_Reports.md`. This chapter focuses on:
 
@@ -46,7 +46,7 @@ REP should be treated as a reporting and extraction interface rather than a sour
 This chapter follows the repository blueprint:
 
 - facts first
-- separate Axys and APX when behavior differs
+- separate Axys/APX when behavior differs
 - prefer evidence over assumptions
 - preserve Unknowns
 - do not invent field names, report behavior, command syntax, transaction codes, report internals, or implementation details
@@ -191,7 +191,7 @@ Recommended documented pattern from the supplied Axys example:
 | Statement | Confidence | Notes |
 |---|---|---|
 | APX users can create reports using Report Writer Pro or by updating Replang source directly. | Medium Confidence | Consultant evidence only. |
-| Replang remains part of the reporting architecture of both Axys and APX. | Medium Confidence | Consultant evidence only. |
+| Replang remains part of the reporting architecture of both Axys/APX. | Medium Confidence | Consultant evidence only. |
 | APX has more Replang keywords than Axys in current versions. | Medium Confidence | Consultant source states current APX adds 100+ keywords beyond Axys; exact list not supplied. |
 | Exact APX Replang keyword set is known. | Unknown | Not supplied. |
 | Exact APX `.REP` file locations are known. | Unknown | Not supplied. |
@@ -354,6 +354,21 @@ The following remain **Unknown**:
 | Custom support limits | Consultant evidence says vendor support may not debug custom RepLang reports. | Medium-High |
 | Client-tool dependency | Connector evidence requires Advent Client Tools / REP32 on a client machine. | Verified for connector |
 
+### 9.4 REP/IMEX Extraction Boundary
+
+The available IMEX evidence clarifies the REP/IMEX split for extraction
+design.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| REP as fallback | REP/Replang/custom reports are appropriate when IMEX schemas are incomplete or values must match user-visible reports. | High Confidence |
+| Connector evidence | Salentica Data Broker uses Advent standard reports, macros, REP32, RepLang scripting, and installed Advent Client Tools for Axys/APX extraction. | Verified for connector |
+| Best-fit split | Use IMEX first for security reference, security types, transactions, prices, and positions where stable objects exist; use REP for performance, classification performance, and report-specific tie-outs. | Design guidance |
+| Required metadata | REP-derived extracts should record report file/name, version, parameters, layout, row lineage, and stored-vs-recalculated confidence. | Design guidance |
+
+A report label or REP variable does not by itself establish underlying IMEX,
+database, transaction, or performance semantics.
+
 ---
 
 ## 10. Examples
@@ -506,7 +521,7 @@ This chapter is based only on the supplied repository blueprint and research fil
 
 | Ref | Source |
 |---|---|
-| BP-001 | `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 |
+| BP-001 | `axys_apx_reference_blueprint.md`, Version 2.0 |
 
 ### 14.2 Primary REP research sources
 
@@ -562,7 +577,7 @@ The following Unknowns should remain in the repository until supported by vendor
 | REP32.exe command-line options. | Vendor technical docs or working examples. |
 | Macro file syntax. | Sample macros and vendor documentation. |
 | How dates, portfolio groups, currencies, composites, report options, and output destinations are passed to REP32. | Macro samples / command-line examples. |
-| Whether REP32 behavior differs materially between Axys and APX. | Vendor documentation or connector configuration samples. |
+| Whether REP32 behavior differs materially between Axys/APX. | Vendor documentation or connector configuration samples. |
 | Whether APX cloud environments permit client-run custom REP execution. | SS&C APX cloud/admin policy documentation. |
 
 ### 15.4 Report values and processing
@@ -605,16 +620,7 @@ The current supplied material is sufficient for a conservative REP chapter, but 
 | Known production examples where REP output differs from IMEX output. | Interface reconciliation and audit behavior. |
 | Versioned report files from Axys 3.8.6 vs 3.8.7 or APX 15.x/16.x/17.x. | Version-difference documentation. |
 
-## 17. Deep IMEX Update
+## Research Provenance
 
-The deep IMEX research clarifies the REP/IMEX split for extraction design.
-
-| Topic | Chapter treatment | Confidence |
-|---|---|---:|
-| REP as fallback | REP/Replang/custom reports are appropriate when IMEX schemas are incomplete or values must match user-visible reports. | High Confidence |
-| Connector evidence | Salentica Data Broker uses Advent standard reports, macros, REP32, RepLang scripting, and installed Advent Client Tools for Axys/APX extraction. | Verified for connector |
-| Best-fit split | Use IMEX first for security reference, security types, transactions, prices, and positions where stable objects exist; use REP for performance, classification performance, and report-specific tie-outs. | Design guidance |
-| Required metadata | REP-derived extracts should record report file/name, version, parameters, layout, row lineage, and stored-vs-recalculated confidence. | Design guidance |
-
-A report label or REP variable does not by itself establish underlying IMEX,
-database, transaction, or performance semantics.
+The deep IMEX REP/IMEX boundary conclusions are incorporated into Section 9.4.
+Their supporting source history remains in `../evidence/Research_13_REP.md`.

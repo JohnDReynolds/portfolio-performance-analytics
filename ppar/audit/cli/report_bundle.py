@@ -1,4 +1,4 @@
-"""Write a review artifact bundle for a performance comparison."""
+"""Write a review artifact bundle for an Audit."""
 
 # Python imports
 import argparse
@@ -7,15 +7,15 @@ import sys
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import (
+from ppar.audit import (
     compare_snapshots,
-    write_performance_comparison_report_bundle,
+    write_audit_report_bundle,
 )
-from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison.specification import (
+from ppar.audit import review_model as _pc_review_model
+from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
-    PerformanceComparisonSpecification,
+    AuditSpecification,
 )
 
 _COMPARISON_LEVEL_CHOICES = (
@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
-        specification = PerformanceComparisonSpecification(
+        specification = AuditSpecification(
             args.comparison_path,
             comparison_level=args.comparison_level,
         )
@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
             include_suppressed=not args.active_only,
             require_causal_attribution=args.require_causal_attribution,
         )
-        bundle_paths = write_performance_comparison_report_bundle(
+        bundle_paths = write_audit_report_bundle(
             findings,
             args.output_directory,
             title=args.title,
@@ -84,12 +84,12 @@ def main(argv: list[str] | None = None) -> int:
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Write a Performance Auditing review artifact bundle.",
+        description="Write an Audit review artifact bundle.",
     )
     parser.add_argument(
         "comparison_path",
         type=Path,
-        help="Path to a Performance Auditing YAML file.",
+        help="Path to a Audit YAML file.",
     )
     parser.add_argument(
         "output_directory",
@@ -98,7 +98,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--title",
-        default="Performance Auditing Report",
+        default="Audit Report",
         help="Report title for the level-specific HTML and optional XLSX audit.",
     )
     parser.add_argument(

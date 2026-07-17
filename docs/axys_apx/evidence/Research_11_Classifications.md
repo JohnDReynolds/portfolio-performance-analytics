@@ -4,7 +4,7 @@ Repository: AXYS / APX Reference Repository
 Research file: `docs/axys_apx/evidence/Research_11_Classifications.md`
 Target chapter: `docs/axys_apx/reference/Chapter_11_Classifications.md`
 Prepared: 2026-06-29  
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
+Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
@@ -46,11 +46,11 @@ Every important technical statement is assigned one of:
 | Axys supports classification-based reporting | SS&C's Axys product material states that Axys can display performance by portfolios, asset classes, sectors, countries, or regions. | Verified |
 | Axys supports arbitrary portfolio grouping categories | SS&C's Axys product material states that portfolios can be grouped by manager, asset class, investment objective, or any category the firm chooses. | Verified |
 | APX reports can use custom classifications | The publicly indexed APX Reports Guide snippet states that a report can be run to display any custom classification, industry group, or sector and graphically display equity allocations. | Verified, limited to snippet |
-| Axys/APX share Replang/REP report customization lineage | AdventGuru describes report development options for both Axys and APX, including Report Writer Pro and Replang reports. | Verified |
+| Axys/APX share Replang/REP report customization lineage | AdventGuru describes report development options for both Axys/APX, including Report Writer Pro and Replang reports. | Verified |
 | IMEX exists in Axys v3.x and APX | AdventGuru states that IMEX was introduced with Axys v3.x and that APX v1.x through v4.x maintains IMEX functionality, with fixed-format generation removed in APX. | Verified |
 | Axys v1.x had open text files; Axys v2.x introduced binary files | AdventGuru reports this version-history point. | Verified from consultant source |
 | Direct file access is risky across Axys versions | AdventGuru warns that file formats changed across versions, including conversion from Axys v3.7 to v3.8. | Verified from consultant source |
-| Axys/APX security matching uses symbol and type | ByAllAccounts Custodial Integrator docs for both Axys and APX refer to Security Information from `sec.inf` and `type.inf` and use product security symbol and security type for matching. | Verified |
+| Axys/APX security matching uses symbol and type | ByAllAccounts Custodial Integrator docs for both Axys/APX refer to Security Information from `sec.inf` and `type.inf` and use product security symbol and security type for matching. | Verified |
 | Reserved security type prefixes exist in Axys/APX CI matching | ByAllAccounts docs state that security types with prefixes `aw`, `br`, `ex`, `ep`, `pi`, `rs` are treated as reserved and excluded from security match processing. | Verified for Custodial Integrator matching; not necessarily global Axys/APX behavior |
 | Classification field names in native Axys/APX security master | Public sources do not provide a complete authoritative field list for security classifications. | Unknown |
 | Exact IMEX object name for classification export/import | Not verified from public sources in this research pass. | Unknown |
@@ -66,7 +66,7 @@ Every important technical statement is assigned one of:
 
 | Source | Type | What it supports |
 |---|---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | User-supplied governing specification | Editorial rules: separate Axys/APX, classify confidence, preserve unknowns, prefer evidence, produce research suitable for repository. |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | User-supplied governing specification | Editorial rules: separate Axys/APX, classify confidence, preserve unknowns, prefer evidence, produce research suitable for repository. |
 
 ### 2.2 Public / Web Sources Used
 
@@ -78,7 +78,7 @@ Every important technical statement is assigned one of:
 | ByAllAccounts Custodial Integrator User Guide for Axys | Third-party integration manual | Axys security master references: `sec.inf`, `type.inf`, Axys Symbol, Axys Security Type; security matching logic; reserved type prefixes. |
 | ByAllAccounts Custodial Integrator User Guide for APX | Third-party integration manual | APX security master references: `sec.inf`, `type.inf`, APX Symbol, APX Security Type; security matching logic; reserved type prefixes. |
 | AdvisorEngine Advent Axys Asset Import KB | Third-party integration KB | Example Axys export column list includes Portfolio Name, Portfolio Code, Security, Sec Type Code, Security Symbol, Security Type, Market Value, Quantity, Asset Class. |
-| Salentica Elements Data Broker Axys/APX KB | Third-party integration KB | Axys and APX are described as on-prem systems that can send data to Data Broker. |
+| Salentica Elements Data Broker Axys/APX KB | Third-party integration KB | Axys/APX are described as on-prem systems that can send data to Data Broker. |
 
 ---
 
@@ -265,9 +265,9 @@ To convert unknowns into verified statements, collect:
 
 | Statement | Evidence | Confidence |
 |---|---|---|
-| Axys and APX users can export reports directly to Excel and can automate report output in XLS and other file formats. | AdventGuru states this. | Verified from consultant source |
-| Axys and APX users can create custom reports via Report Writer Pro and convert output to CSV. | AdventGuru states this. | Verified from consultant source |
-| Axys and APX users can modify Replang reports to build CSV, other text formats, and Advent file formats. | AdventGuru states this. | Verified from consultant source |
+| Axys/APX users can export reports directly to Excel and can automate report output in XLS and other file formats. | AdventGuru states this. | Verified from consultant source |
+| Axys/APX users can create custom reports via Report Writer Pro and convert output to CSV. | AdventGuru states this. | Verified from consultant source |
+| Axys/APX users can modify Replang reports to build CSV, other text formats, and Advent file formats. | AdventGuru states this. | Verified from consultant source |
 | REP/Replang is a plausible way to extract classification-enriched holdings/performance data. | Derived from report customization/export capabilities. | High Confidence |
 | Exact Axys REP report names for classifications are known. | Not verified. | Unknown |
 | Exact APX REP report names for classification reports are known. | Only a public APX Reports Guide snippet indicates report capability; report name not captured. | Unknown |
@@ -672,7 +672,7 @@ Same as Test 1, but perform in APX test environment. If APX SQL tables are acces
 
 ### 14.1 Governing Repository Specification
 
-- `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0. User-supplied blueprint for repository standards.
+- `axys_apx_reference_blueprint.md`, Version 2.0. User-supplied blueprint for repository standards.
 
 ### 14.2 Web References
 

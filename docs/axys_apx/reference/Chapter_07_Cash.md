@@ -421,7 +421,7 @@ The chapter is based only on the supplied research and source material. The supp
 
 | Reference | Use in this chapter |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | Editorial rules, confidence labels, chapter standards. |
+| `axys_apx_reference_blueprint.md`, Version 2.0 | Editorial rules, confidence labels, chapter standards. |
 | `../evidence/Research_07_Cash.md` | Primary source for this chapter. |
 | `../evidence/Research_05_Transactions.md` | Supporting transaction-code, source/destination field, and reversal/cancellation context. |
 | `../evidence/Research_06_Holdings.md` | Supporting holdings/cash-as-position context and extraction caveats. |

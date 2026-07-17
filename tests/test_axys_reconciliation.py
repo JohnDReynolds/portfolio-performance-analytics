@@ -9,7 +9,7 @@ import unittest
 import polars as pl
 
 # Project Imports
-from ppar.axys.reconciliation import (
+from ppar.axys_apx.reconciliation import (
     derive_reconciled_weights,
     derive_security_performance_for_all_periods,
     filter_to_common_periods,
