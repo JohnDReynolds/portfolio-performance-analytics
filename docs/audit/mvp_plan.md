@@ -5,11 +5,11 @@
 | Document field | Value |
 |---|---|
 | Status | Active MVP implementation plan — Slice 1 complete; Slice 2 is next |
-| Version | 0.3 |
+| Version | 0.5 |
 | Date | 2026-07-17 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
-| Scope | Three founder-defined reporting, Data Issues, and codification gaps required before MVP |
+| Scope | Four founder-defined reporting, Data Issues, codification, and Axys/APX transaction-semantics capabilities required before MVP |
 | Excluded | History, dashboards, Operational Intelligence, additional platforms, managed workflow, and broad speculative rules catalog |
 
 ---
@@ -18,14 +18,16 @@
 
 The current product is a substantial technical foundation, but the founder does
 not yet consider it an MVP. MVP completion requires the current audit engine,
-evidence pack, and safety controls plus three additional product capabilities:
+evidence pack, and safety controls plus four additional product capabilities:
 
 1. an **Executive Summary** worksheet before `Performance Differences`, with an
    equivalent first HTML section;
 2. additional enumerated **Issue Type** values and checks for `Data Issues
    Issues`; and
 3. stronger codification of causes and issues, with safe, understandable user
-   control in YAML.
+   control in YAML; and
+4. required Axys/APX transaction-semantics, exact-case, source-contract, and
+   demo coverage defined in Section 7.
 
 The MVP is complete only when these capabilities are implemented, tested,
 demonstrated in the packaged Axys/APX scope, documented for users, and preserve
@@ -120,7 +122,10 @@ implementation order is:
    vocabulary and shared validated tables after the remaining scope decisions.
 3. **Additional Data Issues checks** — add selected issue types one at a time
    through the new registry and YAML contract.
-4. **Integrated release validation** — refresh documentation/demo artifacts and
+4. **Axys/APX transaction semantics and demo coverage** — implement all Section
+   7 requirements, keeping posted transactions, staging controls, and audit
+   evidence distinct.
+5. **Integrated release validation** — refresh documentation/demo artifacts and
    run all cross-format, invariant, determinism, and scale gates.
 
 This order reduces rework. It does not imply that codification is more important
@@ -376,7 +381,117 @@ surface is too large for an initial bounded implementation.
 
 ---
 
-# 7. Cross-Cutting Release Gates
+# 7. Workstream D — Axys/APX Transaction Semantics and Demo Coverage
+
+## 7.1 Target and scope boundary
+
+Every requirement in this section is blocking for MVP completion. The work must
+remain evidence-scoped and must not turn integration-, version-, or
+site-specific behavior into universal Axys/APX semantics.
+
+Keep detailed transaction meanings, confidence boundaries, and fixture coverage
+in the canonical Axys/APX sources:
+
+- [`transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml)
+  is the machine-readable implementation contract;
+- [`transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md)
+  is its maintainer-facing companion;
+- [`Chapter_05_Transactions.md`](../axys_apx/reference/Chapter_05_Transactions.md)
+  owns reader-facing semantics and cautions; and
+- [`Research_05_Transactions.md`](../axys_apx/evidence/Research_05_Transactions.md)
+  and [`Public_Web_Research_2026-07-17.md`](../axys_apx/evidence/Public_Web_Research_2026-07-17.md)
+  preserve granular provenance.
+
+This plan states the required reviewer story, prerequisites, and completion gate
+without becoming another transaction-code dictionary.
+
+## 7.2 Required scenarios using current normalized capabilities
+
+The following scenarios can be expressed with the current transaction columns,
+normalized categories, impact methods, and conditional YAML rules. Each must be
+implemented, tested, and demonstrated before MVP completion. Its source scope
+must remain visible; none is asserted as universal Axys/APX behavior.
+
+| Required scenario | Required demo treatment | Required boundary |
+|---|---|---|
+| Contextual `ai` margin interest | Promote the existing test-only margin-interest pattern into a coherent packaged scenario: negative amount, explicit margin/security context, `fee_expense`, negative cash sign, and performance treatment under the demo's net basis. | Do not classify code-only `ai`; holdings, cash, and reported performance must tell a consistent financing-cost story. |
+| `dv` + `by` dividend reinvestment | Add matched income and purchase legs, preferably with `dvwash` context, and demonstrate that neither leg becomes an investor external flow or creates double-counted income. | Require aligned dates, security, amounts, wash context, and coherent holdings/cash effects. |
+| Scoped `ti` or `si` deliver-in | Add a site-scoped deliver-in example using explicit source/destination and security context. Public Axys report guidance identifies `li`, `ti`, and `si` as deliver-in cases in that workflow. | Update the transaction-semantics contract before completing the demo; do not infer external capital versus internal transfer from the code alone. |
+| Gross dividend plus separate withholding expense | Demonstrate one observed integration representation using a dividend income row and contextual withholding-expense row. | State that the scenario assumes after-tax/net performance; do not claim one standard withholding code or representation. |
+| Alternate contextual fee mapping | Add a site-variant `dp` example using observed `epus expense`-style context alongside the existing `exus custfee` pattern. | Treat `epus` as a configurable token role, not a proven universal standalone transaction code. |
+
+The first four scenarios must be visible in the packaged Axys/APX demo. The
+alternate contextual fee mapping must be covered by a site-variant fixture and
+the transaction-semantics coverage contract. Keep each example focused on its
+distinct reviewer lesson.
+
+## 7.3 Exact-case handling and cancellation boundary
+
+PPAR must be capable of preserving and matching transaction codes by exact
+case when a source contract requires it. Exact-case capability must not create a
+global rule that uppercase codes are cancellations: a site may legitimately use
+uppercase economic transaction codes.
+
+The reviewed uppercase-cancellation evidence belongs to an AIA Trade Blotter
+workflow. A tool creates a cancellation blotter from historical transactions and
+uppercases an original code, such as `by` to `BY`, as a cancellation instruction.
+The evidence does not establish that the uppercase instruction survives as a
+posted transaction or is available in ordinary REP, IMEX, SQL, or report
+extracts.
+
+Therefore:
+
+- packaged `snapshot_a/transactions.csv` and `snapshot_b/transactions.csv`
+  must not present uppercase cancellation instructions as extracted posted
+  transactions;
+- cancellation instructions must not contribute an additive performance impact;
+- any future example belongs in a separate test-only Trade Blotter,
+  import-control, or audit-lifecycle fixture;
+- cancellation interpretation requires an explicit source-stage or extract
+  contract, plus linkage to the original transaction; and
+- an uppercase row in an ordinary posted-transaction extract remains unknown
+  unless local evidence establishes its role.
+
+## 7.4 Required normalized-contract and product work
+
+| Required capability | Required implementation | Intended reviewer value |
+|---|---|---|
+| Missing-cost deliver-in | Add normalized original-cost amount/date and, if justified, lot context; then implement a narrowly scoped completeness check. | Detect deliver-ins whose apparently reasonable report value may rely on a trade-date market-value fallback rather than supplied original cost. |
+| APX foreign-currency Mark-to-Market | Add an optional normalized context field and version/site-aware validation. | Surface the documented APX CI v1-v3 versus v4 requiredness difference without treating the field as an additive performance cause. |
+| Trade Blotter cancellation control | Add a distinct staging/control fixture or source-stage contract after exact-case matching exists. | Prove that cancellation instructions are quarantined from posted transaction and performance semantics. |
+
+All three capabilities are required before MVP completion. Missing-cost and
+Mark-to-Market behavior must have user-visible packaged or focused validation
+examples appropriate to their data contracts. The Trade Blotter cancellation
+control must remain a separate staging/control fixture rather than appearing in
+packaged posted-transaction snapshots.
+
+Do not add speculative ACA merger, spin-off, or reorganization transaction codes.
+Public evidence verifies an APX ACA-to-Reorg-Utility-to-Trade-Blotter workflow but
+does not disclose enough transaction fields or codes for a defensible packaged
+transaction fixture.
+
+## 7.5 Completion standard
+
+Before this workstream can be marked complete:
+
+- identify the exact source/workflow and preserve its confidence boundary;
+- define complete YAML semantics and the normalized fields needed to support
+  them;
+- construct coherent transaction, holdings, cash, and reported-performance
+  effects where those datasets are applicable;
+- place each example in the packaged demo, site-variant fixture, or
+  staging/control fixture required by Sections 7.2 through 7.4;
+- update the canonical transaction-semantics contract and generated companion;
+- add validation, reconstruction, reviewer-output, and false-positive tests;
+- preserve all financial, conservation, explanation-reconciliation, and output
+  invariants; and
+- demonstrate that ordinary posted-transaction extracts remain separate from
+  Trade Blotter cancellation instructions.
+
+---
+
+# 8. Cross-Cutting Release Gates
 
 MVP completion is unacceptable unless:
 
@@ -399,7 +514,7 @@ because MVP work causes a failure.
 
 ---
 
-# 8. Proposed Implementation Slices
+# 9. Proposed Implementation Slices
 
 ## Slice 1 — Current vocabulary and strict Data Issues YAML — Complete
 
@@ -426,16 +541,35 @@ Implemented on 2026-07-17 as a behavior-preserving code change:
 - verify independent Data Issues treatment; and
 - review output before adding the next type.
 
-## Slice 4 — Remaining approved issue types and MVP release audit
+## Slice 4 — Required current-capability Axys/APX scenarios
 
-- repeat the end-to-end rule process;
+- add the packaged `ai`, `dv` + `by`, `ti`/`si`, and withholding scenarios;
+- add the alternate contextual fee site-variant fixture;
+- update the canonical transaction-semantics contract and generated companion;
+- verify coherent holdings, cash, performance, reconstruction, and reviewer
+  output; and
+- run all affected demo, financial, and coverage gates.
+
+## Slice 5 — Exact case and required transaction source-contract work
+
+- implement exact-case transaction rule capability without globally assigning
+  cancellation meaning to uppercase codes;
+- add original-cost/date support and the bounded deliver-in completeness check;
+- add APX Mark-to-Market context and version/site-aware validation;
+- add the separate Trade Blotter cancellation-control fixture; and
+- prove that cancellation instructions cannot become posted-transaction
+  performance causes.
+
+## Slice 6 — Remaining approved issue types and MVP release audit
+
+- repeat the end-to-end Data Issues rule process;
 - run the full relevant suite and release-candidate checks;
 - generate final representative portfolio/security bundles; and
 - assess whether the founder considers the resulting product an MVP.
 
 ---
 
-# 9. Remaining Founder Decisions Before Further Application Changes
+# 10. Remaining Founder Decisions Before Further Application Changes
 
 1. **Executive Summary scope:** approve the minimum content and presentation
    boundaries in Section 5. Recommended: approve.
@@ -448,20 +582,21 @@ Implemented on 2026-07-17 as a behavior-preserving code change:
    product behavior initially or configurable in YAML. Recommended: fixed,
    version-controlled defaults for the MVP; add YAML only if real use requires
    it.
-
 No further visionary product-design phase is required to make these decisions.
 
 ---
 
-# 10. MVP Completion Gate
+# 11. MVP Completion Gate
 
 The founder determines that PPAR Audit has reached MVP only after:
 
-- the three required capabilities are implemented and reviewed;
+- the four required capabilities are implemented and reviewed;
 - the generated portfolio and security outputs present the right information in
   a useful first view;
 - additional issue types are defensible and controllable;
 - cause/issue vocabulary and YAML behavior are stable and fail closed;
+- every Section 7 transaction-semantic, exact-case, source-contract, and demo
+  requirement satisfies its evidence, fixture, and safety gates;
 - all financial, safety, output, determinism, demo, and scale gates pass; and
 - remaining gaps are acceptable for a controlled validation partner.
 
