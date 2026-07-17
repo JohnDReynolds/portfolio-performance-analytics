@@ -2,22 +2,40 @@
 
 ## Foundational Product Design
 
-### Phases 1 through 3A — Doctrine, Conceptual Architecture, and Performance Change Investigation
+### Phases 1 through 3B — Doctrine, Conceptual Architecture, and Detailed Functional Specifications
 
 | Document field | Value |
 |---|---|
-| Document status | Phase 2 founder-approved; Phase 3A draft for founder review |
-| Version | 0.4 |
+| Document status | Phases 2 and 3A founder-approved; Phase 3B draft for founder review |
+| Version | 0.5 |
 | Date | 2026-07-16 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
 | Canonical file | `PPAR_Audit_Foundational_Product_Design.md` |
-| Phase covered | Phase 1 — Product Doctrine and Boundaries; Phase 2 — Users, Workflows, and Conceptual Product Architecture; Phase 3A — Performance Change Investigation |
+| Phase covered | Phase 1 — Product Doctrine and Boundaries; Phase 2 — Users, Workflows, and Conceptual Product Architecture; Phase 3A — Performance Change Investigation; Phase 3B — Performance Data Quality Audit |
 | Supersedes | Version 0.2; its reviewed Phase 1 content is incorporated into this canonical document |
-| Next phase gate | Founder review and approval of Phase 3A; Phase 3B must not begin before approval |
+| Next phase gate | Founder review and approval of Phase 3B; Phase 3C must not begin before approval |
 | Confirmed deployment doctrine | Local-first execution within the client-controlled environment is a permanent product principle |
 
 ## Change Log
+
+### Version 0.5 — 2026-07-16
+
+- Recorded founder approval of Phase 3A and the four authorized working
+  assumptions: fixed explanation precision; operational materiality used only
+  for prioritization under approved policy; no explanation-completeness
+  percentage initially; and portfolio reports mandatory in pilots with
+  security reports selected when the case requires them.
+- Added the Phase 3B functional specification for Performance Data Quality
+  Audit, grounded in the current seven optional checks, mandatory continuity,
+  snapshot-separated union execution, rule configuration, reviewer outputs,
+  counted-cause separation, false-positive controls, and client-validation
+  requirements.
+- Preserved the decision to defer human-note/workflow and cross-run history
+  infrastructure until a serious business case and client validation justify
+  their complexity.
+- Preserved all twelve safety invariants and the Phase 3C gate. No application
+  code was changed.
 
 ### Version 0.4 — 2026-07-16
 
@@ -31,6 +49,10 @@
 - Distinguished comparison tolerance, arithmetic/serialization precision, and
   operational materiality so future prioritization cannot silently erase a
   reportable source difference.
+- Recorded the founder decision that human-note/workflow infrastructure and
+  cross-run history/stability infrastructure are long-term possibilities whose
+  implementation is DEFERRED until a serious business case and client
+  validation justify their complexity.
 - Preserved all twelve safety invariants and the Phase 3B gate. No application
   code was changed.
 
@@ -73,12 +95,13 @@
 17. [Open Decisions for Founder Review](#16-open-decisions-for-founder-review)
 18. [Phase 2 — Users, Workflows, and Conceptual Product Architecture](#17-phase-2--users-workflows-and-conceptual-product-architecture)
 19. [Phase 3A — Performance Change Investigation](#18-phase-3a--performance-change-investigation)
-20. [Appendix A — Source Register](#appendix-a--source-register)
-21. [Appendix B — Representative Workbook Observations](#appendix-b--representative-workbook-observations)
-22. [Appendix C — Incorporated Product-Expansion Inventory](#appendix-c--incorporated-product-expansion-inventory)
-23. [Appendix D — Planned Foundational Design Sections](#appendix-d--planned-foundational-design-sections)
-24. [Appendix E — Additional Implementation-Document Intake](#appendix-e--additional-implementation-document-intake)
-25. [Appendix F — External Evidence](#appendix-f--external-evidence)
+20. [Phase 3B — Performance Data Quality Audit](#19-phase-3b--performance-data-quality-audit)
+21. [Appendix A — Source Register](#appendix-a--source-register)
+22. [Appendix B — Representative Workbook Observations](#appendix-b--representative-workbook-observations)
+23. [Appendix C — Incorporated Product-Expansion Inventory](#appendix-c--incorporated-product-expansion-inventory)
+24. [Appendix D — Planned Foundational Design Sections](#appendix-d--planned-foundational-design-sections)
+25. [Appendix E — Additional Implementation-Document Intake](#appendix-e--additional-implementation-document-intake)
+26. [Appendix F — External Evidence](#appendix-f--external-evidence)
 
 ---
 
@@ -2336,10 +2359,10 @@ rights must remain explicit.
 | Create or change a suppression | Analyst proposes; authorized configuration owner implements | Performance/operations manager | Compliance for material or recurring suppressions | Suppressed rows remain in `findings.csv`; reason/approval should be retained. Requiring formal reasons is CANDIDATE. | CURRENT — DOCUMENTED technical behavior; CANDIDATE approval workflow |
 | Run the audit or rerun after correction | Authorized analyst/operator | Preapproved operating procedure; manager approval for scope/policy changes | Local administrator | New artifacts must identify inputs, configuration, and product version; prior artifacts remain retained under policy. | CURRENT — DEMONSTRATED; CURRENT — REQUIRES CLIENT VALIDATION |
 | View complete versus prioritized evidence | Authorized reviewer | Client access-control owner | Technology/security | Summaries may prioritize; complete evidence remains available to authorized reviewers and validators. | CURRENT — DOCUMENTED artifact separation; CURRENT — REQUIRES CLIENT VALIDATION for access model |
-| Add a human note or disposition | Qualified analyst or manager | Manager for material closure | Portfolio accounting/compliance as applicable | Store separately from calculated causes with author, time, evidence reference, and workflow status. | CANDIDATE |
-| Add a supplemental human explanation | Qualified specialist | Methodology owner | Compliance for external reliance | Must be explicitly human-supplied and non-additive; it cannot change analytical status or Explained Difference. | OPEN DECISION |
+| Add a human note or disposition | Qualified analyst or manager | Manager for material closure | Portfolio accounting/compliance as applicable | If later justified, store separately from calculated causes with author, time, evidence reference, and workflow status. | DEFERRED; requires a serious business case and client validation |
+| Add a supplemental human explanation | Qualified specialist | Methodology owner | Compliance for external reliance | If later justified, it must be explicitly human-supplied and non-additive; it cannot change analytical status or Explained Difference. | APPROVED DIRECTION concept; DEFERRED implementation pending business case and client validation |
 | Override a product-calculated cause or amount | No direct override permitted | Not applicable | Methodology owner may challenge result | Correct source/configuration or product logic, then rerun. Preserve the superseded run and reason. | OUT OF SCOPE for direct override |
-| Mark accepted, correction required, closed, or reopened | Analyst proposes | Performance/operations manager under client policy | Compliance when relevant | Workflow status changes only; analytical status remains immutable for that run. | CANDIDATE |
+| Mark accepted, correction required, closed, or reopened | Analyst proposes | Performance/operations manager under client policy | Compliance when relevant | If later justified, workflow status changes only; analytical status remains immutable for that run. | DEFERRED pending business case and client validation |
 | Correct the accounting system or official reported performance | Authorized client accounting personnel | Client’s source-system/change-control authority | Performance/operations manager | PPAR never writes back. A correction creates a new source state and usually a rerun. | OUT OF SCOPE for PPAR writeback; client action is required |
 | Export artifacts internally | Authorized operator | Client data owner under normal policy | Technology/security | Preserve bundle integrity and provenance. | CURRENT — DOCUMENTED; CURRENT — REQUIRES CLIENT VALIDATION |
 | Share redacted/anonymized evidence for external support | Client operator prepares | Data owner plus technology/security and business owner | Legal/compliance as required | Explicit, case-specific authorization; disclose exactly what leaves; no routine transfer. Redaction tooling is not current. | OPEN DECISION; CANDIDATE tooling |
@@ -2518,8 +2541,9 @@ DIRECTION for a concise executive entry layer.
 
 ### 17.4.5 Human disposition and investigation closure
 
-**Capability status:** CANDIDATE. Human judgment is current doctrine; product-
-managed notes, assignments, approvals, and closure are not current.
+**Capability status:** DEFERRED. Human judgment is current doctrine; product-
+managed notes, assignments, approvals, and closure require a serious business
+case and client validation before implementation.
 
 - **Trigger:** analyst triage reaches a decision or identifies required action.
 - **Primary actors:** analyst proposes; methodology/operations manager approves;
@@ -2547,9 +2571,10 @@ managed notes, assignments, approvals, and closure are not current.
 
 ### 17.4.6 Recurring audit and proactive quality review
 
-**Capability status:** APPROVED DIRECTION. Repeatable manual runs are current;
-scheduled operation, durable history, recurrence detection, and management
-trend views are not current product capabilities.
+**Capability status:** APPROVED DIRECTION as a long-term possibility; DEFERRED
+implementation pending business case and client validation. Repeatable manual
+runs are current; scheduled operation, durable history, recurrence detection,
+and management trend views are not current product capabilities.
 
 - **Trigger:** reporting-cycle schedule, approved source-state change, or
   periodic control procedure.
@@ -2561,9 +2586,10 @@ trend views are not current product capabilities.
 - **Desired steps:** produce new snapshots; run readiness; run audit; compare
   findings/statuses to local history; identify new, recurring, resolved, and
   reopened issues; produce analyst and management summaries; retain the run.
-- **Initial history recommendation:** immutable versioned directories plus a
-  local index containing nonduplicative run metadata and links. Do not select a
-  database merely to appear enterprise-ready.
+- **Conditional history recommendation:** only if recurring use establishes the
+  business case, begin with immutable versioned directories plus the smallest
+  useful local index. Do not add a database or index merely to appear
+  enterprise-ready.
 - **Outputs:** current investigation bundle, recurrence classification, local
   history entry, manager summary, and exception backlog.
 - **Failure paths:** incomparable scopes/configuration; missing prior state;
@@ -2577,7 +2603,8 @@ trend views are not current product capabilities.
 
 **Capability status:** CURRENT — DEMONSTRATED; CURRENT — DOCUMENTED for
 bundle generation/validation; CURRENT — REQUIRES CLIENT VALIDATION for client
-retention and internal handoff; APPROVED DIRECTION for cross-run history.
+retention and internal handoff; cross-run history is DEFERRED pending business
+case and client validation.
 
 - **Trigger:** successful report generation or approved rerun.
 - **Authoritative run artifacts:** level-specific workbook/HTML, manifest v4,
@@ -2846,17 +2873,18 @@ packages. Each component has an explicit capability status and human owner.
 
 ### 17.5.12 Human Disposition and Workflow Layer
 
-- **Purpose and status:** record who reviewed what, what action was chosen, and
-  whether an investigation is open or closed. CANDIDATE.
+- **Purpose and status:** potentially record who reviewed what, what action was
+  chosen, and whether an investigation is open or closed. DEFERRED pending a
+  serious business case and client validation.
 - **Inputs, outputs, dependencies:** immutable run/analytical status, reviewer
   identity, evidence references, comments, actions, and approvals would produce
   attributable workflow status and links to reruns.
 - **Human owner:** analyst proposes; performance/operations manager approves;
   client governance defines compliance involvement.
 - **Safety/local-first/future:** must remain separate from product calculations,
-  retain local history, and avoid becoming generic case management. Human notes
-  are recommended; supplemental explanations are OPEN DECISION; calculated
-  override is OUT OF SCOPE.
+  retain local history, and avoid becoming generic case management. Human-note
+  and disposition infrastructure is DEFERRED until a serious business case and
+  client validation justify it; calculated override is OUT OF SCOPE.
 
 ### 17.5.13 Executive Investigation Summary
 
@@ -2889,18 +2917,19 @@ packages. Each component has an explicit capability status and human owner.
 
 ### 17.5.15 Local Audit History and Operational Intelligence
 
-- **Purpose and status:** compare investigations across time to identify new,
-  recurring, resolved, and unstable patterns. APPROVED DIRECTION; no current
-  persistent history product.
+- **Purpose and status:** potentially compare investigations across time to
+  identify new, recurring, resolved, and unstable patterns. APPROVED DIRECTION
+  only as a long-term possibility; implementation is DEFERRED pending business
+  case and client validation. No current persistent history product exists.
 - **Inputs, outputs, dependencies:** comparable retained runs, stable
   configuration/rule versions, workflow dispositions, and local index/history
   produce recurrence and trend evidence.
 - **Human owner:** local administrator retains; performance manager governs
   comparability/metrics; analyst investigates patterns.
-- **Safety/local-first/future:** start with versioned local files and a minimal
-  index; do not produce trends across incomparable scopes. SQLite or another
-  local store is OPEN DECISION. Cross-client or PPAR-hosted portfolio history is
-  OUT OF SCOPE.
+- **Safety/local-first/future:** if the capability is later justified, start
+  with versioned local files and the smallest useful index; do not produce
+  trends across incomparable scopes. Storage selection is DEFERRED.
+  Cross-client or PPAR-hosted portfolio history is OUT OF SCOPE.
 
 ### 17.5.16 Licensing, Updates, and Support Boundary
 
@@ -2938,7 +2967,7 @@ Client-controlled deployment boundary
   -> CURRENT — DEMONSTRATED validated XLSX / HTML / CSV / JSON / ZIP pack
   -> CURRENT — REQUIRES CLIENT VALIDATION analyst review and client approval
   -> CANDIDATE human disposition / closure / reopening
-  -> APPROVED DIRECTION comparable local history + operational learning
+  -> DEFERRED comparable local history + operational learning, pending client evidence
 ```
 
 The arrows indicate accountability handoffs, not only data transformations.
@@ -2957,8 +2986,8 @@ the client owns judgment, source correction, official reporting, and reliance.
 | Analytical treatment | `counted_cause` or `review_evidence` | Client policy defines allowed meaning | PPAR applies supported formula and ownership rules | Cause/evidence row, economic-effect ID, lineage |
 | Integrity | Conservation, arithmetic, lineage, units, period, parity, determinism | Not a business opinion | PPAR owns enforcement | Valid bundle or stopped workflow |
 | Review | Analytical status, Data Audit Issues, source detail | Evidence remains traceable | Qualified reviewer interprets | Review conclusion, challenge, or action request |
-| Human disposition | Accepted, correction/rerun required, closed/reopened | Authorized client reviewer | Client workflow authority | Attributable decision distinct from calculation |
-| History | Comparable retained runs and dispositions | Client owns retention and comparability policy | Local history component derives trends | Provenance-preserving local index and summary |
+| Human disposition | Possible future accepted/correction/rerun/closure record | Authorized client reviewer | Client workflow authority | DEFERRED; attributable decision must remain distinct from calculation if later justified |
+| History | Possible future comparable retained runs and dispositions | Client owns retention and comparability policy | No current product component | DEFERRED; provenance-preserving index only if later justified |
 
 ### 17.6.3 Handoff controls
 
@@ -3001,7 +3030,7 @@ controls; the unified experience is APPROVED DIRECTION.
 
 ### 17.7.3 Workflow status
 
-**Capability status:** CANDIDATE.
+**Capability status:** DEFERRED pending business case and client validation.
 
 | Status | Meaning |
 |---|---|
@@ -3102,9 +3131,12 @@ into validated market facts or settle later contractual/commercial policy.
    PPAR support advises but does not approve site policy.
 3. Portfolio-level audit is the first commercial conversation; security-level
    audit is drilldown and selected validation evidence.
-4. Human notes are likely useful, but human-calculated overrides are not.
-5. Initial history should use immutable local files plus a minimal index until
-   real workflow proves the need for a database.
+4. Human notes are a possible long-term capability, not an assumed near-term
+   requirement; infrastructure requires a serious business case and client
+   validation. Human-calculated overrides remain OUT OF SCOPE.
+5. Cross-run history is a possible long-term capability, not an assumed
+   first-pilot requirement. If validated, it should begin with immutable local
+   files and the smallest justified index before considering a database.
 6. Licensing/support may exchange only explicitly approved non-portfolio
    metadata; routine portfolio-data or evidence transfer is prohibited.
 7. Compliance/GIPS reviewers are secondary stakeholders; PPAR does not provide
@@ -3116,12 +3148,15 @@ into validated market facts or settle later contractual/commercial policy.
    CLIENT VALIDATION:** use the performance analyst as primary operator and
    portfolio-level audit as the first commercial surface, with security-level
    audit as drilldown and selected validation evidence.
-2. **Human-supplied explanation — APPROVED DIRECTION:** permit future
-   attributable, separately labeled, non-additive notes. Direct override of a
-   calculated cause or analytical status remains OUT OF SCOPE.
-3. **Initial local history — APPROVED DIRECTION:** use immutable versioned files
-   plus a minimal local index first. Database selection remains DEFERRED until
-   recurring use demonstrates the required entities and queries.
+2. **Human-supplied explanation — APPROVED DIRECTION concept; DEFERRED
+   implementation:** attributable, separately labeled, non-additive notes are
+   permissible only if client validation establishes a serious business case.
+   Direct override of a calculated cause or analytical status remains OUT OF
+   SCOPE.
+3. **Initial local history — DEFERRED:** do not add a history index for the first
+   pilot without a serious business reason and client validation. If recurring
+   use later justifies the capability, begin with immutable versioned files and
+   the smallest useful local index; database selection remains DEFERRED.
 4. **Outbound metadata and exceptional support — OPEN DECISION:** Phase 3 may
    assume portfolio data remains local and that any transfer is explicit,
    minimal, and client authorized. Exact entitlement fields, offline grace, and
@@ -3276,7 +3311,7 @@ CURRENT — DOCUMENTED.
 | FX rates | Optional unless needed to establish an approved base-currency relationship or explain a configured FX treatment. | CURRENT — DEMONSTRATED evidence; CURRENT — DOCUMENTED boundary |
 | Splits | Optional comparison/support dataset. | CURRENT — DEMONSTRATED evidence-only; not a current counted split cause |
 | Source/extract context | Required when ambiguous transaction or field meaning cannot be established from the ordinary normalized row. | CURRENT — DOCUMENTED |
-| Prior investigation/history record | Not required for a two-snapshot run; required for repeated-restatement and stability features. | APPROVED DIRECTION |
+| Prior investigation/history record | Not required for a two-snapshot run; required only if repeated-restatement and stability features are later justified. | DEFERRED pending business case and client validation |
 
 An absent optional dataset cannot create a finding about facts that were never
 supplied. Product language MUST distinguish “not supplied,” “supplied with no
@@ -3787,6 +3822,10 @@ over current deterministic bundle foundations.
 
 ## 18.16 Analytical and workflow transitions
 
+**Implementation status:** DEFERRED. The model below preserves a possible
+long-term boundary; it is not a first-pilot infrastructure requirement. A
+serious business case and client validation must precede implementation.
+
 Analytical status is calculated during a valid run and is immutable for that
 run. A future human workflow MAY then move through:
 
@@ -3797,14 +3836,16 @@ Open -> In Review -> Accepted
 Closed -> Reopened
 ```
 
-`PCI-050` — Workflow transitions MUST record actor, timestamp, reason, evidence
-reference, and approver where required. They MUST NOT change calculated causes,
-residual, or analytical status. CANDIDATE.
+`PCI-050` — If workflow infrastructure is later justified, transitions MUST
+record actor, timestamp, reason, evidence reference, and approver where
+required. They MUST NOT change calculated causes, residual, or analytical
+status. DEFERRED pending business case and client validation.
 
-`PCI-051` — A human-supplied explanation MAY be stored in future as an
-attributable, separately labeled, non-additive note. It MUST identify its
-author, date, evidence, and approval; it MUST NOT enter Explained Difference.
-APPROVED DIRECTION.
+`PCI-051` — If client evidence later justifies human-note infrastructure, a
+human-supplied explanation MAY be stored as an attributable, separately
+labeled, non-additive note. It MUST identify its author, date, evidence, and
+approval; it MUST NOT enter Explained Difference. The conceptual boundary is
+APPROVED DIRECTION; implementation is DEFERRED.
 
 `PCI-052` — Direct override of a calculated cause, amount, or analytical status
 is OUT OF SCOPE. Correct source-data, configuration, or product logic and rerun.
@@ -3877,8 +3918,10 @@ are not prerequisites for the Phase 3A calculation design.
 
 ## 18.20 Repeated-restatement history
 
-**Capability status:** APPROVED DIRECTION. No current persistent investigation
-history product exists.
+**Capability status:** APPROVED DIRECTION only as a possible long-term product;
+implementation is DEFERRED until a serious business reason and client
+validation justify the added infrastructure. No current persistent
+investigation-history product exists.
 
 ### 18.20.1 Purpose and initial storage
 
@@ -3886,8 +3929,10 @@ Repeated-restatement history connects immutable two-snapshot investigations so
 the client can determine whether a period changed once, changed repeatedly, was
 corrected, or was reopened by later evidence.
 
-The founder-authorized initial design is versioned local run directories plus a
-minimal local index. A database remains DEFERRED.
+No history index is required for the first pilot. If validated recurring use
+later establishes the business case, the least-complex starting design is
+versioned local run directories plus the smallest useful local index. A
+database remains DEFERRED.
 
 `PCI-061` — Each history entry MUST reference, without duplicating or mutating:
 
@@ -3902,12 +3947,12 @@ minimal local index. A database remains DEFERRED.
 - relationship to prior/superseded run;
 - human workflow disposition when available.
 
-APPROVED DIRECTION.
+DEFERRED conditional specification.
 
 `PCI-062` — The product MUST NOT infer chronological authority solely from
-filename, directory order, or Snapshot B. The operator/source contract must
-declare capture time and relationship to the prior reported state. APPROVED
-DIRECTION.
+filename, directory order, or Snapshot B. If history is implemented, the
+operator/source contract must declare capture time and relationship to the
+prior reported state. DEFERRED conditional specification.
 
 ### 18.20.2 Comparability and recurrence
 
@@ -3916,9 +3961,9 @@ period basis, report level, return basis/method, currency basis, and material
 configuration semantics are compatible. Product-version differences MAY be
 allowed only when the relevant contracts are declared comparable.
 
-`PCI-063` — Incomparable runs MUST be labeled and excluded from recurrence or
-trend metrics; they MUST NOT be coerced into a continuous series. APPROVED
-DIRECTION.
+`PCI-063` — If history is implemented, incomparable runs MUST be labeled and
+excluded from recurrence or trend metrics; they MUST NOT be coerced into a
+continuous series. DEFERRED conditional specification.
 
 Candidate recurrence labels are:
 
@@ -3934,8 +3979,9 @@ These labels are CANDIDATE until client workflow validates their meaning.
 
 ## 18.21 Portfolio stability
 
-**Capability status:** APPROVED DIRECTION for the capability; CANDIDATE for
-metrics and presentation.
+**Capability status:** APPROVED DIRECTION only as a possible long-term
+capability; implementation is DEFERRED until cross-run history has a validated
+business case. Metrics and presentation remain CANDIDATE after that gate.
 
 Portfolio stability is a descriptive view of comparable audit history. It is
 not return volatility, investment risk, source-system quality certification, or
@@ -4021,7 +4067,7 @@ packaged scope but remain CURRENT — REQUIRES CLIENT VALIDATION. History,
 workflow, and stability criteria are APPROVED DIRECTION or CANDIDATE and are not
 release claims.
 
-## 18.24 Dependencies and open decisions
+## 18.24 Dependencies and approved working assumptions
 
 ### Dependencies
 
@@ -4036,21 +4082,32 @@ release claims.
 - Phase 3F human disposition design for managed review workflow;
 - local history capability before stability measures.
 
-### Open decisions not blocking the Phase 3A draft
+### Founder-approved Phase 3A working assumptions
 
-1. Whether arithmetic completeness precision should remain a fixed product
-   contract or become a narrowly configurable, change-controlled value.
-2. Exact operational-materiality dimensions, precedence, and approval model.
-3. Whether an explanation-completeness percentage adds value beyond status and
-   residual without misleading reviewers.
-4. Exact human-note schema and whether notes can be attached to run, period,
-   cause, finding, or all four.
-5. Minimal local history index format and comparability-version rules.
-6. Whether the security report is mandatory in every pilot or generated only
-   when the selected case needs drilldown.
+The founder approved Phase 3A on 2026-07-16 with these working assumptions:
 
-These decisions should be tested in the first-client workflow. None authorizes
-direct calculated-result override or weaker safety behavior.
+1. **Explanation precision — APPROVED DIRECTION:** retain a fixed product
+   contract rather than exposing routine client configuration. Any future
+   change remains change controlled and must preserve internal, display, and
+   serialization reconciliation.
+2. **Operational materiality — APPROVED DIRECTION; CURRENT — REQUIRES CLIENT
+   VALIDATION:** use materiality only to prioritize visible work, never to
+   suppress a reportable difference or change explanation arithmetic. Initial
+   pilots may use client-approved basis-point thresholds; unresolved,
+   recurring, continuity, integrity, and policy-ambiguity conditions take
+   precedence over magnitude alone. Exact thresholds require client approval
+   and validation.
+3. **Explanation-completeness percentage — DEFERRED:** retain analytical status,
+   full-precision explained amount, and residual without an initial percentage.
+4. **Pilot report scope — APPROVED DIRECTION; CURRENT — REQUIRES CLIENT
+   VALIDATION:** generate the portfolio report in every pilot. Generate the
+   security report when the selected case or reviewer workflow requires
+   security-level drilldown; do not require it mechanically for every run.
+
+Human-note/workflow infrastructure and local-history infrastructure remain
+DEFERRED until a serious business case and client validation justify their
+complexity. These assumptions do not authorize direct calculated-result
+override, hidden evidence, or weaker safety behavior.
 
 ## 18.25 Real-client validation plan
 
@@ -4091,8 +4148,9 @@ bundle without founder-led interpretation.
 
 - repeat across reporting cycles or multiple source states;
 - test configuration/version change management;
-- validate recurrence and comparability concepts before implementing stability
-  metrics;
+- determine whether recurrence creates enough client value to justify any
+  history infrastructure; only then validate comparability concepts or
+  stability metrics;
 - measure review value, noise, support cost, and repeatability.
 
 **Exit evidence:** justified decision on repeatable product scope, local history,
@@ -4128,14 +4186,856 @@ Each claim remains CURRENT — REQUIRES CLIENT VALIDATION for a real site.
   implemented product;
 - that PPAR provides an audit opinion, certification, or assurance.
 
-## 18.27 Phase 3A completion and next gate
+## 18.27 Phase 3A approval and next gate
 
-Phase 3A is complete as a **draft functional specification for founder review**.
-It defines the current baseline, target product behavior, safety boundaries,
-future history/stability direction, open decisions, and client-validation plan.
+Phase 3A was founder-approved on 2026-07-16 with the four working assumptions
+in Section 18.24. That approval authorized Phase 3B drafting; it did not
+authorize application-code changes or begin Phase 3C.
 
-Phase 3B — Performance Data Quality Audit — MUST NOT begin until the founder
-reviews and approves Phase 3A.
+---
+
+# 19. Phase 3B — Performance Data Quality Audit
+
+## 19.1 Specification identity, purpose, and status
+
+**Capability:** Performance Data Quality Audit
+
+**Primary user:** performance or investment-operations analyst
+
+**Primary first-pilot surface:** the Data Audit Issues section inside the
+portfolio audit bundle
+
+**Overall status:** CURRENT — DEMONSTRATED; CURRENT — DOCUMENTED; CURRENT —
+REQUIRES CLIENT VALIDATION; CANDIDATE for explicit rule-execution coverage and
+summary behavior pending founder review
+
+This capability answers a different question from Phase 3A:
+
+> Which relationships inside each declared source state look internally
+> inconsistent, incomplete, duplicated, or discontinuous, and what evidence
+> should a qualified reviewer examine?
+
+It does not decide that a value is wrong, determine which snapshot is correct,
+or automatically turn a suspicious relationship into a performance cause.
+The current implementation evaluates transparent checks against normalized
+Snapshot A and Snapshot B inputs and publishes evidence rows for review.
+
+This section follows the same `MUST`, `SHOULD`, and `MAY` meanings defined in
+Section 18.1. Requirement identifiers use `PDQ` for Performance Data Quality.
+
+`PDQ-001` — A Data Audit result MUST be described as a rule-based review
+finding, not as proof of error, source-system failure, control deficiency,
+financial misstatement, or audit conclusion. CURRENT — DOCUMENTED.
+
+`PDQ-002` — Data Audit MUST remain analytically separate from the additive
+Performance Change Investigation calculation. CURRENT — DEMONSTRATED; CURRENT
+— DOCUMENTED.
+
+`PDQ-003` — Initial commercial claims MUST remain limited to the configured
+Axys/APX-style source contract and MUST retain CURRENT — REQUIRES CLIENT
+VALIDATION until real client cases establish rule utility, tolerances, and
+false-positive behavior.
+
+## 19.2 User problem, actors, trigger, and decision authority
+
+### 19.2.1 User problem
+
+A reviewer may have a valid performance-change explanation while the underlying
+extract still contains a suspicious price relationship, duplicate transaction,
+apparently missing dividend, inconsistent rate, or period discontinuity.
+Conversely, a Data Audit issue may be operationally harmless and unrelated to
+the changed return. The product must expose both truths without conflating them.
+
+`PDQ-004` — The capability MUST help a reviewer answer:
+
+1. which rule observed the condition;
+2. in which snapshot, portfolio, date, dataset field, and security it occurred;
+3. what values or absence triggered it;
+4. what tolerance or comparison basis was applied;
+5. whether the rule was mandatory, enabled, disabled, inapplicable, or unable
+   to evaluate; and
+6. what the reviewer should validate before concluding that the condition is
+   an error.
+
+Items 1–4 are CURRENT — DEMONSTRATED in finding detail. Item 5 is only partly
+visible today and is CANDIDATE for rule-execution coverage. Item 6 is
+CURRENT — DOCUMENTED in rule explanations and setup comments but requires
+client validation.
+
+### 19.2.2 Actors and authority
+
+| Actor | Phase 3B responsibility | Authority boundary |
+|---|---|---|
+| Performance or operations analyst | Reviews issue rows, validates source context, and escalates likely errors | May not rewrite PPAR calculations or source records through PPAR |
+| Methodology owner | Approves rule meaning, tolerance, and any performance-method interpretation | Owns client policy, not PPAR implementation |
+| Source/extract administrator | Explains export construction, identifiers, fields, and known valuation overrides | Owns extract facts, not performance conclusions |
+| Performance or operations manager | Approves pilot scope, review priority, and operational response | Does not convert a rule finding into independent assurance |
+| Local technology administrator | Controls installation, configuration-file access, execution, and retention | Does not approve financial semantics unless separately authorized |
+| PPAR | Executes declared checks deterministically and preserves evidence | Does not judge official correctness or alter the book of record |
+
+`PDQ-005` — Rule enablement, filters, and tolerances that affect a client run
+MUST be attributable to an authorized client policy owner and retained with the
+run configuration. APPROVED DIRECTION; the current local YAML is retained, but
+the product has no role-based approval workflow.
+
+### 19.2.3 Trigger
+
+The current trigger is a normal `ppar audit` execution after a valid local
+workspace and two snapshots have been declared. The same Data Audit table is
+reused in portfolio and security bundles generated by that execution.
+
+`PDQ-006` — Phase 3B MUST NOT require a changed reported return before a rule
+can find an issue. Checks operate on the declared source states, not only on
+rows that differ between Snapshot A and Snapshot B. CURRENT — DEMONSTRATED.
+
+A standalone Data Audit command is CANDIDATE. It is not required for the first
+pilot and must not be described as current.
+
+## 19.3 Boundary from Performance Change Investigation
+
+Data Audit and Performance Change Investigation share normalized inputs and
+bundle infrastructure but create different evidence:
+
+| Dimension | Performance Change Investigation | Performance Data Quality Audit |
+|---|---|---|
+| Primary question | Why did reported performance change? | What source relationship looks suspicious? |
+| Population | Reportable differences between A and B | Each snapshot's eligible rows, across the union of A and B |
+| Quantification | Selected supported effects on the return difference | Difference, range, rate, count, absence, or continuity evidence |
+| Counted in explained amount | Yes, only for supported owned causes | Never merely because a Data Audit finding exists |
+| Normal output | Performance Differences and Performance Difference Causes | Data Audit Issues |
+| Correctness conclusion | Not established | Not established |
+
+`PDQ-007` — A Data Audit finding MUST NOT add to, subtract from, or otherwise
+change `Performance Difference Explained`, the residual, or the Phase 3A
+analytical status. CURRENT — DEMONSTRATED; protected by report-table separation.
+
+`PDQ-008` — When the same underlying source fact is relevant to both
+capabilities, each representation MUST retain its own role and lineage. The
+Phase 3A cause may count a supported economic effect once; the Phase 3B row
+remains independent review evidence. APPROVED DIRECTION consistent with SN-02
+and the current table model.
+
+`PDQ-009` — A `Fully Explained` performance difference MUST NOT suppress,
+downgrade, or close an independent Data Audit finding. Likewise, a Data Audit
+finding MUST NOT force a valid performance-change residual. APPROVED DIRECTION.
+
+## 19.4 Preconditions, source contract, inputs, and configuration
+
+### 19.4.1 Preconditions
+
+The current capability depends on:
+
+- a resolved local audit configuration;
+- declared Snapshot A and Snapshot B directories;
+- normalized portfolio-performance and, when present, security-performance,
+  holdings, and transaction datasets;
+- valid identifiers, dates, numeric types, and currency/unit treatment required
+  by the applicable source contract;
+- client-reviewed transaction-code context for rules that use transaction
+  families; and
+- enough eligible peer rows or adjacent periods for the selected rule.
+
+`PDQ-010` — Required source-contract failures MUST be resolved before PPAR
+publishes an authoritative Data Audit result. A malformed required input is not
+equivalent to “no issue detected.” CURRENT — DOCUMENTED.
+
+`PDQ-011` — Optional dataset absence or insufficient comparison population MUST
+not be represented as a clean test. The target rule-execution summary MUST
+distinguish `No Issue Detected` from `Not Evaluated — Input Unavailable or
+Insufficient`. CANDIDATE; the current detail table does not expose
+this distinction.
+
+### 19.4.2 Required and optional inputs
+
+| Input | Use in Phase 3B | Status |
+|---|---|---|
+| Portfolio performance | Mandatory portfolio continuity | CURRENT — DEMONSTRATED |
+| Security performance | Security continuity when the dataset is available | CURRENT — DEMONSTRATED |
+| Holdings | Holdings price, missing-dividend qualification, accrued-rate, and rate-quantity fallback | CURRENT — DEMONSTRATED |
+| Transactions | Duplicate, transaction-price, dividend-rate, missing-dividend, and PA/SA-rate checks | CURRENT — DEMONSTRATED |
+| Split evidence | No current Phase 3B rule | CANDIDATE only |
+| Snapshot labels and configuration | Scope, enablement, filters, and tolerances | CURRENT — DEMONSTRATED |
+
+`PDQ-012` — Optional inputs MUST be described as optional evidence, not silently
+treated as comprehensive source coverage. A rule that needs an absent dataset
+cannot establish that the relevant condition does not exist. APPROVED
+DIRECTION.
+
+### 19.4.3 Current configuration surface
+
+The current `data_audit_checks` YAML supports:
+
+- top-level `enabled` for the seven optional checks;
+- per-check `enabled`;
+- per-check `only` and `exclude` exact-match row filters;
+- `absolute_tolerance` and `percent_tolerance` for numeric comparison checks;
+  and
+- separate continuity tolerance blocks keyed by
+  `portfolio_market_value_continuity` and
+  `security_market_value_continuity`.
+
+Every optional check defaults to enabled unless an exact Boolean `false` is
+provided. Top-level disablement does not disable continuity.
+
+`PDQ-013` — The generated evidence pack SHOULD make the effective rule set,
+filters, tolerances, source-contract version, and configuration fingerprint
+easy to identify without asking the operator to reconstruct defaults.
+CANDIDATE; current bundles identify the comparison path and source context and
+preserve the result table, but they do not embed an effective rule summary or
+complete configuration snapshot.
+
+`PDQ-014` — Malformed rule configuration MUST eventually fail validation with
+an actionable location rather than silently falling back to a default.
+CANDIDATE and current gap: some non-Boolean enablement values,
+non-numeric tolerances, or malformed filter shapes currently fall back or are
+ignored by the rule evaluator. No application-code change is authorized by
+this specification.
+
+## 19.5 Current rule catalog
+
+The current implemented catalog contains seven optional checks and two
+mandatory continuity issue types. All are CURRENT — DEMONSTRATED; CURRENT —
+DOCUMENTED; CURRENT — REQUIRES CLIENT VALIDATION.
+
+| Rule / issue type | Current logic | Current output meaning |
+|---|---|---|
+| `holdings_price_range` | Within one snapshot, compare same-date, same-security `holdings.price` values across eligible portfolios | Emits the minimum, maximum, range, and tolerance for every participating row when the range is over tolerance |
+| `transactions_price_range` | Within one snapshot, compare same-date, same-security `transactions.price` values across eligible portfolios | Emits the minimum, maximum, range, and tolerance for every participating row |
+| `duplicate_transactions` | Within one snapshot and portfolio, group exact same date, security, code, amount, quantity, and price | Emits every row in a group of two or more and reports the group count |
+| `dividend_rate` | Within one snapshot, compare same-date, same-security `dv` amount-per-unit rates across portfolios | Emits min/max rates and tolerance; uses transaction quantity or a holdings fallback |
+| `missing_dividend` | Find portfolios conservatively appearing to hold a security across a date when another portfolio has a same-day `dv` | Emits the apparently missing portfolio and the portfolio(s) where the dividend exists |
+| `pa_sa_rate` | Within one snapshot, compare same-date, same-security amount-per-unit rates across portfolios, separately for `pa` and `sa` | Emits min/max rate and tolerance for participating rows |
+| `holdings_accrued_rate` | Within one snapshot, compare same-date, same-security `holdings.accrued / abs(quantity)` across portfolios | Emits min/max rate and tolerance for participating rows |
+| `portfolio_market_value_continuity` | Within one snapshot and portfolio, compare an adjacent prior period's ending market value with the next period's beginning market value | Emits prior ending value, next beginning value, difference, tolerance, and SN-04 explanation |
+| `security_market_value_continuity` | Same continuity test at portfolio/security grain | Emits the security-grain SN-04 evidence |
+
+`PDQ-015` — The rule identifiers above MUST remain machine-readable and
+semantically stable or be versioned with an explicit migration. APPROVED
+DIRECTION.
+
+`PDQ-016` — The current catalog MUST NOT be described as comprehensive data
+validation. It samples specific relationships relevant to portfolio-
+performance review. CURRENT — DOCUMENTED.
+
+`PDQ-017` — Split plausibility, FX anomalies, stale prices, identifier changes,
+broader corporate actions, return outliers, and other rule families remain
+CANDIDATE for Phase 4 unless separately implemented, tested, and approved.
+
+## 19.6 Rule execution model
+
+The current execution sequence is:
+
+1. resolve the comparison specification and normalized loaders;
+2. load Snapshot A and Snapshot B frames for performance, holdings, and
+   transactions when available;
+3. evaluate mandatory portfolio and security continuity;
+4. if top-level optional checks are enabled, materialize eligible holding and
+   transaction rows once;
+5. run each enabled optional rule with its filters and tolerances;
+6. normalize issue rows to a stable table schema;
+7. sort by snapshot, portfolio, date, issue type, and security; and
+8. reuse the resulting table in the portfolio and, when generated, security
+   evidence packs.
+
+`PDQ-018` — Rule evaluation MUST be deterministic for the same normalized
+inputs, configuration, product version, and declared nonvolatile context.
+CURRENT — DOCUMENTED under SN-11.
+
+`PDQ-019` — Each rule MUST declare its eligible datasets, fields, population,
+grouping key, comparison formula, threshold, output meaning, and known
+limitations before it can become part of the supported catalog. APPROVED
+DIRECTION for the Phase 4 rule schema.
+
+`PDQ-020` — A rule MUST NOT infer correctness from the frequency or majority of
+a value. The current range and rate rules report peer inconsistency; they do not
+label the minimum, maximum, or most common value as correct. CURRENT —
+DOCUMENTED.
+
+`PDQ-021` — A rule that cannot safely interpret a row SHOULD exclude that row
+from the calculation and MUST make material coverage limitations visible in
+the target execution summary. Current numeric helpers skip absent, nonfinite,
+or unusable values; coverage disclosure is APPROVED DIRECTION.
+
+## 19.7 Union-of-snapshots and comparison behavior
+
+“Across the union of Snapshot A and Snapshot B” means that eligible rows from
+both declared source states are examined. It does **not** mean that Snapshot A
+and Snapshot B values are combined into one peer group.
+
+`PDQ-022` — Every current rule MUST preserve the snapshot label in its grouping
+or period scope. A same-day Snapshot A value and Snapshot B value MUST NOT be
+treated as two portfolio peers merely because their date and security match.
+CURRENT — DEMONSTRATED.
+
+`PDQ-023` — Optional rules MUST evaluate unchanged rows as well as rows that
+differ between snapshots. This capability is source-state consistency review,
+not delta-only review. CURRENT — DEMONSTRATED.
+
+`PDQ-024` — Duplicate groups MUST remain snapshot-specific. An otherwise
+identical transaction appearing once in A and once in B is not a duplicate
+under the current rule. CURRENT — DEMONSTRATED.
+
+`PDQ-025` — Continuity MUST compare periods only within the same snapshot and
+grain. It MUST NOT compare Snapshot A ending value directly with Snapshot B
+beginning value. CURRENT — DEMONSTRATED.
+
+`PDQ-026` — Current continuity candidates require exact calendar adjacency:
+the next `from_date` equals the prior `thru_date + 1 day`. Nonadjacent periods
+do not create a continuity finding. CURRENT — DEMONSTRATED; client calendars
+and intentionally gapped extracts require validation.
+
+## 19.8 Tolerances and filters
+
+### 19.8.1 Numeric tolerances
+
+For current numeric range and rate rules, the trigger threshold is:
+
+> greater of configured absolute tolerance or
+>
+> absolute reference value × configured percent tolerance / 100
+
+The reference is the maximum observed peer value for range/rate rules and the
+prior ending market value for continuity. A finding is emitted only when the
+absolute continuity difference or positive peer range is strictly greater than
+that threshold.
+
+`PDQ-027` — Both the observed difference and human-readable effective
+tolerance MUST remain in the finding detail. CURRENT — DEMONSTRATED.
+
+`PDQ-028` — Optional numeric rules default to zero absolute and percent
+tolerance when no valid value is configured. Continuity uses an effective
+absolute tolerance of `0.01` when both configured tolerances resolve to zero.
+CURRENT — DEMONSTRATED.
+
+`PDQ-029` — Pilot tolerances MUST be approved in the units and economic context
+of the rule. A percent tolerance is not an operational-materiality threshold,
+and neither type may change Phase 3A explanation arithmetic. APPROVED DIRECTION.
+
+`PDQ-030` — Tolerance changes MUST be versioned and regression-tested against
+known true-positive and known acceptable cases. They MUST NOT be widened merely
+to hide noise or a failing gate. APPROVED DIRECTION consistent with project
+test-gate doctrine.
+
+### 19.8.2 Exact-match filters
+
+Current filters are case-insensitive string matches:
+
+- every configured `only` field must match;
+- a match on any configured `exclude` field removes the row;
+- common aliases include snapshot, portfolio/portfolio_id,
+  security/security_id, security_type, asset_class, and transaction_code; and
+- a dataset-qualified field such as `transactions.transaction_code` resolves to
+  the normalized field after the final dot.
+
+They do not provide ranges, regular expressions, wildcards, or semantic
+security-master predicates.
+
+`PDQ-031` — Filters MUST be understood as population definition, not
+post-finding cosmetic filtering. Removing rows before grouping can change the
+peer set and whether an issue exists. CURRENT — DOCUMENTED.
+
+`PDQ-032` — A client pilot SHOULD begin with deliberately narrow,
+client-approved populations where the relationship is expected to be
+comparable, then expand only after reviewing noise and missed cases. CURRENT —
+DOCUMENTED setup guidance; CURRENT — REQUIRES CLIENT VALIDATION.
+
+`PDQ-033` — Global rule disablement SHOULD be the last response to false
+positives. Prefer correcting source interpretation, narrowing eligible
+populations, or calibrating a documented tolerance. APPROVED DIRECTION.
+
+## 19.9 Mandatory and optional findings
+
+“Mandatory” describes rule execution, not automatic run failure.
+
+`PDQ-034` — Portfolio and security beginning/end market-value continuity are
+mandatory safety checks when the applicable performance data is present. They
+MUST remain active even when `data_audit_checks.enabled` is false. CURRENT —
+DEMONSTRATED under SN-04.
+
+`PDQ-035` — The seven other checks are optional and individually configurable.
+Their absence from an issue table does not by itself prove they ran, had
+eligible inputs, or found no issue. CURRENT — DOCUMENTED.
+
+`PDQ-036` — The target rule-execution summary MUST use these non-workflow
+execution outcomes:
+
+- `Issue Detected`;
+- `No Issue Detected`;
+- `Not Run — Disabled`;
+- `Not Evaluated — Input Unavailable or Insufficient`; and
+- `Blocked — Invalid Contract or Configuration`.
+
+This summary is CANDIDATE. These labels do not create human case
+management and do not supersede the Phase 2 run or analytical statuses.
+
+`PDQ-037` — A mandatory continuity finding MUST remain visible and prioritized
+for review, but its existence alone MUST NOT be described as proof that the
+audit run or reported return is invalid. APPROVED DIRECTION.
+
+## 19.10 Evidence, disposition, and separation from counted causes
+
+The current issue schema contains:
+
+- snapshot;
+- portfolio identifier;
+- as-of date;
+- dataset field;
+- security identifier when applicable;
+- issue type;
+- reference/minimum value;
+- observed/maximum value;
+- difference;
+- tolerance;
+- explanation; and
+- deterministic review key.
+
+`PDQ-038` — The reviewer-facing row MUST contain enough detail to reproduce the
+rule comparison from retained local evidence or identify why reproduction is
+not possible. APPROVED DIRECTION; current rows provide the comparison detail
+but broader source locators vary by rule.
+
+`PDQ-039` — The current `review_key` MUST be treated as a deterministic review
+locator, not as a guaranteed unique source-row identity. Multiple rows in the
+same issue group, including exact duplicates, may legitimately share it.
+CURRENT — DOCUMENTED.
+
+`PDQ-040` — Data Audit rows MUST NOT receive an explained amount, economic-
+effect ownership, or cause disposition merely because they share a portfolio,
+period, security, or field with Phase 3A evidence. APPROVED DIRECTION.
+
+`PDQ-041` — Human disposition, comments, assignment, acceptance, and closure
+remain DEFERRED with the broader workflow infrastructure. Until a serious
+business case is validated, the immutable generated issue table is the product
+record and any external client workflow remains outside PPAR.
+
+## 19.11 Summary, detail, and reviewer workflow
+
+### 19.11.1 Current detail outputs
+
+`Data Audit Issues` is one of exactly three normal review surfaces in both the
+XLSX workbook and HTML report. Its canonical CSV counterpart,
+`x_ref_issues.csv`, is preserved in the supporting bundle and promoted in
+CSV-only output. The bundle manifest records the artifact and table contract.
+
+`PDQ-042` — XLSX, HTML, CSV, manifest counts, and fingerprints MUST remain
+semantically aligned. Any parity failure is an internal logic error, not a
+review warning. CURRENT — DEMONSTRATED under SN-10 and SN-11.
+
+`PDQ-043` — The detail table MUST remain available even when a future summary
+or prioritization view is added. Summary presentation MUST NOT become the only
+surviving evidence. APPROVED DIRECTION.
+
+### 19.11.2 Minimum useful summary
+
+The current report shows the detail table but no dedicated rule-execution
+coverage summary. The minimum useful target summary is:
+
+- total issue-row count;
+- count by issue type and snapshot;
+- affected portfolio and security counts;
+- mandatory versus optional rule identity;
+- effective execution outcome for every configured/current rule;
+- configured tolerance/filter indicator;
+- input-coverage limitation; and
+- direct link to detail.
+
+`PDQ-044` — A summary MUST distinguish “zero findings” from “rule not
+evaluated.” It MUST NOT use an unsupported severity, confidence, quality score,
+or pass/fail certification. CANDIDATE.
+
+`PDQ-045` — Initial prioritization MAY use the founder-approved operational-
+materiality policy from Section 18.24, but continuity, integrity,
+insufficient-coverage, recurring, and unresolved conditions take precedence
+over magnitude alone. APPROVED DIRECTION; exact presentation requires client
+validation.
+
+### 19.11.3 Reviewer path
+
+The intended first-pilot path is:
+
+1. start with the portfolio audit's changed-performance view;
+2. review independent Data Audit summary/issue rows even if the performance
+   difference is fully explained;
+3. filter by snapshot, rule, portfolio, date, field, and security;
+4. inspect the observed/reference values, tolerance, and explanation;
+5. return to the local extract and configuration for factual validation;
+6. escalate source correction or policy clarification outside PPAR; and
+7. rerun with a new immutable evidence pack when inputs or approved policy
+   change.
+
+`PDQ-046` — The product SHOULD explain that a rerun supersedes the reviewed
+evidence operationally but does not mutate the prior bundle. APPROVED
+DIRECTION; cross-run history remains DEFERRED.
+
+## 19.12 Blocking and nonblocking policy
+
+### 19.12.1 Nonblocking review findings
+
+All current Data Audit issue rows, including mandatory continuity findings, are
+nonblocking review findings. The audit continues and preserves them visibly.
+
+`PDQ-047` — A plausible but interpretable inconsistency SHOULD produce a
+finding rather than stop report generation. CURRENT — DEMONSTRATED.
+
+### 19.12.2 Blocking conditions
+
+Data Audit must remain subject to the broader fail-closed product contracts.
+Blocking conditions include:
+
+- invalid required source schema, type, identity, currency/unit, or period
+  contract;
+- overlapping or otherwise unsafe performance periods;
+- required transaction or formula semantics that cannot be resolved for an
+  authoritative output;
+- malformed configuration once the target validation in `PDQ-014` is
+  implemented;
+- internal arithmetic, conservation, lineage, output-parity, determinism, or
+  bundle-validation failure; and
+- a review table exceeding the current 100,000-row output safety limit.
+
+`PDQ-048` — Blocking failures MUST identify the failure class and corrective
+owner. They MUST NOT be converted into a clean result, hidden row, generic
+“unexplained” status, or weaker warning. CURRENT — DOCUMENTED.
+
+`PDQ-049` — When a primary review table would exceed 100,000 rows, current
+behavior MUST remain fail-closed: write no files for that oversized report,
+identify major row contributors, and require narrower scope or corrected
+upstream conditions. CURRENT — DEMONSTRATED.
+
+## 19.13 False-positive and exception management
+
+A finding can be technically correct under its rule and still be operationally
+acceptable—for example, portfolio-specific valuation overrides or legitimate
+intraday transaction price variation. Phase 3B therefore requires controlled
+rule calibration, not stronger correctness language.
+
+`PDQ-050` — Each pilot rule MUST be validated against three populations where
+available:
+
+1. known error or expected finding;
+2. known acceptable variation; and
+3. ambiguous case requiring human review.
+
+CURRENT — REQUIRES CLIENT VALIDATION.
+
+`PDQ-051` — Validation SHOULD record, per rule, eligible population, issue
+groups, issue rows, confirmed errors, acceptable variations, indeterminate
+cases, missed expected cases, review time, and configuration changes.
+APPROVED DIRECTION.
+
+`PDQ-052` — PPAR MUST NOT introduce a global “false positive” percentage
+without a defined denominator and client-reviewed ground truth. Rule-level
+precision or yield measures MAY be evaluated during validation but are not
+current product claims.
+
+`PDQ-053` — Per-finding suppression, comments, exception expiry, assignment,
+and approval would require the deferred workflow infrastructure. They MUST NOT
+be improvised as hidden report filtering. DEFERRED.
+
+`PDQ-054` — An approved filter or tolerance exception MUST be visible in
+effective configuration and must not alter retained historical bundles.
+APPROVED DIRECTION.
+
+## 19.14 Rule-specific limitations and edge cases
+
+### 19.14.1 Peer range and rate checks
+
+- Fewer than two usable peer values produce no issue under the current rules.
+- Range and rate groups are same-snapshot, same-date, and same-security.
+- `pa` and `sa` rates are grouped separately.
+- Transaction rates use `abs(amount) / abs(quantity)`.
+- If transaction quantity is absent or zero, dividend and PA/SA rules use the
+  first same-snapshot, same-portfolio, same-security holdings quantity on or
+  after the transaction date.
+- Holdings accrued rate uses `accrued / abs(quantity)`.
+- Filtering a participant out can change the min/max and the result.
+
+`PDQ-055` — The quantity fallback MUST be disclosed because it is an inferred
+calculation basis, not transaction-row evidence. CURRENT — DOCUMENTED in setup
+guidance; CURRENT — REQUIRES CLIENT VALIDATION.
+
+`PDQ-056` — A peer range finding MUST not identify which portfolio is wrong.
+Every participating row may be emitted so the reviewer can assess context.
+CURRENT — DEMONSTRATED.
+
+### 19.14.2 Duplicate transactions
+
+The current duplicate rule has no durable transaction identifier in its group
+key. It flags exact repeated rows at the configured fields and emits each member
+of the group.
+
+`PDQ-057` — The rule MUST be described as duplicate-row detection, not proof of
+duplicate economic activity. Legitimate separate events can share the current
+fields if the extract omits a durable identifier. CURRENT — DOCUMENTED.
+
+### 19.14.3 Missing dividend
+
+The current rule begins with a same-snapshot dividend event in at least one
+eligible portfolio. Another portfolio qualifies for review only when
+consecutive holdings dates bracket the dividend date and either:
+
+- the earlier holding quantity is positive; or
+- positive buy activity occurs before the dividend date.
+
+Any other transaction activity between the earlier holding date and dividend
+date prevents qualification. A same-date dividend in the candidate portfolio
+prevents a finding.
+
+`PDQ-058` — The rule MUST be described as conservative apparent-absence
+detection. It does not establish entitlement, ex-date/pay-date correctness,
+tax treatment, corporate-action completeness, or a missing official posting.
+CURRENT — DOCUMENTED.
+
+### 19.14.4 Continuity
+
+- Only consecutive periods at the same grain are compared.
+- Nonadjacent periods, missing begin/end values, or unavailable security
+  performance do not produce a continuity row.
+- Difference is next beginning market value minus prior ending market value.
+- Continuity is evaluated independently inside A and B.
+
+`PDQ-059` — Continuity MUST remain a visible safety finding and MUST never be
+silently repaired, filled, or netted against another value. CURRENT —
+DEMONSTRATED under SN-04.
+
+## 19.15 Lineage, audit trail, and invariants
+
+Each issue row is generated from normalized local data and carries a
+deterministic review locator. The canonical CSV is included in the validated
+supporting evidence, and the report bundle records table metadata and content
+fingerprints.
+
+`PDQ-060` — The bundle MUST preserve the exact issue detail used by every
+presentation surface and MUST validate before delivery. CURRENT —
+DEMONSTRATED.
+
+`PDQ-061` — Data Audit implementation changes MUST preserve all applicable
+safety invariants, especially:
+
+| Invariant | Phase 3B implication |
+|---|---|
+| SN-02 No double counting | Data Audit evidence cannot become an additive cause without separate supported ownership |
+| SN-04 Continuity | Applicable continuity always executes and remains visible |
+| SN-05 Bidirectional lineage | Any cross-link to Phase 3A must be traceable in both directions |
+| SN-06 Currency/unit consistency | Unsafe units cannot enter a meaningful comparison |
+| SN-07 Period-boundary safety | Continuity and dated evidence use unambiguous periods |
+| SN-10 Report parity | XLSX, HTML, and CSV convey the same issue semantics |
+| SN-11 Deterministic output | Rule results and bundle fingerprints repeat |
+| SN-12 Fail-closed policy | Unknown required meaning cannot become a clean result |
+
+CURRENT — DOCUMENTED project gate.
+
+`PDQ-062` — No implementation or configuration change may weaken a test,
+tolerance, invariant, or release gate merely because it produces an
+uncomfortable result. Any intentional product-policy change requires explicit
+approval, evidence, and tradeoff documentation. CURRENT — DOCUMENTED.
+
+## 19.16 Scale and performance
+
+The current evaluator loads each applicable snapshot dataset once, reuses
+materialized holding/transaction rows across enabled rules, precompiles filters,
+and uses grouped comparisons. This is CURRENT — DEMONSTRATED in the packaged
+scope and engineering scale checks, but CURRENT — REQUIRES CLIENT VALIDATION
+for real extract shapes.
+
+`PDQ-063` — Rule design SHOULD avoid repeated full-dataset parsing and
+unbounded pairwise comparisons when a grouped deterministic calculation is
+available. APPROVED DIRECTION.
+
+`PDQ-064` — Scale validation MUST measure source row counts, eligible row
+counts, group cardinality, issue-row amplification, runtime, memory, report
+size, and reviewer usability by rule. APPROVED DIRECTION.
+
+`PDQ-065` — A noisy rule that creates an unusable report is not commercially
+validated merely because it is computationally fast. Review effort and
+actionable yield are required validation evidence.
+
+`PDQ-066` — The 500x scale check remains part of the release-candidate workflow
+for major cross-cutting, reporting, audit, safety-net, or performance changes.
+CURRENT — DOCUMENTED project gate.
+
+## 19.17 Local-first, security, privacy, and support
+
+`PDQ-067` — Source extracts, normalized rows, issue calculations, configuration,
+and generated evidence MUST remain in the client-controlled environment during
+ordinary operation. CURRENT — DOCUMENTED permanent doctrine.
+
+`PDQ-068` — Phase 3B MUST NOT require PPAR-operated upload, telemetry, hosted
+portfolio-data processing, or remote rule execution. OUT OF SCOPE under current
+doctrine.
+
+`PDQ-069` — Support SHOULD begin with locally generated validation results,
+product/configuration versions, rule-execution metadata, error classification,
+and non-sensitive diagnostics. Any evidence transfer requires explicit,
+case-specific client authorization. APPROVED DIRECTION.
+
+`PDQ-070` — Current access control is the client's operating-system and file
+permission boundary. Built-in role-based authorization, identity, comments,
+and approval workflow are not current capabilities and remain DEFERRED pending
+a validated business case.
+
+## 19.18 Acceptance criteria
+
+Phase 3B is functionally acceptable only when all applicable criteria pass:
+
+1. **Boundary:** issue rows never alter Phase 3A counted causes, explained
+   amount, residual, or analytical status.
+2. **Rule truth:** every supported rule has explicit population, grouping,
+   formula, threshold, output meaning, and limitations.
+3. **Snapshot separation:** A and B are both examined but never mixed into one
+   current peer group or continuity sequence.
+4. **Mandatory behavior:** applicable portfolio/security continuity cannot be
+   disabled with optional checks.
+5. **Configuration:** effective enablement, filters, tolerances, and versions
+   are reproducible; malformed target configuration fails clearly.
+6. **Coverage:** reviewers can distinguish detected, clean, disabled,
+   insufficient, and blocked execution outcomes.
+7. **Evidence:** detail identifies scope, observed/reference values or absence,
+   difference, tolerance, explanation, and review locator.
+8. **Outputs:** XLSX, HTML, CSV, manifest, and fingerprints agree.
+9. **Failure behavior:** unsafe contracts and internal logic failures block;
+   interpretable suspicious relationships remain visible nonblocking findings.
+10. **False positives:** each enabled pilot rule is calibrated against known
+    errors, acceptable variation, and ambiguous cases where available.
+11. **Scale:** issue amplification remains computationally and operationally
+    usable, with the 100,000-row report guard intact.
+12. **Local-first:** ordinary execution and evidence retention require no
+    portfolio-data transfer.
+13. **Claims:** outputs are described as transparent review findings, not
+    assurance, certification, or comprehensive validation.
+
+Current implementation demonstrates much of criteria 1–4, 7–9, 11–12 within
+the packaged scope. Explicit execution coverage, stricter malformed-
+configuration validation, calibrated false-positive evidence, and real-client
+rule utility remain APPROVED DIRECTION or CURRENT — REQUIRES CLIENT VALIDATION.
+
+## 19.19 Dependencies and open decisions
+
+### Dependencies
+
+- founder-approved Phase 2 actors, decision rights, and local-first workflow;
+- founder-approved Phase 3A evidence/cause boundary and pilot report scope;
+- current source/extract, normalization, safety-invariant, and bundle contracts;
+- Phase 3C design for a unified readiness and preflight experience;
+- Phase 4 rule schema, prioritization, and catalog-governance design;
+- real-client source and policy owners for tolerance and filter approval; and
+- deferred workflow/history capabilities only if later business validation
+  justifies them.
+
+### Open decisions for founder review
+
+1. **Rule-execution summary — OPEN DECISION:** recommended direction is to
+   adopt the five execution outcomes in `PDQ-036` and the minimum summary in
+   `PDQ-044`, without adding human workflow infrastructure.
+2. **Pilot rule-set policy — OPEN DECISION:** whether every pilot begins with
+   all seven optional rules deliberately configured, or only the rules relevant
+   to validated source populations. Recommended default: configure only
+   understood populations while always retaining mandatory continuity.
+3. **Malformed configuration — OPEN DECISION:** recommended direction is to
+   make invalid enablement, tolerance, and filter shapes fail validation
+   instead of silently falling back.
+4. **Data Audit placement — OPEN DECISION:** retain Data Audit primarily inside
+   the integrated audit bundle for initial pilots; consider a standalone entry
+   point only after client workflow shows independent demand.
+5. **Rule-result priority — OPEN DECISION:** validate whether the Phase 3A
+   operational-materiality dimensions are sufficient or Phase 4 needs a
+   separate rule-specific priority model. Do not introduce confidence or a
+   composite quality score.
+
+None of these decisions authorizes per-finding workflow, hidden suppression,
+hosted processing, or expansion beyond performance-quality review.
+
+## 19.20 Real-client validation plan
+
+### Stage 1 — Rule and source discovery
+
+- inventory client extract availability and field meaning;
+- identify which portfolios, security types, transaction codes, and valuation
+  practices create legitimately comparable populations;
+- select mandatory and optional pilot rules;
+- approve initial exact filters and tolerances;
+- identify known accepted overrides and data limitations.
+
+**Exit evidence:** an attributable pilot rule matrix with population,
+configuration, rationale, owner, and expected limitation.
+
+### Stage 2 — Known-case calibration
+
+- run known data errors and known acceptable variations;
+- verify expected issue types, snapshot scope, values, dates, and portfolios;
+- look for missed expected cases and unexpected row amplification;
+- confirm that no finding alters Phase 3A explanation arithmetic;
+- adjust filters or tolerances only with recorded evidence.
+
+**Exit evidence:** rule-by-rule labeled cases and an approved configuration
+revision, including errors the rule did not detect.
+
+### Stage 3 — Blind operational review
+
+- have an analyst review findings without being told the planted/known outcome;
+- record likely error, acceptable variation, and indeterminate judgments;
+- reconcile judgments with source and methodology owners;
+- measure review time, escalation burden, and actionable yield;
+- test whether the summary and explanations support independent operation.
+
+**Exit evidence:** client-reviewed usefulness and false-positive record with no
+unsupported correctness claim.
+
+### Stage 4 — Recurring-use decision
+
+- repeat on later reporting cycles or source states;
+- measure configuration stability and rule-specific noise;
+- identify repeated conditions outside PPAR if the client already has a
+  workflow;
+- decide which rule families merit Phase 4 investment;
+- assess whether standalone Data Audit or workflow/history infrastructure has
+  a serious business case.
+
+**Exit evidence:** evidence-supported catalog priorities and an explicit
+continue, revise, or retire decision for each pilot rule.
+
+## 19.21 Claims supported and not supported
+
+### Claims supported now, with qualification
+
+- PPAR applies configured transparent consistency checks to eligible normalized
+  rows in both Snapshot A and Snapshot B.
+- PPAR currently reports seven optional issue families plus mandatory
+  beginning/end market-value continuity when applicable.
+- PPAR preserves snapshot, portfolio, date, dataset field, security, values,
+  difference, tolerance, explanation, and review-key context in a validated
+  local evidence pack.
+- Data Audit findings remain separate from additive performance causes.
+
+Each claim is CURRENT — REQUIRES CLIENT VALIDATION for a real site.
+
+### Claims not supported
+
+- that PPAR validates all portfolio-accounting data;
+- that every issue row is an error;
+- that no issue rows means the data is correct or every rule had coverage;
+- that the reference/minimum/maximum/majority value is authoritative;
+- that a detected duplicate row proves duplicated economic activity;
+- that an apparent missing dividend establishes legal or accounting
+  entitlement;
+- that Data Audit provides an audit opinion, control certification, regulatory
+  assurance, GIPS verification, or official-performance approval;
+- that current rules have validated severity, confidence, or quality scores;
+- that PPAR currently provides durable issue workflow, cross-run history, or a
+  standalone data-quality product; or
+- that packaged-demo calibration establishes universal Axys/APX behavior.
+
+## 19.22 Phase 3B completion and next gate
+
+Phase 3B is complete as a **draft functional specification for founder review**.
+It defines the current rule surface, exact snapshot execution boundary,
+configuration and tolerance behavior, mandatory/optional policy, evidence and
+cause separation, outputs, failure policy, false-positive management,
+acceptance criteria, and client-validation plan.
+
+Phase 3C MUST NOT begin until the founder reviews and approves Phase 3B and
+resolves or authorizes working assumptions for the open decisions in Section
+19.19.
 
 ---
 
@@ -4584,10 +5484,11 @@ authorized as Phase 3 working assumptions.**
 
 ## Phase 3 — Detailed Functional Specifications
 
-- Performance Change Investigation — Phase 3A draft completed in v0.4; awaiting
+- Performance Change Investigation — Phase 3A founder-approved on 2026-07-16
+  with four authorized working assumptions,
+- Performance Data Quality Audit — Phase 3B draft completed in v0.5; awaiting
   founder review and approval,
-- Data Quality Audit — Phase 3B not started,
-- Audit Readiness,
+- Audit Readiness — Phase 3C not started and gated on Phase 3B approval,
 - Executive Investigation Summary,
 - Audit Health Dashboard,
 - Operational Intelligence.
