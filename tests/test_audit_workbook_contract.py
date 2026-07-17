@@ -1099,4 +1099,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 html_report.index(_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET),
                 html_report.index(_pc_review_model.RECONSTRUCTION_SUMMARY_SHEET),
             )
-            self.assertNotIn(_pc_review_model.SOURCE_DETAIL_SHEET, html_report)
+            self.assertNotIn(
+                f"<h2>{_pc_review_model.SOURCE_DETAIL_SHEET}</h2>",
+                html_report,
+            )

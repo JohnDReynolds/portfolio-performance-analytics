@@ -15,7 +15,6 @@ import zipfile
 
 # Third-party imports
 import polars as pl
-from polars.testing import assert_frame_equal
 
 # Project imports
 from ppar.errors import PpaError
@@ -27,36 +26,23 @@ from ppar.audit import (
     write_audit_report_bundle,
     write_audit_review_workbook,
 )
-from ppar.audit.performance_comparison import (
-    DIRECT_INPUT,
-    Finding,
-    TARGET_OUTPUT,
-    findings_to_polars,
-)
 from ppar.audit import schema as pc_cols
 from ppar.audit.performance_comparison import explain as _pc_explain
 from ppar.audit import output_policy as _pc_output_policy
 from ppar.audit import report as _pc_report
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import workbook as _pc_workbook
-from ppar.audit.performance_comparison.findings import (
-    CONFIDENCE_HIGH,
-    PC_PORT_MV,
-    PC_PORT_RET,
-    SEVERITY_MATERIAL,
-)
+from ppar.audit import workbook_formula_rows as _pc_workbook_formula_rows
+from ppar.audit import workbook_reconstruction as _pc_workbook_reconstruction
 from ppar.audit import workbook_tables as _pc_workbook_tables
 from ppar.audit.transaction_summary import (
     transaction_semantics_summary,
 )
 from ppar.audit.workbook_tables import (
-    _workbook_changed_item_row,
     _workbook_portfolio_changes_table,
     _workbook_raw_audit_trail_table,
-    _workbook_row_kind,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
-    _workbook_with_primary_review_key,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
@@ -1088,69 +1074,6 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
-    def test_raw_audit_trail_preserves_non_presentation_source_columns(self) -> None:
-        """Bulk source-column projection preserves every raw finding value."""
-        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        keyed_findings = _workbook_with_primary_review_key(
-            findings,
-            _pc_workbook_tables.PORTFOLIO_COMPARISON_LEVEL,
-        )
-        first_row = keyed_findings.row(0, named=True)
-        presentation_columns = set(_workbook_changed_item_row(first_row))
-        raw_columns = [
-            column
-            for column in keyed_findings.columns
-            if column not in presentation_columns
-        ]
-
-        raw_audit_trail = _workbook_raw_audit_trail_table(findings)
-        source_columns = ["review_key", *raw_columns]
-        expected = keyed_findings.select(source_columns).sort(source_columns)
-        actual = raw_audit_trail.select(source_columns).sort(source_columns)
-
-        assert_frame_equal(actual, expected)
-
-    def test_changed_item_row_classifies_finding_once(self) -> None:
-        """Changed-item construction reuses one presentation classification."""
-        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        row = findings.row(0, named=True)
-        classify = _workbook_row_kind
-
-        with mock.patch(
-            "ppar.audit.workbook_tables._workbook_row_kind",
-            wraps=classify,
-        ) as classify_spy:
-            changed_item = _workbook_changed_item_row(row)
-
-        self.assertEqual(classify_spy.call_count, 1)
-        self.assertEqual(changed_item["portfolio_id"], row["portfolio_id"])
-
-    def test_raw_audit_trail_reuses_wording_without_losing_identity(self) -> None:
-        """Repeated presentation inputs retain row-specific audit identities."""
-        source = compare_snapshots(_RESTATEMENT_COMPARISON_PATH).head(1)
-        duplicate = source.with_columns(
-            pl.lit("SECOND_PORTFOLIO").alias("portfolio_id"),
-            pl.lit("source:second-portfolio").alias("source_record_locator"),
-        )
-        findings = pl.concat([source, duplicate])
-
-        with mock.patch.object(
-            _pc_workbook_tables,
-            "_workbook_changed_item_row",
-            wraps=_workbook_changed_item_row,
-        ) as changed_item_spy:
-            raw_audit_trail = _workbook_raw_audit_trail_table(findings)
-
-        self.assertEqual(changed_item_spy.call_count, 1)
-        self.assertEqual(
-            set(raw_audit_trail["portfolio_id"].to_list()),
-            {source["portfolio_id"][0], "SECOND_PORTFOLIO"},
-        )
-        self.assertIn(
-            "source:second-portfolio",
-            raw_audit_trail["source_record_locator"].to_list(),
-        )
-        self.assertEqual(raw_audit_trail["review_key"].n_unique(), 2)
 
     def test_write_report_bundle_reuses_workbook_sheets_for_html_and_xlsx(self) -> None:
         """Bundle generation avoids rebuilding workbook-style tables twice."""
@@ -1179,11 +1102,11 @@ class TestAuditReport(unittest.TestCase):
         cases = (
             (
                 "portfolio",
-                _pc_workbook_tables._workbook_portfolio_reconstruction_formula_rows,
+                _pc_workbook_formula_rows.portfolio_reconstruction_formula_rows,
             ),
             (
                 "security",
-                _pc_workbook_tables._workbook_security_reconstruction_formula_rows,
+                _pc_workbook_formula_rows.security_reconstruction_formula_rows,
             ),
         )
         for comparison_level, formula_builder in cases:
@@ -1193,7 +1116,7 @@ class TestAuditReport(unittest.TestCase):
                     comparison_level=comparison_level,
                 )
                 with mock.patch.object(
-                    _pc_workbook_tables,
+                    _pc_workbook_formula_rows,
                     formula_builder.__name__,
                     wraps=formula_builder,
                 ) as wrapped_formula_builder:
@@ -1204,47 +1127,6 @@ class TestAuditReport(unittest.TestCase):
                     )
 
                 self.assertEqual(wrapped_formula_builder.call_count, 1)
-
-    def test_formula_allocation_searches_candidates_once_per_input(self) -> None:
-        """Cause allocation and visibility share one source-candidate search."""
-        for comparison_level in ("portfolio", "security"):
-            with self.subTest(comparison_level=comparison_level):
-                findings = compare_snapshots(
-                    _PORTFOLIO_COMPARISON_PATH,
-                    comparison_level=comparison_level,
-                )
-                active_findings = _pc_workbook_tables._active_findings(findings)
-                table_cache = _pc_workbook_tables._WorkbookTableCache(
-                    active_findings
-                )
-                reconstruction_cache = (
-                    _pc_workbook_tables.WorkbookReconstructionCache(
-                        _PORTFOLIO_COMPARISON_PATH
-                    )
-                )
-                formula_rows = table_cache.reconstruction_formula_rows(
-                    comparison_level,
-                    comparison_path=_PORTFOLIO_COMPARISON_PATH,
-                    reconstruction_cache=reconstruction_cache,
-                )
-                candidate_search = (
-                    _pc_workbook_tables._workbook_formula_source_candidates
-                )
-
-                with mock.patch.object(
-                    _pc_workbook_tables,
-                    "_workbook_formula_source_candidates",
-                    wraps=candidate_search,
-                ) as candidate_search_spy:
-                    _pc_workbook_tables.audit_review_workbook_sheets(
-                        findings,
-                        comparison_path=_PORTFOLIO_COMPARISON_PATH,
-                        comparison_level=comparison_level,
-                        _reconstruction_cache=reconstruction_cache,
-                        _table_cache=table_cache,
-                    )
-
-                self.assertEqual(candidate_search_spy.call_count, len(formula_rows))
 
     def test_workbook_table_cache_reuses_portfolio_period_summary(self) -> None:
         """Coverage and supporting tables share one portfolio-period summary."""

@@ -20,6 +20,7 @@ from ppar.audit import (
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import source_loader
 from ppar.audit import workbook_tables as _pc_workbook_tables
+from ppar.audit import workbook_reconstruction as _pc_workbook_reconstruction
 from ppar.audit.data_issues import checks as _data_issue_checks
 from ppar.audit.runner import AuditComparisonViews
 from ppar.audit.specification import (
@@ -172,7 +173,7 @@ def run_report(
         include_suppressed=not exclude_suppressed,
         require_causal_attribution=require_causal_attribution,
     )
-    reconstruction_cache = _pc_workbook_tables.WorkbookReconstructionCache(
+    reconstruction_cache = _pc_workbook_reconstruction.WorkbookReconstructionCache(
         config_path
     )
     if report in ("both", PORTFOLIO_COMPARISON_LEVEL):
@@ -384,7 +385,7 @@ def _write_report_bundle(
     include_workbook: bool,
     include_html_output: bool,
     expand_all_supporting_files: bool,
-    _reconstruction_cache: _pc_workbook_tables.WorkbookReconstructionCache,
+    _reconstruction_cache: _pc_workbook_reconstruction.WorkbookReconstructionCache,
 ) -> list[Path]:
     """Write one report bundle and return its primary review paths."""
     report_title = title or (

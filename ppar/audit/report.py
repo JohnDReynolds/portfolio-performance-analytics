@@ -26,6 +26,8 @@ from ppar.audit import review_keys as _pc_review_keys
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import runner as _pc_runner
 from ppar.audit import workbook as _pc_workbook
+from ppar.audit import workbook_layout as _pc_workbook_layout
+from ppar.audit import workbook_reconstruction as _pc_workbook_reconstruction
 from ppar.audit import workbook_tables as _pc_workbook_tables
 from ppar.audit.specification import PORTFOLIO_COMPARISON_LEVEL
 
@@ -153,7 +155,7 @@ def _performance_comparison_html_report(
     include_reconstruction_diagnostics: bool = False,
     _sheets: Sequence[_pc_workbook.ReviewWorkbookSheet] | None = None,
     _reconstruction_cache: (
-        _pc_workbook_tables._WorkbookReconstructionCache | None
+        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
     ) = None,
 ) -> str:
     """Return the workbook-style HTML report used inside review bundles.
@@ -230,7 +232,7 @@ def _html_workbook_sheet_table(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
         _html_workbook_header_cell(
             column=column,
             label=labels.get(column, _display_header(column)),
-            tooltip=_pc_workbook_tables.workbook_column_tooltip(column),
+            tooltip=_pc_workbook_layout.workbook_column_tooltip(column),
         )
         for column in columns
     ]
@@ -356,7 +358,7 @@ def _write_audit_html_report(
     include_reconstruction_diagnostics: bool = False,
     _sheets: Sequence[_pc_workbook.ReviewWorkbookSheet] | None = None,
     _reconstruction_cache: (
-        _pc_workbook_tables._WorkbookReconstructionCache | None
+        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
     ) = None,
 ) -> Path:
     """Write the bundle HTML performance comparison report to disk.
@@ -414,7 +416,7 @@ def write_audit_report_bundle(
     expand_all_supporting_files: bool = True,
     _data_issues: pl.DataFrame | None = None,
     _reconstruction_cache: (
-        _pc_workbook_tables.WorkbookReconstructionCache | None
+        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
     ) = None,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
@@ -476,7 +478,7 @@ def write_audit_report_bundle(
 
     reconstruction_cache = (
         _reconstruction_cache
-        or _pc_workbook_tables.WorkbookReconstructionCache(comparison_path)
+        or _pc_workbook_reconstruction.WorkbookReconstructionCache(comparison_path)
     )
     table_cache = _pc_workbook_tables._WorkbookTableCache(active_findings)
     workbook_sheets = (
@@ -569,7 +571,7 @@ def write_audit_report_bundle(
         paths[_REVIEW_WORKBOOK_ARTIFACT] = _pc_workbook.write_review_workbook_sheets(
             workbook_sheets or (),
             bundle_directory / review_workbook_file_name,
-            column_tooltip=_pc_workbook_tables.workbook_column_tooltip,
+            column_tooltip=_pc_workbook_layout.workbook_column_tooltip,
         )
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
@@ -701,13 +703,13 @@ def _report_bundle_tables(
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
     _reconstruction_cache: (
-        _pc_workbook_tables._WorkbookReconstructionCache | None
+        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
     ) = None,
     _table_cache: _pc_workbook_tables._WorkbookTableCache | None = None,
 ) -> dict[str, pl.DataFrame]:
     """Return report-bundle tables keyed by artifact stem."""
     reconstruction_cache = _reconstruction_cache or (
-        _pc_workbook_tables._WorkbookReconstructionCache(comparison_path)
+        _pc_workbook_reconstruction.WorkbookReconstructionCache(comparison_path)
     )
     table_cache = _table_cache or _pc_workbook_tables._WorkbookTableCache(
         active_findings
@@ -796,7 +798,7 @@ def write_audit_review_workbook(
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
     _reconstruction_cache: (
-        _pc_workbook_tables._WorkbookReconstructionCache | None
+        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
     ) = None,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
