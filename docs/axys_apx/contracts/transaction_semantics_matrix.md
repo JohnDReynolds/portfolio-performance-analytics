@@ -21,15 +21,15 @@ transaction-code manual. The intended ownership is:
 
 - `../reference/Chapter_05_Transactions.md` holds the reader-facing transaction
   semantics, confidence labels, and open questions.
-- `../evidence/Research_05_Transactions.md` preserves source evidence and
-  research history.
+- `../evidence/Research_05_Transactions.md` preserves granular source claims,
+  confidence boundaries, contradictions, and missing-evidence requirements.
 - `transaction_semantics_matrix.yaml` is the implementation contract used by
   tests, demo fixtures, and validation logic.
 - This file explains the YAML at a practical level for maintainers.
 
 When this file needs more explanation than a compact contract can comfortably
-hold, put the evidence and reasoning in the research archive and summarize the
-reader-facing conclusion in Chapter 05.
+hold, put the source claim and confidence boundary in the evidence ledger and
+summarize the reader-facing conclusion in Chapter 05.
 
 ## Evidence Boundary
 

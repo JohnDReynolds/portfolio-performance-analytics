@@ -3,6 +3,7 @@
 **Repository:** AXYS / APX Reference Repository  
 **Chapter:** `docs/axys_apx/reference/Chapter_17_Multi_Currency.md`
 **Prepared:** 2026-07-13  
+**Public evidence reviewed:** 2026-07-17
 **Evidence:** `../evidence/Research_17_Multi_Currency.md` and
 `../evidence/Research_17A_Multi_Currency_Cash_Provenance.md`
 
@@ -29,15 +30,17 @@ native currency valuation or performance engine.
 
 The July 2026 research intake deliberately searched for native currency fields,
 FX file layouts, valuation rules, and return-bifurcation formulas. It recovered
-no durable public source establishing those mechanics. The strongest findings
-remain third-party connector artifacts already represented elsewhere in this
-reference. The negative result is useful: unsupported mechanics must remain
-`Unknown`, while explicit client-supplied currency and FX evidence can be
-normalized and audited without claiming Axys formula parity.
+no durable public source establishing those mechanics. Current official Axys
+material does verify the capability surface: report-currency restatement,
+withholding-tax handling, return bifurcation, and separate trading, income, and
+risk currency concepts. Those statements still do not provide native fields or
+formulas. Unsupported mechanics therefore remain `Unknown`, while explicit
+client-supplied currency and FX evidence can be normalized and audited without
+claiming Axys formula parity.
 
 | Evidence level | Supported conclusion |
 |---|---|
-| Verified product capability | Axys product material supports multi-currency reporting and market-price versus currency-rate return components at a capability level. |
+| Verified product capability | Current Axys product material supports report-currency restatement, withholding-tax handling, return bifurcation, and trading, income, and risk currency concepts. |
 | High Confidence connector evidence | ByAllAccounts-oriented Axys workflows expose `axyscur`, `defmarkmarket`, `defperfcw`, `topost.trn`, and source/destination context. |
 | Partially supported pricing workflow | `$pathpri`, `*.pri`, and `imexPrices.log` are observed Axys-oriented connector artifacts. |
 | Unknown native mechanics | Native currency fields, FX layouts, quote conventions, rate-date rules, conversion formulas, interaction treatment, and historical-restatement behavior are not established. |
@@ -55,6 +58,11 @@ maps one-to-one to a native Axys field.
 | Is report currency stored separately from system or portfolio currency? | Unknown. | Unknown |
 | Are trading, income, and risk currencies stored separately for each security? | Axys capability material describes those concepts, but the native field names and export layout are not established. | Verified capability; Unknown schema |
 | Are transaction and settlement currency separate native fields? | Unknown. | Unknown |
+
+The distinctions in official product language are economically meaningful but
+not a field dictionary. In particular, “trading,” “income,” and “risk” currency
+must not be collapsed into one security currency unless a site export proves
+that mapping.
 
 An implementation may accept explicit client-mapped values for these concepts.
 It must not assign Axys-native field names or scope without site evidence.
@@ -127,6 +135,11 @@ The current evidence does not establish:
 - whether corrected historical FX rates alter stored values or only rerun
   reports.
 
+ByAllAccounts release notes narrow one integration detail: APX v1-v3 required
+the Mark-to-Market value only for foreign-currency transactions, while APX v4
+requires an explicit `y` or `n`. This is versioned interface requiredness, not a
+definition of the calculation or proof of equivalent Axys behavior.
+
 If a site exports local value, base value, local return, currency effect, or
 base return, an audit adapter may ingest those values as report evidence. It
 must not label a separately calculated conventional formula as the Axys method.
@@ -195,11 +208,17 @@ strongest defensible implementation boundary.
 ## 10. Evidence provenance
 
 - [Research_17_Multi_Currency.md](../evidence/Research_17_Multi_Currency.md)
-  preserves the focused follow-up and implementation handoff.
+  preserves granular currency, FX, valuation, and performance claims.
 - [Research_17A_Multi_Currency_Cash_Provenance.md](../evidence/Research_17A_Multi_Currency_Cash_Provenance.md)
-  preserves the earlier cash-provenance synthesis.
+  preserves the focused purchase cash-bucket inference boundary.
 
-Both source reports were AI-assisted research outputs. Their internal ChatGPT
-citation tokens are not durable citations. Their durable contribution is the
-conservative synthesis and explicit inventory of Unknowns, not new primary
-vendor evidence.
+Both ledgers replace AI-assisted research intakes whose internal research-session
+citation tokens were not durable. Material claims now point to stable repository
+sources; Git history retains the superseded intake prose.
+
+Additional durable public evidence:
+
+- [Official Axys product page](https://www.advent.com/solutions/axys/) — current
+  multi-currency capability statements.
+- [ByAllAccounts APX release notes](https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_releasenotes.pdf)
+  — version-specific Mark-to-Market field requiredness in that integration.

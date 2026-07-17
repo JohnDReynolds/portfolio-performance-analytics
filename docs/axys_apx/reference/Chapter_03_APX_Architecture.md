@@ -2,13 +2,15 @@
 
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `Chapter_03_APX_Architecture.md`
-**Status:** Technical reference chapter based on supplied research and source material
+**Status:** Technical reference chapter based on repository research and cited public evidence
 **Prepared:** 2026-06-29
+**Public evidence reviewed:** 2026-07-17
 **Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) — provides the Axys counterpart for architecture and workflow terms.
 - [Chapter_12_Imex.md](Chapter_12_Imex.md) — covers the APX import/export context.
@@ -16,18 +18,16 @@
 
 ## 1. Overview
 
-This chapter documents the architecture of **SS&C Advent Portfolio Exchange (APX)** using only the supplied repository research and source material.
+This chapter documents the architecture of **SS&C Advent Portfolio Exchange (APX)**
+using the repository research and cited public evidence.
 
 The chapter is intentionally conservative. Where the supplied material supports a product-level statement but does not support implementation-level details, the implementation detail is marked **Unknown**.
 
-### 1.1 Confidence Labels
+### 1.1 Confidence
 
-| Classification | Meaning in this chapter |
-|---|---|
-| Verified | Directly supported by supplied research that cites vendor material, report guide text, third-party implementation documentation, or the repository blueprint. |
-| High Confidence | Strongly supported by one or more supplied sources, but not enough to assert low-level implementation details such as table names, stored procedures, or exact field layouts. |
-| Medium Confidence | Plausible and partially supported, but requires vendor documentation, sample files, APX exports, screenshots, or production confirmation. |
-| Unknown | Not supported by the supplied material. Do not treat as fact. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited release, connector, report, or workflow.
 
 ### 1.2 Scope
 
@@ -67,7 +67,7 @@ APX should be documented as a **centralized, SQL-oriented, integrated platform**
 |---|---|---:|
 | Application scope | Portfolio/accounting/reporting/client-management platform. | Verified |
 | Reporting | SSRS-based report framework plus evidence of REP32/RepLang use in some integration workflows. | Verified / High Confidence |
-| Integration | SSRS reports, IMEX, standard reports/macros, REP32/RepLang, SQL/public views/stored accounting functions in some contexts, and possibly REST API in recent versions. | High / Medium Confidence |
+| Integration | SSRS reports, IMEX, standard reports/macros, REP32/RepLang, SQL/public views/stored accounting functions in some contexts, and officially announced REST APIs beginning with APX 21.1. | Verified for REST capability/release history; exact schemas and entitlements Unknown |
 | Internal persistence | Exact APX database schema and storage behavior are not verified. | Unknown |
 | Calculation engine | Stored-versus-recalculated behavior for performance, holdings, or other values is not verified. | Unknown |
 
@@ -83,7 +83,7 @@ APX should be documented as a **centralized, SQL-oriented, integrated platform**
 | Reporting engine | Axys reporting often involves `.REP`, Replang, Report Writer Pro, and REP32. | APX reports include SSRS-based reporting; REP32/RepLang may still appear in integration workflows. | High Confidence | Relationship between SSRS and REP32 in APX is not fully documented. |
 | IMEX | Axys IMEX is evidenced as the Axys Import/Export utility in third-party guides. | APX IMEX / Import Export Utility is evidenced in APX setup and integration workflows. | High Confidence | Exact APX object names Unknown. |
 | Trade/blotter workflow | Axys transaction imports can flow through `topost.trn` / Trade Blotter in integration evidence. | APX has Trade Blotter, Position Blotter, Tax Lot Blotter, Statement Blotter, and other blotter concepts in integration evidence. | High Confidence for cited workflows | Native full lifecycle needs vendor docs. |
-| REST API | Not established for Axys in supplied material. | Practitioner source says recent APX versions may include a RESTful API option. | Medium Confidence | Version/licensing/coverage Unknown. |
+| REST API | Not established for Axys. | Official releases document APX REST APIs from 21.1 onward for market/reference/accounting data and later entity, reporting, audit, analytics, and fee-related access. | Verified at release-capability level | Exact endpoint schemas, licensing, roles, and deployment availability remain Unknown. |
 | APX-to-Axys conversion | Axys may be a target format. | Practitioner guidance says APX data can be exported to Axys 3 format through IMEX for selected categories. | Medium Confidence | Exact object support and version behavior Unknown. |
 
 ---
@@ -123,7 +123,7 @@ The following diagram is a **conceptual map** based on supplied research. It mus
 | Advent client tools layer | REP32, macros, and RepLang used by at least one APX/Axys connector. | High Confidence |
 | IMEX layer | Import Export Utility used in APX setup/import/export workflows. | High Confidence |
 | Data storage layer | Internal APX persistence layer. Exact tables/views/stored procedures are not supplied. | Unknown |
-| API layer | Recent APX versions may include REST API access. | Medium Confidence |
+| API layer | APX 21.1 and later releases officially document expanding REST API access. | Verified at release-capability level |
 
 ---
 
@@ -167,7 +167,7 @@ reports.
 | Report Writer Pro / Replang direct editing | Practitioner sources say APX can still use these approaches. | Mention cautiously; exact version support Unknown. | Medium Confidence |
 | Report packaging / portal delivery | Vendor product brief supports report packaging and portal/client reporting. | Product-level capability; implementation details Unknown. | Verified at product level |
 | Direct SQL / public views / stored accounting functions | Practitioner research supports APX database/reporting access options. | APX architectural distinction; exact schema and supportability Unknown. | Medium Confidence |
-| REST API | Practitioner research says recent APX versions may include REST API. | Mention as possible in recent versions only. | Medium Confidence |
+| REST API | Official APX release material documents APIs beginning with 21.1 and expansion in later releases. | Treat as a versioned first-class integration surface; retain exact schema, entitlement, and site-availability Unknowns. | Verified at release-capability level |
 
 ### 5.4 APX Extraction Surface Boundary
 
@@ -177,7 +177,7 @@ reports.
 | APX report packaging/client delivery | Verified at product level | Package rules and delivery internals remain Unknown. |
 | REP32/Replang/macros | High Confidence for connector workflows | Not proven as the universal APX report engine. |
 | Direct SQL/public views/stored accounting functions | Medium Confidence practitioner evidence | Schema and supportability remain Unknown. |
-| REST API | Medium Confidence practitioner evidence for newer environments | Version, license, role, and coverage remain Unknown. |
+| REST API | Verified for APX 21.1+ at release-capability level | Exact version at the client site, license, role, endpoint, schema, and deployment access remain Unknown. |
 
 Genesis-era references should be treated as platform-positioning evidence only.
 They do not establish whether a given APX installation has a different database
@@ -185,61 +185,15 @@ schema, API coverage, report stack, or IMEX behavior.
 
 ---
 
-## 6. Known APX Report Names
+## 6. Report Catalog Boundary
 
-The following report names are supported by the supplied APX report-guide research. Treat them as **report names**, not as database tables or APX schema fields.
+The canonical APX report-name catalog is maintained in
+[Chapter 14](Chapter_14_Reports.md). This architecture chapter retains only the
+distinction among SSRS, REP32/RepLang, SQL-related access paths, packaging, and
+REST capability.
 
-### 6.1 Business Intelligence / Account Segmentation
-
-| Report Name | Context | Classification |
-|---|---|---:|
-| Account Distribution | Business intelligence / account segmentation | Verified |
-| Account Characteristics | Business intelligence | Verified |
-| Account Characteristics (By Custodian) | Business intelligence | Verified |
-| Asset Flows | Business intelligence | Verified |
-| Business Summary Dashboard | Business intelligence | Verified |
-
-### 6.2 Analytics / Performance / Risk
-
-| Report Name | Context | Classification |
-|---|---|---:|
-| Activity Profile | Analytics for portfolio managers | Verified |
-| Attribution by Classification | Performance analytics | Verified |
-| Attribution Summary | Performance analytics | Verified |
-| Attribution by Selected Groupings | Performance analytics | Verified |
-| Contribution by Classification | Performance analytics | Verified |
-| Contribution Summary | Performance analytics | Verified |
-| Contribution Detail | Performance analytics | Verified |
-| Risk Statistics | Performance / risk analytics | Verified |
-
-### 6.3 Client Reporting / Holdings / Transactions
-
-| Report Name | Context | Classification |
-|---|---|---:|
-| Cover Page | Client reporting | Verified |
-| Household Overview | Client reporting | Verified |
-| Portfolio Overview | Client reporting | Verified |
-| Performance Overview | Client reporting | Verified |
-| Risk Overview | Client reporting | Verified |
-| Policy Overview | Client reporting | Verified |
-| Historical Policy Overview | Client reporting | Verified |
-| Allocation Summary | Client reporting | Verified |
-| Equity Overview | Client reporting | Verified |
-| Fixed Income Distribution | Client reporting | Verified |
-| Fixed Income Overview | Client reporting | Verified |
-| Income Projection | Client reporting | Verified |
-| Portfolio Appraisal | Holdings / portfolio appraisal | Verified / Medium Confidence depending source capture |
-| Realized Gains and Losses | Realized gain/loss / tax lots | Verified |
-| Transaction Summary | Transaction listing | Verified |
-| Disclaimer and Terms | Client reporting | Verified |
-
-### 6.4 Report Names Are Not Data Sources by Themselves
-
-| Caution | Classification | Reason |
-|---|---:|---|
-| APX report names do not prove APX table names. | Verified caution | Report names and labels are presentation/report artifacts. |
-| APX report labels do not prove database column names. | Verified caution | Supplied research explicitly warns not to map report labels to tables/columns without schema evidence. |
-| A report may show calculated values, stored values, or values retrieved through stored accounting functions; the supplied material does not identify which. | Unknown | Requires report definitions, APX schema, or controlled tests. |
+A report name or output label does not establish an APX table, view, stored
+function, dataset, or API field.
 
 ---
 
@@ -294,7 +248,7 @@ architecture-level, not field-level claims.
 |---|---|---:|
 | APX IMEX continuity | Practitioner evidence says APX v1.x through v4.x retained IMEX functionality while fixed-format generation was eliminated. | Medium |
 | APX-to-Axys exports | Conversion evidence mentions APX exporting Axys v3-format reference data such as sectors, industries, asset classes, indexes, composites, and performance history. | Medium |
-| Performance history | Performance-history export through IMEX is mentioned as difficult; exact APX object and fields remain Unknown. | Medium / Unknown |
+| Performance history | Performance-history export through IMEX is mentioned as difficult; exact APX object and fields remain Unknown. | Medium Confidence for the migration concern; object and fields Unknown |
 | Alternative extraction surfaces | REP/RepLang, SSRS, SQL/public views/stored accounting functions, REST, and third-party ETL may be relevant depending on deployment. | Medium / High Confidence by surface |
 
 Do not assume APX IMEX object names, fields, command syntax, or fixed-format
@@ -332,35 +286,12 @@ These entities are supported at the product/workflow level. Their native APX tab
 | Symbol + type pairing | Security matching uses both APX symbol and security type in CI workflows. | Yes | Verified for CI context | Formal APX primary key Unknown. |
 | Duplicate security conditions | Same symbol with different security types, or ticker/CUSIP duplicate definitions, can cause matching ambiguity. | Yes | Verified for CI context | Integration behavior; native constraints Unknown. |
 
-### 8.3 Report Output Labels Observed in APX Research
+### 8.3 Report-Label Boundary
 
-These are **report output labels**, not verified APX database fields.
-
-| Field / Label | Description | Axys | APX | IMEX | REP / Reports | Classification |
-|---|---|---:|---:|---:|---:|---:|
-| Account # | Account identifier displayed in APX sample reports. | Unknown | Report output label | Unknown | Portfolio Appraisal / Transaction Summary | Verified as label only |
-| Market Value | Report output measure. | Unknown | Observed | Unknown | Account Distribution / Portfolio Appraisal | Verified as label only |
-| Revenue | Report output measure. | Unknown | Observed | Unknown | Account Distribution | Verified as label only |
-| Effective Rate / Eff. Rate | Report output measure. | Unknown | Observed | Unknown | Account Distribution | Verified as label only |
-| AUM | Assets under management measure. | Unknown | Observed | Unknown | Account Distribution | Verified as label only |
-| Trade Date | Transaction date label. | Unknown | Observed | Unknown | Transaction Summary | Verified as label only |
-| Settle Date | Settlement date label. | Unknown | Observed | Unknown | Transaction Summary | Verified as label only |
-| Quantity | Holding/transaction quantity label. | Unknown | Observed | Unknown | Portfolio Appraisal / Transaction Summary | Verified as label only |
-| Security | Security description label. | Unknown | Observed | Unknown | Portfolio Appraisal / Transaction Summary | Verified as label only |
-| Cost | Cost label. | Unknown | Observed | Unknown | Transaction Summary | Verified as label only |
-| Total Cost | Cost label. | Unknown | Observed | Unknown | Transaction Summary | Verified as label only |
-| Unit Cost | Unit cost label. | Unknown | Observed | Unknown | Transaction Summary | Verified as label only |
-| Price | Price label. | Unknown | Observed | Unknown | Transaction Summary | Verified as label only |
-| Proceeds | Sale proceeds label. | Unknown | Observed | Unknown | Transaction Summary / Realized Gains and Losses | Verified as label only |
-| Gain/Loss | Gain/loss label. | Unknown | Observed | Unknown | Transaction Summary / Realized Gains and Losses | Verified as label only |
-| Cost Basis | Cost-basis label. | Unknown | Observed | Unknown | Realized Gains and Losses | Verified as label only |
-| Open Date | Lot open-date label. | Unknown | Observed | Unknown | Realized Gains and Losses | Verified as label only |
-| Close Date | Lot close-date label. | Unknown | Observed | Unknown | Realized Gains and Losses | Verified as label only |
-| Short Term | Realized gain/loss term bucket. | Unknown | Observed | Unknown | Realized Gains and Losses | Verified as label only |
-| Long Term | Realized gain/loss term bucket. | Unknown | Observed | Unknown | Realized Gains and Losses | Verified as label only |
-| Percent of Portfolio | Portfolio Appraisal measure. | Unknown | Observed | Unknown | Portfolio Appraisal | Verified as label only |
-| Yield | Portfolio Appraisal measure. | Unknown | Observed | Unknown | Portfolio Appraisal | Verified as label only |
-| Unrealized Gain and Loss | Portfolio Appraisal measure. | Unknown | Observed | Unknown | Portfolio Appraisal | Verified as label only |
+Literal APX report-output labels are indexed in
+[Chapter 15](Chapter_15_Data_Dictionary.md); their report families and context
+are maintained in [Chapter 14](Chapter_14_Reports.md). They are not treated as
+architecture fields or database columns here.
 
 ### 8.4 Architecture-Level Field Dictionary
 
@@ -375,8 +306,7 @@ These are **report output labels**, not verified APX database fields.
 | `APX Security Type` | Security type used with APX Symbol. | No | Yes | Related | Unknown | Verified for CI workflow |
 | `sec.inf` | Security information file used in APX CI context. | Unknown | Yes in CI context | Source/import context | Unknown | Verified for CI context |
 | `type.inf` | Security type information file used in APX CI context. | Unknown | Yes in CI context | Source/import context | Unknown | Verified for CI context |
-| `APXIX.exe` / `apxix.exe` | APX import/export function or utility referenced in APX integration research. | No | Yes | Utility | No | Verified for integration contexts; naming/version details Unknown |
-| `ApxIx` | APX Import/Export utility terminology in APX CI research. | No | Yes | Utility | No | Verified in CI context; relationship to `APXIX.exe` Unknown |
+| `APXIX.exe` / `apxix.exe` / `ApxIx` | Capitalization and label variants consistently used for the APX Import/Export utility in two independent integration guides. | No | Yes | Utility | No | High Confidence that these name the same utility; installed filename/version remains site-specific |
 | Trade Blotter name | APX blotter into which transactions are imported. | Unknown | Yes | Related | Unknown | Verified for CI/AIA workflows |
 | Position Blotter name | APX blotter into which positions are imported for reconciliation. | Unknown | Yes | Related | Unknown | Verified for CI workflow |
 | Lot Blotter name | APX blotter into which position lots are imported when enabled. | Unknown | Yes | Related | Unknown | Verified for CI workflow |
@@ -433,7 +363,10 @@ These are **report output labels**, not verified APX database fields.
 |---|---|---:|---|
 | APX 3.0 | APX 3.0 introduced a new reporting framework using Microsoft SQL Server Reporting Services, expanded data access, and enhanced CRM features. | High Confidence | Industry-release research; vendor release notes would strengthen. |
 | APX 15.2 / 16.1 / 16.2 / 17.1 | A third-party connector was tested/supported on these APX versions. | High Confidence for connector | Connector support does not equal APX vendor lifecycle. |
-| Recent APX versions | Practitioner source says RESTful API became available in recent APX versions. | Medium Confidence | Needs official APX API documentation and version/license confirmation. |
+| APX 21.1 | Official release material introduced REST APIs for market, reference, and accounting data, including pricing/security-master loads and holdings, performance, and gain/loss extraction. | Verified | Exact endpoint contracts and entitlements are not public in the reviewed material. |
+| APX late 2021 updates | Official release material added entity and accounting REST APIs and improved Performance Update runtime. | Verified | Site adoption and configuration remain deployment-specific. |
+| APX 22.1 | Official release material described more than 60 APIs plus access to historical changes, attribution/analytics, cost, and session-audit data. | Verified | Exact field dictionaries remain gated. |
+| APX 23.1 | Official release material expanded report data and added fee/model-fee fields. | Verified | Exact report/API mappings remain gated. |
 | APX v1.x to v4.x | Practitioner source says APX maintained IMEX functionality but eliminated fixed-format generation. | Medium Confidence | Needs versioned IMEX docs. |
 | APX with Genesis | 2024 industry research states APX and its accounting engine are part of SS&C Advent Genesis. | High Confidence for platform direction | Does not document schema or deployment topology. |
 | Cloud/local delivery | Product material says APX can be local or cloud-delivered. | Verified at product level | REP/IMEX/client-tool implications Unknown. |
@@ -449,7 +382,7 @@ These are **report output labels**, not verified APX database fields.
 | Standard reports, macros, and RepLang scripts are used by at least one integration path. | APX / Axys | High Confidence | Report/script changes can break integrations. |
 | `.mac` and `.scr` files may be imported into APX through IMEX for integration setup. | APX | High Confidence | Integration packages may add or modify APX macro/script artifacts. |
 | APX-to-Axys conversion may be straightforward for some reference/static data but difficult for performance history. | APX | Medium Confidence | Performance migration needs special validation. |
-| Newer APX environments may have REST API options in addition to older IMEX/report-based approaches. | APX | Medium Confidence | Do not present IMEX/REP as the only APX integration option for all versions. |
+| APX 21.1+ has officially documented REST API options in addition to older IMEX/report-based approaches. | APX | Verified at release-capability level | Confirm installed release, entitlement, role, endpoint, and schema before implementation. |
 | Public material lists report names and output labels, but not database fields. | APX | Verified | Do not map report labels directly to APX tables/columns. |
 | Security symbol alone can be ambiguous. | APX / Axys CI context | Verified | Use symbol + security type when available. |
 | Blotter locks/open blotters can block imports in at least one APX integration workflow. | APX | Verified for AIA workflow | Operational process should ensure blotters are closed/unlocked before import. |
@@ -459,64 +392,19 @@ These are **report output labels**, not verified APX database fields.
 
 ---
 
-## 12. Examples
+## 12. Workflow Examples
 
-### 12.1 APX Security Translation Example
+Detailed examples are maintained by their subject owners:
 
-Source research gives an APX security translation example:
+- security identity and translation: [Chapter 04](Chapter_04_Security_Master.md);
+- transaction cancellation and posting context:
+  [Chapter 05](Chapter_05_Transactions.md);
+- corporate-action processing:
+  [Chapter 09](Chapter_09_Corporate_Actions.md); and
+- APX report output: [Chapter 14](Chapter_14_Reports.md).
 
-| External Field | Example Value |
-|---|---|
-| WP Ticker | `LMNVX` |
-| WP Name | `LEGG MASON VLE TR INSTL` |
-| APX Symbol | `524659208` |
-| APX Type | `efus` |
-
-| Technical Point | Classification |
-|---|---:|
-| APX matching/translation can map an external ticker to an APX symbol that is not the ticker. | Verified |
-| APX security identity in this workflow uses both symbol and type. | Verified |
-| `efus` is an example APX security type code in the integration source. | Verified |
-| Whether `efus` is universal across APX versions/sites is Unknown. | Unknown |
-
-### 12.2 APX Duplicate Security Cases
-
-| Duplicate Condition | Example / Explanation | Classification |
-|---|---|---:|
-| Same symbol, different security types | Example research includes same symbol under different security types such as `ktc csus` and `ktc adus`. | Verified for CI context |
-| Same security defined by ticker and by CUSIP | Guide states a security may be defined twice, once with ticker as symbol and once with CUSIP as symbol. | Verified for CI context |
-| Multiple overlapping translations | More than one CI translation can match the same security. | Verified for CI context |
-
-### 12.3 APX Cancel Transaction Example
-
-An APX AIA example shows a previously posted transaction:
-
-```csv
-acct123,010101,010101,by,csus,appl,100,caus,cash,10000
-```
-
-becoming:
-
-```csv
-acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
-```
-
-| Technical Point | Classification | Caution |
-|---|---:|---|
-| The AIA workflow uses uppercase transaction code in a cancellation example. | Verified for AIA example | Do not generalize to all APX transaction workflows. |
-| Lowercase-to-uppercase behavior appears in multiple third-party transaction workflow sources. | Medium Confidence | Native universality Unknown. |
-| Full APX cancellation/reversal rule set is not supplied. | Unknown | Requires vendor transaction/blotter docs or production examples. |
-
-### 12.4 APX ACA Corporate Action Workflow
-
-| Workflow Step | Classification | Notes |
-|---|---:|---|
-| APX sends updated security holdings to ACA Server. | Verified | Advent Corporate Actions for APX research. |
-| ACA cross-references APX securities to an action database. | Verified | Product brief research. |
-| Users can review ACA transactions or allow simpler transactions to download automatically. | Verified | Product brief research. |
-| Downloaded reviewed actions cause the APX Reorg Utility to run. | Verified | Product brief research. |
-| APX Reorg Utility-generated transactions post to APX Trade Blotter. | Verified | Product brief research. |
-| Final APX transaction codes and field mappings for ACA-generated entries are supplied. | Unknown | Need ACA/APX sample output or vendor guide. |
+This chapter uses those workflows only as evidence for APX integration surfaces
+and does not duplicate their rows or field interpretations.
 
 ---
 
@@ -563,12 +451,12 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 
 ## 14. References
 
-This chapter is based on the supplied repository files only.
+This chapter is based on the repository files and cited public evidence.
 
 | Reference | Supplied File | Use in This Chapter |
 |---|---|---|
 | Blueprint | `axys_apx_reference_blueprint.md` | Governing specification, chapter template, confidence discipline. |
-| APX architecture research | `../evidence/Research_03_APX_Architecture.md` | Primary source for APX architecture, reports, IMEX, REP, version references, quirks, Unknowns. |
+| APX architecture evidence | `../evidence/Research_03_APX_Architecture.md` | Granular architecture, report, IMEX, REP, version, quirk, and missing-evidence claims. |
 | Axys architecture research | `../evidence/Research_02_Axys_Architecture.md` | Axys/APX contrast, file-oriented Axys context, reporting and IMEX contrast. |
 | Security master research | `../evidence/Research_04_Security_Master.md` | APX Symbol, APX Security Type, `sec.inf`, `type.inf`, security matching quirks. |
 | Transactions research | `../evidence/Research_05_Transactions.md` | Trade Blotter, transaction translation, blotter examples, cancellation example. |
@@ -580,6 +468,11 @@ This chapter is based on the supplied repository files only.
 | Classifications research | `../evidence/Research_11_Classifications.md` | APX classification report capabilities and classification Unknowns. |
 | IMEX research | `../evidence/Research_12_IMEX.md` | IMEX/Import Export Utility, logs, APX/Axys differences, file examples, Unknowns. |
 | REP research | `../evidence/Research_13_REP.md` | REP32, RepLang, Report Writer Pro, APX SSRS/REP relationship, report quirks. |
+| Historical Advent architecture | [March 2008 investor presentation](https://media.corporate-ir.net/media_files/irol/96/96626/presentations/Advent_IR_Presentation_Mar_13_08.pdf) | Dated `.NET` relational-platform positioning for APX. |
+| APX 21.1 release | [Advent Investment Suite 2021 release](https://www.advent.com/news-and-insights/blog/advent-investment-suite-release-2021-efficiency-trading-compliance/) | Initial official REST API capability categories and examples. |
+| APX late-2021 release | [SS&C Advent 2H2021 updates](https://investor.ssctech.com/news-and-events/news-details/2021/SSC-Announces-2H2021-SSC-Advent-Product-Updates-11-10-2021/default.aspx) | Entity/accounting APIs and Performance Update runtime. |
+| APX 22.1 release | [APX 22.1 product update](https://www.advent.com/news-and-insights/blog/an-ever-more-powerful-and-trusted-solution-for-investment-managers/) | API count and expanded audit/analytics/cost access. |
+| APX 23.1 release | [SS&C Advent 1H2023 updates](https://www.advent.com/news-and-insights/press-releases/ssc-announces-1h2023-ssc-advent-product-updates/) | Expanded report data and fee-related fields. |
 
 ---
 
@@ -605,7 +498,7 @@ The following items must remain **Unknown** until supported by vendor documentat
 | APX IMEX security master object and field list. | Needed for security master and classification chapters. | Security IMEX samples. |
 | APX IMEX performance export behavior. | Needed to answer stored-vs-recalculated performance questions. | Performance export samples and controlled tests. |
 | APX IMEX log formats and error codes. | Needed for troubleshooting and audit. | IMEX logs and documentation. |
-| Whether `ApxIx` and `APXIX.exe` are the same utility, different labels, or context/version-specific names. | Needed for precise executable documentation. | APX installation documentation or executable inventory. |
+| Installed APX Import/Export executable filename and version. Public guides use `ApxIx`, `APXIX.exe`, and `apxix.exe` for the same utility. | Needed for deployment-specific automation. | APX installation inventory. |
 
 ### 15.3 Reporting / REP / SSRS Unknowns
 
@@ -613,7 +506,7 @@ The following items must remain **Unknown** until supported by vendor documentat
 |---|---|---|
 | Exact relationship between APX SSRS reports and REP32/RepLang reports. | Needed to describe APX reporting architecture accurately. | APX reporting architecture guide. |
 | APX SSRS report datasets, stored procedures, and public views. | Needed for report reproduction and SQL extract design. | RDLs, report server definitions, schema docs. |
-| Full APX standard report inventory. | Needed for Chapter 14 and report cross-references. | APX Reports Guide / installed report catalog. |
+| Current installed APX report inventory beyond the 29 reports documented in the reviewed public guide. | Needed for version/site-complete Chapter 14 coverage. | Installed report catalog and current versioned guide. |
 | REP32 command-line syntax for APX. | Needed for unattended automation. | REP32 docs or working macros/scripts. |
 | Macro/script file formats for `.mac` and `.scr`. | Needed for implementation documentation. | Sample files and APX import guide. |
 | Which APX reports use stored values versus recalculated values. | Critical for audit and performance reproducibility. | Report docs and controlled tests. |
@@ -636,7 +529,7 @@ The following items must remain **Unknown** until supported by vendor documentat
 |---|---|---|
 | Version-specific APX IMEX differences across 15.x, 16.x, 17.x, and later. | Needed for stable interfaces. | Versioned IMEX docs and samples. |
 | Version-specific APX report differences. | Needed for report-based extraction stability. | Versioned APX report catalogs/RDLs. |
-| REST API availability by APX version and license. | Needed before documenting API as an integration path. | Official API documentation and client-version evidence. |
+| Exact REST endpoints, OpenAPI schemas, authentication, entitlements, and deployment availability. | Needed before implementing the officially documented 21.1+ API path. | Official API documentation and client-version evidence. |
 | Supportability of direct SQL extraction. | Needed for client implementation risk. | SS&C support statement or contract-specific guidance. |
 | Supportability of custom RepLang/REP in APX cloud-delivered environments. | Needed for integration planning. | APX cloud/admin documentation. |
 
@@ -648,7 +541,7 @@ The following items must remain **Unknown** until supported by vendor documentat
 | U-APX-ARCH-002 | Which APX report datasets/stored procedures support each SSRS report. | High |
 | U-APX-ARCH-003 | Which APX values are stored versus calculated by reports/functions at runtime. | High |
 | U-APX-ARCH-004 | Exact relationship between SSRS report output, APX public views, stored accounting functions, IMEX exports, and REP32 output. | High |
-| U-APX-ARCH-005 | REST API availability by APX version, deployment, license, and security role. | High |
+| U-APX-ARCH-005 | Exact REST endpoints/schemas and availability by installed version, deployment, license, and security role. | High |
 | U-APX-ARCH-006 | Direct SQL supportability under SS&C support contracts and hosted/cloud deployments. | High |
 | U-APX-ARCH-007 | Whether APX cloud/hosted deployments permit REP32, IMEX, SQL, SSRS subscriptions, and REST access. | High |
 | U-APX-ARCH-008 | How APX report packaging, portal delivery, and report subscriptions are scheduled and audited. | Medium |
@@ -667,11 +560,11 @@ The strongest supported APX architecture facts are:
 | APX is an integrated portfolio and client management solution. | Verified |
 | APX includes accounting, reporting, performance analytics, and client-reporting capabilities. | Verified |
 | APX investment-management reports are described as built on Microsoft SQL Server Reporting Services. | Verified |
-| APX standard report names include Account Distribution, Attribution by Classification, Contribution reports, Risk Statistics, Portfolio Appraisal, Realized Gains and Losses, and Transaction Summary. | Verified |
+| APX has a bounded public SSRS report-guide inventory; the canonical names are maintained in Chapter 14. | Verified for the guide |
 | APX integrations may use Advent client tools such as REP32, standard reports, macros, and RepLang. | High Confidence |
 | APX IMEX / Import Export Utility appears in setup/import/export workflows. | High Confidence |
 | APX security matching in integration workflows uses APX Symbol and APX Security Type. | Verified for CI context |
-| APX has multiple integration surfaces: reports, macros/RepLang, IMEX, SQL/reporting tools, and possibly REST API in recent versions. | Medium / High Confidence depending surface |
+| APX has multiple integration surfaces: reports, macros/RepLang, IMEX, SQL/reporting tools, and officially documented REST APIs in 21.1+ releases. | Verified at capability level; implementation details vary |
 
 The most important unresolved APX architecture facts are:
 
@@ -686,5 +579,5 @@ The most important unresolved APX architecture facts are:
 ## Research Provenance
 
 The deep IMEX APX contrast conclusions are incorporated into Section 7.4.
-Their supporting source history remains in
+Their granular supporting claims and confidence boundaries remain in
 `../evidence/Research_03_APX_Architecture.md`.

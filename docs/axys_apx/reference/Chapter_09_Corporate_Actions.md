@@ -3,11 +3,13 @@
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys_apx/reference/Chapter_09_Corporate_Actions.md`
 Prepared: 2026-06-29
+Public evidence reviewed: 2026-07-17
 Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — corporate actions can generate or affect transaction records.
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — corporate actions change holdings and cost basis.
@@ -28,16 +30,17 @@ cost-basis/principal context.
 
 Corporate actions in Axys/APX can affect security reference data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.
 
-This chapter documents only behavior supported by the supplied research and source material. It intentionally preserves Unknowns where source material does not establish field names, object names, report names, transaction codes, schemas, or processing rules.
+This chapter documents only behavior supported by repository research and cited
+public evidence. It intentionally preserves Unknowns where the evidence does not
+establish field names, object names, report names, transaction codes, schemas,
+or processing rules.
 
-### 1.1 Confidence Labels
+### 1.1 Confidence
 
-| Label | Meaning in this chapter |
-|---|---|
-| Verified | Directly supported by supplied research, cited vendor material, source screenshots, or observed file/report evidence summarized in the supplied research. |
-| High Confidence | Strongly supported by supplied research and multiple indirect sources, but not enough to assert a complete vendor specification. |
-| Medium Confidence | Plausible and useful, but source support is conversion-specific, integration-specific, consultant-derived, or otherwise incomplete. |
-| Unknown | Not established by the supplied material. Do not implement or document as product fact without additional evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### 1.2 Scope
 
@@ -83,7 +86,7 @@ The following table is a technical checklist, not a claim that Axys or APX uses 
 | Cash dividend | Cash income transaction; possible receivable/accrual depending workflow. | Likely transaction-driven, but exact Axys codes Unknown. | Likely transaction or blotter activity, but exact APX codes Unknown. | Medium Confidence |
 | Reinvested dividend | Distribution plus purchase/reinvestment activity. | Morningstar conversion research says Axys distribution reinvest transaction types may translate into transaction pairs, normally Buy plus Distribution. | Unknown from supplied corporate-action research. | Verified for conversion behavior only |
 | Stock split | Share quantity adjustment; possible price/factor handling. | `split.inf` is identified as securities splits file. | ACA/Reorg Utility supports reorg workflow generally; exact split storage Unknown. | Axys High Confidence; APX Unknown for storage |
-| Reverse split | Share quantity adjustment; likely ratio/factor handling. | Likely represented in split data if supported by split conventions, but exact fields Unknown. | Unknown. | Medium Confidence / Unknown |
+| Reverse split | Share quantity adjustment; likely ratio/factor handling. | Likely represented in split data if supported by split conventions, but exact fields Unknown. | Unknown. | Medium Confidence conceptually; native fields Unknown |
 | Stock dividend | Share distribution or split-like accounting, depending system setup. | Unknown. | Unknown. | Unknown |
 | Return of capital | Cash/cost-basis transaction; `rc` and bond-security `pd` are supported by public Axys/APX translation mapping evidence. | Transaction-code evidence supported; native posting mechanics Unknown. | Transaction-code evidence supported; native posting mechanics Unknown. | Medium-High for integration mapping; Unknown native mechanics |
 | Principal paydown | Principal reduction; MBS/ABS/amortizing-security effect; conservative Modified Dietz treatment is principal return, not client external flow. | Transaction research shows principal paydown conversion issues in Axys conversion context; exact corporate-action treatment Unknown. | APX-adjacent mapping evidence supports `pd`, but native mechanics remain Unknown. | Medium-High for integration/conversion evidence; Unknown native behavior |
@@ -228,7 +231,7 @@ The supplied research does not provide verified native Axys corporate-action fie
 | Field / Concept | Description | Axys | APX | IMEX | REP | Confidence |
 |---|---|---:|---:|---:|---:|---:|
 | `split.inf` | Axys securities splits file artifact. | Yes | Unknown | Unknown | Unknown | High Confidence |
-| `.cli` | Axys client/account files used in transaction/conversion contexts. | Yes | Unknown / conversion context | Unknown | Unknown | High Confidence |
+| `.cli` | Axys client/account files used in transaction/conversion contexts. | Yes | Observed only in conversion context; native APX role Unknown | Unknown | Unknown | High Confidence for Axys context |
 | `sec.inf` | Axys securities file. | Yes | Unknown | Unknown | Unknown | High Confidence |
 | `.pri` | Axys security price file(s). | Yes | Unknown | Unknown | Unknown | High Confidence |
 | `type.inf` | Axys security type file. | Yes | Unknown | Unknown | Unknown | High Confidence |
@@ -675,7 +678,7 @@ closing exact Axys/APX schema unknowns. The strongest split evidence remains:
 | `split.inf` / `SPLIT.INF` | Axys securities split history file in public conversion evidence. | High Confidence for file existence |
 | Conversion-created split transactions | Downstream conversion tools may materialize split history as explicit split transactions. | Medium |
 | `;` marker/comment rows | Integration workflows can use `;` for split/journal/other markers; one consultant example shows a `;` split comment row. | Medium |
-| APX split storage | APX can export splits in conversion workflows, but native split table/view/schema remains Unknown. | Unknown / Medium concept |
+| APX split storage | APX can export splits in conversion workflows, but native split table/view/schema remains Unknown. | Medium Confidence for conversion evidence; native schema Unknown |
 | Exact split fields | Split date, symbol, and factor are conceptually required, but exact Axys/APX field layouts remain Unknown. | Unknown |
 
 #### 12.4.2 Performance and Audit Treatment
@@ -744,7 +747,7 @@ These are implementation guidance rules derived from supplied research and gener
 
 ## 14. References
 
-The chapter is based only on supplied source and research material. The following references are drawn from the supplied research notes.
+The chapter uses repository research and cited public evidence.
 
 ### 14.1 Governing Repository Specification
 
@@ -752,7 +755,7 @@ The chapter is based only on supplied source and research material. The followin
 
 ### 14.2 Corporate Actions Research Sources
 
-1. SS&C Advent — “Brief: Advent Corporate Actions for APX.” Supports the APX/ACA workflow, APX holdings handoff, ACA cross-reference, review/download process, APX Reorg Utility, APX Trade Blotter, alerts, and specialist support.
+1. [SS&C Advent — “Brief: Advent Corporate Actions for APX”](https://www.advent.com/resources/all-resources/brief-advent-corporate-actions-for-apx/). Supports the APX/ACA workflow, APX holdings handoff, ACA cross-reference, review/download process, APX Reorg Utility, APX Trade Blotter, alerts, and specialist support.
 2. SS&C Advent — “Overcome the Challenges of Corporate Actions Processing with Axys.” Supports the Axys/ACA workflow, active-holdings script, reports, Automation Results email, Trade Blotter processing, simple/complex event distinction, and coverage claims.
 3. SS&C Advent — “What is SS&C Advent Corporate Actions?” Supports ACA product positioning, dashboard/calendar/reporting context, and general corporate-action operations.
 4. AdventGuru — Data conversion / merger integration articles. Supports consultant evidence around Axys/APX conversion, exported CSV copies of `split.inf`, and integration cautions.
@@ -848,5 +851,5 @@ Use this chapter as a disciplined reference boundary: it documents what is known
 ## Research Provenance
 
 The 2026-07-07 stock-split and reverse-split conclusions are incorporated into
-Section 12.4. Their supporting source history remains in
-`../evidence/Research_09_Corporate_Actions.md`.
+Section 12.4. Their granular supporting claims and confidence boundaries remain
+in `../evidence/Research_09_Corporate_Actions.md`.

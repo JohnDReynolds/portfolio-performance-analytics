@@ -4,11 +4,12 @@ Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_02_Axys_Architecture.md`
 Prepared: 2026-06-29
 Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
-Source basis: supplied research files only
+Source basis: supplied research files plus public evidence reviewed through 2026-07-17
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md) — contrasts Axys/APX architecture.
 - [Chapter_12_Imex.md](Chapter_12_Imex.md) — covers the import/export pathways that move Axys data.
@@ -16,7 +17,10 @@ Source basis: supplied research files only
 
 ## 1. Overview
 
-This chapter documents the architecture of **SS&C Advent Axys** as supported by the supplied research material. APX is included only where it clarifies architectural contrast, migration behavior, IMEX behavior, REP behavior, or Axys/APX version differences.
+This chapter documents the architecture of **SS&C Advent Axys** as supported by the
+repository research and cited public evidence. APX is included only where it clarifies
+architectural contrast, migration behavior, IMEX behavior, REP behavior, or Axys/APX
+version differences.
 
 Axys should be treated as a portfolio accounting, performance, and reporting platform with proprietary-database product positioning, file-oriented operational evidence, a report-writing layer based on REP/Replang, and an import/export layer commonly referred to as IMEX.
 
@@ -25,7 +29,7 @@ The strongest supplied evidence supports the following architectural framing.
 | Area | Axys finding | APX contrast | Confidence |
 |---|---|---|---:|
 | Product role | Portfolio accounting, portfolio management, performance measurement, reconciliation, and reporting system. | Integrated portfolio management, accounting, reporting, performance analytics, and client relationship platform. | Verified at product-capability level |
-| Data architecture | Vendor material positions Axys as using a proprietary database, while public/practitioner sources show file-oriented operational handling. Exact physical storage internals are not fully documented in supplied material. | Vendor/public sources describe APX as SQL-based or centralized database-oriented. | Axys: High Confidence for combined characterization; APX: Verified / High Confidence |
+| Data architecture | Current vendor material describes a proprietary database. A dated 2008 Advent investor presentation called Axys a flat-file accounting platform, while operational sources expose named files. Exact current physical internals remain undocumented. | The same historical Advent presentation called APX a `.NET` relational platform; current sources describe centralized SQL-oriented access. | Verified as dated product descriptions; current physical internals Unknown |
 | Integration | IMEX, REP/report exports, Report Writer Pro, Replang reports, third-party connector workflows, and cautious direct-file handling. | SQL/public views/stored accounting functions/SSRS/REST may also exist in APX environments, in addition to IMEX and reports. | High Confidence for integration categories; details vary |
 | Reporting | REP/Replang and Report Writer Pro are central to Axys reporting. | APX has broader reporting architecture, including SSRS-style reporting paths and report packaging, while some Replang/REP usage remains supported by supplied practitioner sources. | Axys: Verified / High Confidence; APX: Medium / High Confidence |
 | Version risk | Direct Axys file integrations are risky because file formats may differ by version; Axys 3.7 to 3.8 file conversion is cited in supplied research. | APX IMEX retained functionality in cited APX v1.x through v4.x source, but fixed-format generation was reportedly removed. | Medium Confidence |
@@ -49,16 +53,12 @@ This chapter does **not** define a complete native Axys file layout, transaction
 
 ---
 
-## 2. Confidence Labels
+## 2. Confidence
 
-| Label | Meaning in this chapter |
-|---|---|
-| Verified | Directly supported by supplied research material, cited vendor/product source summaries, inspected third-party documentation summarized in the research, or the repository blueprint. |
-| High Confidence | Strongly supported by multiple supplied research files or consistent implementation evidence, but not a full vendor technical specification. |
-| Medium Confidence | Supported by practitioner, integration, migration, or conversion evidence; useful but not sufficient as a universal product claim. |
-| Unknown | Not established by the supplied material. Do not implement or document as fact without additional evidence. |
-
----
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ## 3. Axys Architectural Summary
 
@@ -117,7 +117,7 @@ Axys reporting/output layer
 | External source layer | Custodian, broker, aggregation, migration, and user-entered data can feed Axys workflows. | High Confidence | Strongest evidence is third-party integration documentation. |
 | IMEX/import-export layer | Axys Import/Export utility is used in third-party workflows to import transactions, positions, and prices. | Verified for those workflows | Native complete object catalog is Unknown. |
 | Trade Blotter layer | Transaction imports can route to a Trade Blotter such as `topost.trn` in supplied integration evidence. | Verified for CI workflow; Medium Confidence as broader Axys concept | Exact native blotter schema is Unknown. |
-| File-oriented data layer | Axys uses files such as `.cli`, `sec.inf`, `type.inf`, `.pri`, and `split.inf` in supplied conversion/integration evidence; `PRF` and `GRP` also appear as migration leads. | High Confidence for file existence in cited contexts; Medium Confidence for migration leads | Complete native file layout is Unknown. |
+| File-oriented data layer | Axys uses files such as `.cli`, `sec.inf`, `type.inf`, `.pri`, `split.inf`, performance-history files (`.PRF`/`.PBF`), group files (`.GRP`), and composite files (`.CPG`) in dated operational sources. | High Confidence for presence and operational role in cited contexts | Complete native layouts remain Unknown. |
 | REP/report layer | Axys reports are written in RepLang; `.REP` files such as `AMAN.REP` appear in supplied examples. | Verified for examples | Full RepLang grammar is Unknown. |
 | Direct-file layer | Knowledgeable users may read/write direct files, but this is discouraged due to version/file-format risk. | Medium Confidence | Consultant evidence; should be treated as high-risk. |
 
@@ -127,14 +127,20 @@ Axys reporting/output layer
 
 ### 4.1 Proprietary-Database and File-Oriented Character
 
-The supplied research does not provide a full Axys vendor storage manual. It does support a conservative statement that Axys is proprietary-database in product positioning and file-oriented in practical integration and operations evidence. "File-oriented" is therefore an integration/operations characterization, not a complete physical-storage specification.
+The available evidence does not provide a full current Axys storage manual. Current
+vendor wording supports a proprietary-database characterization. A dated 2008 Advent
+investor presentation explicitly described Axys as a flat-file accounting platform,
+and later operational sources expose named files. These statements describe different
+eras and levels of abstraction; they do not establish a complete current physical
+storage specification.
 
 | Statement | Confidence | Implementation treatment |
 |---|---:|---|
 | Axys is positioned by vendor material as using a proprietary database. | Verified | Do not infer relational tables or public schema from this phrase. |
+| Advent described Axys as a flat-file accounting platform in a 2008 investor presentation. | Verified historical evidence | Treat as dated product-positioning evidence, not proof of every current file or layout. |
 | Axys is characterized in supplied practitioner/industry research as proprietary and file-oriented in practical workflows. | High Confidence | Use as architecture framing, not as a full physical schema claim. |
 | Axys should not be reduced to "simple flat files" without qualification. | High Confidence | Public integration evidence shows files, but not a complete open flat-file database specification. |
-| Axys is not verified by the supplied material as SQL-based. | Unknown / negative evidence | Do not design Axys extraction assuming SQL tables unless a specific client environment proves otherwise. |
+| Axys is not verified by the supplied material as SQL-based. | Unknown; negative evidence only | Do not design Axys extraction assuming SQL tables unless a specific client environment proves otherwise. |
 | Axys direct file reads/writes are possible in some practitioner contexts. | Medium Confidence | Treat as unsupported/high-risk unless verified for version and file. |
 | Axys file formats may change by version. | Medium / High Confidence | Prefer IMEX, REP, or vendor-supported exports over direct native file parsing. |
 
@@ -149,7 +155,8 @@ should carry its source context.
 | Native / operational file evidence | `.cli`, `sec.inf`, `type.inf`, `.pri`, `split.inf` in conversion/integration contexts | High Confidence for presence in cited contexts; exact native layout Unknown. |
 | Interface / staging files | `topost.trn`, `ptopost.trn`, IMEX logs | Verified for specific integration workflows; not necessarily universal architecture. |
 | Report source/output files | `.REP`, `.RPW`, `AMAN.REP`, `CDIhold.rep` | Verified for report workflows; not database schemas. |
-| Migration shorthand / conversion leads | `CLI`, `PRI`, `INF`, `PRF`, `GRP` | Medium Confidence unless sample/source docs verify exact meaning. |
+| Performance/group state | `.PRF`, `.PBF`, `.GRP`, `.CPG` | Operationally verified in dated Axys report/customization sources; exact layouts Unknown. |
+| Migration shorthand / conversion leads | `CLI`, `PRI`, `INF` | Medium Confidence unless sample/source docs verify exact meaning. |
 
 ### 4.2 File and Folder Artifacts Observed in Supplied Research
 
@@ -170,8 +177,9 @@ The following artifacts are supported by the supplied research. They are not a c
 | `.pri` / `*.pri` | Prices | Price files referenced in Axys conversion/integration workflows. | Yes | APX AIA examples include `.pri` files. | Verified for integration contexts | Complete price file layout Unknown. |
 | `$pathpri` | Folder label | Axys price folder label in CI evidence. | Yes | No | Verified for CI workflow | Installation-specific label. |
 | `split.inf` / `SPLIT.INF` | Corporate actions / splits | Axys securities splits file in conversion research. Consultant split-file merge evidence supports logical date/symbol/factor semantics. | Yes | Unknown as native APX file | High Confidence for file; Medium to High Confidence for logical fields | Complete official split layout Unknown. |
-| `PRF` / `.PRF` | Performance returns | Migration/conversion source mentions PRF files as performance-return leads. | Yes | Unknown | Medium Confidence | Candidate artifact only; exact native/export status Unknown. |
-| `GRP` / `.GRP` | Groups / classifications | Migration/conversion source mentions GRP files as group/color-group leads. | Yes | Unknown | Medium Confidence | Candidate artifact only; exact native/export status Unknown. |
+| `.PRF` / `.PBF` | Performance history | Dated Axys operational guidance identifies these as performance-history state. A performance-history name is copied from the related `.CLI` or `.GRP` when first created and is not automatically resynchronized after a later rename. | Yes | Unknown | High Confidence operational evidence | Exact binary/layout details and version coverage Unknown. |
+| `.GRP` | Portfolio group | Group artifact associated with performance history and reporting. | Yes | Unknown | High Confidence operational evidence | Exact layout and version coverage Unknown. |
+| `.CPG` | Composite | Composite definition used by dated Axys composite-reporting guidance, including member entry/exit dates. | Yes | Unknown | High Confidence operational evidence | Exact layout and current support status Unknown. |
 | `.pos` | Positions | Replacement position files created by Position Post in CI evidence. | Yes | Unknown | Verified for CI workflow | Not proven as complete native holdings store. |
 | `ptopost.trn` | Position import staging | CI position file written in CSV format; may include lot-specific data where enabled. | Yes | Unknown | Verified for CI workflow | CI artifact, not native spec. |
 | `$pathlog` | Logs | Folder where Axys Import/Export logs are written in CI workflow. | Yes | No | Verified for CI workflow | Exact log schema Unknown. |
@@ -183,7 +191,7 @@ The following artifacts are supported by the supplied research. They are not a c
 | `AMAN.REP` | REP/report | Assets Under Management report in Axys customization example. | Yes | Unknown | Verified for example | Not a full report catalog. |
 | `.REP` | Report source | Replang report files. | Yes | Possible for APX Replang workflows | Verified for Axys; Medium Confidence for APX | Full rules Unknown. |
 | `.RPW` | Report Writer output | Report Writer-created report file extension per practitioner research. | Yes | Yes per practitioner research | Medium / High Confidence | Manual editing checksum behavior reported. |
-| `REP32.exe` | Report engine/client tool | Used by third-party connector with standard reports/macros and RepLang. | Yes | Yes | Verified for connector | Command-line syntax Unknown. |
+| `REP32.exe` | Report engine/client tool | Used by third-party connector and dated Axys automation examples with standard reports/macros and RepLang. | Yes | Yes | Verified for cited workflows | A working command pattern and several switches are public; the complete syntax is Unknown. |
 
 ### 4.3 Candidate Native Data Domains
 
@@ -198,7 +206,7 @@ The supplied research supports these architectural domains at the product or int
 | Prices | Supported. `.pri`, price imports, price logs are observed. | Integration, conversion | High Confidence | Complete price file layout Unknown. |
 | Cash | Supported through transactions, cash/security tokens, sweep examples. | Integration, product | High Confidence for cash activity; Unknown for cash-balance store | Exact cash balance objects Unknown. |
 | Corporate actions | Splits supported through `split.inf`; ACA-for-Axys workflow also exists at vendor workflow level. | Conversion, vendor ACA brief | Axys split evidence High Confidence; Axys ACA workflow Verified; fields Unknown | Exact processing model Unknown. |
-| Performance | Supported at product level. | Product, reports | Verified at capability level | Stored-vs-recalculated behavior Unknown. |
+| Performance | Product capability plus `.PRF`/`.PBF` history, `PERHSUM.REP`, Performance History, and Dollar-Weighted/DCF report evidence. | Product and dated operational/report evidence | High Confidence for named artifacts and report roles | Exact current calculation/storage behavior remains version- and configuration-sensitive. |
 | Classifications/groups | Supported in reports/grouping. | Product, reports, integration | Verified at capability level | Exact storage/historical behavior Unknown. |
 | REP reports | Supported. | Report examples | Verified for Axys | Full report catalog Unknown. |
 | IMEX objects | Supported as import/export utility. | Integration docs | Verified for CI workflow | Full object catalog Unknown. |
@@ -454,8 +462,11 @@ These tokens are examples only. They are not a full RepLang dictionary.
 | Statement | Confidence | Notes |
 |---|---:|---|
 | Axys supports performance measurement at product level. | Verified | Exact implementation Unknown. |
+| `.PRF` and `.PBF` are identified as performance-history files in dated operational guidance. | High Confidence | Exact layout and version coverage remain Unknown. |
+| `PERHSUM.REP` is identified in Axys 3.6 material as Performance History for Selected Time Periods. | Verified historical evidence | Do not assume the same filename or implementation in every release. |
+| Dated Axys Help evidence distinguishes Performance History time-weighted returns from DCF/IRR reporting. | Verified historical evidence | Current site settings, cash-flow timing, valuation boundaries, fees, and rounding still require confirmation. |
 | Candidate IMEX object names such as `portperf` and `secperf` are not verified by supplied material. | Unknown | Do not use as fact. |
-| Whether Axys stores monthly performance, recalculates on demand, or uses both behaviors is Unknown. | Unknown | Critical research gap. |
+| Public evidence establishes stored performance-history artifacts, but not whether every report reads them, recalculates, or combines both behaviors. | Unknown | Critical report-specific research gap. |
 | Whether security performance contributions foot to portfolio returns by contribution fields or `weight * return` is Unknown. | Unknown | Requires samples. |
 | Which reports use stored values versus recalculation is Unknown. | Unknown | Requires report tests/source. |
 
@@ -629,6 +640,7 @@ Any Axys extract used for integration, audit, or research should record the foll
 | Axys 3.7 to 3.8 | File conversion reportedly required; some resulting 3.8 files had different formats. | N/A | Medium Confidence | Important direct-file-access warning. |
 | Axys 3.8.6 | Minimum Axys version listed by Salentica Data Broker connector. | N/A | Verified for that connector | Connector-specific. |
 | Axys 3.8.7 | Vendor blog says enhanced Position Reconciliation report, expanded generic date framework, and additional/improved multicurrency reports. | N/A | Verified as vendor release statement | Report file details Unknown. |
+| Axys 3.6 | Public historical report guidance identifies `PERHSUM.REP` and distinguishes `.REP` from Report Writer Pro `.RPW` reports. | N/A | Verified historical evidence | Not a current-version support statement. |
 | APX v1.x-v4.x | N/A | IMEX functionality reportedly maintained, fixed-format generation eliminated. | Medium Confidence | Practitioner evidence. |
 | APX 15.2 / 16.1 / 16.2 / 17.1 | N/A | Listed as supported/tested by Salentica Data Broker connector. | Verified for that connector | Connector-specific. |
 | Current APX | N/A | Vendor material supports local or cloud-delivered deployment. | Verified at product level | Deployment-specific REP/IMEX access Unknown. |
@@ -641,7 +653,8 @@ Any Axys extract used for integration, audit, or research should record the foll
 |---|---|---:|---|
 | Direct Axys file access can break across versions. | Axys | Medium / High Confidence | Prefer IMEX/REP; test after upgrades. |
 | Axys 3.7 to 3.8 conversion reportedly changed some file formats. | Axys | Medium Confidence | Version-specific direct-file readers need regression testing. |
-| `CLI`, `PRI`, `INF`, `PRF`, and `GRP` may be native files, export files, or migration shorthand depending on version/context. | Axys | Medium Confidence | Do not promote these names into a complete file dictionary without sample files or vendor documentation. |
+| `CLI`, `PRI`, and `INF` labels may be native files, export files, or migration shorthand depending on version/context. | Axys | Medium Confidence | Do not promote these names into a complete file dictionary without sample files or vendor documentation. |
+| Performance-history names copied from `.CLI`/`.GRP` are not automatically resynchronized after later renames. | Axys | High Confidence operational evidence | Name comparisons can be misleading unless the performance-history name is reviewed. |
 | Open/in-use price files can cause Axys price import failure. | Axys CI workflow | Verified | Review `imexPrices.log`; avoid imports while files are open. |
 | CI Accept step affects whether transactions re-download. | Axys CI workflow | Verified | Skipping acceptance can duplicate downloads in later runs. |
 | Security ambiguity blocks imports in CI workflows. | Axys/APX CI | Verified | Resolve symbol/type ambiguity and translations before import. |
@@ -836,18 +849,18 @@ The following items remain unsupported by the supplied material and must be docu
 | Axys pricing | Complete `.pri` layout; price key; source/price set; stale/missing price reports; split adjustment behavior. |
 | Axys cash | Cash balance object; settled versus trade-date cash; income/margin/short cash storage; cash REP/IMEX objects. |
 | Axys corporate actions | Exact `split.inf` layout; dividend/reorg files; corporate action transaction codes; split processing formulas. |
-| Axys performance | Stored versus recalculated behavior; performance file/table names; `portperf`/`secperf` object names; report footing logic. |
+| Axys performance | Exact `.PRF`/`.PBF` layouts; stored-versus-recalculated behavior by report; current TWR/DCF formulas and settings; `portperf`/`secperf` object names; report footing logic. |
 | Axys classifications | Native classification tables/files; effective dating; historical classification behavior; IMEX object names. |
 | IMEX | Complete object catalog, field dictionary, command syntax, logs, validation, rollback, scheduling, and version differences. |
-| REP/Replang | Full grammar, variables, macros, command-line options, output formats, report catalog. |
+| REP/Replang | Full grammar, variables, macro syntax, complete REP32 option set, output formats, and installed/version-specific report catalog. |
 | Deployment | Axys services, scheduler, network share requirements, backup model, user permissions, hosting variants. |
-| APX contrast | Full APX SQL schema, public views, stored accounting functions, SSRS datasets, API coverage. |
+| APX contrast | Full APX SQL schema, public views, stored accounting functions, SSRS datasets, and exact REST endpoint schemas and entitlements. |
 
 ---
 
 ## 17. References
 
-This chapter is based on the supplied research and source material only.
+This chapter uses the repository research plus the following public evidence.
 
 | Source file | Used for |
 |---|---|
@@ -863,6 +876,11 @@ This chapter is based on the supplied research and source material only.
 | `../evidence/Research_11_Classifications.md` | Asset class/sector/country/region/custom classification research, symbol/type join cautions, version notes. |
 | `../evidence/Research_12_IMEX.md` | IMEX definition, files/folders, logs, REP32 connector contrast, object unknowns. |
 | `../evidence/Research_13_REP.md` | REP/Replang architecture, Report Writer Pro, `AMAN.REP`, `REP32.exe`, report examples and quirks. |
+| [Advent investor presentation (March 2008)](https://media.corporate-ir.net/media_files/irol/96/96626/presentations/Advent_IR_Presentation_Mar_13_08.pdf) | Dated flat-file Axys and relational APX product-positioning evidence. |
+| [CSSI: PRF/PBF name behavior](https://cssisolutions.com/downloads/solving-the-cli-prf-pbf-name-problem) | Performance-history artifacts and first-creation name-copy behavior. |
+| [CSSI: REP32 hyperlinks](https://cssisolutions.com/downloads/how-to-add-hyperlinks-to-reports) | Working REP32 command pattern and observed switches. |
+| [CSSI: groups of composites](https://cssisolutions.com/downloads/how-to-create-a-group-of-composites) | `.CPG` composite evidence and member entry/exit dates. |
+| [Historical PERHSUM guidance](https://static1.1.sqspcdn.com/static/f/425065/4721492/1257913571447/Modifying-PERSHUM-Report.pdf) | Axys 3.6 `PERHSUM.REP`, `.REP`, and `.RPW` evidence. |
 
 ---
 
@@ -886,5 +904,5 @@ Do not convert observed integration behavior into universal native Axys behavior
 ## Research Provenance
 
 The 2026-06-30 deep IMEX architecture conclusions are incorporated into
-Section 6.5. Their supporting source history remains in
-`../evidence/Research_02_Axys_Architecture.md`.
+Section 6.5. Their granular supporting claims and confidence boundaries remain
+in `../evidence/Research_02_Axys_Architecture.md`.

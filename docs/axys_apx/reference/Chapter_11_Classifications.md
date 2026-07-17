@@ -2,12 +2,14 @@
 
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys_apx/reference/Chapter_11_Classifications.md`
-Prepared from supplied research material: 2026-06-29
+Prepared from repository research material: 2026-06-29
+Public evidence reviewed: 2026-07-17
 Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md) — keeps security identity separate from classification-like reporting fields.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — classifications often appear in performance and attribution reporting.
@@ -15,7 +17,9 @@ Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ## 1. Overview
 
-This chapter documents classification-related behavior in SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX), based only on the supplied research and source material.
+This chapter documents classification-related behavior in SS&C Advent Axys and
+SS&C Advent Portfolio Exchange (APX), based on repository research and cited
+public evidence.
 
 The term **classification** is used conservatively in this chapter. The supplied research does not establish a single native Axys/APX object named `classification`. Instead, classification-like information appears in several different contexts:
 
@@ -30,14 +34,12 @@ Classification outputs should be kept distinct from transaction semantics. A tra
 | Integration/export labels | `Asset Class`, `Security Type`, `Sec Type Code`, `Security Symbol` | Verified in specific export/integration contexts; not proven native field names |
 | Labels | AdventGuru mentions transaction and label import through Trade Blotter/IMEX context | Relationship to classifications Unknown |
 
-### 1.1 Confidence labels
+### 1.1 Confidence
 
-| Confidence | Meaning |
-|---|---|
-| Verified | Directly supported by supplied research material derived from vendor, third-party integration, report, or consultant documentation. |
-| High Confidence | Strongly supported by the supplied material, but not proven by an official native Axys/APX schema or sample export. |
-| Medium Confidence | Plausible and useful, but support is indirect, context-specific, or source-limited. |
-| Unknown | Not established by supplied material. Do not implement or document as fact without additional evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### 1.2 Key rules for this chapter
 
@@ -155,9 +157,9 @@ Do not treat the reserved-prefix rule as a universal Axys reporting, IMEX, REP, 
 | Statement | Confidence | Notes |
 |---|---:|---|
 | APX has a report guide/public report documentation. | Verified | Supplied research identifies publicly indexed APX Reports Guide (`REP_APX.pdf`). |
-| At least one APX report can display custom classification, industry group, or sector. | Verified, limited to snippet | The supplied research is based on a public search-result snippet; full report text was not available in the research pass. |
-| The same APX report graphically displays equity allocations. | Verified, limited to snippet | Report name and full field list remain Unknown. |
-| APX supports classification/allocation reporting beyond a single fixed sector hierarchy. | Medium Confidence | The phrase “any custom classification, industry group, or sector” implies flexibility, but details require the full APX Reports Guide. |
+| APX Equity Overview can display equity allocation using a selected custom classification, industry group, or sector. | Verified from the public APX Reports Guide | Exact native storage and RDL dataset remain Unknown. |
+| APX attribution and contribution reports can group results by classifications or selected groupings. | Verified from the public APX Reports Guide | Historical/as-of lookup behavior remains Unknown. |
+| APX supports classification/allocation reporting beyond a single fixed sector hierarchy. | Verified at report-capability level | Native lookup tables and effective dating remain Unknown. |
 | APX supports custom reporting, dashboards, standard reports, and performance analytics at product level. | Verified | Product material in supplied REP research supports this. |
 | APX has SQL/reporting options beyond IMEX. | Medium Confidence | AdventGuru research notes APX SQL Server, Public Views, Stored Accounting Functions, SSRS, REST API, and related reporting tools. |
 | APX classification evidence is strongest through reporting, security-master dependencies, integration exports, and merger/reclassification workflows. | High Confidence | Native classification storage remains Unknown. |
@@ -214,7 +216,7 @@ Do not generalize this rule into APX SQL, APX reporting, APX public views, or na
 
 | Extraction path | Classification relevance | Confidence | Notes |
 |---|---|---:|---|
-| APX standard reports | At least one report supports custom classification, industry group, or sector. | Verified, limited to snippet | Report name and full columns Unknown. |
+| APX standard reports | Equity Overview plus attribution/contribution reports support classification/grouping views. | Verified from public guide | Native fields, datasets, and as-of behavior Unknown. |
 | APX REP/Replang reports | Consultant research says APX users can still use Report Writer Pro/Replang. | Medium Confidence | Exact field tokens Unknown. |
 | APX SSRS / SQL reporting | APX has SQL Server/reporting options according to consultant research. | Medium Confidence | Exact tables/views/stored functions Unknown. |
 | APX IMEX | APX maintains IMEX functionality according to consultant research. | Verified from consultant source | Classification object names Unknown. |
@@ -314,7 +316,7 @@ composites, labels, and assignments remain Unknown.
 | `AMAN.REP` | Axys | Assets Under Management report in CSSI example; output sorted by asset class in example. | Verified for example |
 | `CDIhold.rep` | Axys | AIA historical holdings calculation report; may support classification-enriched holdings if report logic includes classifications, but not established. | Verified for AIA workflow; classification Unknown |
 | `CDIhold.rep` | APX | AIA historical holdings calculation report; same caution. | Verified for AIA workflow; classification Unknown |
-| APX custom classification / industry group / sector allocation report | APX | Public APX Reports Guide snippet says a report can display custom classification, industry group, or sector. | Verified, limited to snippet; report name Unknown |
+| Equity Overview | APX | Public APX Reports Guide says it can display allocation by selected custom classification, industry group, or sector. | Verified |
 
 ### 5.3 REP extraction strategy for classifications
 
@@ -352,7 +354,7 @@ composites, labels, and assignments remain Unknown.
 | Industry Sector | Security-master import dependency in AdventGuru research. | Verified as import dependency; exact field Unknown |
 | Country | Axys product material says performance can be displayed by country. | Verified as Axys reporting category |
 | Region | Axys product material says performance can be displayed by region. | Verified as Axys reporting category |
-| Custom Classification | APX report snippet says a report can display any custom classification. | Verified, limited to snippet |
+| Custom Classification | APX Equity Overview can use a selected custom classification. | Verified at report-capability level |
 | Portfolio Grouping Category | Axys can group portfolios by manager, asset class, investment objective, or chosen category. | Verified |
 | Label | Term appears in IMEX/Trade Blotter context. | Relationship to classification Unknown |
 
@@ -495,9 +497,9 @@ Scenario C: overlapping security translations match the same source security.
 | Ticker-only joins can misclassify holdings when ticker and CUSIP variants coexist. | High Confidence |
 | Store product symbol, product type, security name, CUSIP/ticker when available, and source artifact. | High Confidence as implementation guidance |
 
-### 8.5 APX custom classification report
+### 8.5 APX Equity Overview classification reporting
 
-The APX Reports Guide snippet in the supplied research states that a report can display:
+The reviewed APX Reports Guide states that Equity Overview can display:
 
 ```text
 any custom classification, industry group, or sector
@@ -507,9 +509,9 @@ and graphically display equity allocations.
 
 | Interpretation | Confidence |
 |---|---:|
-| APX has report support for custom classification, industry group, and sector. | Verified, limited to snippet |
-| The exact report name is not established. | Unknown |
-| The exact output fields are not established. | Unknown |
+| APX has report support for custom classification, industry group, and sector. | Verified |
+| The report name is `Equity Overview`. | Verified |
+| Exact RDL fields and datasets are not established. | Unknown |
 | It is not known whether the report exports raw classification assignments or only aggregate allocation values. | Unknown |
 
 ### 8.6 Historical classification behavior test case
@@ -626,7 +628,7 @@ This chapter is based on the supplied research files and their referenced source
 | Supplied research file | Use in this chapter |
 |---|---|
 | `axys_apx_reference_blueprint.md` | Governing editorial rules, confidence labels, chapter template, and Unknown handling. |
-| `../evidence/Research_11_Classifications.md` | Primary classification research: Axys/APX classification capabilities, field candidates, IMEX/REP unknowns, test plan, quirks. |
+| `../evidence/Research_11_Classifications.md` | Classification source-and-claim ledger and unresolved evidence requirements. |
 | `../evidence/Research_04_Security_Master.md` | Security identity, `sec.inf`, `type.inf`, symbol/type matching, security import dependencies, duplicate security quirks. |
 | `../evidence/Research_06_Holdings.md` | Portfolio Appraisal, holdings fields, group/management mode behavior, report examples, `CDIhold.rep`. |
 | `../evidence/Research_12_IMEX.md` | IMEX definition, Axys/APX IMEX behavior, file/folder evidence, REP32 extraction context, direct file access cautions. |
@@ -640,7 +642,7 @@ Referenced external source categories from the supplied research include:
 | Source category | Supported facts used here |
 |---|---|
 | SS&C Advent Axys product material | Axys reporting, Report Writer Pro, portfolio grouping categories, performance by asset class/sector/country/region. |
-| SS&C Advent APX product material and APX Reports Guide snippet | APX report library, custom reporting, classification/industry/sector allocation report snippet. |
+| [SS&C Advent APX Reports Guide](https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf) | Equity Overview, classification/industry/sector allocation, attribution, and contribution groupings. |
 | ByAllAccounts Custodial Integrator guides for Axys/APX | Symbol/type security identity, `sec.inf`, `type.inf`, security translation fields, duplicate matching, reserved CI type prefixes. |
 | AdvisorEngine Advent Axys Asset Import KB | Axys export column list including `Asset Class`. |
 | CSSI Axys report tutorials | Portfolio Appraisal behavior, `Portfolio Code` column, Management Mode, `AMAN.REP`, RepLang examples. |
@@ -677,7 +679,7 @@ Referenced external source categories from the supplied research include:
 | Axys/APX IMEX object list or screenshots | Confirms object names and supported import/export paths. |
 | REP/Replang source for holdings by asset class | Confirms report field tokens and grouping logic. |
 | REP/Replang source for performance by asset class/sector/country/region | Confirms performance classification reporting behavior. |
-| APX Reports Guide full PDF or screenshots around custom classification report | Confirms report name, parameters, and fields. |
+| Installed Equity Overview RDL/output and parameter screen | Confirms site-specific parameters, fields, source dataset, and version. |
 | APX SQL public view/data dictionary examples | Confirms classification table/view names and field names. |
 | Small anonymized classification export | Confirms symbol/type/name/CUSIP/asset class/sector/industry/country/region/custom fields. |
 | Before/after classification edit test | Confirms historical classification behavior. |
@@ -686,5 +688,5 @@ Referenced external source categories from the supplied research include:
 ## Research Provenance
 
 The deep IMEX classification conclusions are incorporated into Section 4.5.
-Their supporting source history remains in
+Their granular supporting claims and confidence boundaries remain in
 `../evidence/Research_11_Classifications.md`.

@@ -2,12 +2,14 @@
 
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `Chapter_10_Performance.md`
-**Prepared from supplied research:** `../evidence/Research_10_Performance.md` plus supplied supporting research for IMEX, REP, transactions, holdings, cash, pricing, corporate actions, security master, and classifications.
+**Prepared from:** `../evidence/Research_10_Performance.md`, supporting repository research,
+and public evidence reviewed through 2026-07-17.
 **Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions, plus the shared safe implementation rules.
 - [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — transactions are important performance inputs.
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — position and valuation changes feed performance calculations.
@@ -17,7 +19,11 @@
 
 This chapter documents the currently supported facts and open questions about performance behavior in SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX).
 
-The available supplied research supports broad performance/reporting capability statements for Axys/APX, but it does **not** provide enough evidence to document exact native performance storage files, APX SQL tables, APX stored procedures, Axys `.REP` performance report files, official IMEX performance object names, or report-specific return calculation methods.
+The available evidence supports broad performance/reporting capability statements
+and identifies Axys `.PRF`/`.PBF` performance-history artifacts plus historical
+`PERHSUM.REP`. It does **not** provide their layouts, APX SQL tables or stored
+procedures, official IMEX performance object names, or current report-specific
+calculation contracts.
 
 Therefore, this chapter is intentionally conservative. Unsupported implementation details are marked **Unknown**.
 
@@ -44,14 +50,12 @@ short-proceeds or margin/short-cash handling, and realized gain/loss on cover.
 It does not support code-only production classification without local holdings,
 cash/proceeds, source/destination, and report evidence.
 
-### 1.1 Confidence labels
+### 1.1 Confidence
 
-| Label | Meaning in this chapter |
-|---|---|
-| Verified | Directly supported by supplied research, vendor/public material summarized in the research, or identified report/integration documentation. |
-| High Confidence | Strongly supported by supplied research and consistent implementation evidence, but still not a complete vendor specification. |
-| Medium Confidence | Plausible and operationally useful, but supported only indirectly, by product/consultant/integration material, or by general portfolio-accounting behavior. |
-| Unknown | Not established by supplied source material. Do not implement or document as fact without additional evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### 1.2 Scope
 
@@ -77,7 +81,7 @@ Performance in this chapter includes:
 | Reporting customization | Axys has predefined reports and customization, including Report Writer Pro. | APX has standard reports, custom reporting, dashboards, and SSRS-oriented reporting paths. | Verified for high-level capability | Exact performance report files and fields are mostly Unknown. |
 | REP / report extraction | Axys reports use RepLang `.REP` files in supported examples; REP32-based extraction is used by at least one Axys/APX connector. | APX can be accessed by report/macro extraction in at least one connector and also has SQL/SSRS-style reporting paths. | Verified for cited workflows; Medium for generalization | Report-specific performance behavior remains Unknown. |
 | IMEX performance objects | Candidate names such as `portperf` and `secperf` are not verified. | Same. | Unknown | Do not document as official object names without actual IMEX catalog or exports. |
-| Stored vs recalculated returns | Unknown. | Unknown. | Unknown | This is the central unresolved behavior for Chapter 10. |
+| Stored vs recalculated returns | Stored performance-history artifacts are verified, but report-specific read/recalculation behavior is Unknown. | Unknown. | Mixed | This remains the central report-specific question. |
 | Security performance footing | Unknown whether security rows foot to portfolio return by `weight * return`, contribution fields, report-specific logic, or another method. | Same. | Unknown | Requires security performance exports/reports. |
 | Classification performance | Axys public material supports performance display by asset class, sector, country, and region. | APX report-guide snippet supports custom classification, industry group, and sector reporting. | Verified at reporting category level | Storage/history behavior remains Unknown. |
 | Benchmark/index support | Unknown detailed Axys model. | APX public material supports benchmark/index data for performance analytics. | APX Verified for high-level capability | Detailed benchmark tables/export fields are Unknown. |
@@ -99,12 +103,27 @@ Performance in this chapter includes:
 | Multi-currency return components | Axys product material supports multi-currency return components attributable to market prices versus currency-rate fluctuations. | Verified for product capability |
 | REP / Replang | Supplied REP research supports that Axys reports are written in RepLang and that `.REP` files such as `AMAN.REP` can be copied and edited in a text editor. | Verified for cited report examples |
 | Report execution / extraction | A third-party connector uses Advent standard reports/macros, `REP32.exe`, the REP32 engine, RepLang scripting, and macros for Axys/APX extraction. | Verified for connector |
+| Performance-history artifacts | Dated operational guidance identifies `.PRF` and `.PBF`; `PERHSUM.REP` is identified in Axys 3.6 report guidance. | Verified historically; current applicability Unknown |
+
+### 3.1.1 Historical Axys Methodology Evidence
+
+A 2008 SEC administrative record quotes dated Axys Help and distinguishes two
+report concepts:
+
+| Historical concept | Supported interpretation | Boundary |
+|---|---|---|
+| Performance History | Time-weighted return. Ideal treatment computes simple returns between cash flows and links the subperiods. | Historical secondary/legal evidence; current configuration and version behavior must be confirmed. |
+| Dollar-Weighted / DCF | Internal-rate-of-return approach. The quoted historical approximation divides at valuation boundaries, applies IRR within each interval, and links results. | Historical secondary/legal evidence; not a universal current formula contract. |
+
+A separate SEC filing states that an Axys Average Capital Base report used
+Modified Dietz. This proves that method for the cited historical report, not for
+all Axys reports or current versions.
 
 ### 3.2 Axys performance behavior not yet verified
 
 | Area | Current Status | Needed evidence |
 |---|---|---|
-| Portfolio return method | Unknown | Vendor performance manual, report guide, REP source, or controlled report output. |
+| Current portfolio return method by report/configuration | Unknown beyond the dated Performance History, DCF, and Average Capital Base evidence above. | Current vendor performance manual, report guide, REP source, or controlled report output. |
 | Stored vs calculated returns | Unknown | Performance storage/export sample and report rerun tests. |
 | Daily/monthly return storage | Unknown | Axys files, IMEX object catalog, or production export. |
 | Multi-period linking | Unknown | Monthly vs multi-period report comparison. |
@@ -140,6 +159,7 @@ The following terms appear as candidate or user-recalled performance extract con
 |---|---|---:|
 | Product category | APX is an integrated portfolio management, accounting, reporting, and client-management platform. | Verified for product capability |
 | Performance analytics | APX product material states that APX includes performance analytics. | Verified for product capability |
+| TWR and MWRR | Official APX/GIPS material states that APX supports time-weighted and money-weighted return calculations. | Verified at capability level |
 | Benchmark/index support | APX index-data material supports benchmark/index data for APX performance analytics. | Verified for product capability |
 | Reporting framework | APX public material and supplied REP research support APX standard reports, custom reporting, dashboards, and SSRS/reporting paths. | Verified / High Confidence depending path |
 | Accounting/reporting/performance scope | SS&C product update material described APX as a core accounting, reporting, and performance measurement application. | Verified for product claim |
@@ -156,7 +176,7 @@ The following terms appear as candidate or user-recalled performance extract con
 | Stored vs dynamic performance | Unknown | Stored values plus report rerun tests. |
 | Portfolio vs security performance objects | Unknown | APX export/schema/report samples. |
 | Sector/classification performance storage | Unknown | APX performance analytics documentation or report definitions. |
-| Attribution methodology | Unknown | APX attribution/performance analytics manual. |
+| Attribution implementation | Unknown. A vendor attribution paper documents general relative/absolute attribution and BHB formulas, including an option to fold interaction into selection, but does not prove the configured APX implementation. | APX attribution configuration/manual and paired report examples. |
 | Benchmark storage and revision behavior | Unknown | Benchmark/index interface documentation and sample exports. |
 | Composite/GIPS calculation details | Unknown | APX composite/GIPS documentation and reports. |
 | SSRS performance report names and datasets | Unknown | APX Reports Guide, SSRS catalog, RDL files, or report samples. |
@@ -258,7 +278,7 @@ object dictionary.
 
 | Topic | Chapter treatment | Confidence |
 |---|---|---:|
-| Performance history | Public conversion evidence mentions performance history as an IMEX/migration concern, but object names and fields remain Unknown. | Medium / Unknown |
+| Performance history | Public conversion evidence mentions performance history as an IMEX/migration concern, but object names and fields remain Unknown. | Medium Confidence for the migration concern; object and fields Unknown |
 | `portperf` / `secperf` | Treat as normalized/local names unless a live IMEX object, report output, or vendor manual confirms native names. | Unknown |
 | Candidate live-discovery fields | Portfolio/security/classification/composite IDs, period dates, beginning/ending market value, return, contribution, external flow, income, fees, weights, benchmark, and currency fields. | Discovery guidance |
 | REP/report preference | Use REP/Replang/custom reports when reported performance must tie to user-visible Axys/APX output. | Design guidance |
@@ -286,8 +306,8 @@ object dictionary.
 | Standard reports | APX has a large standard report library at product level. | Verified |
 | SSRS/custom reporting | APX supports flexible custom reporting; supplied REP research records SSRS/SQL reporting evidence. | Verified / Medium Confidence depending source |
 | REP32 connector extraction | A connector uses REP32/RepLang/macros for APX extraction in supported versions. | Verified for connector |
-| APX Reports Guide | A public APX Reports Guide was identified in research; full performance report content was not fully inspected. | Medium Confidence lead |
-| Performance report names | Exact APX performance report names, RDL names, and datasets are Unknown. | Unknown |
+| APX Reports Guide | The reviewed public guide identifies performance, attribution, contribution, and risk reports. | Verified |
+| Performance report names | Guide-visible names are known; RDL names, datasets, parameters, and formulas remain Unknown. | Mixed |
 | Stored vs recalculated | Whether APX performance reports use stored values, stored accounting functions, public views, SQL procedures, or report-specific calculations is Unknown. | Unknown |
 
 ### 6.3 Report inventory to collect
@@ -506,6 +526,8 @@ The following are documented as cautions or research hypotheses, not proven Axys
 |---|---|---|---|---|
 | Legacy vs current Axys performance behavior | Unknown | N/A | Unknown | Axys release notes, performance manuals, installed report files. |
 | Axys 3.8.6 / 3.8.7 report changes | Connector/release evidence exists outside performance specifics. | N/A | Partial | Report files and release notes. |
+| Historical Axys Help cited in 2008 SEC record | Performance History TWR and DCF/IRR behavior documented for the cited version. | N/A | Verified historical evidence | Do not project across later releases/configurations without tests. |
+| APX 21.1-late 2021 | N/A | Official release material documents performance extraction APIs and Performance Update runtime improvements. | Verified at release level | Exact endpoints and calculation changes remain Unknown. |
 | APX performance analytics module changes | N/A | Unknown | Unknown | APX release notes/performance analytics manuals. |
 | APX SSRS report changes across versions | N/A | Unknown | Unknown | APX Reports Guide by version and RDL catalog. |
 | Axys vs APX IMEX performance objects | Unknown | Unknown | Unknown | Paired IMEX catalogs/exports. |
@@ -517,12 +539,12 @@ The following are documented as cautions or research hypotheses, not proven Axys
 
 ## 12. References
 
-This chapter is based only on supplied repository research and source summaries. The following supplied files were used:
+This chapter uses repository research plus cited public evidence.
 
 | Supplied file | Use in this chapter |
 |---|---|
 | `axys_apx_reference_blueprint.md` | Governing chapter structure, confidence labels, and facts-first standard. |
-| `../evidence/Research_10_Performance.md` | Primary performance research. |
+| `../evidence/Research_10_Performance.md` | Performance source-and-claim ledger and unresolved evidence requirements. |
 | `../evidence/Research_12_IMEX.md` | IMEX, REP32, file/interface, direct-file-access, and import/export cautions. |
 | `../evidence/Research_13_REP.md` | REP, RepLang, Report Writer Pro, REP32, SSRS/reporting-path evidence. |
 | `../evidence/Research_04_Security_Master.md` | Security identity, symbol/type, security master dependencies. |
@@ -533,7 +555,20 @@ This chapter is based only on supplied repository research and source summaries.
 | `../evidence/Research_09_Corporate_Actions.md` | Corporate-action effects on holdings/prices/transactions/performance. |
 | `../evidence/Research_11_Classifications.md` | Classification reporting categories and historical-classification unknowns. |
 
-External source names and URLs are preserved in the supplied research files rather than repeated as authoritative direct citations here.
+Additional durable public sources:
+
+- [Official Axys product page](https://www.advent.com/solutions/axys/) — TWR/IRR,
+  fee basis, benchmark, composite, classification, and multi-currency capabilities.
+- [APX and GIPS transparency](https://www.advent.com/news-and-insights/blog/achieving-gips-compliance-transparency-takes-center-stage/)
+  — official TWR/MWRR capability statement.
+- [SEC record quoting historical Axys Help](https://www.sec.gov/litigation/apdocuments/3-14194-event-38.pdf)
+  — historical Performance History and DCF descriptions.
+- [SEC post-hearing brief](https://www.sec.gov/file/division-enforcements-post-hearing-reply-brief-13)
+  — historical Average Capital Base/Modified Dietz evidence.
+- [Advent attribution paper](https://cdn.advent.com/cms/pdfs/papers/WP_PA.pdf)
+  — general attribution concepts and BHB formulas; not proof of APX configuration.
+- [APX Reports Guide](https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf)
+  — verified performance/attribution/contribution/risk report inventory.
 
 ---
 
@@ -589,4 +624,5 @@ To upgrade this chapter from conservative reference to implementation manual, co
 ## Research Provenance
 
 The deep IMEX performance conclusions are incorporated into Section 5.5. Their
-supporting source history remains in `../evidence/Research_10_Performance.md`.
+granular supporting claims and confidence boundaries remain in
+`../evidence/Research_10_Performance.md`.

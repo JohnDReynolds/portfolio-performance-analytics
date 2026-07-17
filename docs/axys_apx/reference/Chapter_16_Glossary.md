@@ -4,11 +4,12 @@ Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_16_Glossary.md`
 Prepared: 2026-06-29
 Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
-Source basis: supplied research files `../evidence/Research_02_Axys_Architecture.md` through `../evidence/Research_16_Glossary.md`
+Source basis: repository research plus public evidence reviewed through 2026-07-17
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_12_Imex.md](Chapter_12_Imex.md) — defines IMEX-related technical terms.
 - [Chapter_13_Rep.md](Chapter_13_Rep.md) — defines REP and reporting-language terms.
@@ -20,14 +21,12 @@ This chapter defines commonly used Axys/APX repository terms. It is a technical 
 
 The glossary follows the repository rule that unsupported Axys or APX behavior must not be invented. Where exact field names, transaction codes, report names, IMEX object names, REP variables, or processing behavior are not supported by the supplied source material, the entry is marked `Unknown`.
 
-### Confidence Legend
+### Confidence
 
-| Confidence | Meaning |
-|---|---|
-| Verified | Directly supported by the supplied blueprint, supplied research, named vendor material, named report evidence, named integration documentation, or cited practitioner documentation summarized in the research. |
-| High Confidence | Strongly supported by supplied research and consistent implementation evidence, but not fully verified from vendor manuals, sample exports, or production observations. |
-| Medium Confidence | Plausible and supported by partial, third-party, conversion, integration, or practitioner evidence. Requires confirmation before implementation use. |
-| Unknown | Not verified by supplied material. Do not treat as fact. |
+This chapter uses the confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector, or
+workflow.
 
 ### Glossary Columns
 
@@ -97,14 +96,14 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | Statement Blotter | APX workflow object for statement transactions used in reconciliation contexts. | Unknown. | Identified in APX AIA research. | Transaction/reconciliation context. | Verified for workflow. |
 | Account Blotter | APX workflow object for importing account demographic data in AIA research. | Unknown. | Identified in APX AIA research. | Account import context. | Verified for workflow. |
 | Initial Transaction Blotter | APX workflow object for creating initial deliver-in transactions from positions when configured. | Unknown. | Identified in APX AIA research. | Initial position/transaction conversion context. | Verified for workflow. |
-| APXIX.exe / ApxIx | APX Import/Export utility naming seen in APX research. | N/A. | APX import/export executable/function name in specific integration/manual contexts. Whether names are version/context variants is Unknown. | APX IMEX. | Verified in specific sources; broader equivalence Unknown. |
+| APXIX.exe / apxix.exe / ApxIx | Capitalization and label variants for the APX Import/Export utility in independent integration guides. | N/A. | Same utility function; installed filename/version remains site-specific. | APX IMEX. | High Confidence |
 | imex32.exe | Axys Import/Export utility executable name in ByAllAccounts CI research. | Axys CI looks for `imex32.exe`. | N/A. | Axys IMEX. | Verified for CI workflow. |
 | IMEX Log | Log from IMEX import/export process. | CI research references IMEX logs such as `imexPrices.log`, `imexPositions.log`, and `imexPositionLots.log`. | APX AIA research references Advent IMEX Log and History Log. | Troubleshooting/audit context. | Verified for workflows. |
 | Source-Data | Source snapshot, export, file, or dataset used as evidence or as ppar comparison input. | May be Axys export, report output, integration file, or user-supplied dataset. | May be APX export, report output, SQL/API extract, integration file, or user-supplied dataset. | Distinct from source material, which means the documentation evidence used by this reference set. | High Confidence as repository terminology. |
 | Source-data Folder | Folder used by third-party integration tooling to hold source-data files. | External integration concept unless verified as Axys-native. | External integration concept unless verified as APX-native. | Integration-specific. | Medium Confidence |
 | Extract Folder | Folder used for generated extracts/reports/files. | Used in integration/report workflows. | Used in integration/report workflows. | May contain REP/IMEX outputs. | Medium Confidence |
 | Unattended Run | Scheduled execution without user interaction. | Connector supports scheduled unattended extraction. | Same. | REP32/macros used by connector. | Verified for connector context. |
-| REST API | Programmatic APX integration option referenced in practitioner research. | Not verified for Axys. | Practitioner research says newer APX versions may include REST API options. | Alternative/complement to IMEX/REP. | Medium / High Confidence for APX existence; endpoint details Unknown. |
+| REST API | Programmatic APX integration surface officially documented for APX 21.1+ releases. | Not verified for Axys. | Release material documents expanding market, reference, accounting, entity, reporting, performance, audit, analytics, cost, and fee-related APIs. | Alternative/complement to IMEX/REP. | Verified at capability level; endpoints/schemas/entitlements Unknown. |
 | Public Views | APX database views referenced as access path. | Not applicable to Axys in supplied research. | Available but limited according to practitioner research. | SQL/reporting extraction path. | Medium / High Confidence; field lists Unknown. |
 | Stored Accounting Functions | APX database/reporting functions referenced by practitioner material. | Not verified. | Referenced as APX access path. | SQL/reporting extraction path. | Medium Confidence |
 | SSRS | Microsoft SQL Server Reporting Services. | Not established as Axys report engine. | APX reports guide/research identifies SSRS-based APX investment reports. | APX reporting engine/context. | Verified for APX guide-covered reports. |
@@ -122,7 +121,9 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | Custom Report | Firm-specific or modified report. | Axys supports Report Writer Pro and Replang customization. | APX supports flexible custom reporting; Replang/REP also appears in practitioner/integration evidence. | Custom output may be used for data extraction. | High Confidence |
 | Report Writer Pro | Advent report authoring/customization tool. | Verified for Axys from vendor material. | Practitioner evidence supports APX usage, but exact version boundaries are not fully verified. | REP/report customization. | Verified for Axys; Medium / High Confidence for APX. |
 | REP | Advent report file/reporting layer, commonly associated with `.REP`, REP32, and Replang. | Axys `.REP` examples are verified. | APX RepLang/REP usage is supported by practitioner/connector evidence but exact artifact locations are Unknown. | Chapter 13 topic. | Verified for Axys examples; Medium / High Confidence for APX. |
-| `.REP` | Report source/file extension used in Axys examples. | `AMAN.REP` and `CDIhold.rep` appear in supplied research. | APX `.REP` usage possible but exact locations/coverage Unknown. | REP source artifact. | Verified for Axys examples; Unknown/Medium for APX. |
+| `.REP` | RepLang report source/file extension used in Axys examples. | `AMAN.REP`, `CDIhold.rep`, and historical `PERHSUM.REP` are evidenced. | APX `.REP` usage possible but exact locations/coverage Unknown. | REP source artifact. | Verified for Axys examples; APX use Medium Confidence, coverage Unknown. |
+| `.PRF` / `.PBF` | Axys performance-history artifacts in dated operational guidance. | Used for performance-history state; exact layout Unknown. | Not established. | Performance/reporting context. | High Confidence operational evidence. |
+| `.CPG` | Axys composite artifact in dated operational guidance. | Supports composite membership with entry/exit dates. | Not established. | Composite reporting context. | High Confidence operational evidence. |
 | `.RPW` | Report Writer-created report extension referenced by practitioner research. | Relevant to Axys custom reports. | Relevant to APX custom reports per practitioner research. | Report Writer / Replang relationship. | Medium Confidence |
 | Replang / RepLang | Advent proprietary report writing language. | Axys reports are written in Replang in CSSI example. | Practitioner source says Replang remains part of APX architecture and APX has additional keywords. | REP/report source language. | Verified for Axys; Medium / High Confidence for APX. |
 | REP32 | Report execution engine/application used by connector. | Used for Axys extraction in connector. | Used for APX extraction in connector. | Reports/macros/extract generation. | Verified for connector context. |
@@ -143,7 +144,7 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 
 | Term | Definition | Axys | APX | Interface / Report Context | Confidence |
 |---|---|---|---|---|---|
-| Portfolio | Accounting/reporting entity containing holdings, transactions, cash, and performance. | Axys manages and reports portfolios. | APX tracks portfolio data. | Portfolio identifiers appear in reports/integrations; exact native field names vary/Unknown. | Verified generally. |
+| Portfolio | Accounting/reporting entity containing holdings, transactions, cash, and performance. | Axys manages and reports portfolios. | APX tracks portfolio data. | Portfolio identifiers appear in reports/integrations; exact native field names vary and may be Unknown. | Verified generally. |
 | Account | Often used interchangeably with portfolio in integration/report contexts, but exact distinction is environment-specific. | Native Axys account/portfolio distinction Unknown from supplied material. | Native APX account/portfolio distinction Unknown from supplied material. | Integration may distinguish PMS account number and custodian account number. | Medium Confidence |
 | Client | Person/entity served by the firm. | Axys supports client reporting; exact client data model Unknown. | APX includes client relationship management. | Reports and integrations may include client identifiers. | Verified generally; exact fields Unknown. |
 | Relationship | Client/household/business relationship construct. | Unknown. | APX CRM positioning supports relationship concept; schema Unknown. | CRM/reporting context. | Medium Confidence |
@@ -159,7 +160,7 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | PMS Account Number | Account identifier from portfolio management system integration. | Relevant to Axys integrations. | Relevant to APX integrations. | Data Broker distinguishes it from custodian account number. | Verified as integration concept; exact native field Unknown. |
 | Custodian Account Number | Account identifier from custodian. | May differ from PMS account number. | Same. | Used in mapping/reconciliation integrations. | Verified as integration concept; exact native field Unknown. |
 | APX Portfolio Code | Portfolio identifier label observed in APX integration research. | N/A. | Used in Custodial Integrator/APX workflow. | APX integration field. | Verified for CI workflow. |
-| Portfolio Code | Portfolio/account code label observed in Axys Report Writer/report examples and integrations. | Observed in Axys report/export contexts. | APX equivalent may exist but exact field usage varies. | REP/report/integration context. | Verified for observed Axys contexts; APX Unknown/Medium. |
+| Portfolio Code | Portfolio/account code label observed in Axys Report Writer/report examples and integrations. | Observed in Axys report/export contexts. | APX equivalent may exist but exact field usage varies. | REP/report/integration context. | Verified for observed Axys contexts; APX use Medium Confidence, exact field usage Unknown. |
 
 ---
 
@@ -218,7 +219,7 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | Reinvestment | Income distribution reinvested into additional shares/units. | Morningstar conversion research says Axys distribution reinvestments may appear as Buy + Distribution pairs. | ByAllAccounts APX research shows `dv`/`by` paired examples. | Transaction/conversion context. | Medium Confidence |
 | `dvwash` | Dividend reinvestment wash symbol used in observed public mappings. | Used to link dividend and buy legs in integration evidence; native definition Unknown. | Observed in AIA/sweep-symbol contexts. | Reinvestment/cash-symbol context. | High Confidence as observed token; native definition Unknown. |
 | `caus margin` | Margin/cash context used in observed negative-interest or margin-interest mappings. | Observed in public mapping evidence. | APX native status Unknown. | Margin-interest/cash-symbol context. | High Confidence as observed token; native definition Unknown. |
-| Dividend | Income distribution from a security. | Exact storage/transaction/report behavior Unknown. | Exact behavior Unknown; report examples show dividends in Transaction Summary context. | Transaction/report/corporate-action context. | Unknown / Medium depending report label. |
+| Dividend | Income distribution from a security. | Exact storage/transaction/report behavior Unknown. | Exact behavior Unknown; report examples show dividends in Transaction Summary context. | Transaction/report/corporate-action context. | Medium Confidence for the report label; native behavior Unknown. |
 | Interest | Fixed income or cash income. | Axys fixed-income capability implies handling, but exact transaction behavior Unknown. | Exact behavior Unknown; integration examples include income/interest logic. | Transaction/cash/income context. | Medium Confidence |
 | Return of Capital | Distribution reducing cost basis and/or returning capital. | `rc` is confirmed in public Axys/APX translation mapping evidence, but exact native cost-basis/performance treatment remains Unknown. | `rc` and bond-related `pd` appear in APX integration examples. | Transaction/corporate action context. | Medium-High Confidence for integration mapping; native mechanics Unknown. |
 | Principal Paydown | Fixed income/MBS principal reduction transaction/event. | `pd` is confirmed in public bond-security return-of-capital mapping evidence; Morningstar conversion evidence notes Axys paydown conversion issues and zero-quantity cases. | Exact APX native behavior Unknown. | Fixed income/transaction/corporate action context; not a client external flow when supported by paydown and cash-destination evidence. | Medium-High Confidence for integration/conversion evidence; native mechanics Unknown. |
@@ -258,8 +259,8 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | Term | Definition | Axys | APX | Interface / Report Context | Confidence |
 |---|---|---|---|---|---|
 | Performance Measurement | Calculation/reporting of investment returns. | Axys supports performance measurement. | APX includes performance measurement/analytics. | Performance reports/extracts; exact IMEX objects Unknown. | Verified generally. |
-| Time-Weighted Return / TWR | Return measure intended to reduce external cash-flow impact. | Axys can calculate time-weighted returns. | APX likely supports performance returns but exact TWR support not verified in supplied material. | Performance report/export context. | Verified for Axys; Unknown/Medium for APX. |
-| Internal Rate of Return / IRR | Money-weighted return measure. | Axys can calculate internal rates of return. | Unknown in supplied APX material. | Performance report/export context. | Verified for Axys; Unknown for APX. |
+| Time-Weighted Return / TWR | Return measure intended to reduce external cash-flow impact. | Axys supports TWR; historical Help evidence describes Performance History as TWR. | Official APX material supports TWR. | Exact current report formulas/settings remain version-specific. | Verified capability; Axys historical method evidence. |
+| Internal Rate of Return / IRR | Money-weighted return measure. | Axys supports IRR; historical DCF evidence uses an IRR approach. | Official APX material supports money-weighted return calculations. | Exact current report formulas/settings remain version-specific. | Verified capability; Axys historical method evidence. |
 | Before Fees / Gross of Fees | Return before management fees. | Axys can calculate returns before fees. | APX exact behavior Unknown. | Performance option/report context. | Verified for Axys; Unknown for APX. |
 | After Fees / Net of Fees | Return after fees. | Axys can calculate returns after fees. | APX exact behavior Unknown. | Performance option/report context. | Verified for Axys; Unknown for APX. |
 | Performance History | Historical performance values or records. Exact storage/recalculation rules are not verified. | Axys product material references updating performance history for significant contributions/withdrawals. | APX performance history storage/recalculation Unknown. | Performance IMEX/REP/report context. | Verified concept for Axys; implementation Unknown. |
@@ -313,7 +314,7 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | Advent Corporate Actions / ACA | SS&C Advent corporate-actions solution referenced in Axys/APX research. | ACA for Axys receives active holdings by daily script, provides reports and Automation Results email, and can process simple/mandatory events to Trade Blotter. | ACA for APX workflow sends holdings, cross-references securities, reviews/downloads actions, runs APX Reorg Utility, and posts transactions to APX Trade Blotter. | Corporate-action workflow. | Verified for Axys/APX workflow; fields Unknown. |
 | Reorg Utility | APX utility run during ACA workflow. | N/A. | Runs after reviewed ACA actions are downloaded to APX, per vendor brief research. | Corporate action/Trade Blotter context. | Verified for APX ACA workflow. |
 | Split | Corporate action changing share quantity basis. | Axys `split.inf` supports split evidence; exact fields Unknown. | APX split storage Unknown; ACA/reorg workflow may handle corporate actions generally. | Corporate-action/pricing/holdings context. | High Confidence for Axys file; Unknown for exact APX storage. |
-| Reverse Split | Split reducing shares. | Likely represented through split factor conventions if supported, but exact evidence Unknown. | Unknown. | Corporate-action/pricing context. | Unknown / Medium as concept only. |
+| Reverse Split | Split reducing shares. | Likely represented through split factor conventions if supported, but exact evidence Unknown. | Unknown. | Corporate-action/pricing context. | Medium Confidence conceptually; native behavior Unknown. |
 | Stock Dividend | Share distribution. | Exact behavior Unknown. | Exact behavior Unknown. | Corporate-action/transaction context. | Unknown |
 | Cash Dividend | Cash income distribution. | Likely transaction-driven but exact codes Unknown. | Report/integration examples support dividend concepts; exact native behavior Unknown. | Income/transaction/report context. | Medium Confidence |
 | Return of Capital | Distribution treated as capital return/cost-basis reduction. | `rc` is confirmed in public Axys/APX translation mapping evidence; exact native cost/performance behavior Unknown. | Observed in APX integration code examples; official native behavior Unknown. | Transaction/corporate action context. | Medium-High Confidence for integration mapping |
@@ -353,26 +354,7 @@ retains conceptual terminology only.
 | Replang Keyword Set | Available RepLang keywords/functions. | Practitioner source says Axys has roughly 100 keywords. | Practitioner source says APX adds 100+ more keywords in current versions. | REP language context. | Medium Confidence; exact list Unknown. |
 | Windows 7 / Windows 10 | OS versions recommended for one Data Broker connector machine. | Connector environment only. | Connector environment only. | REP32/client tools connector context. | Verified for connector only. |
 
-### 13.2 IMEX Utility and Discovery Terms
-
-| Term | Definition | Axys | APX | Context | Confidence |
-|---|---|---:|---:|---|---:|
-| `imex32.exe` | Axys Import/Export utility executable in CI evidence. | Yes | No | IMEX utility. | Verified for CI |
-| `pospos32.exe` | Axys Post Positions utility executable in CI evidence. | Yes | No | Position-post workflow. | Verified for CI |
-| `$pathexe` | Axys executable folder label in CI configuration. | Yes | No | Folder label. | Verified for CI |
-| `$pathtrn` | Axys user/Trade Blotter folder label in CI configuration. | Yes | No | Folder label for `topost.trn`. | Verified for CI |
-| `$pathcli` | Axys client/portfolio file folder label in CI configuration. | Yes | No | Folder label for `*.cli`. | Verified for CI |
-| `$pathinf` | Axys information folder label containing `sec.inf` and `type.inf` in CI context. | Yes | No | Security/type reference folder. | Verified for CI |
-| `$pathpri` | Axys price folder label containing `*.pri` files in CI context. | Yes | No | Price folder. | Verified for CI |
-| `$pathlog` | Axys IMEX log folder label in CI context. | Yes | No | IMEX logs. | Verified for CI |
-| `ptopost.trn` | CI position file, CSV format, optionally containing lot data. | Yes | Unknown | Position import/post workflow. | Verified for CI |
-| `MISSINGPRICES_yyyymmdd.csv` | CI optional diagnostic file for missing/unresolved prices. | Yes | Unknown | CI diagnostic output, not native schema. | Verified for CI |
-| `SECTRANSLATIONS_yyyymmdd.csv` | CI optional security translation diagnostic/output file. | Yes | Unknown | CI diagnostic output, not native security master. | Verified for CI |
-| `imex_catalog` | Product-owned catalog of observed IMEX objects, fields, formats, directionality, examples, source, and confidence by version/installation. | Design term | Design term | Audit/integration design. | Design guidance |
-
----
-
-## 14. Known Ambiguities and Implementation Notes
+## 14. Ambiguities and Implementation Notes
 
 | Ambiguity / Note | Axys | APX | Confidence | Repository Handling |
 |---|---|---|---|---|
@@ -393,56 +375,22 @@ retains conceptual terminology only.
 
 ---
 
-## 15. Unknowns to Carry Forward
+## 15. References
 
-| Unknown | Why It Matters | Needed Evidence |
-|---|---|---|
-| Exact Axys IMEX object names for transactions, holdings, security master, prices, cash, classifications, performance, composites, and corporate actions. | Required for implementation-ready integration documentation. | Axys IMEX manual, object list, screenshots, export definitions, or sample exports. |
-| Exact APX IMEX object names for the same areas. | Required for APX-specific integration documentation. | APX IMEX manual, APXIX/ApxIx definitions, sample exports/imports. |
-| Complete Axys transaction code matrix. | Needed for transaction glossary, audit rules, and import/export validation. | Vendor transaction code documentation, production exports, REP reports, or IMEX specs. |
-| Complete APX transaction code matrix. | Needed for APX transaction/audit documentation. | APX vendor documentation or production exports. |
-| Native Axys security master field dictionary. | Required for authoritative security master glossary. | Sanitized `sec.inf`, `type.inf`, IMEX export, or vendor data dictionary. |
-| Native APX security master schema/public views. | Required for APX data dictionary/glossary. | APX SQL schema, public view documentation, or export samples. |
-| Exact price-file layouts. | Required for pricing audit/import tooling. | Sanitized `.pri` files, APX price-file samples, IMEX price specs. |
-| Exact corporate-action fields and workflow details. | Needed for split/dividend/reorg glossary and audit rules. | ACA/APX docs, `split.inf` sample, corporate-action report/export samples. |
-| Performance storage versus recalculation rules. | Critical for interpreting performance history, stored returns, multi-period reports, and restatements. | Vendor performance docs, controlled tests, IMEX performance exports, report source. |
-| Exact performance IMEX fields such as portfolio/security return, contribution, weights, benchmark return. | Required for Chapter 10 and glossary precision. | `portperf`, `secperf`, or equivalent verified exports if they exist. |
-| Exact report source artifacts for major Axys reports. | Required to document REP/report fields and calculations. | `.REP` files, Report Writer definitions, parameter screens, output samples. |
-| Exact APX SSRS report datasets/RDLs/stored procedures. | Required to document APX report internals. | APX report catalog, RDLs, SQL datasets, vendor reporting documentation. |
-| Classification storage and effective-date behavior. | Needed to explain historical classification reporting. | Security/classification exports, APX public views, controlled before/after report tests. |
-| Multicurrency calculation rules. | Needed for local/base currency, FX effect, and performance glossary terms. | Multicurrency reports, settings, exports, and vendor docs. |
-| Fixed-income accrual/amortization/accretion formulas and fields. | Needed for fixed income glossary precision. | Fixed-income security exports, reports, and vendor accounting documentation. |
-| API endpoint names and version behavior. | Needed for modern APX integration glossary. | APX REST API documentation and version notes. |
+Definitions summarize the owning subject chapters and inherit their evidence
+boundaries. Use the matching chapter and research file when source provenance
+or unresolved detail matters.
 
----
+- [Chapters 02-03](README.md) — product architecture and platform terms.
+- [Chapters 04-11](README.md) — accounting and data-domain terms.
+- [Chapter 12](Chapter_12_Imex.md) — IMEX/APXIX and integration terms.
+- [Chapter 13](Chapter_13_Rep.md) — REP and RepLang terms.
+- [Chapter 14](Chapter_14_Reports.md) — report terminology.
+- [Chapter 15](Chapter_15_Data_Dictionary.md) — literal fields, codes,
+  filenames, utilities, and labels.
+- [Chapter 17](Chapter_17_Multi_Currency.md) — multi-currency terms.
+- [Glossary evidence boundary](../evidence/Research_16_Glossary.md) — evidence
+  ownership and maintenance rule.
 
-## 16. References
-
-This chapter is based on the supplied repository blueprint and research files.
-The research files summarize vendor, integration, consultant, report-guide, and
-conversion evidence. The following supplied files were used as source material:
-
-| Supplied File | Role in Chapter 16 |
-|---|---|
-| `axys_apx_reference_blueprint.md` | Governing editorial specification, confidence labels, chapter structure, and field dictionary standard. |
-| `../evidence/Research_02_Axys_Architecture.md` | Axys architecture, file orientation, IMEX, REP, version differences. |
-| `../evidence/Research_03_APX_Architecture.md` | APX architecture, SSRS, IMEX, REP32, APX report names, SQL/API options. |
-| `../evidence/Research_04_Security_Master.md` | Security master terms, `sec.inf`, `type.inf`, symbols, security types, duplicate/security translation quirks. |
-| `../evidence/Research_05_Transactions.md` | Transaction lifecycle, Trade Blotter, codes observed in integrations, reversals, fees, reinvestments. |
-| `../evidence/Research_06_Holdings.md` | Holdings, Portfolio Appraisal, position blotters, `CDIhold.rep`, group behavior. |
-| `../evidence/Research_07_Cash.md` | Cash, sweeps, intra-account journals, cash-like symbols, cash transaction contexts. |
-| `../evidence/Research_08_Pricing.md` | Pricing, `.pri`, price sets, calculated/missing/stale prices, price-source terminology. |
-| `../evidence/Research_09_Corporate_Actions.md` | Corporate actions, `split.inf`, ACA for Axys/APX, Reorg Utility, Trade Blotter. |
-| `../evidence/Research_10_Performance.md` | Performance measurement, benchmark, stored/recalculated unknowns, performance data model terms. |
-| `../evidence/Research_11_Classifications.md` | Classification terms, asset class, sector, industry, country, custom classification, storage unknowns. |
-| `../evidence/Research_12_IMEX.md` | IMEX terms, files/folders, logs, Axys/APX import/export behavior, direct-file cautions. |
-| `../evidence/Research_13_REP.md` | REP, RepLang, Report Writer Pro, REP32, `.REP`, report examples and tokens. |
-| `../evidence/Research_14_Reports.md` | APX report guide names, report families, APX report labels, report/IMEX/REP distinctions. |
-| `../evidence/Research_15_Data_Dictionary.md` | Data dictionary conventions, field family organization, source precedence, Unknown handling. |
-| `../evidence/Research_16_Glossary.md` | Glossary research base and initial term inventory. |
-
----
-
-## 17. Summary
-
-This glossary intentionally favors supported, implementation-oriented definitions over false precision. Product-level and report-level terms are the most reliable. Exact field names, IMEX object names, transaction codes, REP internals, report source names, APX SQL objects, and performance storage/recalculation rules remain Unknown unless explicitly supported by the supplied research.
+Topic-specific Unknowns remain in their owning chapters rather than being
+repeated in this glossary.

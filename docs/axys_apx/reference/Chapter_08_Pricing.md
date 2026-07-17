@@ -2,12 +2,14 @@
 
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys_apx/reference/Chapter_08_Pricing.md`
-Status: Technical reference chapter based on supplied research only
+Status: Technical reference chapter based on repository research and cited public evidence
+Public evidence reviewed: 2026-07-17
 Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — prices are used to value holdings and positions.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — pricing inputs drive performance and valuation results.
@@ -28,16 +30,12 @@ This chapter distinguishes four layers that should not be conflated:
 
 The strongest supplied evidence is integration-layer evidence. Complete native Axys/APX price schemas, official IMEX object names, APX public-view names, and standard REP price-report names remain **Unknown**.
 
-### 1.1 Confidence labels
+### 1.1 Confidence
 
-| Label | Meaning |
-|---|---|
-| Verified | Directly supported by the supplied research/source material. |
-| High Confidence | Strongly supported by multiple supplied sources or standard portfolio-accounting practice, but not fully verified as native Axys/APX behavior. |
-| Medium Confidence | Supported by credible third-party, consultant, conversion, or integration evidence, but not official native documentation. |
-| Unknown | Not established by the supplied material. Do not promote to fact without additional documentation, sample exports, production evidence, or observed system behavior. |
-
----
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ## 2. Pricing Concepts
 
@@ -213,7 +211,7 @@ The strongest APX pricing evidence is from WealthTechs AIA for APX. These settin
 | Calculated prices | CI can calculate price using units and market value when no IDC/custodian price exists. | Unknown. | Axys CI: Verified |
 | Price precision | CI release notes discuss default four decimals and configurable calculated-price precision. | Unknown. | Axys CI: Verified |
 | Direct database price access | Not applicable in same way; Axys direct files are version-risky. | APX SQL/public-view options mentioned in supplied research; exact price views Unknown. | Medium for APX access option; fields Unknown |
-| REP/report price access | Report Writer Pro/Replang available; exact price report names Unknown. | Standard/custom reporting available; exact price report names Unknown. | Medium/Unknown |
+| REP/report price access | Report Writer Pro/Replang available; exact price report names Unknown. | Standard/custom reporting available; exact price report names Unknown. | Medium Confidence for reporting capability; report names Unknown |
 
 ---
 
@@ -535,7 +533,7 @@ Classification: Verified for ByAllAccounts CI workflow.
 | Reference | Use in this chapter |
 |---|---|
 | `axys_apx_reference_blueprint.md` | Governing specification, chapter template, confidence-label discipline. |
-| `../evidence/Research_08_Pricing.md` | Primary source for pricing-specific Axys/APX, IMEX, REP, field, processing, quirk, and unknown material. |
+| `../evidence/Research_08_Pricing.md` | Granular pricing evidence, integration-control claims, contradictions, and missing-evidence requirements. |
 | `../evidence/Research_12_IMEX.md` | Supporting source for IMEX terminology, Axys folders/files, `*.pri`, `$pathpri`, `imexPrices.log`, IMEX log behavior, direct file access cautions, and REP32/Replang context. |
 | `../evidence/Research_13_REP.md` | Supporting source for REP/RepLang, Report Writer Pro, REP32, standard reports/macros, and report-based extraction. |
 | `../evidence/Research_04_Security_Master.md` | Supporting source for security master dependencies, `SourceId` in APX price context, `sec.inf`, `type.inf`, and APX public-view cautions. |
@@ -554,7 +552,8 @@ Classification: Verified for ByAllAccounts CI workflow.
 | SS&C Advent Axys product page | Product-level capability context. |
 | SS&C Advent Portfolio Exchange product page | Product-level APX capability context. |
 | UNAPEN PriceFusion for APX | Ecosystem evidence for APX pricing/reference-data automation, not native APX behavior. |
-| SS&C Advent APX Reports Guide (`REP_APX.pdf`) | Report guide discovered in research, but pricing-specific report catalog not established from supplied material. |
+| SS&C Advent APX Reports Guide (`REP_APX.pdf`) | Reviewed report guide establishes the general APX report catalog, but not a pricing-specific report catalog. |
+| [APX 21.1 release](https://www.advent.com/news-and-insights/blog/advent-investment-suite-release-2021-efficiency-trading-compliance/) | Official capability to load pricing and security-master data through REST APIs. |
 
 ---
 
@@ -566,6 +565,7 @@ Classification: Verified for ByAllAccounts CI workflow.
 |---|---|---|---|
 | PU-001 | Complete Axys `.pri` file layout. | Required for importers, validators, migration tools. | Sanitized price file, file layout manual, or IMEX manual. |
 | PU-002 | Complete APX price import/export layout. | Required for APX price integration. | AIA/APX archive price files, APX IMEX docs, or public views. |
+| PU-002A | Exact APX REST pricing endpoints, schemas, source/price-set behavior, and entitlements. | Required to implement the official 21.1+ API capability safely. | APX OpenAPI documentation and paired site extracts. |
 | PU-003 | Native IMEX price object names for Axys/APX. | Required for Chapter 12 and this chapter's field dictionaries. | Vendor IMEX object catalog or sample control files. |
 | PU-004 | Native price key fields. | Needed for dedupe, replacement, and update logic. | Vendor docs or reproducible tests. |
 | PU-005 | Native price source / price set model. | Needed to avoid overwriting correct valuations. | APX price-set docs, Axys source docs, sample exports. |
@@ -597,4 +597,5 @@ Classification: Verified for ByAllAccounts CI workflow.
 ## Research Provenance
 
 The deep IMEX pricing conclusions are incorporated into Section 6.4. Their
-supporting source history remains in `../evidence/Research_08_Pricing.md`.
+granular supporting claims and confidence boundaries remain in
+`../evidence/Research_08_Pricing.md`.

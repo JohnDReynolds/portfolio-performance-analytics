@@ -3,11 +3,13 @@
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys_apx/reference/Chapter_13_Rep.md`
 Prepared: 2026-06-29
-Status: Technical reference chapter based only on supplied source material.
+Status: Technical reference chapter based on repository research and cited public evidence.
+Public evidence reviewed: 2026-07-17
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map, evidence conventions, and shared safe implementation rules.
 - [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) — connects REP to the broader Axys architecture narrative.
 - [Chapter_12_Imex.md](Chapter_12_Imex.md) — distinguishes REP/report extraction from IMEX import/export.
@@ -32,14 +34,12 @@ All unsupported behavior is marked **Unknown**.
 
 REP should be treated as a reporting and extraction interface rather than a source of canonical transaction semantics. A report can expose holdings, cash, performance, or classification outputs derived from underlying transactions, but the report label or REP variable does not by itself establish the underlying transaction classification. In practice, report extraction should be paired with transaction-level evidence when interpreting flows or audit outcomes.
 
-### 1.1 Confidence labels
+### 1.1 Confidence
 
-| Label | Meaning |
-|---|---|
-| Verified | Directly supported by supplied source material. |
-| High Confidence | Strongly supported by multiple supplied sources or by consistent vendor/connector/practitioner evidence, but not a complete vendor specification. |
-| Medium Confidence | Plausible and useful, but source support is indirect, consultant-derived, connector-specific, version-specific, or incomplete. |
-| Unknown | Not established by the supplied material. Do not promote to fact without additional evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### 1.2 Source discipline
 
@@ -58,7 +58,8 @@ This chapter follows the repository blueprint:
 | Term | Description | Axys | APX | Confidence |
 |---|---|---:|---:|---|
 | REP | Common shorthand for Advent report source/reporting artifacts. | Yes | Yes, where Replang/REP reports are used | High Confidence |
-| `.REP` file | Report source file. Example: `AMAN.REP`. | Verified | Unknown / possible | Verified for Axys |
+| `.REP` file | RepLang report source. Examples include `AMAN.REP` and historical `PERHSUM.REP`. | Verified | Possible in report/integration contexts; native coverage Unknown | Verified for Axys examples |
+| `.RPW` file | Report Writer Pro report type whose underlying format is still RepLang in historical guidance. | Verified historically | Practitioner evidence | Version-sensitive |
 | RepLang | Advent proprietary Report Writing Language. | Verified | Medium Confidence | Verified for Axys; Medium Confidence for APX |
 | Report Writer Pro | Advent reporting tool for creating/customizing reports. | Verified | Medium Confidence | Verified for Axys; Medium Confidence for APX |
 | REP32.exe | Advent client-side report engine/application referenced by connector documentation. | Verified for connector | Verified for connector | Verified for connector |
@@ -82,7 +83,7 @@ REP is not IMEX. REP is report-driven; IMEX is object/file import/export-oriente
 | Direct Axys file access | Read/write Axys data files directly. | Possible but risky | Not applicable in same way | Medium Confidence |
 | APX SQL / Public Views / Stored Accounting Functions | SQL/reporting/data-access alternatives. | No | Yes | Medium Confidence |
 | APX SSRS | SQL Server Reporting Services reporting path. | No | Yes | Medium Confidence |
-| APX REST API | API path mentioned in practitioner evidence. | No | Yes | Medium Confidence |
+| APX REST API | Officially documented, expanding API path in APX 21.1+ releases. | No | Yes | Verified at release-capability level |
 
 ### 3.1 Implementation distinction
 
@@ -138,9 +139,19 @@ REP is not IMEX. REP is report-driven; IMEX is object/file import/export-oriente
 | The connector uses the REP32 engine to extract data. | Verified for connector | Connector-specific evidence. |
 | The connector uses RepLang scripting and macros. | Verified for connector | Connector-specific evidence. |
 | The connector can be scheduled to run unattended or at predefined daily frequencies. | Verified for connector | Connector-specific evidence. |
-| REP32.exe command-line syntax is known. | Unknown | Not supplied. |
+| A working REP32 command pattern is known from a dated Axys example. | Verified for example | Full grammar and complete option set remain Unknown. |
 | Macro file syntax is known. | Unknown | Not supplied. |
 | Exact unattended scheduling syntax is known. | Unknown | Not supplied. |
+
+Observed public pattern, reproduced as operational evidence rather than a complete
+command specification:
+
+```text
+Rep32.exe -m macroname -p portcode "-b date1 date2"
+```
+
+The same source demonstrates switches including `-J`, `-x`, `-su`, and `-z`; their
+complete semantics and version coverage still require vendor documentation or tests.
 
 ### 4.4 Axys report file handling pattern
 
@@ -205,10 +216,10 @@ Recommended documented pattern from the supplied Axys example:
 | APX supports custom reporting beyond REP/Replang. | Verified | Vendor product capability evidence. |
 | APX has dashboards and flexible custom reporting. | Verified | Vendor product capability evidence. |
 | APX users can use SQL Server-based reporting/data access options, including SSRS, according to consultant evidence. | Medium Confidence | Consultant evidence. |
-| APX data access/reporting options include Stored Accounting Functions, Public Views, SSRS, REST API, and related tools. | Medium Confidence | Consultant evidence. |
-| APX reporting should be treated as multi-path: Replang/compound reports, SQL Server, Stored Accounting Functions, Public Views, SSRS, REST API, dashboards, and report packaging may all be relevant depending on deployment. | Medium Confidence | Exact source dependencies vary by report/environment and remain Unknown. |
+| APX data access/reporting options include Stored Accounting Functions, Public Views, SSRS, REST API, and related tools. | Mixed: REST capability Verified; other access paths Medium Confidence | Exact support boundaries remain deployment-specific. |
+| APX reporting is multi-path: Replang/compound reports, SQL Server, Stored Accounting Functions, Public Views, SSRS, REST API, dashboards, and report packaging may be relevant depending on deployment. | High Confidence for categories | Exact source dependencies vary by report/environment and remain Unknown. |
 | Microsoft SSRS is an on-premises platform for creating, deploying, and managing paginated reports. | Verified for SSRS generally | Not APX-specific implementation evidence. |
-| APX report guide search evidence suggests APX reports use Microsoft SQL Server Reporting Services and can be customized/branded. | Medium Confidence | Full guide was not supplied/read in the research. |
+| The public APX Reports Guide identifies 29 SSRS-based investment-management reports and describes customization/branding. | Verified | Installed/current inventory and RDL internals remain Unknown. |
 | Exact APX SSRS report dataset names are known. | Unknown | Not supplied. |
 | Exact APX report stored procedures/public views are known. | Unknown | Not supplied. |
 | Exact APX report-server paths/deployment process are known. | Unknown | Not supplied. |
@@ -226,22 +237,23 @@ Recommended documented pattern from the supplied Axys example:
 
 ---
 
-## 6. Report Names Identified in Supplied Sources
+## 6. REP Artifacts and Named Examples
 
 | Report name | File / tool name | System | Description | Confidence |
 |---|---|---:|---|---|
 | Assets Under Management | `AMAN.REP` | Axys | Standard Axys report in CSSI example; displays market values of portfolios in selected group as of selected date, sorted by asset class in the example. | Verified for example |
+| Performance History for Selected Time Periods | `PERHSUM.REP` | Axys 3.6 | Historical standard report identified in public modification guidance. | Verified historical evidence |
 | Position Reconciliation report | Unknown file name | Axys | Enhanced in Axys 3.8.7 with improved handling of pending/unsettled trades and management insight. | Verified as named report; file name Unknown |
 | Multicurrency reports | Unknown | Axys | Axys 3.8.7 included additional/improved multicurrency reports. | Verified as vendor statement; individual names Unknown |
-| Standard management and client reports | Unknown | APX | APX has a vast standard report library. | Verified generally; individual names Unknown |
-| SSRS reports | Unknown | APX | APX can have SSRS reports according to consultant/vendor-adjacent evidence. | Medium Confidence |
 | Transaction Summary Report | Unknown REP/SSRS file name | APX / Advent reports | Report sample evidence shows transaction sections and fields. | Medium Confidence |
 | `CDIhold.rep` | `CDIhold.rep` | Axys | Custom WealthTechs AIA holdings extract report. | Verified for AIA workflow |
 | `sipos30` | Unknown extension | Axys | Custom reconciliation report cited by CI for calculated positions vs downloaded custodian positions. | Verified for CI context |
 
-### 6.1 Important report-name caveat
+### 6.1 Artifact caveat
 
-Only `AMAN.REP` is a verified Axys `.REP` file name from the supplied REP source material. Other report names or tools are either:
+`AMAN.REP` and historical `PERHSUM.REP` are verified Axys filenames in the
+reviewed public evidence. The complete APX report-name inventory is maintained
+in [Chapter 14](Chapter_14_Reports.md). Other names or tools here are either:
 
 - named reports with unknown file names,
 - connector/custom report artifacts,
@@ -281,7 +293,7 @@ The following remain **Unknown**:
 | Full RepLang grammar. | RepLang Programmer's Guide. |
 | Full Axys report variable dictionary. | Vendor docs or report source library. |
 | Full APX Replang variable/keyword dictionary. | APX Replang documentation or report source library. |
-| REP32 command-line parameters. | Vendor technical documentation or working examples. |
+| Complete REP32 command-line parameter set and version differences. | Vendor technical documentation; one public working pattern is known. |
 | Macro syntax. | Sample macros or vendor documentation. |
 | Report output field list for each standard report. | Report guide, `.REP` source, or generated report examples. |
 | Whether `$:fileo` is valid in all reports. | Production report tests or RepLang documentation. |
@@ -350,7 +362,7 @@ The following remain **Unknown**:
 | Layout sensitivity | If parsing report output, changes to columns, headings, spacing, sections, or totals can break downstream processing. | Medium Confidence |
 | Parameter sensitivity | Different date/portfolio/report options can change output shape and values. | Medium Confidence |
 | Version sensitivity | Report source and output may differ across versions or customizations. | Medium Confidence |
-| Hidden calculation source | A report may calculate values, read stored values, use database functions, or combine sources; exact behavior is report-specific and often Unknown. | Unknown / Medium Confidence caution |
+| Hidden calculation source | A report may calculate values, read stored values, use database functions, or combine sources; exact behavior is report-specific and often Unknown. | High Confidence as a caution; exact behavior Unknown |
 | Custom support limits | Consultant evidence says vendor support may not debug custom RepLang reports. | Medium-High |
 | Client-tool dependency | Connector evidence requires Advent Client Tools / REP32 on a client machine. | Verified for connector |
 
@@ -437,7 +449,7 @@ Connector uploads/processes extracted data
 |---|---|
 | This model is verified for the cited connector. | Verified for connector |
 | This model should not be assumed to define all REP automation. | Verified caveat |
-| REP32 command-line syntax remains Unknown. | Unknown |
+| A working REP32 pattern is verified; the complete syntax remains Unknown. | Verified for the example; complete specification Unknown |
 
 ---
 
@@ -448,6 +460,7 @@ Connector uploads/processes extracted data
 | Custom RepLang support may be limited. | Yes | Unknown | Medium-High | Consultant PDF says Advent publishes a RepLang Programmer's Guide on request but support will not answer/debug custom RepLang report questions. |
 | Custom report development can be trial-and-error-oriented. | Yes | Unknown | Medium-High | Consultant PDF warns custom RepLang is best suited for users comfortable with trial and error. |
 | Edit report copies, not originals. | Yes | Likely | Verified for Axys; Medium for APX | CSSI example copies `AMAN.REP` before editing. |
+| Do not modify the mission-critical performance update report in place. | Yes | Unknown | High Confidence operational guidance | Preserve the vendor report and test any copy against known results. |
 | Use plain text editors for RepLang. | Yes | Likely | Verified for Axys; Medium for APX | CSSI warns against Word/WordPerfect. |
 | Line-number-aware editor is useful. | Yes | Yes | Medium Confidence | AdventGuru notes Notepad lacks line numbers; modern editors help. |
 | Replang language support in modern editors may be limited. | Yes | Yes | Medium Confidence | AdventGuru notes Replang is not built into VS Code by default. |
@@ -515,7 +528,8 @@ Connector uploads/processes extracted data
 
 ## 14. References
 
-This chapter is based only on the supplied repository blueprint and research files.
+This chapter uses the repository research plus public evidence reviewed through
+2026-07-17.
 
 ### 14.1 Governing specification
 
@@ -523,11 +537,11 @@ This chapter is based only on the supplied repository blueprint and research fil
 |---|---|
 | BP-001 | `axys_apx_reference_blueprint.md`, Version 2.0 |
 
-### 14.2 Primary REP research sources
+### 14.2 REP evidence sources
 
 | Ref | Source | Use in chapter |
 |---|---|---|
-| REP-001 | `../evidence/Research_13_REP.md` | Primary source for REP/RepLang/Report Writer Pro/REP32 evidence. |
+| REP-001 | `../evidence/Research_13_REP.md` | Granular REP/RepLang, Report Writer Pro, and REP32 evidence ledger. |
 | REP-002 | SS&C Advent Axys product page, as summarized in supplied research. | Axys reporting capability statements. |
 | REP-003 | SS&C Advent APX product page, as summarized in supplied research. | APX reporting capability statements. |
 | REP-004 | SS&C Advent Axys 3.8.7 blog post, as summarized in supplied research. | Axys version/reporting enhancements. |
@@ -535,6 +549,9 @@ This chapter is based only on the supplied repository blueprint and research fil
 | REP-006 | Salentica / Black Diamond Advent Connector article, as summarized in supplied research. | REP32, standard reports/macros, connector-supported versions. |
 | REP-007 | AdventGuru Replang / Axys / APX reporting articles, as summarized in supplied research. | APX Replang, Report Writer Pro, SQL/SSRS/Public Views/REST context, editor quirks. |
 | REP-008 | Microsoft SSRS documentation, as summarized in supplied research. | General SSRS definition only, not APX-specific behavior. |
+| REP-009 | [CSSI REP32 hyperlink guidance](https://cssisolutions.com/downloads/how-to-add-hyperlinks-to-reports) | Working REP32 command pattern and observed switches. |
+| REP-010 | [Historical PERHSUM guidance](https://static1.1.sqspcdn.com/static/f/425065/4721492/1257913571447/Modifying-PERSHUM-Report.pdf) | `PERHSUM.REP`, Axys 3.6, and `.REP`/`.RPW` report-type evidence. |
+| REP-011 | [APX Reports Guide](https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf) | SSRS framework and 29-report inventory. |
 
 ### 14.3 Supporting supplied research
 
@@ -574,7 +591,7 @@ The following Unknowns should remain in the repository until supported by vendor
 
 | Unknown | Needed evidence |
 |---|---|
-| REP32.exe command-line options. | Vendor technical docs or working examples. |
+| Complete REP32.exe option set and version differences. | Vendor technical docs; one working public example is documented above. |
 | Macro file syntax. | Sample macros and vendor documentation. |
 | How dates, portfolio groups, currencies, composites, report options, and output destinations are passed to REP32. | Macro samples / command-line examples. |
 | Whether REP32 behavior differs materially between Axys/APX. | Vendor documentation or connector configuration samples. |
@@ -623,4 +640,5 @@ The current supplied material is sufficient for a conservative REP chapter, but 
 ## Research Provenance
 
 The deep IMEX REP/IMEX boundary conclusions are incorporated into Section 9.4.
-Their supporting source history remains in `../evidence/Research_13_REP.md`.
+Their granular supporting claims and confidence boundaries remain in
+`../evidence/Research_13_REP.md`.

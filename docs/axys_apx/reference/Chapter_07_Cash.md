@@ -2,12 +2,14 @@
 
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `docs/axys_apx/reference/Chapter_07_Cash.md`
-**Status:** Technical reference chapter based only on supplied research/source material
+**Status:** Technical reference chapter based on repository research and cited public evidence
 **Prepared:** 2026-06-29
+**Public evidence reviewed:** 2026-07-17
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — cash movement is often transaction-driven.
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — cash and holdings are closely linked in portfolio accounting.
@@ -69,6 +71,16 @@ IMEX object details as Unknown unless directly supported.
 | Non-system-currency transactions may require a Mark to Market value in an Axys `topost.trn` integration context. | High Confidence | Observed parameter: `defmarkmarket`. |
 | A `Perf/CW` column exists in the Axys `topost.trn` integration context. | High Confidence | Observed parameter: `defperfcw`. |
 | The complete native Axys transaction file layout is not established by the supplied material. | Unknown | Do not infer full `topost.trn` layout from integration examples. |
+
+### 2.2.1 Cash Holdings Report Derivation Evidence
+
+Dated Axys Report Writer guidance shows a Cash Holdings report derived from an
+Assets by Type report. The example uses report-visible concepts including
+`Asset_Class_Code`, `Security_Type_Code`, `Security_Type_Name`, and
+`Security_Type_Display_Order`; it uses asset-class code `e` in that particular
+configuration. This verifies that cash reporting can be defined through report
+classification logic, but it does not establish a universal cash code or native
+cash-balance object.
 
 ### 2.3 Axys Cash Sweeps
 
@@ -201,7 +213,7 @@ The supplied material does not establish authoritative native Axys or APX cash-b
 | Cash as account-level balance | Unknown | Unknown | Unknown |
 | Cash as currency-level balance | Unknown | Unknown | Unknown |
 | Settled cash versus trade-date cash | Unknown | Unknown | Unknown |
-| Income cash versus principal cash | Inferred only from `$income` / special symbols | Inferred only from AIA special symbols | Medium Confidence / Unknown native status |
+| Income cash versus principal cash | Inferred only from `$income` / special symbols | Inferred only from AIA special symbols | Medium Confidence for integration evidence; native status Unknown |
 | Margin cash and short cash as native buckets | Observed symbols only | Observed symbols only | High Confidence as observed tokens; Unknown native status |
 
 Implementation note: because cash balances may be derived, reported, stored, or represented as cash-like holdings depending on workflow, integrations should record the extraction source and not assume that a cash balance from one report equals a cash balance from another report or export.
@@ -417,15 +429,15 @@ ACCTX,010117,WD,100,100,CAUS,MMF,CAUS,CASH
 
 ## 13. References
 
-The chapter is based only on the supplied research and source material. The supplied research cites the following source categories:
+The chapter uses repository research plus cited public evidence.
 
 | Reference | Use in this chapter |
 |---|---|
 | `axys_apx_reference_blueprint.md`, Version 2.0 | Editorial rules, confidence labels, chapter standards. |
-| `../evidence/Research_07_Cash.md` | Primary source for this chapter. |
+| `../evidence/Research_07_Cash.md` | Granular cash evidence ledger for this chapter. |
 | `../evidence/Research_05_Transactions.md` | Supporting transaction-code, source/destination field, and reversal/cancellation context. |
-| `../evidence/Research_06_Holdings.md` | Supporting holdings/cash-as-position context and extraction caveats. |
-| `../evidence/Research_08_Pricing.md` | Supporting price/cash-equivalent valuation context. |
+| `../evidence/Research_06_Holdings.md` | Holdings/cash-as-position evidence and extraction boundaries. |
+| `../evidence/Research_08_Pricing.md` | Price/cash-equivalent valuation evidence and boundaries. |
 | `../evidence/Research_12_IMEX.md` | Supporting IMEX/interface cautions and file/log context. |
 | `../evidence/Research_13_REP.md` | Supporting REP/reporting cautions. |
 | SS&C Advent Axys public product material | Broad Axys product scope only. |
@@ -434,6 +446,8 @@ The chapter is based only on the supplied research and source material. The supp
 | ByAllAccounts Custodial Integrator User Guide for Axys | Axys transaction translation, `$cash`, `$income`, system currency, cash asset-class setting, Mark to Market, `Perf/CW`, reversal behavior. |
 | Morningstar Advent Axys conversion guide | Migration/reconciliation caveats only. |
 | SS&C Advent Custodial Data product brief | Broad statement that custodian data workflows include positions, transactions, and cash activity. |
+| [CSSI equity assets and Cash Holdings guidance](https://cssisolutions.com/downloads/creating-an-equity-assets-by-type-report-and-a-cash-hold) | Observed Report Writer classification fields and Cash Holdings report derivation. |
+| [Official Axys product page](https://www.advent.com/solutions/axys/) | Current report-currency, withholding-tax, and currency-capability context. |
 
 ---
 

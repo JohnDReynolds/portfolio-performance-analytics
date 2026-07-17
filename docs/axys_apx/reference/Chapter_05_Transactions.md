@@ -1,10 +1,10 @@
 # Chapter 05 — Transactions
 
-> **Repository chapter:** `docs/axys_apx/reference/Chapter_05_Transactions.md`\
-> **Status:** Technical reference chapter based only on supplied research
-> material.\
+> **Repository chapter:** `docs/axys_apx/reference/Chapter_05_Transactions.md`
+> **Status:** Technical reference chapter based on repository research and
+> public evidence reviewed through 2026-07-17.
 > **Evidence standard:** Facts are marked as Verified, High Confidence,
-> Medium Confidence, Low Confidence, or Unknown.\
+> Medium Confidence, Low Confidence, or Unknown.
 > **Important limitation:** The supplied material does not include
 > official complete Axys or APX transaction-code manuals, official IMEX
 > transaction object definitions, complete native Trade Blotter layouts,
@@ -14,6 +14,7 @@
 ------------------------------------------------------------------------
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md) — transaction interpretation depends on security identity.
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — transactions drive holdings, lots, and cost-basis updates.
@@ -29,19 +30,19 @@ in another chapter, interpret it through this chapter and the implementation
 contract in
 [`../contracts/transaction_semantics_matrix.yaml`](../contracts/transaction_semantics_matrix.yaml).
 
-The evidence archive in
+The evidence ledger in
 [`../evidence/Research_05_Transactions.md`](../evidence/Research_05_Transactions.md)
-preserves source-by-source research and may contain older wording retained for
-provenance. If this chapter, the research archive, and the implementation
-contract appear to disagree, treat that as a documentation cleanup issue rather
-than as three independent sources of truth.
+preserves granular source claims, confidence boundaries, contradictions, and
+missing-evidence requirements. If this chapter, the evidence ledger, and the
+implementation contract appear to disagree, treat that as a documentation
+cleanup issue rather than as three independent sources of truth.
 
 ## 1. Overview
 
 Transactions are the central accounting events in Axys/APX-style
 portfolio accounting workflows. They connect economic activity to
 holdings, cash, tax lots, cost basis, realized gain/loss, income,
-performance, reports, IMEX, REP, reconciliation, and audit workflows.\
+performance, reports, IMEX, REP, reconciliation, and audit workflows.
 **Confidence:** High for general accounting role; Medium for native
 Axys/APX mechanics because public source material is largely third-party
 integration or migration evidence.
@@ -77,7 +78,7 @@ Performance, reports, IMEX, REP, reconciliation, and audit
 | Transactions affect holdings, cash, income, cost basis, realized gain/loss, and performance inputs | Supported conceptually and by supplied research | High | General accounting role is strong; native mechanics vary. |
 | Trade Blotter workflows exist in Axys/APX integration evidence | Supported | Medium | Evidence is third-party integration documentation. |
 | Observed transaction codes such as `by`, `sl`, `li`, `lo`, `dv`, `in`, `dp`, `wd` | Supported as observed codes | Medium | Not a complete official code matrix. |
-| Uppercase cancellation behavior, e.g. `by` → `BY` | Supported in third-party Axys/APX workflows | Medium | Universality across versions and import methods is Unknown. |
+| Uppercase cancellation behavior, e.g. `by` → `BY` | Supported in independent Axys/APX integration guides | Medium-High | Universality across versions and import methods is Unknown. |
 | Complete native Axys transaction-code matrix | Unknown | Unknown | Not supplied. |
 | Complete native APX transaction-code matrix | Unknown | Unknown | Not supplied. |
 | Official IMEX transaction object names | Unknown | Unknown | Not supplied. |
@@ -251,8 +252,36 @@ behavior, not proof of exclusive native Axys behavior.
 
 | Statement | Confidence | Notes |
 | --- | --- | --- |
-| WealthTechs Axys evidence documents cancellation behavior using uppercase transaction code, e.g. `by` → `BY`. | Medium | Third-party workflow evidence. |
+| WealthTechs APX integration evidence documents cancellation by uppercasing the original transaction code, e.g. `by` → `BY`. | High Confidence for that workflow | The guide also documents an ordered translation/import pipeline. |
 | Uppercase cancellation behavior is universal across all Axys versions, transaction types, and import methods. | Unknown | Not supported by supplied material. |
+
+### 2.8 Missing-Cost Operational Evidence
+
+Public Axys report guidance provides a useful, bounded field-level view of
+deliver-in cost review. It is operational/report evidence, not an official native
+transaction schema.
+
+| Observed report field | Practical meaning in the cited workflow |
+|---|---|
+| `Portfolio_Code_No_Path` | Portfolio identifier without a path. |
+| `Tran_Code` | Transaction code. |
+| `Security_Type_Code` | Security-type context. |
+| `Security_Symbol_No_Type` | Security symbol without type. |
+| `Security_Name_Or_Split_Description` | Security or split description. |
+| `Trade_Date` | Trade date. |
+| `Original_Cost_Date` | Original acquisition/cost date. |
+| `Quantity` | Transaction quantity. |
+| `Trade_Amount_Local` | Local-currency trade amount. |
+| `Original_Cost` | Original cost. |
+| `Source_Dest_Type_Code` | Source/destination type. |
+| `Source_Dest_Symbol_No_Type` | Source/destination symbol without type. |
+| `Lot` | Lot identifier/context. |
+
+The same guidance identifies `li`, `ti`, and `si` as deliver-in cases in that
+report. If original cost date and amount are absent, standard reports may use
+market value on the trade date rather than visibly flagging missing cost. That
+fallback can conceal a data-quality problem, so cost-date/cost-amount completeness
+should be reviewed independently of apparently reasonable report values.
 
 ------------------------------------------------------------------------
 
@@ -417,7 +446,7 @@ transaction extracts without closing the official-schema unknowns.
 | File creation | Axys Import/Export can create `topost.trn` if it does not exist in the configured user folder. | Verified for CI |
 | Comment boundaries | CI may create beginning and ending comment transactions around generated imports. | Verified for CI |
 | Candidate fields | Portfolio, transaction code/subtype, dates, symbol/type, quantity, price, amounts, commission, fees, accrued interest, withholding, source/destination context, cost fields, Perf/CW, Mark to Market, currency, FX, comments, and external IDs should be inspected in live Axys. | Discovery guidance |
-| External-flow classification | Source/destination and special-security context can be necessary for `li`, `lo`, `dp`, and `wd`, but official IMEX availability of those fields remains Unknown. | Medium / Unknown |
+| External-flow classification | Source/destination and special-security context can be necessary for `li`, `lo`, `dp`, and `wd`, but official IMEX availability of those fields remains Unknown. | Medium Confidence for integration evidence; official IMEX availability Unknown |
 | REP fallback | If IMEX cannot expose enough context to classify external flows, use REP/report/custom extraction as a candidate source of classification evidence. | Design guidance |
 
 Transaction code alone should not be used as a universal external-flow rule.
@@ -562,7 +591,7 @@ APX processing order.
 | Trade Date | Execution/economic date. | Expected | Expected | Unknown name | Observed in report sample | High conceptually |
 | Settlement Date | Settlement/cash date. | Expected | Expected | Unknown name | Observed as Settle Date in report sample | High conceptually |
 | Entry Date | Date entered into system. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Posting Date | Date posted to accounting records; useful for explaining historical changes. | Unknown | Unknown | Unknown | Unknown | Unknown important for historical review. |
+| Posting Date | Date posted to accounting records; useful for explaining historical changes. | Unknown | Unknown | Unknown | Unknown | High-priority Unknown for historical review. |
 | Quantity | Units traded or affected. | Expected | Expected | Unknown name | Observed in report sample | High conceptually |
 | Price | Unit price. | Expected | Expected | Unknown name | Observed as Unit Price in report sample | High conceptually |
 | Gross Amount | Transaction value before adjustments. | Expected | Expected | Unknown name | Unknown | Medium conceptually |
@@ -1021,7 +1050,7 @@ patterns, not verified native Axys/APX field rules.
 | Issue / Quirk | Axys | APX | Confidence | Notes |
 | --- | --- | --- | --- | --- |
 | Code-only interpretation is unsafe. | Supported | Supported | High as design rule; Medium source evidence | Use code, sign, security type, source/destination fields, symbols, and configuration. |
-| Direct file access is risky because file formats can change between versions. | Supported | Unknown / less applicable | Medium | Consultant evidence cites Axys file-format changes between versions. |
+| Direct file access is risky because file formats can change between versions. | Supported | Unknown; less directly applicable | Medium | Consultant evidence cites Axys file-format changes between versions. |
 | APX SQL/database access may exist as an alternative export path. | Not applicable | Supported | Medium | Native schema Unknown. |
 | `li`/`lo` interpretation may depend on `.cli` setting. | Supported | Unknown | Medium | Morningstar Axys conversion evidence. |
 | Reinvestments may appear as paired transactions. | Supported | Supported | Medium | Axys conversion and APX integration evidence. |
@@ -1109,6 +1138,7 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
 | Native transaction code changes by version | Unknown | Unknown | Unknown | Not supplied. |
 | Native Trade Blotter behavior changes by version | Unknown | Unknown | Unknown | Not supplied. |
 | Native REP report changes by version | Unknown | Unknown | Unknown | Not supplied. |
+| APX v1-v3 versus v4 Mark-to-Market input | Not applicable | ByAllAccounts release notes say Mark-to-Market was required only for foreign currency in APX v1-v3, while APX v4 requires an explicit `y`/`n`. | High Confidence for that integration | Do not generalize the integration field into a native accounting formula. |
 
 ------------------------------------------------------------------------
 
@@ -1129,6 +1159,9 @@ specific references. Confidence varies by source type.
 | SRC-008 | Advent Portfolio Exchange Reports Guide | Vendor report guide / public PDF reference | APX | Transaction Summary Report existence. | Low to Medium |
 | SRC-009 | Wealth Management Reports / Advent report sample | Vendor/report sample | APX / SSRS | Transaction Summary Report purpose and sample columns. | Medium |
 | SRC-010 | AdventGuru --- APX to Axys Conversion | Consultant article | Axys/APX | APX-exported CLI files mapped into Axys `topost.trn`; transaction mappings and tax lots. | Medium |
+| SRC-011 | [CSSI missing-cost guidance](https://cssisolutions.com/downloads/how-to-identify-missing-cost-information) | Operational report guidance | Axys | Deliver-in codes, observed report fields, and market-value fallback when original cost is absent. | High for cited workflow |
+| SRC-012 | [WealthTechs APX guide](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | Third-party integration manual | APX | Ordered transformation pipeline, uppercase cancellation, blotters, current/historical holdings. | High for cited workflow |
+| SRC-013 | [ByAllAccounts APX release notes](https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_releasenotes.pdf) | Third-party integration release notes | APX | Version-specific Mark-to-Market requiredness. | High for cited integration |
 
 ------------------------------------------------------------------------
 
@@ -1239,5 +1272,5 @@ supplied material would be needed:
 The 2026-06-30 transaction-extract conclusions are incorporated into Section
 4.5. The 2026-07-03 accrued-interest conclusions are incorporated into Section
 8.8, and the 2026-07-07 context-gated backlog conclusions are incorporated
-into Section 8.10. Their supporting source history remains in
-`../evidence/Research_05_Transactions.md`.
+into Section 8.10. Their granular supporting claims and confidence boundaries
+remain in `../evidence/Research_05_Transactions.md`.

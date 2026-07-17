@@ -4,11 +4,12 @@
 **Chapter:** `docs/axys_apx/reference/Chapter_12_Imex.md`
 **Status:** Technical reference chapter
 **Prepared:** 2026-06-29
-**Source basis:** Supplied repository blueprint and supplied research notes only.
+**Source basis:** Repository research plus public evidence reviewed through 2026-07-17.
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map, evidence conventions, and shared safe implementation rules.
 - [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) — frames the architectural place of IMEX in Axys.
 - [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md) — frames the APX-side import/export context.
@@ -29,16 +30,14 @@ The supplied IMEX evidence also shows that transaction meaning is shaped by impo
 | REP / REP32 / Replang | Report engine/report language used for extraction, reports, macros, and custom exports. | Yes | Yes | Verified for connector workflows; High Confidence generally |
 | Report Writer Pro | Report customization mechanism; `.RPW` and `.REP` behavior appears in consultant evidence. | Yes | Yes, based on research evidence | Verified for Axys product capability; Medium Confidence for detailed behavior |
 | Direct file access | Reading/writing proprietary Axys files directly. | Possible but discouraged by consultant evidence | Not applicable in same way | Medium Confidence |
-| SQL/public views/Stored Accounting Functions/REST | APX database/reporting access alternatives. | No | Yes, based on practitioner evidence | Medium Confidence |
+| SQL/public views/Stored Accounting Functions/REST | APX database/reporting access alternatives. REST capability is officially documented for APX 21.1+ releases. | No | Yes | REST capability Verified by release; exact schemas and other paths vary |
 
-### 1.1 Confidence labels
+### 1.1 Confidence
 
-| Label | Meaning |
-|---|---|
-| Verified | Directly supported by supplied research or a source cited inside the supplied research. |
-| High Confidence | Strongly supported by multiple supplied sources or consistent architecture evidence, but not official field-level vendor documentation. |
-| Medium Confidence | Supported by third-party integration, conversion, connector, or consultant material; useful but not necessarily native/product-wide behavior. |
-| Unknown | Not established by supplied material. Do not implement or document as fact without more evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### 1.2 Scope boundaries
 
@@ -176,7 +175,9 @@ These are observed integration fields/parameters. They are not a complete native
 
 ### 3.1 APX IMEX evidence level
 
-The supplied APX IMEX evidence is thinner than the Axys evidence. The research supports APX IMEX/log/blotter behavior from AIA and CI-style integration documentation, but not a complete official APX IMEX object dictionary.
+The APX evidence strongly supports the utility, log, and blotter workflow through two
+independent integration guides, but it still does not provide a complete official APX
+IMEX object dictionary.
 
 | Statement | Confidence |
 |---|---:|
@@ -184,15 +185,14 @@ The supplied APX IMEX evidence is thinner than the Axys evidence. The research s
 | The AIA APX guide says these logs are useful for troubleshooting importing and blotter issues. | Verified for AIA workflow |
 | ByAllAccounts APX installation research says `apxix.exe` exports Security (`sec.inf`) and Security Type (`type.inf`) data from APX in CI context. | Verified for CI context |
 | WealthTechs APX AIA research identifies `APXIX.exe` as the import/export function of APX. | Verified for AIA context |
-| Whether `ApxIx`, `apxix.exe`, and `APXIX.exe` refer to the same executable, alternate labels, or version/context-specific names is not established. | Unknown |
+| `ApxIx`, `apxix.exe`, and `APXIX.exe` are capitalization/label variants for the APX Import/Export utility in the reviewed guides. | High Confidence; installed filename and version remain site-specific |
 | Native APX IMEX object names and field dictionaries are not supplied. | Unknown |
 
 ### 3.2 APX import/export executables and names
 
 | Artifact / Name | Description | Confidence | Caveat |
 |---|---|---:|---|
-| `APXIX.exe` / `apxix.exe` | APX import/export function/executable referenced in supplied APX integration research. | Verified for AIA/CI context | Naming and version consistency Unknown. |
-| `ApxIx` | APX Import/Export utility terminology in ByAllAccounts APX guide research. | Verified for CI terminology | Relationship to `APXIX.exe` Unknown. |
+| `APXIX.exe` / `apxix.exe` / `ApxIx` | Capitalization and label variants used for the APX Import/Export utility. | High Confidence across AIA/CI guides | Confirm the installed filename/version before automation. |
 | `REP32.exe` | Used by Salentica Data Broker connector to extract Axys/APX data through reports/macros. | Verified for connector | REP path, not IMEX object documentation. |
 
 ### 3.3 APX IMEX logs
@@ -201,7 +201,7 @@ The supplied APX IMEX evidence is thinner than the Axys evidence. The research s
 |---|---|---:|
 | Advent IMEX Log | Shows the log for the last importing done through the IMEX tool; useful for troubleshooting importing issues. | Verified for AIA workflow |
 | Advent IMEX History Log | Shows logs for all importing done through the IMEX tool; useful for troubleshooting importing and blotter issues. | Verified for AIA workflow |
-| APX IMEX log file names and locations | Not established in supplied material. | Unknown |
+| `imexhist.log` | APX Import/Export history log named in the WealthTechs AIA guide. | Verified for that workflow; location and version coverage Unknown |
 | APX IMEX log schema / error codes | Not established in supplied material. | Unknown |
 
 ### 3.4 APX blotters relevant to import workflows
@@ -275,7 +275,7 @@ These field labels are observed in integration or report evidence. They are not 
 | Stored Accounting Functions | AdventGuru states APX data can be accessed through Stored Accounting Functions. | Medium Confidence | Names and fields Unknown. |
 | Public Views | AdventGuru states APX public views are available but limited and do not expose all desired data. | Medium Confidence | View names/fields Unknown. |
 | SSRS / Crystal / SQL tools | APX reporting alternatives cited in supplied research. | Medium Confidence | Implementation details Unknown. |
-| REST API | Practitioner source mentions REST API in APX reporting/database context. | Medium Confidence | Scope and supported objects Unknown. |
+| REST API | Official APX 21.1+ release material documents expanding market, reference, accounting, entity, report, performance, gain/loss, audit, analytics, cost, and fee-related API access. | Verified at release-capability level | Exact endpoints, schemas, entitlements, and IMEX equivalence Unknown. |
 
 ### 3.9 APX version notes
 
@@ -552,7 +552,7 @@ Supplied transaction research documents observed transaction codes and uppercase
 | Rule | Confidence |
 |---|---:|
 | Do not interpret transaction import rows from code alone. Sign, security type, source/destination type, source/destination symbol, special security fields, fee mappings, and integration configuration may affect meaning. | High Confidence as design rule; Medium Confidence source evidence |
-| Uppercase transaction code behavior is observed in Axys/APX integration cancellation workflows but is not proven as universal native behavior. | Medium Confidence / Unknown native universality |
+| Uppercase transaction code behavior is observed in Axys/APX integration cancellation workflows but is not proven as universal native behavior. | Medium Confidence for integration workflows; native universality Unknown |
 
 ---
 
@@ -697,8 +697,7 @@ This table intentionally combines known field labels and known unknowns. It is n
 | Field / Artifact | Description | Axys | APX | IMEX | REP | Confidence |
 |---|---|---:|---:|---:|---:|---:|
 | `imex32.exe` | Axys Import/Export executable. | Yes | No | Utility | No | Verified for CI |
-| `APXIX.exe` / `apxix.exe` | APX import/export executable/function in supplied APX research. | No | Yes | Utility | No | Verified for AIA/CI |
-| `ApxIx` | APX Import/Export utility terminology in CI research. | No | Yes | Utility label | No | Verified for CI terminology |
+| `APXIX.exe` / `apxix.exe` / `ApxIx` | APX Import/Export utility; capitalization/label varies by guide. | No | Yes | Utility | No | High Confidence across AIA/CI guides |
 | APX BackOffice Utilities | APX CI prerequisite in supplied workflow evidence. | No | Yes | Utility / prerequisite | No | Verified for CI workflow |
 | APX DataPort | APX CI prerequisite in supplied workflow evidence. | No | Yes | Utility / prerequisite | No | Verified for CI workflow |
 | Market Data Manager / Interactive Data | Adjacent APX reference-data path for prices, factors, security setup, fixed-income terms, index values, dividends/splits, exchange rates, and dividend-driven blotter postings. | No | Yes | Adjacent non-IMEX path | Maybe | Medium Confidence |
@@ -745,7 +744,9 @@ This table intentionally combines known field labels and known unknowns. It is n
 
 ## 12. References
 
-The following references are the source IDs preserved in the supplied `../evidence/Research_12_IMEX.md` and related supplied research. This chapter is based only on those supplied research materials.
+The following references are the underlying sources summarized by
+`../evidence/Research_12_IMEX.md` and related topic ledgers. The IDs below are
+local to this chapter's retained source list.
 
 | ID | Source | Use in this chapter |
 |---|---|---|
@@ -765,6 +766,9 @@ The following references are the source IDs preserved in the supplied `../eviden
 | S14 | AdventGuru APX reporting material | APX SQL Server, Stored Accounting Functions, Public Views, SSRS, REST API, Replang context. |
 | S15 | Consultant tutorial, “How to Add Portfolio Code to Axys Reports” | Replang, `AMAN.REP`, example report directory. |
 | S16 | WealthTechs AIA User Manual for APX Users | APX Transaction Translation IF/THEN logic, special assignment tokens, Vehicle Filter. |
+| S17 | [ByAllAccounts APX CI guide](https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_User_Guide.pdf) | `apxix.exe`, APX import/export workflow, and compatibility artifacts. |
+| S18 | [WealthTechs AIA APX guide](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | `APXIX.exe`, `imexhist.log`, transformation order, cancellation, and current/historical holdings paths. |
+| S19 | [APX 21.1 release](https://www.advent.com/news-and-insights/blog/advent-investment-suite-release-2021-efficiency-trading-compliance/) | Official REST API capability introduction. |
 | Research 04 | Supplied Security Master research | `sec.inf`, `type.inf`, security identity, security translation, APX/Axys security-master evidence. |
 | Research 05 | Supplied Transactions research | `topost.trn`, transaction fields, APX Transaction Summary Report, cancellation examples, `didpost.aud`. |
 
@@ -792,9 +796,9 @@ The following items remain **Unknown** and should not be promoted to fact withou
 |---|---|
 | Exact IMEX control-file syntax, including `.inf` file structure. | IMEX manual or sample `.inf` files. |
 | Command-line switches for `imex32.exe` and APX import/export utility. | Utility documentation or executable help output. |
-| Whether `ApxIx`, `apxix.exe`, and `APXIX.exe` are the same utility. | APX installation documentation or executable listings. |
+| Exact installed filename/version for the APX Import/Export utility. Public guides use `ApxIx`, `apxix.exe`, and `APXIX.exe` for the same function. | APX installation documentation or executable listing. |
 | Standard Axys IMEX log names outside the CI workflow. | Sample logs from native IMEX runs. |
-| Standard APX IMEX log names and locations. | Sample logs or APX documentation. |
+| APX IMEX log names beyond the verified `imexhist.log`, plus all locations and formats. | Sample logs or APX documentation. |
 | Whether IMEX logs are machine-readable enough for automated audit. | Sample logs. |
 
 ### 13.3 Performance and reports
@@ -816,7 +820,7 @@ The following items remain **Unknown** and should not be promoted to fact withou
 | Whether direct SQL querying of APX is vendor-supported, tolerated, or discouraged. | SS&C support policy or APX technical documentation. |
 | APX public view names and fields for securities, transactions, holdings, prices, classifications, and performance. | Public-view list/schema documentation. |
 | Stored Accounting Function names, parameters, and fields. | APX documentation. |
-| APX REST API coverage for IMEX-equivalent data. | APX API documentation. |
+| Exact APX REST endpoint/schema coverage and equivalence to each IMEX object. | APX OpenAPI documentation, entitlement matrix, and paired extracts. |
 
 ### 13.5 Version differences
 
@@ -830,5 +834,5 @@ The following items remain **Unknown** and should not be promoted to fact withou
 ## Research Provenance
 
 The 2026-06-30 Axys IMEX inventory and field-discovery conclusions are
-incorporated into Sections 4.4 through 4.6. Their supporting source history
-remains in `../evidence/Research_12_IMEX.md`.
+incorporated into Sections 4.4 through 4.6. Their granular supporting claims and
+confidence boundaries remain in `../evidence/Research_12_IMEX.md`.

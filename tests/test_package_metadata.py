@@ -984,19 +984,21 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "## Axys/APX blockers",
-            "No verified performance extract dictionary",
-            "Stored vs recalculated performance is Unknown",
-            "Security-performance footing is Unknown",
-            "Transaction-code coverage is incomplete and context-dependent",
-            "IMEX object names and field lists are not authoritative",
-            "REP, SSRS, and report definitions are missing",
+            '<a id="axys_apx-blockers"></a>',
+            "## 7. Current Cross-Cutting Blockers",
+            "AXAPX-B01 | No verified performance extract dictionary",
+            "AXAPX-B02 | Stored-versus-recalculated performance is Unknown",
+            "AXAPX-B03 | Security-performance footing is Unknown",
+            "AXAPX-B04 | Transaction-code coverage is incomplete and context-dependent",
+            "AXAPX-B05 | IMEX/APXIX object and field lists are not authoritative",
+            "AXAPX-B06 | REP, SSRS, and report definitions are unavailable",
+            "AXAPX-B07 | APX SQL/public-view/API contracts are under-evidenced",
             (
-                "Multi-currency, fixed-income, and corporate-action behavior "
-                "remains under-evidenced"
+                "AXAPX-B08 | Multi-currency, fixed-income, and corporate-action "
+                "mechanics remain incomplete"
             ),
-            "configurable source-data comparison",
-            "vendor-specific extraction",
+            "configurable source-data snapshots",
+            "native Axys/APX extraction or methodology",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, overview)

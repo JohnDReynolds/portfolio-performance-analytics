@@ -30,7 +30,7 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
 |---|---|---|---|
 | `axys_apx_reference_blueprint.md` | Governing editorial specification | Evidence standards, confidence labels, chapter structure, and repository workflow. | Axys/APX product evidence or implementation behavior. |
 | `reference/Chapter_*.md` | Reader-facing reference | Supported conclusions, Unknowns, implementation cautions, and cross-topic navigation. | Full vendor specifications or complete source-system schemas. |
-| `evidence/Research_*.md` | Evidence archive | Source-by-source notes, research history, provenance, and unresolved details. | The first reading path for a new reader. |
+| `evidence/Research_*.md` | Evidence archive | Source-and-claim ledgers, ownership boundaries, focused provenance, and unresolved evidence requirements. | The first reading path for a new reader. |
 | `contracts/*.md` | Implementation aid | Cross-cutting contracts, generated summaries, and demo/test guidance. | A replacement for the chapters or official vendor documentation. |
 | `contracts/*.yaml` | Machine-readable contract | Validation, test fixtures, and structured implementation inputs. | Narrative explanation. |
 | `contracts/templates/*.yaml` | Site contract examples | Starting points for site-specific extract contracts. | Guaranteed Axys/APX schemas. |
@@ -47,23 +47,11 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
 | Terms and conceptual vocabulary | [Chapter_16_Glossary.md](reference/Chapter_16_Glossary.md) | Relevant subject chapter |
 | Multi-currency capability, FX evidence, and implementation boundaries | [Chapter_17_Multi_Currency.md](reference/Chapter_17_Multi_Currency.md) | [Research_17_Multi_Currency.md](evidence/Research_17_Multi_Currency.md) and [Research_17A_Multi_Currency_Cash_Provenance.md](evidence/Research_17A_Multi_Currency_Cash_Provenance.md) |
 
-## Main Reference Chapters
+## Chapter Index
 
-See [reference/README.md](reference/README.md) for the chapter index. The main
-starting points are:
-
-- [Chapter_01_Overview.md](reference/Chapter_01_Overview.md) for repository
-  orientation, evidence rules, blockers, and cross-chapter navigation.
-- [Chapter_05_Transactions.md](reference/Chapter_05_Transactions.md) for
-  transaction codes, posting context, and source-data classification boundaries.
-- [Chapter_10_Performance.md](reference/Chapter_10_Performance.md) for
-  performance inputs, outputs, report labels, and methodology boundaries.
-- [Chapter_17_Multi_Currency.md](reference/Chapter_17_Multi_Currency.md) for
-  Axys currency evidence, a conservative audit-adapter boundary, and the native
-  mechanics that remain unknown.
-- [Chapter_15_Data_Dictionary.md](reference/Chapter_15_Data_Dictionary.md) and
-  [Chapter_16_Glossary.md](reference/Chapter_16_Glossary.md) for field,
-  artifact, dataset, and conceptual vocabulary.
+Use [reference/README.md](reference/README.md) as the single complete chapter
+index. Chapter 01 provides system-level orientation and cross-cutting blockers;
+the subject chapters own their detailed conclusions.
 
 ## Implementation Contracts
 
@@ -73,9 +61,9 @@ the contract and template index.
 
 ## Evidence Archive
 
-The `evidence/Research_*.md` files are preserved for traceability. They are not
-intended to be a parallel reference manual. If evidence in that folder is
-important for current implementation or reader understanding, it should also be
+The `evidence/Research_*.md` files preserve traceability as compact claim
+ledgers or ownership boundaries. They are not a parallel reference manual.
+Evidence important to current implementation or reader understanding should be
 summarized in the relevant chapter.
 
 ## Temporary Research Intake

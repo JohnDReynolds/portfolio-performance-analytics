@@ -4,11 +4,12 @@
 **Chapter file:** `Chapter_14_Reports.md`
 **Prepared:** 2026-06-29
 **Governing specification:** `axys_apx_reference_blueprint.md`, Version 2.0
-**Source basis:** Supplied research files only, especially `../evidence/Research_14_Reports.md`, with cross-reference to supplied architecture, holdings, transactions, performance, classifications, IMEX, and REP research.
+**Source basis:** Repository research plus public evidence reviewed through 2026-07-17.
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map, evidence conventions, and shared safe implementation rules.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — many performance outputs are surfaced through reports.
 - [Chapter_11_Classifications.md](Chapter_11_Classifications.md) — report families often use classification labels.
@@ -29,14 +30,12 @@ Reports are downstream views of the accounting data model. They may summarize tr
 | IMEX | Import/export utility behavior and machine-readable structured data movement. | Chapter 12 |
 | APX SSRS | APX report framework where reports are implemented through Microsoft SQL Server Reporting Services. | Chapter 14, with details in APX architecture chapters |
 
-### 1.1 Confidence Standard
+### 1.1 Confidence
 
-| Classification | Meaning |
-|---|---|
-| Verified | Directly supported by supplied research based on vendor material, report guide content, specific sample/report evidence, or directly supplied repository specification. |
-| High Confidence | Strongly supported by consultant documentation, integration documentation, or multiple consistent research sources, but not fully proven from official vendor technical manuals. |
-| Medium Confidence | Plausible and supported by partial evidence; requires confirmation from vendor manuals, installed report libraries, REP/RDL source, or sample outputs. |
-| Unknown | Not established by the supplied material. Do not implement or document as fact without more evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### 1.2 High-Level Findings
 
@@ -145,6 +144,7 @@ Market Value and Accrued Interest when fixed income is in scope.
 | Item | Description | Confidence |
 |---|---|---:|
 | `AMAN.REP` | Assets Under Management report source file in supplied consultant example. | Verified for example |
+| `PERHSUM.REP` | Performance History for Selected Time Periods in historical Axys 3.6 guidance. | Verified historical evidence |
 | Portfolio code customization | The supplied REP research supports adding portfolio code to the Axys AUM report using Replang customization. | Verified for example |
 | `$:fileo` | Replang variable used in the AUM example to display portfolio code. | Verified for example |
 | `#~8portmv` | Replang expression used in the AUM example to print portfolio market value. | Verified for example |
@@ -161,7 +161,7 @@ Market Value and Accrued Interest when fixed income is in scope.
 | Pricing | Price/missing-price/stale-price report names not supplied. | Unknown | Unknown |
 | Performance | Product-level performance reporting is supported; exact report names not supplied. | Unknown | Unknown |
 | Security performance | Not verified in supplied report research. | Unknown | Unknown |
-| Classification / allocation | Product-level reporting by asset class/sector/country/region is supported; exact reports not supplied. | Unknown | Medium / Unknown |
+| Classification / allocation | Product-level reporting by asset class/sector/country/region is supported; exact reports not supplied. | Unknown | Medium Confidence for capability; exact reports Unknown |
 | AUM / management | AUM report examples supplied. | `AMAN.REP`, Assets Under Management | Verified for example |
 | Reconciliation | Conversion/reconciliation report examples supplied. | `Reconciliation report`, `Position Reconciliation report` | Verified name-level / workflow-level |
 | Multicurrency | Release research mentions multicurrency reports. | Unknown | Verified as release category; names Unknown |
@@ -176,12 +176,12 @@ Market Value and Accrued Interest when fixed income is in scope.
 | Area | APX Behavior | Confidence | Notes |
 |---|---|---:|---|
 | Product reporting | APX is publicly positioned as an integrated portfolio/accounting/reporting/client-management platform. | Verified | Product-level claim. |
-| Standard report library | APX has a large standard report library. | Verified | Public product material and report guide. |
-| APX investment-management report guide | Public guide lists multiple report names and examples. | Verified | Applies to guide-covered reports. |
+| Standard report library | The reviewed public guide documents 29 investment-management reports. | Verified | Installed/current inventory may differ. |
+| APX investment-management report guide | Public guide lists 29 report names and detailed examples. | Verified | Applies to that guide/version. |
 | Report engine | Guide-covered APX investment-management reports are built on Microsoft SQL Server Reporting Services. | Verified | Exact RDL/dataset names not supplied. |
 | Custom reporting | APX supports flexible custom reporting, report packaging, and dashboards. | Verified | Product-level claim. |
 | Report operations | APX SSRS package drift, delivery exceptions, pre-cycle validation, hosted/cloud package updates, and portal delivery are operational cautions. | Medium Confidence | Operational/admin context; RDLs, datasets, formulas, and source equivalence remain Unknown. |
-| REP/Replang overlap | Connector and consultant evidence shows REP32/Replang can be used in some APX extraction/reporting workflows. | Verified for connector; Medium/High generally | Exact version boundaries Unknown. |
+| REP/Replang overlap | Connector and consultant evidence shows REP32/Replang can be used in some APX extraction/reporting workflows. | Verified for connector; Medium to High Confidence generally | Exact version boundaries Unknown. |
 | SQL/database access | APX users may have SQL/reporting access paths in consultant/integration evidence. | Medium Confidence | Exact public views, stored procedures, datasets Unknown. |
 
 ### 4.2 APX Report Categories and Names
@@ -196,7 +196,7 @@ The following APX report names are supported by the supplied `../evidence/Resear
 | Business intelligence | Effective Rate | Business-intelligence label/dimension from indexed APX Reports Guide evidence. | Verified label |
 | Business intelligence dimensions | Strategy / Product Line / Account Manager / Salesperson / Consultant / Custodian / Location / Tax Status | Business-intelligence dimensions from indexed APX Reports Guide evidence. | Verified labels |
 | Business intelligence | Account Characteristics | Account/client-characteristic reporting. Exact fields Unknown. | Verified name; details Unknown |
-| Business intelligence | Account Characteristics (By Custodian) | Account characteristics grouped by custodian. Exact fields Unknown. | Verified name; details Unknown |
+| Business intelligence | Account Characteristics by Custodian | Account characteristics grouped by custodian. | Verified |
 | Business intelligence | Asset Flows | Asset-flow reporting. Exact fields Unknown. | Verified name; details Unknown |
 | Business intelligence | Business Summary Dashboard | Dashboard-style business summary. Exact fields Unknown. | Verified name; details Unknown |
 | Portfolio analytics | Activity Profile | Portfolio activity profile. Exact fields Unknown. | Verified name; details Unknown |
@@ -206,7 +206,7 @@ The following APX report names are supported by the supplied `../evidence/Resear
 | Portfolio analytics | Contribution by Classification | Contribution by portfolio segments/classifications. | Verified |
 | Portfolio analytics | Contribution Summary | Segment contribution to total portfolio performance; can be run with or without benchmark. | Verified |
 | Portfolio analytics | Contribution Detail | Detailed flattened contribution output. | Verified |
-| Portfolio analytics | Risk Statistics | Risk-statistics report. Exact metrics Unknown. | Verified name; details Unknown |
+| Portfolio analytics | Risk Statistics | Includes standard deviation, downside probability/deviation, VaR, correlation, R-squared, tracking error, M-squared, Sharpe, Jensen alpha, beta, and Treynor measures. | Verified from guide; exact formulas/settings Unknown |
 | Client reporting | Cover Page | Client package cover page. | Verified name; details Unknown |
 | Client reporting | Household Overview | Household-level overview. | Verified name; details Unknown |
 | Client reporting | Portfolio Overview | Portfolio overview. | Verified name; details Unknown |
@@ -219,10 +219,10 @@ The following APX report names are supported by the supplied `../evidence/Resear
 | Client reporting | Fixed Income Distribution | Fixed-income distribution. | Verified name; details Unknown |
 | Client reporting | Fixed Income Overview | Fixed-income overview. | Verified name; details Unknown |
 | Client reporting | Income Projection | Income projection. | Verified name; details Unknown |
-| Client reporting / holdings | Portfolio Appraisal | Portfolio holdings by tax lot or position according to supplied APX holdings research. | Medium Confidence |
-| Client reporting / tax | Realized Gains and Losses | Realized gain/loss report. | Verified name |
+| Client reporting / holdings | Portfolio Appraisal | Detailed holdings presentation with tax-lot or position concepts. | Verified from guide |
+| Client reporting / tax | Realized Gains/Losses | Realized gain/loss report. | Verified |
 | Client reporting / activity | Transaction Summary | Account transaction reporting. | Verified name |
-| Client reporting | Disclaimer and Terms | Disclosure/disclaimer section. | Verified name; details Unknown |
+| Client reporting | Disclaimer | Disclosure/disclaimer section. | Verified |
 
 ### 4.3 APX Attribution Reports
 
@@ -245,8 +245,8 @@ The following APX report names are supported by the supplied `../evidence/Resear
 | Report | Supported Behavior / Labels | Confidence | Unknowns |
 |---|---|---:|---|
 | Transaction Summary | Displays account transactions maintained by Advent; supplied research observes columns/sections such as `Trade Date`, `Settle Date`, `Quantity`, `Symbol`, `Security`, `Unit Price`, and `Amount` in examples. | Verified / Medium depending field | Exact report parameters, transaction code visibility, posted-vs-blotter inclusion. |
-| Portfolio Appraisal | APX report guide snippet says it shows holdings by individual tax lot or position. | Medium Confidence | Exact guide page, fields, parameters, tax-lot behavior. |
-| Realized Gains and Losses | Report name verified in APX guide research. | Verified name | Exact fields and lot-selection behavior. |
+| Portfolio Appraisal | Public APX guide describes detailed holdings presentation by lot or position. | Verified | Exact fields, parameters, calculations, and dataset. |
+| Realized Gains/Losses | Report name and tax-lot/gain-loss purpose verified in the public guide. | Verified | Exact lot-selection behavior and dataset. |
 
 ### 4.6 APX Report Labels Observed in Supplied Research
 
@@ -450,7 +450,7 @@ This section defines a repository documentation model for reports. It is not an 
 | System | Known Reports | Supported Behavior | Confidence | Unknowns |
 |---|---|---|---:|---|
 | Axys | Unknown | Risk report names not supplied. | Unknown | Metrics, source returns, benchmark handling. |
-| APX | `Risk Statistics`, `Risk Overview` | Report names verified. | Verified name; details Unknown | Metrics, formulas, period definitions, data source. |
+| APX | `Risk Statistics`, `Risk Overview` | Names verified; Risk Statistics lists standard deviation, downside measures, VaR, correlation, R-squared, tracking error, M-squared, Sharpe, Jensen alpha, beta, and Treynor. | Verified for listed metrics | Exact formulas, periods, annualization, risk-free rate, and data source. |
 
 ### 8.7 Allocation / Classification Reports
 
@@ -464,7 +464,7 @@ This section defines a repository documentation model for reports. It is not an 
 | System | Known Reports / Components | Supported Behavior | Confidence | Unknowns |
 |---|---|---|---:|---|
 | Axys | Unknown component names | Product/reporting capability supports client reporting. | Medium Confidence | Package definitions, component reports, branding, output workflow. |
-| APX | `Cover Page`, `Household Overview`, `Portfolio Overview`, `Performance Overview`, `Risk Overview`, `Policy Overview`, `Historical Policy Overview`, `Allocation Summary`, `Equity Overview`, `Fixed Income Distribution`, `Fixed Income Overview`, `Income Projection`, `Disclaimer and Terms` | APX guide includes client-reporting report components. | Verified names | Package configuration, output order, parameter inheritance. |
+| APX | `Cover Page`, `Household Overview`, `Portfolio Overview`, `Performance Overview`, `Risk Overview`, `Policy Overview`, `Historical Policy Overview`, `Allocation Summary`, `Equity Overview`, `Fixed Income Distribution`, `Fixed Income Overview`, `Income Projection`, `Disclaimer` | APX guide includes client-reporting report components. | Verified names | Package configuration, output order, parameter inheritance. |
 
 ---
 
@@ -529,7 +529,7 @@ This section defines a repository documentation model for reports. It is not an 
 | Topic | Axys | APX | Confidence |
 |---|---|---|---:|
 | Report engine | REP/Replang and Report Writer Pro are supported in supplied examples. | SSRS for guide-covered APX reports; REP32/Replang in connector/custom contexts. | Medium / Verified by context |
-| Standard report catalog | Full catalog not supplied. | Partially known from public APX Reports Guide. | Medium |
+| Standard report catalog | Full Axys catalog not supplied. | The reviewed public APX guide documents 29 reports; installed/current additions remain Unknown. | Verified for guide; site inventory Unknown |
 | Customization layer | Report Writer Pro and Replang examples. | SSRS/custom reporting plus Report Writer Pro/Replang evidence. | Medium |
 | Database-backed reports | Not verified for Axys. | Likely for SSRS reports; exact datasets Unknown. | Medium |
 | Axys 3.8.7 | Enhanced Position Reconciliation report, expanded generic date framework, additional/improved multicurrency reports. | Not applicable. | Verified from supplied REP research |
@@ -565,24 +565,25 @@ This section defines a repository documentation model for reports. It is not an 
 | Source | Use |
 |---|---|
 | `axys_apx_reference_blueprint.md`, Version 2.0 | Governing editorial standard, chapter structure, field dictionary format, confidence labels, and Unknown handling. |
-| `../evidence/Research_14_Reports.md` | Primary source for report names, APX report labels, report families, IMEX/report cautions, version differences, and Unknowns. |
+| `../evidence/Research_14_Reports.md` | Granular report-name, label, family, IMEX/report-boundary, version, and missing-evidence claims. |
 | `../evidence/Research_13_REP.md` | REP/Replang mechanics, `.REP` examples, `AMAN.REP`, `REP32.exe`, Report Writer Pro, and custom report cautions. |
 | `../evidence/Research_12_IMEX.md` | IMEX/report distinction, connector extraction, IMEX logs, file artifacts, and report-based extraction cautions. |
 | `../evidence/Research_06_Holdings.md` | `Portfolio Appraisal`, holdings report behavior, `CDIhold.rep`, report labels, group behavior, and holdings extract workflows. |
 | `../evidence/Research_05_Transactions.md` | `Transaction Summary`, transaction-report labels, blotter/report distinctions, and transaction-output cautions. |
-| `../evidence/Research_10_Performance.md` | Performance report unknowns, stored-vs-recalculated risk, candidate report families, and performance testing requirements. |
-| `../evidence/Research_11_Classifications.md` | Classification report categories, APX custom classification snippets, and classification-as-of Unknowns. |
+| `../evidence/Research_10_Performance.md` | Performance claims, report evidence, stored-vs-recalculated boundary, and unresolved evidence requirements. |
+| `../evidence/Research_11_Classifications.md` | Classification report evidence and unresolved classification-as-of behavior. |
 | `../evidence/Research_03_APX_Architecture.md` | APX SSRS reporting framework, report-guide names, APX report customization, and APX data-access context. |
 | `../evidence/Research_02_Axys_Architecture.md` | Axys reporting architecture, Report Writer Pro, Replang/REP, and file-oriented report/customization context. |
 
 ### 12.2 External Sources Identified in Supplied Research
 
-The chapter relies on the supplied research summaries rather than independently adding new source material. External source types identified in those research files include:
+The chapter uses repository research and the following durable public evidence:
 
 | Source Type | Examples / Relevance |
 |---|---|
 | SS&C Advent product pages | Axys/APX product-level reporting capabilities. |
-| Advent Portfolio Exchange Reports Guide | APX report categories, report names, visible labels, SSRS basis. |
+| [Advent Portfolio Exchange Reports Guide](https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf) | APX 29-report inventory, report purposes, visible labels, risk metrics, and SSRS basis. |
+| [Historical PERHSUM guidance](https://static1.1.sqspcdn.com/static/f/425065/4721492/1257913571447/Modifying-PERSHUM-Report.pdf) | Axys 3.6 `PERHSUM.REP` and `.REP`/`.RPW` report-type evidence. |
 | Consultant documentation | Axys/APX Report Writer Pro, Replang, `.REP`, report customization examples. |
 | Integration documentation | Data Broker / REP32 extraction, AIA/CI report and IMEX workflows. |
 | Conversion documentation | Axys Reconciliation report usage and report/export caveats. |
@@ -595,7 +596,7 @@ The following items remain Unknown and should not be documented as facts until s
 
 | Unknown | Axys | APX | How to Resolve |
 |---|---:|---:|---|
-| Complete standard report catalog | Unknown | Partially known | Provide installed report catalog or vendor report guide. |
+| Complete installed/current standard report catalog | Unknown | Public guide documents 29 reports; site additions/version drift Unknown | Provide installed catalog and current versioned guide. |
 | Exact report file names | Unknown | Unknown | Provide REP/RDL/report source tree. |
 | Report parameter names | Unknown | Unknown | Provide report definitions, screenshots, or RDL/REP source. |
 | Report source datasets and logic | Unknown | Unknown | Inspect REP source, APX RDL datasets, APX SQL, public views, or stored accounting functions. |

@@ -3,11 +3,13 @@
 Repository: AXYS / APX Reference Repository
 Chapter file: `docs/axys_apx/reference/Chapter_06_Holdings.md`
 Prepared: 2026-06-29
+Public evidence reviewed: 2026-07-17
 Governing specification: `axys_apx_reference_blueprint.md`, Version 2.0
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — holdings are updated from posted transactions.
 - [Chapter_07_Cash.md](Chapter_07_Cash.md) — holdings and cash often move together in reconciliation workflows.
@@ -23,20 +25,19 @@ principal, accrued income, lots, and cost-basis context.
 
 ## 1. Overview
 
-This chapter documents holdings and position-related behavior in Axys/APX using only the supplied research material.
+This chapter documents holdings and position-related behavior in Axys/APX using
+the repository research and cited public evidence.
 
 In this chapter, **holdings** means a portfolio's assets or positions as shown or extracted at a point in time. The available evidence is strongest for report output, reconciliation workflows, third-party integration workflows, and named artifacts. The available evidence is weaker for native storage models, canonical IMEX object names, and internal Axys/APX calculation rules.
 
 A holdings change should be read as the outcome of posted transactions and associated accounting rules, not as a standalone event inferred from a transaction code. For performance and reconciliation work, it is helpful to distinguish external cash flows from trading activity, income, fees, and corporate-action events because those categories affect cash, lots, cost basis, and valuation differently.
 
-### Confidence labels
+### Confidence
 
-| Label | Meaning |
-|---|---|
-| Verified | Directly supported by supplied research and cited source material. |
-| High Confidence | Strongly supported by one or more sources, but not a complete vendor specification. |
-| Medium Confidence | Plausible and consistent with available sources, but evidence is partial, indirect, source-specific, or integration-specific. |
-| Unknown | Not established by supplied material. Do not promote to fact without additional evidence. |
+This chapter uses the repository confidence labels defined in
+[Chapter 01](Chapter_01_Overview.md#2-confidence-and-evidence-boundary).
+Confidence remains scoped to the cited product, version, report, connector,
+or workflow.
 
 ### Evidence boundary
 
@@ -44,7 +45,7 @@ A holdings change should be read as the outcome of posted transactions and assoc
 |---|---|
 | Axys Portfolio Appraisal report behavior | Strong evidence. |
 | Axys group Portfolio Appraisal behavior | Strong evidence from CSSI example. |
-| APX Portfolio Appraisal behavior | Partial evidence only; full APX reports guide not supplied. |
+| APX Portfolio Appraisal behavior | Verified at report-description level from the public APX Reports Guide; exact installed columns/datasets remain Unknown. |
 | AIA holdings extraction and reconciliation workflows | Strong evidence for those workflows only. |
 | APX Custodial Integrator position / lot blotter workflow | Strong evidence for that workflow only. |
 | Native Axys holdings storage | Unknown. |
@@ -158,7 +159,7 @@ The supplied material identifies several Axys files that are relevant to holding
 | APX Portfolio Appraisal can show holdings by individual tax lot or position. | Verified for report concept | Report output is not proof of lot-storage mechanics. |
 | APX Portfolio Appraisal output can include quantity, cost, market value, percent of portfolio, yield, and unrealized gain/loss concepts. | Verified for report concept | Treat these as report labels until exact datasets and fields are supplied. |
 | Public APX sample client reports may include a `PORTFOLIO APPRAISAL` section and report parameters such as `STY:APX`. | Medium Confidence | Downstream client-report evidence only; do not treat as a vendor report specification. |
-| Standard APX Portfolio Appraisal default columns are Unknown. | Unknown | No complete APX report output or guide section supplied. |
+| The APX Reports Guide describes Portfolio Appraisal as a detailed holdings report with value, cost, income, gain/loss, allocation, and lot/position presentation concepts. | Verified for the reviewed guide | Exact installed columns, calculations, and datasets remain Unknown. |
 | APX group behavior for Portfolio Appraisal is Unknown. | Unknown | No APX-specific evidence comparable to the Axys CSSI group example. |
 
 ### 3.2.1 Market value and accrued interest in appraisal output
@@ -292,7 +293,7 @@ Portfolio Appraisal columns.
 | Report / file / variable | System | Description | Confidence |
 |---|---|---|---:|
 | `Portfolio Appraisal` | Axys | Holdings/assets point-in-time report; can be generated in Report Writer. | Verified |
-| `Portfolio Appraisal` | APX | APX reports guide search-result evidence says it shows holdings by tax lot or position. | Medium Confidence |
+| `Portfolio Appraisal` | APX | The reviewed APX Reports Guide describes holdings by tax lot or position. | Verified for report concept |
 | `CDIhold.rep` | Axys | WealthTechs-provided report for historical holdings calculation in AIA / NBIN duplicate handling workflow. | Verified for workflow |
 | `CDIhold.rep` | APX | WealthTechs-provided report for historical holdings calculation in AIA / NBIN duplicate handling workflow. | Verified for workflow |
 | `aman.rep` | Axys | Assets Under Management report copied in CSSI AUM-by-sector example. | Verified for example |
@@ -388,7 +389,7 @@ The table below lists fields and labels observed in supplied source material. It
 | Caution | Confidence |
 |---|---:|
 | Axys Portfolio Appraisal sample fields should not be assumed to be complete default columns. | High Confidence |
-| APX Portfolio Appraisal fields remain mostly Unknown until the APX Reports Guide section or sample report is supplied. | Unknown |
+| Exact installed APX Portfolio Appraisal columns and calculations remain Unknown until report output, RDL, and site data definitions are supplied. | Unknown |
 | CI missing-prices fields are integration output fields, not native APX holdings fields. | Verified for CI context |
 | AIA settings and `CDIhold.rep` fields are workflow-specific, not native object names unless separately verified. | Verified for workflow |
 
@@ -492,7 +493,7 @@ quantity alone may be zero or insufficient for reconciliation.
 | Unknown | Notes |
 |---|---|
 | Whether Axys Portfolio Appraisal default columns differ across Axys versions. | Requires official reports guide or versioned report outputs. |
-| Whether APX Portfolio Appraisal behavior differs across APX versions. | Requires APX Reports Guide and sample outputs. |
+| Whether APX Portfolio Appraisal behavior differs across APX versions. | Requires versioned APX report guides and installed report outputs/RDLs. |
 | Whether AIA `CDIhold.rep` behavior differs across Axys/APX versions. | Requires report source and workflow documentation. |
 | Whether current-date versus historical extraction behavior differs outside AIA. | Requires vendor documentation or production observations. |
 
@@ -500,10 +501,10 @@ quantity alone may be zero or insufficient for reconciliation.
 
 ## 11. References
 
-### Supplied repository and research sources
+### Repository and evidence sources
 
 1. `axys_apx_reference_blueprint.md`, Version 2.0. Governing repository specification.
-2. `../evidence/Research_06_Holdings.md`. Primary research source for this chapter.
+2. `../evidence/Research_06_Holdings.md`. Granular evidence ledger for this chapter.
 3. `../evidence/Research_04_Security_Master.md`. Used only for security-master context where holdings depend on security identity/type.
 4. `../evidence/Research_05_Transactions.md`. Used only for transaction-to-holdings dependency context.
 5. `../evidence/Research_12_IMEX.md`. Used only for IMEX/interface context and file/artifact separation.
@@ -524,7 +525,8 @@ quantity alone may be zero or insufficient for reconciliation.
 | CSSI, `How To Create an Assets Under Management By Sector Report` | `\axys3\rep`, `aman.rep`, `_aumsect.rep`, copy-before-modify guidance, `$firmg` example. |
 | Morningstar, `Converting Your Advent Axys Database into Morningstar Office`, Version 2.0 | Axys conversion files, Reconciliation report, principal paydown / zero-quantity limitations, conversion issue categories. |
 | Chase Investment Counsel Code of Ethics filing | Evidence that Axys Portfolio Appraisal can be used as a holdings report for specified accounts. |
-| Advent Portfolio Exchange Reports Guide search result | APX Portfolio Appraisal evidence; still only Medium Confidence until the guide itself is supplied and reviewed. |
+| [Advent Portfolio Exchange Reports Guide](https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf) | Verified Portfolio Appraisal description and broader 29-report context. |
+| [WealthTechs AIA APX guide](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | Current APX SQL holdings versus historical report-calculated holdings in that workflow. |
 
 ---
 
@@ -539,9 +541,9 @@ The following should remain **Unknown** until supported by vendor documentation,
 | Axys native holdings storage mechanics. | Needed to distinguish stored positions from report-calculated holdings. | Vendor technical manual or production file layout examples. |
 | APX SQL holdings table/view names. | Needed for APX data model. | APX database schema, official reporting data dictionary, public-view docs, or sample query. |
 | Lot-level holdings support in Axys. | Needed for field dictionary and tax-lot examples. | Axys report guide or sample lot-level Portfolio Appraisal. |
-| Lot-level holdings support in APX Portfolio Appraisal. | Search result suggests tax lot/position support, but full verification is missing. | APX Reports Guide PDF. |
+| Exact lot-level fields and calculations in installed APX Portfolio Appraisal. | The public guide verifies lot/position presentation concepts but not the site dataset. | Installed report output/RDL and APX data dictionary. |
 | Standard Portfolio Appraisal default columns for Axys versions. | Current fields are from a CSSI sample and may be customized. | Official Axys reports guide or unmodified report output. |
-| Standard Portfolio Appraisal default columns for APX versions. | Needed to avoid assuming Axys columns match APX. | Official APX reports guide or unmodified report output. |
+| Standard Portfolio Appraisal default columns for APX versions. | Needed to avoid assuming Axys columns match APX. | Versioned installed report output/RDL and APX data dictionary. |
 | Date basis for holdings reports. | Critical for reconciliation and performance. | Vendor report options manual or sample reports showing settings. |
 | Treatment of cash, shorts, accruals, unsettled trades, FX, and multicurrency holdings. | Critical for real-world holdings interpretation. | Report guides, report outputs, IMEX samples. |
 | Security identifier hierarchy used in holdings reports. | Needed for data dictionary. | Security master docs and report output samples. |
@@ -553,10 +555,10 @@ The following should remain **Unknown** until supported by vendor documentation,
 
 ## 13. Recommended future evidence
 
-The supplied research is sufficient for this conservative chapter, but a more complete future revision would benefit from:
+The maintained evidence is sufficient for this conservative chapter, but a more complete future revision would benefit from:
 
 1. Official Axys reports guide section for Portfolio Appraisal.
-2. Official APX reports guide section for Portfolio Appraisal.
+2. Versioned installed APX Portfolio Appraisal output, RDL, and parameter screen.
 3. One unmodified Axys Portfolio Appraisal report output for a simple portfolio.
 4. One unmodified APX Portfolio Appraisal report output for a simple portfolio.
 5. One lot-level holdings report sample.
@@ -568,5 +570,5 @@ The supplied research is sufficient for this conservative chapter, but a more co
 ## Research Provenance
 
 The deep IMEX position-import conclusions are incorporated into Section 4.4.
-Their supporting source history remains in
+Their granular supporting claims and confidence boundaries remain in
 `../evidence/Research_06_Holdings.md`.

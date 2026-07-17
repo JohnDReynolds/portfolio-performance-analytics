@@ -1,10 +1,14 @@
 # Chapter 04 — Security Master
 
-> Repository chapter expanded from the supplied chapter, research notes, independent research addenda, and repository blueprint. This chapter treats the research files as raw evidence and reorganizes the supported facts into a technical reference. Unsupported items are marked **Unknown**. Integration-specific behavior is identified as such and is not promoted to native Axys/APX behavior unless the supplied research supports that conclusion.
+> Repository chapter expanded from research notes, independent addenda, the
+> repository blueprint, and public evidence reviewed through 2026-07-17.
+> Unsupported items are marked **Unknown**. Integration-specific behavior is not
+> promoted to native Axys/APX behavior without supporting evidence.
 
 ---
 
 ## Related chapters
+
 - [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
 - [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — security identity is essential for transaction translation and posting.
 - [Chapter_11_Classifications.md](Chapter_11_Classifications.md) — distinguishes security identity from classification and grouping data.
@@ -221,10 +225,11 @@ The supplied research verifies that APX has centralized security information use
 | Security type information exists | Yes | Verified | CI uses APX Security Type Information. |
 | `sec.inf` used for security information | Yes, in CI/AIA context | Verified in context | Complete layout Unknown. |
 | `type.inf` used for security type information | Yes, in CI context | Verified in context | Complete layout Unknown. |
-| APX Import/Export executable | `apxix.exe` / `APXIX.exe`; `ApxIx` also appears as terminology | Verified / Unknown naming relationship | Relationship between names is not established. |
+| APX Import/Export executable | `apxix.exe` / `APXIX.exe`; `ApxIx` also appears as terminology | High Confidence | Independent guides use these as capitalization/label variants; installed filename/version is site-specific. |
 | Native SQL table/view names | Unknown | Unknown | Public view names and fields not supplied. |
 | Complete native field dictionary | Unknown | Unknown | Not supplied. |
 | Public views | Exist generally, but limited | Medium Confidence | Security-specific coverage Unknown. |
+| REST security-master loading | Official APX 21.1 release material supports loading security-master data through REST APIs. | Verified at capability level | Exact endpoints, schema, matching keys, and entitlements Unknown. |
 
 ### 4.2 APX Import/Export Utility Evidence
 
@@ -233,7 +238,7 @@ The supplied research verifies that APX has centralized security information use
 | `apxix.exe` | APX Import/Export utility used by CI to export Security (`sec.inf`) and Security Type (`type.inf`) data from APX. | Verified | CI installation context. |
 | `APXIX.exe` | APX import/export function named in WealthTechs AIA manual. | Verified | AIA context. |
 | `ApxIx` | APX Import/Export terminology in ByAllAccounts APX guide. | Verified | CI terminology. |
-| Relationship between `apxix.exe`, `APXIX.exe`, and `ApxIx` | Unknown | Unknown | The supplied research does not establish whether these are identical labels, version-specific names, case differences, or context-specific terminology. |
+| Relationship between `apxix.exe`, `APXIX.exe`, and `ApxIx` | Capitalization/label variants for APX Import/Export in the reviewed guides. | High Confidence | Confirm the installed filename and version before automation. |
 
 ### 4.3 APX `sec.inf` and `type.inf`
 
@@ -293,7 +298,7 @@ The supplied research includes practitioner evidence that APX users may access A
 | Public Views | Exist, but limited. | Medium Confidence | Unknown. |
 | Stored Accounting Functions | Mentioned by practitioner source. | Medium Confidence | Unknown. |
 | SSRS | Mentioned by practitioner source. | Medium Confidence | Unknown. |
-| REST API | Mentioned by practitioner source. | Medium Confidence | Unknown. |
+| REST API | Official APX 21.1 release supports security-master loading. | Verified at capability level | Exact endpoint/schema/entitlement Unknown. |
 | Direct APX SQL Server access | Practitioner source discusses APX SQL/reporting infrastructure. | Medium Confidence | Security-specific schema Unknown. |
 
 ### 4.8 APX Authentication / Logging Quirk
@@ -312,7 +317,7 @@ The supplied material verifies that Axys/APX import/export utilities participate
 
 | Topic | Axys | APX | Confidence | Notes |
 |---|---:|---:|---:|---|
-| Import/export utility identified | `imex32.exe` | `apxix.exe` / `APXIX.exe` / `ApxIx` | Verified / naming relationship Unknown | Context differs by source. |
+| Import/export utility identified | `imex32.exe` | `apxix.exe` / `APXIX.exe` / `ApxIx` | Verified / High Confidence same utility label | Installed APX filename/version is site-specific. |
 | Security export to `sec.inf` | Yes | Yes | Verified in CI context | Complete layout Unknown. |
 | Security Type export to `type.inf` | Yes | Yes | Verified in CI context | Complete layout Unknown. |
 | Transaction import through import/export utility | Yes | Yes | Verified in CI context | See [Chapter_05_Transactions.md](Chapter_05_Transactions.md). |
@@ -321,7 +326,7 @@ The supplied material verifies that Axys/APX import/export utilities participate
 | Native security IMEX object name | Unknown | Unknown | Unknown | Not supplied. |
 | Native security type IMEX object name | Unknown | Unknown | Unknown | Not supplied. |
 | Required fields for security import/update | Unknown | Unknown | Unknown | Not supplied. |
-| Security type import through IMEX | Medium Confidence caution | Medium Confidence caution | Medium Confidence | AdventGuru states the author does not believe security types can be imported through IMEX; not vendor-confirmed. |
+| Security type import through IMEX | Practitioner caution only | Practitioner caution only | Medium Confidence | AdventGuru states the author does not believe security types can be imported through IMEX; not vendor-confirmed. |
 
 ### 5.2 Axys Import/Export Workflow Evidence
 
@@ -392,7 +397,7 @@ REP32, standard reports, macros, and RepLang are verified extraction mechanisms 
 | REP32 used by connector | Yes | Yes | Verified for connector | Salentica/Elements Data Broker documentation. |
 | Advent standard reports/macros used by connector | Yes | Yes | Verified for connector | Connector-specific. |
 | RepLang scripting/macros used by connector | Yes | Yes | Verified for connector | Connector-specific. |
-| Report Writer Pro available | Yes | Yes/Unknown from supplied evidence | Verified for Axys; Medium Confidence for APX practitioner context | Axys product materials mention Report Writer Pro; practitioner notes discuss APX reporting. |
+| Report Writer Pro available | Yes | Practitioner evidence only; native APX coverage Unknown | Verified for Axys; Medium Confidence for APX practitioner context | Axys product materials mention Report Writer Pro; practitioner notes discuss APX reporting. |
 | Standard security-master report name | Unknown | Unknown | Unknown | Not found in supplied research. |
 | Complete REP field exposure | Unknown | Unknown | Unknown | Not established. |
 | APX public views as alternative | N/A | Possible but limited | Medium Confidence | Security-specific fields Unknown. |
@@ -445,7 +450,7 @@ Positions, transactions, prices, reports, performance, classifications
 | Asset class | Verified export/processing context | Context not fully separated | Verified / Medium Confidence | Export label for Axys; performance impact noted in Advent context. |
 | Industry group | Import dependency, not field name | Import dependency, not field name | Verified as dependency, exact system split Unknown | Source not fully separated. |
 | Industry sector | Import dependency, not field name | Import dependency, not field name | Verified as dependency, exact system split Unknown | Source not fully separated. |
-| Fixed-income accrued-interest fields | May be exportable through Axys security file when selected | Unknown | Verified conversion context / Unknown field names | Exact fields Unknown. |
+| Fixed-income accrued-interest fields | May be exportable through Axys security file when selected | Unknown | Verified for conversion context; field names Unknown | Exact fields Unknown. |
 | Complete security type dictionary | Unknown | Unknown | Unknown | Examples only. |
 | Native primary key | Unknown | Unknown | Unknown | Not supplied. |
 
@@ -821,7 +826,7 @@ The following evidence would convert many Unknowns into documented facts.
 
 ## 16. References
 
-This chapter is based only on the supplied repository chapter and research material. Source names below are taken from the supplied research notes.
+This chapter uses repository research and cited public evidence.
 
 ### 16.1 Governing Repository Document
 
@@ -834,7 +839,7 @@ This chapter is based only on the supplied repository chapter and research mater
 | Source | Use |
 |---|---|
 | `Chapter_04_Security_Master.md` | Earlier chapter material reorganized and expanded into this reference. |
-| `../evidence/Research_04_Security_Master.md` | Research notes, independent research addendum, and independent research update. |
+| `../evidence/Research_04_Security_Master.md` | Security-master source-and-claim ledger and unresolved evidence requirements. |
 
 ### 16.3 Source Material Summarized in the Research Notes
 
@@ -854,9 +859,10 @@ This chapter is based only on the supplied repository chapter and research mater
 | AdventGuru Axys/APX integration and reporting articles | Security type handling cautions, security-master merge dependencies, public view limitations, APX reporting/database access options, Report Writer Pro/Replang usage. | Practitioner source; not official vendor schema. |
 | FinFolio Advent conversion page | Advent `INF` files used in conversion workflows to build target security master. | Conversion-vendor clue; Medium Confidence only. |
 | Advent / Thomson Reuters DataScope brief | General Advent ecosystem reference-data concepts. | Geneva-focused; not used for Axys/APX security-master behavior unless separately verified. |
+| [APX 21.1 release](https://www.advent.com/news-and-insights/blog/advent-investment-suite-release-2021-efficiency-trading-compliance/) | Official capability to load security-master and pricing data through REST APIs. | Exact endpoints, fields, matching behavior, and entitlements remain Unknown. |
 
 ## Research Provenance
 
 The deep IMEX security-reference conclusions are incorporated into Section
-5.5. Their supporting source history remains in
+5.5. Their granular supporting claims and confidence boundaries remain in
 `../evidence/Research_04_Security_Master.md`.
