@@ -10,6 +10,13 @@ Generated outputs and caches live under
 `_demo_output/generic_analytics_data_generation/` and are ignored by Git.
 Promote reviewed CSVs into `ppar/setup_templates/` only deliberately.
 
+Analytics and Audit share normalized yFinance observations at
+`_demo_output/demo_market_data/yfinance_market_history.csv`. The cache retains
+Yahoo's source `Close`, a reconstructed contemporaneous close for holdings,
+adjusted close for returns, dividends, stock splits, and repair provenance.
+Once coverage is present, ordinary demo construction is offline and does not
+download the same observations again.
+
 ## Maintained Helpers
 
 - `generate_mega_cap_analytics_demo_data.py` downloads or loads historical
@@ -66,7 +73,9 @@ story remains true.
   non-repairable early gap.
 - BlackRock cash and derivative rows are aggregated into `CASHUSD` in the
   `Cash` sector.
-- BIL adjusted monthly returns provide the cash-return proxy.
+- BIL adjusted monthly returns provide the cash-return proxy. Audit also uses
+  BIL, SHY, IEI, and MBB as disclosed public-market proxies for its synthetic
+  cash and fixed-income identifiers.
 - The benchmark is a capitalization-weighted proxy; the portfolio applies a
   modest synthetic tilt intended to tell a clear demonstration story.
 - Current survivors and current GICS classifications are acceptable for this

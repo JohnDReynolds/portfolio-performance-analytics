@@ -14,6 +14,15 @@ from typing import Final
 
 import pandas as pd
 
+from ppar._demo_market_data import (
+    RETURN_FAILURE_TOLERANCE,
+    RETURN_WARNING_TOLERANCE,
+    adjusted_period_return,
+    ensure_market_history,
+    price_on_or_before,
+    reconcile_total_returns,
+)
+from ppar._demo_operational_holdings import build_operational_holdings
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_SOURCE_PATH: Final = (
@@ -35,6 +44,9 @@ _DEFAULT_SECURITY_REFERENCE_PATH: Final = (
 _DEFAULT_OUTPUT_DIRECTORY: Final = (
     _REPO_ROOT / "_demo_output" / "operational_demo_data_generation"
 )
+_DEFAULT_MARKET_HISTORY_PATH: Final = (
+    _REPO_ROOT / "_demo_output" / "demo_market_data" / "yfinance_market_history.csv"
+)
 _AXYS_SCHEMA_PATH: Final = (
     _REPO_ROOT
     / "ppar"
@@ -43,9 +55,9 @@ _AXYS_SCHEMA_PATH: Final = (
     / "axys_apx_column_mappings.yaml"
 )
 _PORTFOLIOS: Final = (
-    ("ALPHA", "Mega-Cap Alpha", 1.00, 0.04),
-    ("BALANCED", "Mega-Cap Balanced", 0.72, 0.16),
-    ("INCOME", "Mega-Cap Income", 0.48, 0.32),
+    ("ALPHA", "Mega-Cap Alpha", 0.04),
+    ("BALANCED", "Mega-Cap Balanced", 0.16),
+    ("INCOME", "Mega-Cap Income", 0.32),
 )
 _BASE_MARKET_VALUE: Final = 1_000_000.0
 _EQUITY_COUNT: Final = 10
@@ -55,14 +67,13 @@ _CASH_SLEEVE_FLOOR: Final = 0.04
 _CVNA_SPLIT_IDENTIFIER: Final = "CVNA"
 _CVNA_SPLIT_NAME: Final = "Carvana Co."
 _CVNA_SYNTHETIC_WEIGHT: Final = 0.001
-_CVNA_SYNTHETIC_RETURN: Final = 0.012
-_CVNA_SPLIT_ADJUSTED_PRICE: Final = 58.00
+_CVNA_RETURN_SEED: Final = 0.012
 _FIXED_INCOME_SLEEVE: Final = (
-    (_CASH_IDENTIFIER, "US Dollar Cash", "Cash", 0.40, 0.00025, 1.0, 0.0),
-    ("912797AA1", "13 Week Treasury Bill", "Treasury Bills", 0.25, 0.0038, 99.35, 0.0),
-    ("91282Y2Y1", "2 Year Treasury Note", "Treasury Notes", 0.15, 0.0032, 100.15, 65.0),
-    ("91282Y5Y1", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027, 98.80, 95.0),
-    ("36225MBS1", "Agency MBS Pool", "Mortgage-Backed Securities", 0.05, 0.0035, 97.25, 120.0),
+    (_CASH_IDENTIFIER, "US Dollar Cash", "Cash", 0.40, 0.00025),
+    ("912797AA1", "13 Week Treasury Bill", "Treasury Bills", 0.25, 0.0038),
+    ("91282Y2Y1", "2 Year Treasury Note", "Treasury Notes", 0.15, 0.0032),
+    ("91282Y5Y1", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027),
+    ("36225MBS1", "Agency MBS Pool", "Mortgage-Backed Securities", 0.05, 0.0035),
 )
 _JPM_DIVIDEND_IDENTIFIER: Final = "JPM"
 _JPM_DIVIDEND_EX_DATE: Final = "2026-04-06"
@@ -75,6 +86,13 @@ _INTEREST_NOTE_DATE: Final = "2026-05-15"
 _INTEREST_NOTE_PERIOD_END: Final = "2026-05-29"
 _INTEREST_NOTE_PRIOR_AMOUNT: Final = 1_200.0
 _INTEREST_NOTE_CURRENT_AMOUNT: Final = 1_280.0
+_MARKET_PROXY_BY_IDENTIFIER: Final = {
+    _CASH_IDENTIFIER: "BIL",
+    "912797AA1": "BIL",
+    "91282Y2Y1": "SHY",
+    "91282Y5Y1": "IEI",
+    "36225MBS1": "MBB",
+}
 
 
 def main() -> None:
@@ -93,9 +111,29 @@ def main() -> None:
         period_count=args.period_count,
         cash_sleeve_floor=args.cash_sleeve_floor,
     )
-    snapshot_a = build_axys_exports(performance)
+    market_history = ensure_market_history(
+        args.market_history_path,
+        _market_symbols(performance),
+        start=performance["from_date"].min(),
+        end=performance["thru_date"].max(),
+        refresh=args.refresh_market_history,
+    )
+    source_reconciliation = reconcile_analytics_returns(performance, market_history)
+    performance = with_market_returns(performance, market_history)
+    total_return_reconciliation = reconcile_total_returns(
+        market_history,
+        sorted(performance["identifier"].unique()),
+        performance[["from_date", "thru_date"]],
+    )
+    snapshot_a = build_axys_exports(performance, market_history)
     snapshot_b = build_restatement_snapshot(snapshot_a)
     output_paths = write_outputs(performance, snapshot_a, snapshot_b, args.output_directory)
+    source_reconciliation_path = args.output_directory / "analytics_return_reconciliation.csv"
+    total_return_path = args.output_directory / "total_return_reconciliation.csv"
+    source_reconciliation.to_csv(source_reconciliation_path, index=False)
+    total_return_reconciliation.to_csv(total_return_path, index=False)
+    output_paths["analytics_return_reconciliation"] = str(source_reconciliation_path)
+    output_paths["total_return_reconciliation"] = str(total_return_path)
     summary = summarize_outputs(performance, output_paths)
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2),
@@ -168,7 +206,7 @@ def derive_operational_performance(
     recent = _with_synthetic_cvna_rows(recent, periods)
     selected_equities = select_equity_identifiers(recent, equity_count)
     rows: list[dict[str, object]] = []
-    for portfolio_code, portfolio_name, equity_return_scale, sleeve_floor in _PORTFOLIOS:
+    for portfolio_code, portfolio_name, sleeve_floor in _PORTFOLIOS:
         for period in periods.itertuples(index=False):
             period_rows = recent[
                 recent["from_date"].eq(period.from_date)
@@ -194,7 +232,7 @@ def derive_operational_performance(
                         "thru_date": period.thru_date,
                         "identifier": equity["identifier"],
                         "weight": float(equity["weight"]) * equity_scale,
-                        "return": float(equity["return"]) * equity_return_scale,
+                        "return": float(equity["return"]),
                         "name": equity["name"],
                         "asset_class": "Equity",
                         "sector": "Equity",
@@ -206,9 +244,7 @@ def derive_operational_performance(
                 name,
                 asset_class,
                 share,
-                synthetic_return,
-                _,
-                _,
+                return_seed,
             ) in _FIXED_INCOME_SLEEVE:
                 rows.append(
                     {
@@ -218,7 +254,7 @@ def derive_operational_performance(
                         "thru_date": period.thru_date,
                         "identifier": identifier,
                         "weight": sleeve_weight * share,
-                        "return": synthetic_return,
+                        "return": return_seed,
                         "name": name,
                         "asset_class": asset_class,
                         "sector": "Cash",
@@ -231,6 +267,94 @@ def derive_operational_performance(
     return performance.sort_values(
         ["portfolio_code", "from_date", "identifier"],
     ).reset_index(drop=True)
+
+
+def reconcile_analytics_returns(
+    performance: pd.DataFrame,
+    market_history: pd.DataFrame,
+) -> pd.DataFrame:
+    """Validate accepted Analytics equity returns against the shared cache.
+
+    Args:
+        performance: Operational rows before market returns replace synthetic
+            cash, fixed-income, and CVNA values.
+        market_history: Shared normalized yFinance history.
+
+    Returns:
+        One reconciliation row per source equity and period.
+
+    Raises:
+        ValueError: If any source return differs from adjusted prices by more
+            than the hard one-percentage-point tolerance.
+    """
+    source_rows = (
+        performance.loc[
+            performance["source"].eq("Mega-Cap Alpha Portfolio")
+            & ~performance["identifier"].eq(_CVNA_SPLIT_IDENTIFIER)
+        ]
+        .drop_duplicates(["identifier", "from_date", "thru_date"])
+        .sort_values(["identifier", "from_date"])
+    )
+    rows: list[dict[str, object]] = []
+    for _, row in source_rows.iterrows():
+        adjusted_return = adjusted_period_return(
+            market_history,
+            str(row["identifier"]),
+            row["from_date"],
+            row["thru_date"],
+        )
+        difference = abs(float(row["return"]) - adjusted_return)
+        rows.append(
+            {
+                "identifier": row["identifier"],
+                "from_date": row["from_date"].date(),
+                "thru_date": row["thru_date"].date(),
+                "analytics_return": float(row["return"]),
+                "adjusted_price_return": adjusted_return,
+                "absolute_difference": difference,
+                "status": "fail"
+                if difference > RETURN_FAILURE_TOLERANCE
+                else "warning"
+                if difference > RETURN_WARNING_TOLERANCE
+                else "pass",
+            }
+        )
+    reconciliation = pd.DataFrame(rows)
+    failures = reconciliation.loc[reconciliation["status"].eq("fail")]
+    if not failures.empty:
+        evidence = failures.sort_values("absolute_difference", ascending=False).head(10)
+        raise ValueError(
+            "Accepted Analytics returns exceed the shared-cache failure tolerance "
+            f"of {RETURN_FAILURE_TOLERANCE:.2%}: "
+            f"{evidence.to_dict(orient='records')}"
+        )
+    return reconciliation
+
+
+def with_market_returns(
+    performance: pd.DataFrame,
+    market_history: pd.DataFrame,
+) -> pd.DataFrame:
+    """Replace every operational security return with a shared-cache return."""
+    output = performance.copy()
+    output["return"] = output.apply(
+        lambda row: adjusted_period_return(
+            market_history,
+            str(row["identifier"]),
+            row["from_date"],
+            row["thru_date"],
+        ),
+        axis=1,
+    )
+    return output
+
+
+def _market_symbols(performance: pd.DataFrame) -> dict[str, str]:
+    """Return Yahoo symbols or documented proxies for operational identifiers."""
+    return {
+        identifier: _MARKET_PROXY_BY_IDENTIFIER.get(identifier, identifier)
+        for identifier in sorted(performance["identifier"].unique())
+    }
 
 
 def select_equity_identifiers(source: pd.DataFrame, equity_count: int) -> list[str]:
@@ -275,7 +399,7 @@ def _with_synthetic_cvna_rows(recent: pd.DataFrame, periods: pd.DataFrame) -> pd
                 "thru_date": period.thru_date,
                 "identifier": _CVNA_SPLIT_IDENTIFIER,
                 "weight": _CVNA_SYNTHETIC_WEIGHT,
-                "return": _CVNA_SYNTHETIC_RETURN,
+                "return": _CVNA_RETURN_SEED,
                 "name": _CVNA_SPLIT_NAME,
             }
         )
@@ -294,13 +418,16 @@ def _last_replaceable_identifier_index(
     raise ValueError("No replaceable equity identifier is available.")
 
 
-def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Return Axys/APX-style CSV frames from compact performance rows."""
+def build_axys_exports(
+    performance: pd.DataFrame,
+    market_history: pd.DataFrame,
+) -> dict[str, pd.DataFrame]:
+    """Return Axys/APX-style CSV frames using dated cached market prices."""
     secref = _security_master(performance)
     secperf = _security_performance(performance)
     portperf = _portfolio_performance(performance)
-    holdings = _positions(performance)
-    transactions = _transactions(performance)
+    transactions = _transactions(performance, market_history)
+    holdings = build_operational_holdings(performance, market_history, transactions)
     return {
         "secref": secref,
         "secperf": secperf,
@@ -331,7 +458,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     # Fully explained: a holding price correction affects every portfolio that
     # holds AAPL, with portfolio impact flowing through holdings.market_value.
     aapl_market_value_deltas = {}
-    for portfolio_code, _, _, _ in _PORTFOLIOS:
+    for portfolio_code, _, _ in _PORTFOLIOS:
         aapl_market_value_deltas[portfolio_code] = _adjust_holding_price_multiplier(
             snapshot["holdings"],
             portfolio_code,
@@ -670,44 +797,11 @@ def _portfolio_performance(performance: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _positions(performance: pd.DataFrame) -> pd.DataFrame:
-    rows = []
-    for row in performance.itertuples(index=False):
-        if row.identifier == _CASH_IDENTIFIER:
-            continue
-        price = _price_for(row.identifier)
-        market_value = _BASE_MARKET_VALUE * float(row.weight)
-        rows.append(
-            {
-                "PORT": row.portfolio_code,
-                "SEC": row.identifier,
-                "HOLDING_DATE": row.thru_date.date(),
-                "QTY": round(market_value / price, 4),
-                "PRICE": round(price, 4),
-                "MKT_VAL": round(market_value, 2),
-                "COST": round(market_value * 0.985, 2),
-                "ACCRUED": round(_accrued_for(row.identifier, market_value), 2),
-            }
-        )
-    cash_rows = performance[performance["identifier"].eq(_CASH_IDENTIFIER)]
-    for row in cash_rows.itertuples(index=False):
-        market_value = _BASE_MARKET_VALUE * float(row.weight)
-        rows.append(
-            {
-                "PORT": row.portfolio_code,
-                "SEC": _CASH_IDENTIFIER,
-                "HOLDING_DATE": row.thru_date.date(),
-                "QTY": round(market_value, 4),
-                "PRICE": 1.0,
-                "MKT_VAL": round(market_value, 2),
-                "COST": round(market_value, 2),
-                "ACCRUED": 0.0,
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
+def _transactions(
+    performance: pd.DataFrame,
+    market_history: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return controlled operational transactions using date-specific prices."""
     rows = []
     for portfolio_code, group in performance.groupby("portfolio_code", sort=True):
         equities = (
@@ -724,22 +818,23 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
         )
         for period_index, period in enumerate(periods, start=1):
             for index, row in enumerate(equities.itertuples(index=False), start=1):
-                gross_amount = 4_000.0 * index
+                gross_amount = 1_000.0 * index
                 transaction_code = "by" if index == 1 else "dv"
                 transaction_identifier = row.identifier
-                quantity = (
-                    round(gross_amount / _price_for(transaction_identifier), 4)
-                    if transaction_code == "by"
-                    else 0.0
-                )
-                price = (
-                    _price_for(transaction_identifier)
-                    if transaction_code == "by"
-                    else 0.0
-                )
-                commission = 4.95 if transaction_code == "by" else 0.0
                 transaction_date = period.from_date + pd.Timedelta(days=5)
                 settle_date = period.from_date + pd.Timedelta(days=6)
+                transaction_price = price_on_or_before(
+                    market_history,
+                    transaction_identifier,
+                    transaction_date,
+                )
+                quantity = (
+                    round(gross_amount / transaction_price, 4)
+                    if transaction_code == "by"
+                    else 0.0
+                )
+                price = transaction_price if transaction_code == "by" else 0.0
+                commission = 4.95 if transaction_code == "by" else 0.0
                 amount = (
                     _buy_transaction_amount(quantity, price, commission)
                     if transaction_code == "by"
@@ -753,7 +848,11 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                     transaction_identifier = _JPM_DIVIDEND_IDENTIFIER
                     transaction_date = pd.Timestamp(_JPM_DIVIDEND_EX_DATE)
                     settle_date = pd.Timestamp(_JPM_DIVIDEND_PAY_DATE)
-                    amount = _jpm_dividend_amount(group, _JPM_PRIOR_DIVIDEND_PER_SHARE)
+                    amount = _jpm_dividend_amount(
+                        group,
+                        market_history,
+                        _JPM_PRIOR_DIVIDEND_PER_SHARE,
+                    )
                 rows.append(
                     {
                         "TRANSACTION_ID": f"{portfolio_code}{period_index:02d}{index:02d}",
@@ -805,8 +904,20 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         source_destination_type="$cash",
                         source_destination_symbol=_CASH_IDENTIFIER,
                         quantity=10.0,
-                        price=114.0,
-                        amount=1135.05,
+                        price=round(
+                            price_on_or_before(market_history, "MSFT", "2026-01-15"),
+                            4,
+                        ),
+                        amount=round(
+                            10.0
+                            * price_on_or_before(
+                                market_history,
+                                "MSFT",
+                                "2026-01-15",
+                            )
+                            - 4.95,
+                            2,
+                        ),
                         commission=4.95,
                     )
                 )
@@ -904,7 +1015,11 @@ def _security_type_for_transaction(identifier: str) -> str:
     return "csus"
 
 
-def _jpm_dividend_amount(performance: pd.DataFrame, dividend_per_share: float) -> float:
+def _jpm_dividend_amount(
+    performance: pd.DataFrame,
+    market_history: pd.DataFrame,
+    dividend_per_share: float,
+) -> float:
     """Return the JPM dividend amount for the BALANCED dividend demo phase."""
     jpm_rows = performance[
         performance["identifier"].eq(_JPM_DIVIDEND_IDENTIFIER)
@@ -915,7 +1030,11 @@ def _jpm_dividend_amount(performance: pd.DataFrame, dividend_per_share: float) -
     shares = (
         _BASE_MARKET_VALUE
         * float(jpm_rows.iloc[0]["weight"])
-        / _price_for(_JPM_DIVIDEND_IDENTIFIER)
+        / price_on_or_before(
+            market_history,
+            _JPM_DIVIDEND_IDENTIFIER,
+            _JPM_DIVIDEND_PAY_DATE,
+        )
     )
     return round(shares * dividend_per_share, 2)
 
@@ -929,6 +1048,12 @@ def _parse_args() -> argparse.Namespace:
         default=_DEFAULT_SECURITY_REFERENCE_PATH,
     )
     parser.add_argument("--output-directory", type=Path, default=_DEFAULT_OUTPUT_DIRECTORY)
+    parser.add_argument(
+        "--market-history-path",
+        type=Path,
+        default=_DEFAULT_MARKET_HISTORY_PATH,
+    )
+    parser.add_argument("--refresh-market-history", action="store_true")
     parser.add_argument("--equity-count", type=int, default=_EQUITY_COUNT)
     parser.add_argument("--period-count", type=int, default=_PERIOD_COUNT)
     parser.add_argument("--cash-sleeve-floor", type=float, default=_CASH_SLEEVE_FLOOR)
@@ -1401,29 +1526,11 @@ def _sector_code(sector: str) -> str:
     }.get(sector, "OT")
 
 
-def _price_for(identifier: str) -> float:
-    if identifier == _CASH_IDENTIFIER:
-        return 1.0
-    if identifier == _CVNA_SPLIT_IDENTIFIER:
-        return _CVNA_SPLIT_ADJUSTED_PRICE
-    for sleeve_identifier, _, _, _, _, price, _ in _FIXED_INCOME_SLEEVE:
-        if identifier == sleeve_identifier:
-            return price
-    return 100.0 + (sum(ord(char) for char in identifier) % 75)
-
-
 def _holding_security_id(identifier: str) -> str:
     """Return the security identifier used by holdings-style holding exports."""
     if identifier == _CASH_IDENTIFIER:
         return _CASH_IDENTIFIER
     return identifier
-
-
-def _accrued_for(identifier: str, market_value: float) -> float:
-    for sleeve_identifier, _, _, _, _, _, accrued_per_million in _FIXED_INCOME_SLEEVE:
-        if identifier == sleeve_identifier:
-            return market_value / 1_000_000.0 * accrued_per_million
-    return 0.0
 
 
 def _income_component(identifier: str, security_return: float) -> float:

@@ -92,7 +92,10 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             equity_count=6,
             period_count=3,
         )
-        axys = self.generator.build_axys_exports(performance)
+        axys = self.generator.build_axys_exports(
+            performance,
+            _synthetic_market_history(performance),
+        )
 
         self.assertIn("holdings", axys)
         self.assertNotIn("cash", axys)
@@ -110,7 +113,10 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             equity_count=8,
             period_count=4,
         )
-        snapshot_a = self.generator.build_axys_exports(performance)
+        snapshot_a = self.generator.build_axys_exports(
+            performance,
+            _synthetic_market_history(performance),
+        )
         snapshot_b = self.generator.build_restatement_snapshot(snapshot_a)
 
         latest_date = snapshot_a["portperf"]["THRU_DATE"].max()
@@ -208,6 +214,8 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             snapshot_b["transactions"]["PORT"].eq("ALPHA")
             & snapshot_b["transactions"]["TRAN"].eq("by")
         )
+        alpha_transactions_a = snapshot_a["transactions"].set_index("TRANSACTION_ID")
+        alpha_transactions_b = snapshot_b["transactions"].set_index("TRANSACTION_ID")
 
         self.assertGreater(aapl_price_b, aapl_price_a)
         self.assertGreater(tnote_accrued_b, tnote_accrued_a)
@@ -219,12 +227,17 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             float(snapshot_a["transactions"].loc[alpha_buy_a, "QTY"].max()),
         )
         self.assertGreater(
-            float(snapshot_b["transactions"].loc[alpha_buy_b, "PRICE"].max()),
-            float(snapshot_a["transactions"].loc[alpha_buy_a, "PRICE"].max()),
+            float((alpha_transactions_b["PRICE"] - alpha_transactions_a["PRICE"]).max()),
+            0.0,
         )
         self.assertGreater(
-            float(snapshot_b["transactions"].loc[alpha_buy_b, "COMMISSION"].max()),
-            float(snapshot_a["transactions"].loc[alpha_buy_a, "COMMISSION"].max()),
+            float(
+                (
+                    alpha_transactions_b["COMMISSION"]
+                    - alpha_transactions_a["COMMISSION"]
+                ).max()
+            ),
+            0.0,
         )
         self.assertGreater(
             snapshot_b["portperf"]["PORT_RETURN"].iloc[-1],
@@ -239,7 +252,10 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             equity_count=5,
             period_count=3,
         )
-        snapshot_a = self.generator.build_axys_exports(performance)
+        snapshot_a = self.generator.build_axys_exports(
+            performance,
+            _synthetic_market_history(performance),
+        )
         snapshot_b = self.generator.build_restatement_snapshot(snapshot_a)
 
         with tempfile.TemporaryDirectory() as temp_directory:
@@ -267,7 +283,10 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             equity_count=8,
             period_count=4,
         )
-        snapshot_a = self.generator.build_axys_exports(performance)
+        snapshot_a = self.generator.build_axys_exports(
+            performance,
+            _synthetic_market_history(performance),
+        )
         snapshot_b = self.generator.build_restatement_snapshot(snapshot_a)
 
         with tempfile.TemporaryDirectory() as temp_directory:
@@ -302,6 +321,36 @@ def _value(frame: pd.DataFrame, mask: pd.Series, column: str) -> float:
     if values.empty:
         raise AssertionError(f"Missing expected value for {column}.")
     return float(values.iloc[0])
+
+
+def _synthetic_market_history(performance: pd.DataFrame) -> pd.DataFrame:
+    """Return deterministic varying daily prices for generator unit tests."""
+    start = performance["from_date"].min() - pd.Timedelta(days=10)
+    end = performance["thru_date"].max()
+    dates = pd.date_range(start, end, freq="B")
+    rows: list[dict[str, object]] = []
+    for identifier in sorted(performance["identifier"].unique()):
+        base_price = 1.0 if identifier == "CASHUSD" else 50.0 + len(identifier)
+        for date_index, date in enumerate(dates):
+            price = (
+                1.0
+                if identifier == "CASHUSD"
+                else base_price * (1.0 + date_index * 0.0005)
+            )
+            rows.append(
+                {
+                    "date": date,
+                    "identifier": identifier,
+                    "yahoo_symbol": identifier,
+                    "raw_close": price,
+                    "unadjusted_close": price,
+                    "adjusted_close": price,
+                    "dividend": 0.0,
+                    "split_factor": 0.0,
+                    "repaired": False,
+                }
+            )
+    return pd.DataFrame(rows)
 
 
 if __name__ == "__main__":

@@ -40,10 +40,30 @@ those details as verified Axys/APX facts.
 | Demo file | Demo role | Contract boundary |
 | --- | --- | --- |
 | `transactions.csv` | Normalized transaction extract used to explain changed cash flows, security-level flows, income, fees, and review-only transaction evidence. | Transaction codes should use Axys/APX-style observed codes when the reference material supports them. YAML remains the explicit interpretation contract. |
-| `holdings.csv` | Normalized point-in-time holdings and valuation extract. | Native Axys/APX holding storage is Unknown. This file represents the demo value source used for beginning and ending holdings. |
+| `holdings.csv` | Normalized point-in-time holdings and valuation extract. | Native Axys/APX holding storage is Unknown. Public equities use dated yFinance market observations; synthetic fixed-income identifiers use disclosed BIL/SHY/IEI/MBB proxies. Quantities roll from opening positions through trades and explicit split scenarios. |
 | `secref.csv` | Optional snapshot-specific security reference used only to qualify Data Issues populations. | Exact source case is preserved. Security-master fields do not enter performance calculations, and local field names, code dictionaries, and historical classification behavior must be validated. |
 | `portperf.csv` | Reported portfolio-period performance target used for comparison. | `portperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 | `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
+
+## Market-Data Provenance
+
+Analytics and Audit use one maintainer cache at
+`_demo_output/demo_market_data/yfinance_market_history.csv`. It is refreshed
+separately from deterministic demo construction and is not an Axys/APX source
+file. The normalized cache preserves:
+
+- Yahoo's dividend-unadjusted, split-normalized source `Close`;
+- reconstructed contemporaneous closes used for holdings and trades;
+- adjusted closes used for total returns;
+- reported cash dividends and stock splits; and
+- Yahoo symbol and repair provenance.
+
+Cash holdings remain at 1.00. The demo's CUSIP-like fixed-income rows are still
+synthetic instruments; their dated price/return behavior comes from BIL (T-bill),
+SHY (short Treasury), IEI (intermediate Treasury), and MBB (agency MBS) proxies.
+Controlled Snapshot A errors, including the CVNA split-processing story and
+nonpositive-price Data Issues examples, remain deliberately synthetic and are
+identified as review scenarios rather than market facts.
 
 ## Extraction Requirement Labels
 

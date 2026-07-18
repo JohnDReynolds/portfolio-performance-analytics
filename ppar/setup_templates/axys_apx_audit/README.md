@@ -67,6 +67,15 @@ EUR dividend and a changed GBP/USD rate reach Explained Difference separately.
 The FX estimate is a ppar screening formula using an explicit unchanged local
 exposure; it is not a claim about proprietary Axys/APX calculation mechanics.
 
+The packaged fixture uses dated public-market observations instead of constant
+equity marks. Analytics and Audit are generated from the same maintainer
+yFinance cache: adjusted closes support total returns, reconstructed
+contemporaneous closes support holdings and trades, and reported dividends and
+splits provide independent reconciliation evidence. Cash remains at 1.00. The
+CUSIP-like fixed-income examples are synthetic and use disclosed BIL, SHY, IEI,
+and MBB market proxies. Intentional Snapshot A errors remain clearly bounded
+Audit/Data Issues scenarios rather than claims about the public-market source.
+
 Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
 Audit validation checks minimum required datasets, required normalized columns,
 complete YAML treatment for changed source-data fields, and the strict Data Issues check

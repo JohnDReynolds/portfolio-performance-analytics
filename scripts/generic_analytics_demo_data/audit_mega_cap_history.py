@@ -131,9 +131,10 @@ def _price_coverage(holdings: pd.DataFrame, years: int) -> dict[str, object]:
     tickers = sorted(scoped["identifier"].unique())
     prices = generator._load_prices(
         tickers,
-        CACHE_DIRECTORY,
+        generator.DEFAULT_MARKET_HISTORY_PATH,
         refresh=False,
-        years=years,
+        start=first,
+        end=last,
     )
     available = sorted(set(tickers).intersection(prices.columns))
     missing = sorted(set(tickers) - set(available))

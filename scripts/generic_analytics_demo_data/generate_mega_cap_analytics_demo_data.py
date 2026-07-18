@@ -13,14 +13,14 @@ import pandas as pd
 from pandas.tseries.offsets import BMonthEnd
 import requests
 
-try:
-    import yfinance as yf
-except ImportError as error:  # pragma: no cover - local generation convenience.
-    raise SystemExit("yfinance is required in the local .venv for this probe.") from error
+from ppar._demo_market_data import ensure_market_history
 
 
 WORKSPACE: Final = Path("_demo_output") / "generic_analytics_data_generation"
 DEFAULT_CACHE_DIRECTORY: Final = WORKSPACE / "cache" / "oef"
+DEFAULT_MARKET_HISTORY_PATH: Final = (
+    Path("_demo_output") / "demo_market_data" / "yfinance_market_history.csv"
+)
 DEFAULT_OUTPUT_DIRECTORY: Final = WORKSPACE / "generated_oef_files"
 OEF_PRODUCT_DATA_URL: Final = (
     "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
@@ -83,9 +83,10 @@ def main() -> None:
 
     prices = _load_prices(
         sorted(holdings["identifier"].unique()),
-        args.cache_directory,
+        args.market_history_path,
         args.refresh,
-        args.years,
+        requested_dates.min(),
+        requested_dates.max(),
     )
     benchmark, portfolio, selected_tilt = _build_performance_rows(
         holdings,
@@ -109,6 +110,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--sleep-seconds", type=float, default=0.2)
     parser.add_argument("--alpha-tilt", type=float, default=0.8)
     parser.add_argument("--cache-directory", type=Path, default=DEFAULT_CACHE_DIRECTORY)
+    parser.add_argument(
+        "--market-history-path",
+        type=Path,
+        default=DEFAULT_MARKET_HISTORY_PATH,
+    )
     parser.add_argument("--output-directory", type=Path, default=DEFAULT_OUTPUT_DIRECTORY)
     return parser.parse_args()
 
@@ -357,39 +363,33 @@ def _normalize_ticker(value: object) -> str:
 
 def _load_prices(
     tickers: list[str],
-    cache_directory: Path,
+    market_history_path: Path,
     refresh: bool,
-    years: int,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
 ) -> pd.DataFrame:
-    """Load monthly adjusted prices for all holdings tickers."""
-    cache_path = cache_directory / f"oef_monthly_prices_{years}y.csv"
-    if cache_path.exists() and not refresh:
-        cached = pd.read_csv(cache_path, index_col=0, parse_dates=True)
-        if set(tickers).issubset(cached.columns):
-            return cached
-        missing = sorted(set(tickers) - set(cached.columns))
-        print(
-            "Cached OEF prices are missing requested tickers; refreshing: "
-            + ", ".join(missing[:10])
-            + ("..." if len(missing) > 10 else "")
-        )
-    yahoo_tickers = [
-        CASH_RETURN_PROXY if ticker == CASH_IDENTIFIER else "BRK-B" if ticker == "BRKB" else ticker
+    """Load monthly adjusted prices from the shared normalized market cache."""
+    identifier_to_symbol = {
+        ticker: CASH_RETURN_PROXY
+        if ticker == CASH_IDENTIFIER
+        else "BRK-B"
+        if ticker == "BRKB"
+        else ticker
         for ticker in tickers
-    ]
-    raw = yf.download(
-        tickers=yahoo_tickers,
-        period=f"{years + 1}y",
-        interval="1d",
-        auto_adjust=True,
-        progress=False,
-        threads=True,
+    }
+    history = ensure_market_history(
+        market_history_path,
+        identifier_to_symbol,
+        start=start,
+        end=end,
+        refresh=refresh,
     )
-    close = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw[["Close"]]
-    close = close.rename(columns={"BRK-B": "BRKB", CASH_RETURN_PROXY: CASH_IDENTIFIER})
-    monthly = close.resample("BME").last().dropna(how="all")
-    monthly.to_csv(cache_path)
-    return monthly
+    adjusted = history.pivot(
+        index="date",
+        columns="identifier",
+        values="adjusted_close",
+    )
+    return adjusted.resample("BME").last().dropna(how="all")
 
 
 def _build_performance_rows(

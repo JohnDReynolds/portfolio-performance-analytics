@@ -3,6 +3,7 @@
 # Python Imports
 import ast
 import csv
+from datetime import date
 from fnmatch import fnmatch
 import importlib.util
 from importlib.resources import files
@@ -1708,6 +1709,53 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("912797AA1", holding_ids)
         self.assertIn("91282Y2Y1", holding_ids)
         self.assertIn("91282Y5Y1", holding_ids)
+
+    def test_axys_demo_equities_do_not_use_long_constant_price_runs(self) -> None:
+        """Packaged equity prices vary across holding dates at least 28 days apart."""
+        axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
+
+        for snapshot_name in ("snapshot_a", "snapshot_b"):
+            snapshot = Path(str(axys_demo_data / snapshot_name))
+            with (snapshot / "secref.csv").open(
+                encoding=util.ENCODING,
+                newline="",
+            ) as file:
+                equity_ids = {
+                    row["SECURITY_ID"]
+                    for row in csv.DictReader(file)
+                    if row["ASSET_CLASS_CODE"] == "EQ"
+                }
+            with (snapshot / "holdings.csv").open(
+                encoding=util.ENCODING,
+                newline="",
+            ) as file:
+                holding_rows = list(csv.DictReader(file))
+
+            prices_by_holding: dict[tuple[str, str], list[tuple[date, float]]] = {}
+            for row in holding_rows:
+                if row["SEC"] not in equity_ids:
+                    continue
+                key = (row["PORT"], row["SEC"])
+                prices_by_holding.setdefault(key, []).append(
+                    (date.fromisoformat(row["HOLDING_DATE"]), float(row["PRICE"]))
+                )
+            failures: list[tuple[str, str, date, date]] = []
+            for (portfolio, security), observations in prices_by_holding.items():
+                ordered_observations = sorted(observations)
+                for previous, current in zip(
+                    ordered_observations,
+                    ordered_observations[1:],
+                    strict=False,
+                ):
+                    if (current[0] - previous[0]).days < 28:
+                        continue
+                    if current[1] == previous[1]:
+                        failures.append(
+                            (portfolio, security, previous[0], current[0])
+                        )
+
+            with self.subTest(snapshot=snapshot_name):
+                self.assertEqual(failures, [])
 
     def test_axys_demo_changed_transactions_have_matching_holdings(self) -> None:
         """Material transaction demo changes have matching month-end holdings evidence."""

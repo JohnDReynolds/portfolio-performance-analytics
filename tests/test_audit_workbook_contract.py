@@ -690,7 +690,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 }
                 self.assertEqual(
                     income_tnote_buy_accrued_guidance,
-                    {"91282Y5Y1 ending holdings.accrued increased by 0.05."},
+                    {"91282Y5Y1 ending holdings.accrued increased by 0.06."},
                 )
                 self.assertEqual(
                     income_tnote_sell_accrued_guidance,
@@ -698,7 +698,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         (
                             "Inherited beginning-value difference from the preceding "
                             "period: 91282Y5Y1 beginning holdings.accrued increased by "
-                            "0.05. This value is retained because it is an input to "
+                            "0.06. This value is retained because it is an input to "
                             "Modified Dietz."
                         ),
                         "91282Y5Y1 ending holdings.accrued increased by 0.02.",
@@ -814,6 +814,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         "SAP.DE",
                         "SHEL.L",
                         "CASHEUR",
+                        "36225MBS1",
                     },
                 )
                 self.assertEqual(
@@ -927,7 +928,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(tnote_row[7], "Fully Explained")
                 self.assertAlmostEqual(
                     _numeric_value(tnote_row[4]),
-                    0.005375,
+                    0.005418,
                     places=6,
                 )
                 self.assertAlmostEqual(

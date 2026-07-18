@@ -3107,7 +3107,7 @@ def _rebuild_security_performance(
     rebuilt = _align_security_begin_market_values(rebuilt, portperf)
     period_begin_market_value = rebuilt.groupby(_PERIOD_KEY)["BEGIN_MV"].transform("sum")
     rebuilt["BEGIN_WEIGHT"] = (rebuilt["BEGIN_MV"] / period_begin_market_value).round(10)
-    rebuilt["CONTRIBUTION"] = (rebuilt["BEGIN_WEIGHT"] * rebuilt["SEC_RETURN"]).round(10)
+    rebuilt["CONTRIBUTION"] = (rebuilt["BEGIN_WEIGHT"] * rebuilt["SEC_RETURN"]).round(12)
     if snapshot_name != _BASE_SNAPSHOT_DIRECTORY:
         rebuilt = _with_intentional_security_return_residuals(rebuilt)
     return rebuilt[secperf.columns]
@@ -3275,7 +3275,7 @@ def _with_intentional_security_return_residuals(secperf: pd.DataFrame) -> pd.Dat
         adjusted.loc[mask, "CONTRIBUTION"] = (
             adjusted.loc[mask, "BEGIN_WEIGHT"].astype(float)
             * adjusted.loc[mask, "SEC_RETURN"].astype(float)
-        ).round(10)
+        ).round(12)
     return adjusted
 
 

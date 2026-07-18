@@ -1624,6 +1624,14 @@ class TestAuditDemoData(unittest.TestCase):
             holding_date="2026-05-29",
             deltas={"QTY": -220.97, "MKT_VAL": -220.97, "COST": -220.97},
         )
+        income_bond = base_holdings.loc[
+            base_holdings["PORT"].eq("INCOME")
+            & base_holdings["SEC"].eq("91282Y5Y1")
+            & base_holdings["HOLDING_DATE"].eq("2026-02-27")
+        ].iloc[0]
+        income_bond_accrued_rate = float(income_bond["ACCRUED"]) / float(
+            income_bond["MKT_VAL"]
+        )
         self._assert_adjustment(
             by_scenario["INCOME0303 by transaction changes ending holding."],
             portfolio="INCOME",
@@ -1631,9 +1639,9 @@ class TestAuditDemoData(unittest.TestCase):
             holding_date="2026-02-27",
             deltas={
                 "QTY": 5.0,
-                "MKT_VAL": 494.0,
-                "COST": 494.0,
-                "ACCRUED": 5.0 * 4.56 / 485.83,
+                "MKT_VAL": 603.6,
+                "COST": 603.6,
+                "ACCRUED": 603.6 * income_bond_accrued_rate,
             },
         )
         self._assert_adjustment(
@@ -1641,7 +1649,7 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="INCOME",
             security="CASHUSD",
             holding_date="2026-02-27",
-            deltas={"QTY": -494.0, "MKT_VAL": -494.0, "COST": -494.0},
+            deltas={"QTY": -598.2, "MKT_VAL": -598.2, "COST": -598.2},
         )
         self._assert_adjustment(
             by_scenario["INCOME0304 pa transaction changes cash balance."],
@@ -1657,9 +1665,9 @@ class TestAuditDemoData(unittest.TestCase):
             holding_date="2026-02-27",
             deltas={
                 "QTY": -3.0,
-                "MKT_VAL": -296.4,
-                "COST": -296.3999753000021,
-                "ACCRUED": -3.0 * 4.56 / 485.83,
+                "MKT_VAL": -362.16,
+                "COST": -362.16001103987406,
+                "ACCRUED": -362.16 * income_bond_accrued_rate,
             },
         )
         self._assert_adjustment(
@@ -1667,7 +1675,7 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="INCOME",
             security="CASHUSD",
             holding_date="2026-02-27",
-            deltas={"QTY": 296.4, "MKT_VAL": 296.4, "COST": 296.4},
+            deltas={"QTY": 360.06, "MKT_VAL": 360.06, "COST": 360.06},
         )
         self._assert_adjustment(
             by_scenario["INCOME0306 sa transaction changes cash balance."],
@@ -1681,14 +1689,14 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="ALPHA",
             security="AAPL",
             holding_date="2026-03-31",
-            deltas={"QTY": 1.1372, "MKT_VAL": 183.0892, "COST": 183.0892},
+            deltas={"QTY": 1.1372, "MKT_VAL": 288.609988, "COST": 288.609988},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0401 by transaction changes cash balance."],
             portfolio="ALPHA",
             security="CASHUSD",
             holding_date="2026-03-31",
-            deltas={"QTY": -196.98, "MKT_VAL": -196.98, "COST": -196.98},
+            deltas={"QTY": -308.47, "MKT_VAL": -308.47, "COST": -308.47},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0503 dv transaction changes cash balance."],
@@ -1702,14 +1710,14 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="BALANCED",
             security="MSFT",
             holding_date="2026-01-30",
-            deltas={"QTY": -2.0, "MKT_VAL": -228.0, "COST": -227.9999989303458},
+            deltas={"QTY": -2.0, "MKT_VAL": -860.58, "COST": -860.5799752599389},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0203 sl transaction changes cash balance."],
             portfolio="BALANCED",
             security="CASHUSD",
             holding_date="2026-01-30",
-            deltas={"QTY": 226.0, "MKT_VAL": 226.0, "COST": 226.0},
+            deltas={"QTY": 911.32, "MKT_VAL": 911.32, "COST": 911.32},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0403 li transaction changes cash balance."],

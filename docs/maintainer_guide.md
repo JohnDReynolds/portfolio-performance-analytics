@@ -123,6 +123,7 @@ lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 | File | Owns |
 | --- | --- |
 | `scripts/operational_demo_data/derive_operational_demo_data.py` | Base portfolios, selected securities, baseline holdings, baseline transactions, and synthetic Axys/APX-style performance rows. |
+| `scripts/operational_demo_data/refresh_audit_market_baseline.py` | Shared-cache market marks, transaction-led Snapshot A quantity/cash roll-forwards, and market-sensitive scenario calibration. |
 | `scripts/operational_demo_data/audit_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
 | `scripts/operational_demo_data/audit_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and maintainer-only cost context. |
 | `scripts/operational_demo_data/audit_scenario_calendar.csv` | Operational map from physical scenario rows to reviewer story periods. |
@@ -138,10 +139,24 @@ then run:
 
 ```bash
 ./.venv/bin/python scripts/operational_demo_data/derive_operational_demo_data.py
+./.venv/bin/python scripts/operational_demo_data/refresh_audit_market_baseline.py
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py --write
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
 ./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
 ```
+
+The market-baseline command is a no-write preview by default. Use `--write`
+only when intentionally promoting new dated prices, trades, and roll-forwards;
+use `--refresh-market-history` only when the shared local CSV should contact
+yFinance and replace its cached observations. Normal repeat construction reads
+the cache without network access.
+
+The shared return gate compares close-plus-dividend/split calculations with
+adjusted-close returns. Differences above 0.10 percentage points are recorded
+as warnings; differences above 1.00 percentage point stop generation with the
+security, period, source values, and calculated returns. Split records also
+drive direct quantity roll-forward checks rather than relying on the return
+tolerance alone.
 
 Use `--write` only when you intend to rewrite tracked packaged CSV assets.
 Otherwise, run the rebuild script without `--write` to audit drift.

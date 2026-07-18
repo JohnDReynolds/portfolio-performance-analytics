@@ -26,6 +26,14 @@ a public proxy for a U.S. mega-cap benchmark. The user-facing name is
 aggregated into `CASHUSD`, mapped to the `Cash` sector, and use BIL adjusted
 monthly returns as a cash-return proxy.
 
+The refresh helper and the Audit demo generator use the same normalized
+yFinance cache at `_demo_output/demo_market_data/yfinance_market_history.csv`.
+The network-dependent refresh records daily source `Close`, reconstructed
+contemporaneous close, adjusted close, dividends, splits, Yahoo repair flags,
+and identifier-to-symbol provenance. Analytics derives monthly returns from
+adjusted close. Audit uses the same observations for returns and dated
+holdings/trades, so the two demos do not maintain competing price histories.
+
 The README story and images are generated from these packaged files, not from
 the temporary data-generation workspace. The packaged data remains monthly, but
 the README images are rendered quarterly to keep date-heavy charts readable.
@@ -54,6 +62,8 @@ Notes:
 - The generator lives under `scripts/generic_analytics_demo_data/` because it is a
   maintained refresh/provenance tool, not a package runtime API.
 - It may require network access, `requests`, and local `yfinance`.
+- A complete shared cache is reused without a network call. Pass `--refresh`
+  only when deliberately refreshing both source holdings and market history.
 - It writes generated files under
   `_demo_output/generic_analytics_data_generation/generated_oef_files/`.
 - Keep monthly continuity non-negotiable. If a market holiday falls on month
@@ -199,10 +209,12 @@ Before committing, check:
 
 ## Refresh Helper Location
 
-Reusable refresh helpers live in `scripts/generic_analytics_demo_data/`. Generated
-candidate CSVs, downloaded holdings, price caches, and audit output stay under
-`_demo_output/generic_analytics_data_generation/` and should not be packaged as demo
-inputs until explicitly promoted.
+Reusable refresh helpers live in `scripts/generic_analytics_demo_data/`.
+Generated candidates and downloaded holdings stay under
+`_demo_output/generic_analytics_data_generation/`; the cross-product market
+cache stays under `_demo_output/demo_market_data/`. Neither location is
+packaged as a demo input until a reviewed generator explicitly promotes derived
+fixture values.
 
 Avoid adding new package runtime dependencies solely for data refresh unless
 that is an explicit product decision.
