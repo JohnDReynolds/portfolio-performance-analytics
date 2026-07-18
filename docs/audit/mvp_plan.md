@@ -4,9 +4,9 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Slice 1 complete; Slice 2 usability refinement underway |
-| Version | 0.7 |
-| Date | 2026-07-17 |
+| Status | Active MVP implementation plan — Slices 1–2 complete; Slice 3 active |
+| Version | 0.9 |
+| Date | 2026-07-18 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
 | Scope | Four founder-defined reporting, Data Issues, codification, and Axys/APX transaction-semantics capabilities required before MVP |
@@ -50,7 +50,7 @@ The current ordinary workbook order is exactly:
 The equivalent HTML report begins with the same `Executive Summary`. Both
 formats and the canonical CSV derive from the same bounded summary table and
 are covered by bundle parity, determinism, and missing/stale-content checks.
-The summary adds presentation and navigation only; the three analytical sheets
+The summary adds presentation only; the three analytical sheets
 retain their prior relative order, schemas, and financial semantics.
 
 ## 2.2 Current Data Issues vocabulary
@@ -120,12 +120,10 @@ implementation order is:
 
 1. **Vocabulary and YAML contract foundation — complete.** Slice 1 implemented
    the behavior-preserving codification and strict configuration contract.
-2. **Executive Summary — usability refinement underway.** The shared, bounded
-   entrypoint is implemented, but founder review rejected its first presentation
-   as too jargon-heavy to satisfy the 30-second executive-summary goal.
-3. **Additional Data Issues checks — after Slice 2 acceptance** — add an approved
-   issue type one at a time
-   through the new registry and YAML contract.
+2. **Executive Summary — complete.** The founder accepted the revised two-table
+   quantity presentation after workbook review.
+3. **Additional Data Issues checks — active** — add an approved issue type one
+   at a time through the new registry and YAML contract.
 4. **Axys/APX transaction semantics and demo coverage** — implement all Section
    7 requirements, keeping posted transactions, staging controls, and audit
    evidence distinct.
@@ -207,11 +205,10 @@ Approved MVP control:
 - exclude known false-positive populations; and
 - set type-specific tolerances.
 
-Executive Summary display limits should initially be fixed, version-controlled
-product behavior. Per-client priority labels, ordering policy, and similar
-presentation controls are deferred until usage evidence demonstrates that YAML
-control is valuable. This avoids speculating about how different users will
-process the information.
+Executive Summary display behavior should remain fixed and version-controlled.
+Per-client priority labels, ordering policy, and similar presentation controls
+are deferred until usage evidence demonstrates that YAML control is valuable.
+This avoids speculating about how different users will process the information.
 
 User YAML must not:
 
@@ -243,81 +240,68 @@ Add `Executive Summary` as:
 - the first ordinary HTML report section; and
 - a shared canonical review artifact covered by parity and determinism checks.
 
-It is a presentation and navigation layer over existing validated results. It
+It is a presentation layer over existing validated results. It
 must not introduce a second financial calculation.
 
-The founder approved this Section 5 boundary for Slice 2. The initial priority
-list is fixed, version-controlled product behavior capped at ten review units;
-it is not configurable through YAML.
+Founder workbook review replaced the initial narrative/priority-list design
+with two quantity-only tables. The Executive Summary has no YAML display
+configuration.
 
 ## 5.2 Minimum content
 
-The first MVP version should show:
+The first table is `Performance Differences`. Its rows are `Portfolios` and
+`Portfolio Periods` for a portfolio report, or `Portfolios` and
+`Security Periods` for a security report. Its columns are:
 
-### Scope and interpretation
+- `Total Quantity`;
+- `No Performance Differences`;
+- `Fully Explained Differences`;
+- `Partly Explained Differences`;
+- `Unexplained Differences`; and
+- `Setup Incomplete`.
 
-- portfolio or security report level;
-- evaluated entity/period scope available from the run;
-- snapshot labels/context available from the configuration;
-- Modified Dietz review basis; and
-- prominent limitation that PPAR explains supported changes but does not
-  certify official performance correctness.
+Total quantities use the union of primary performance keys evaluated in
+Snapshot A and Snapshot B. Period rows use the existing review status directly;
+unchanged evaluated units use `No Performance Differences`. Each portfolio is
+counted once using the deterministic worst-status precedence:
 
-### Performance-change overview
+`Setup Incomplete > Unexplained > Partly Explained > Fully Explained > No Performance Differences`.
 
-- count of changed review units;
-- counts of Fully Explained, Partly Explained, and Unexplained review units;
-- count of residual-withheld or method-limited units where applicable; and
-- a list of at most ten priority changed review units with exact performance,
-  explained, and unexplained values.
+Every row must reconcile exactly: the five status quantities sum to total.
 
-### Cause overview
-
-- stable cause areas present in the report;
-- count of affected review units by cause area; and
-- evidence links or review keys to `Performance Difference Causes`.
-
-Do not total or average return impacts across incompatible periods, portfolios,
-securities, currencies, or return containers.
-
-### Data Issues overview
-
-- total affected rows;
-- affected-row counts by stable issue type and category;
-- mandatory continuity attention kept distinct; and
-- evidence links or review keys to `Data Issues`.
-
-Counts must be labeled as rows/entities where applicable, not unvalidated
-“incident” counts.
-
-### Next review step
-
-- deterministic cues for Partly Explained/Unexplained results;
-- deterministic cues for mandatory continuity and other high-priority issues;
-- direct guidance to the existing detailed sheets and complete source evidence.
+The second table is `Data Issues`. It contains stable issue type and quantity
+only. Zero-count issue types are omitted. Rows sort by descending quantity with
+issue type ascending as the deterministic tie-breaker.
 
 ## 5.3 Presentation requirements
 
-- Use progressive disclosure: concise first view, complete evidence retained.
-- Preserve separate performance and Data Issues attention statements.
+- Render exactly two visibly separate quantity sections.
+- Do not include links, narrative explanations, questions, recommendations,
+  cause summaries, priority lists, snapshot context, or method prose.
+- Stack each XLSX Performance Differences header word on its own line, leave
+  the row-label header blank, and size the quantity columns to the widest word.
+- Give both tables centered 14-point title bands matching their header color,
+  a bottom divider, compact content-based row heights, and three blank rows of
+  visual separation.
+- Bottom-align all XLSX quantity values.
 - Do not introduce a composite score, grade, confidence score, or “passed” badge.
 - Do not introduce an explanation-completeness percentage.
 - Use the same underlying summary model for XLSX and HTML.
-- Generate an honest empty state when there are no performance differences,
-  Data Issues rows, or both.
+- Keep an empty Data Issues table when no issue rows exist.
 - Keep current detailed sheet names and semantics unchanged.
-- Ensure evidence references remain stable and valid.
 
 ## 5.4 Acceptance
 
 - Ordinary workbook order begins with `Executive Summary`.
 - Ordinary HTML begins with the equivalent section.
 - Current three analytical sheets remain in their existing relative order.
-- Every summary count and displayed value reconciles to canonical detail.
+- Every performance row reconciles to its total and evaluated source scope.
+- Data Issues quantities reconcile to canonical Data Issues detail and sort
+  descending.
 - HTML/XLSX/machine semantics pass parity and deterministic-repeat tests.
 - Bundle validation fails on missing, stale, or inconsistent summary content.
-- Large-result first views are bounded without truncating calculation or
-  retained evidence.
+- Summary size is bounded by two performance rows plus the finite issue-type
+  vocabulary without truncating retained evidence.
 
 ---
 
@@ -534,25 +518,21 @@ Implemented on 2026-07-17 as a behavior-preserving code change:
 - expose enabled-check summary through config validation; and
 - prove current report artifacts remain semantically unchanged.
 
-## Slice 2 — Executive Summary shared model — Usability Refinement
+## Slice 2 — Executive Summary shared model — Complete
 
-Implemented on 2026-07-17 as a bounded presentation and navigation change:
+Implemented as a bounded presentation change:
 
 - added one canonical summary table shared by CSV, XLSX, and HTML;
 - added the first ordinary worksheet and first ordinary HTML section;
-- capped deterministic priority review units at ten and added honest empty states;
-- linked summary destinations to the unchanged detailed analytical sheets;
-- included snapshot context, Modified Dietz basis, limitation, exact priority
-  values, cause-area counts, Data Issues type/category counts, mandatory
-  continuity attention, and deterministic next-review cues; and
+- added mutually exclusive portfolio/period quantities over the evaluated source
+  universe and a separate setup-incomplete bucket;
+- added Data Issues type quantities in descending order;
+- removed narrative, links, priority lists, and internal vocabulary after
+  founder usability review; and
 - extended manifest, bundle validation, parity, determinism, and documentation
   contracts without adding financial calculations, issue types, or YAML controls.
 
-Founder review of the first generated workbook found that the initial flat
-summary table exposed too much internal vocabulary and did not provide a
-plain-English punch line within 30 seconds. Slice 2 remains open while the first
-view is refined around: bottom line, what changed, supported explanation,
-separate data-quality attention, next action, and deferred method context.
+The founder accepted the two-table quantity presentation on 2026-07-18.
 
 ## Slice 3 — First approved additional issue type
 
@@ -591,8 +571,8 @@ separate data-quality attention, next action, and deferred method context.
 
 # 10. Remaining Founder Decisions Before Further Application Changes
 
-The Executive Summary boundary in Section 5, its fixed ten-row initial limit,
-and Workstream D's MVP-blocking status are founder-approved. Workstream D remains
+The Executive Summary boundary and two-table quantity design in Section 5, and
+Workstream D's MVP-blocking status, are founder-approved. Workstream D remains
 sequenced after Slices 2 and 3; blocking MVP completion does not make it a Slice
 2 prerequisite.
 

@@ -17,6 +17,7 @@ import polars as pl
 import ppar.utilities as util
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
+from ppar.audit import executive_summary as _executive_summary
 from ppar.audit.performance_comparison import explain as _pc_explain
 from ppar.audit.performance_comparison import findings as _pc_findings
 from ppar.audit import rendering as _pc_rendering
@@ -143,13 +144,6 @@ PRIMARY_DIFFERENCE_SHEETS = _pc_review_model.PRIMARY_REVIEW_SHEETS
 SHARED_REVIEW_SHEETS = _pc_review_model.SHARED_REVIEW_SHEETS
 EXPECTED_SHEETS = _pc_review_model.EXPECTED_REVIEW_SHEETS
 REQUIRED_HEADERS = {
-    _pc_review_model.EXECUTIVE_SUMMARY_SHEET: (
-        "Topic",
-        "Question",
-        "Answer",
-        "Explanation",
-        "Open Detail",
-    ),
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET: (
         "Portfolio",
         "From Date",
@@ -467,7 +461,13 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
         # pylint: disable=import-outside-toplevel
         from openpyxl import Workbook
         from openpyxl.comments import Comment  # type: ignore[import-untyped]
-        from openpyxl.styles import Alignment, Font, PatternFill  # type: ignore[import-untyped]
+        from openpyxl.styles import (  # type: ignore[import-untyped]
+            Alignment,
+            Border,
+            Font,
+            PatternFill,
+            Side,
+        )
     except ImportError as error:
         raise PpaError(
             "XLSX review workbook export requires dependency 'openpyxl'. "
@@ -493,16 +493,23 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
                 start_color="FFFFE699",
                 end_color="FFFFE699",
             ),
-            "summary_headline_font": Font(bold=True, color="FFFFFF", size=12),
-            "summary_headline_fill": PatternFill(
-                fill_type="solid",
-                start_color="24596A",
-                end_color="24596A",
-            ),
-            "summary_topic_font": Font(bold=True, color="24596A"),
+            "summary_headline_font": Font(bold=True, color="FFFFFF", size=14),
             "summary_answer_font": Font(bold=True),
             "header_alignment": Alignment(wrap_text=True, vertical="top"),
+            "summary_header_alignment": Alignment(
+                horizontal="center",
+                vertical="center",
+                wrap_text=True,
+            ),
+            "summary_title_alignment": Alignment(
+                horizontal="center",
+                vertical="center",
+            ),
+            "summary_title_border": Border(
+                bottom=Side(style="thin", color="FFFFFF"),
+            ),
             "wrapped_alignment": Alignment(wrap_text=True, vertical="top"),
+            "quantity_alignment": Alignment(horizontal="right", vertical="bottom"),
             "comment_class": Comment,
         },
     )
@@ -524,6 +531,9 @@ def _add_workbook_sheet(
 ) -> None:
     """Add one formatted worksheet to a workbook."""
     worksheet = workbook.create_sheet(sheet.sheet_name)
+    if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
+        _add_executive_summary_tables(worksheet, sheet.table, styles)
+        return
     table = sheet.table
     columns = _workbook_sheet_columns(sheet)
     headers = [
@@ -537,8 +547,6 @@ def _add_workbook_sheet(
         table.iter_rows(named=True),
         styles,
     )
-    _add_review_destination_links(worksheet, columns)
-
     worksheet.freeze_panes = "A2"
     max_column_letter = worksheet.cell(row=1, column=len(columns)).column_letter
     worksheet.auto_filter.ref = f"A1:{max_column_letter}{max(worksheet.max_row, 1)}"
@@ -547,59 +555,121 @@ def _add_workbook_sheet(
         cell.fill = styles["header_fill"]
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
-    if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
-        _format_executive_summary_rows(worksheet, columns, styles)
     _format_workbook_columns(worksheet, columns, headers, max_widths)
 
 
-def _add_review_destination_links(worksheet: Any, columns: Sequence[str]) -> None:
-    """Link Executive Summary destinations to their detailed worksheets."""
-    if "review_destination" not in columns:
-        return
-    column_number = columns.index("review_destination") + 1
-    for row_number in range(2, worksheet.max_row + 1):
-        cell = worksheet.cell(row=row_number, column=column_number)
-        if not isinstance(cell.value, str) or not cell.value:
-            continue
-        escaped_sheet_name = cell.value.replace("'", "''")
-        cell.hyperlink = f"#'{escaped_sheet_name}'!A1"
-        cell.style = "Hyperlink"
-
-
-def _format_executive_summary_rows(
+def _add_executive_summary_tables(
     worksheet: Any,
-    columns: Sequence[str],
+    table: pl.DataFrame,
     styles: Mapping[str, Any],
 ) -> None:
-    """Give the Executive Summary a readable first-view hierarchy."""
-    if worksheet.max_row < 2:
-        return
-    for cell in worksheet[2]:
-        cell.fill = styles["summary_headline_fill"]
-        cell.font = styles["summary_headline_font"]
-        cell.alignment = styles["wrapped_alignment"]
-    worksheet.row_dimensions[2].height = 54
+    """Write two visibly separate Executive Summary quantity tables."""
+    payloads = _executive_summary.executive_summary_display_tables(table)
+    performance = payloads[_executive_summary.PERFORMANCE_TABLE_CAPTION]
+    data_issues = payloads[_executive_summary.DATA_ISSUES_TABLE_CAPTION]
+    _write_executive_section(
+        worksheet,
+        title=_executive_summary.PERFORMANCE_SECTION,
+        headers=performance["columns"],
+        rows=performance["rows"],
+        start_row=1,
+        stack_header_words=True,
+        styles=styles,
+    )
+    data_start_row = 8
+    _write_executive_section(
+        worksheet,
+        title=_executive_summary.DATA_ISSUES_SECTION,
+        headers=data_issues["columns"],
+        rows=data_issues["rows"],
+        start_row=data_start_row,
+        stack_header_words=False,
+        styles=styles,
+    )
+    worksheet.freeze_panes = "A3"
 
-    topic_column = _workbook_column_index(columns, "summary_section")
-    answer_column = _workbook_column_index(columns, "summary_result")
-    detail_column = _workbook_column_index(columns, "summary_detail")
-    previous_topic = ""
-    for row_number in range(3, worksheet.max_row + 1):
-        if topic_column is not None:
-            topic_cell = worksheet.cell(row=row_number, column=topic_column)
-            topic = str(topic_cell.value or "")
-            if topic != previous_topic:
-                topic_cell.font = styles["summary_topic_font"]
-            previous_topic = topic
-        if answer_column is not None:
-            worksheet.cell(row=row_number, column=answer_column).font = styles[
-                "summary_answer_font"
-            ]
-        for column_number in (answer_column, detail_column):
-            if column_number is not None:
-                worksheet.cell(row=row_number, column=column_number).alignment = styles[
-                    "wrapped_alignment"
-                ]
+
+def _write_executive_section(
+    worksheet: Any,
+    *,
+    title: str,
+    headers: Sequence[str],
+    rows: Sequence[Sequence[str]],
+    start_row: int,
+    stack_header_words: bool,
+    styles: Mapping[str, Any],
+) -> None:
+    """Write one formatted Executive Summary section."""
+    column_count = len(headers)
+    worksheet.merge_cells(
+        start_row=start_row,
+        start_column=1,
+        end_row=start_row,
+        end_column=column_count,
+    )
+    title_cell = worksheet.cell(row=start_row, column=1, value=title)
+    title_cell.font = styles["summary_headline_font"]
+    title_cell.alignment = styles["summary_title_alignment"]
+    for column_number in range(1, column_count + 1):
+        cell = worksheet.cell(row=start_row, column=column_number)
+        cell.fill = styles["header_fill"]
+        cell.border = styles["summary_title_border"]
+    header_row = start_row + 1
+    displayed_headers = [
+        "\n".join(header.split()) if stack_header_words else header
+        for header in headers
+    ]
+    for column_number, displayed_header in enumerate(displayed_headers, start=1):
+        cell = worksheet.cell(
+            row=header_row,
+            column=column_number,
+            value=displayed_header,
+        )
+        cell.font = styles["header_font"]
+        cell.fill = styles["header_fill"]
+        cell.alignment = styles["summary_header_alignment"]
+    for row_number, values in enumerate(rows, start=header_row + 1):
+        for column_number, value in enumerate(values, start=1):
+            cell_value: object = value
+            if column_number > 1 and value.isdigit():
+                cell_value = int(value)
+            cell = worksheet.cell(
+                row=row_number,
+                column=column_number,
+                value=cell_value,
+            )
+            if column_number == 1:
+                cell.alignment = styles["wrapped_alignment"]
+                cell.font = styles["summary_answer_font"]
+            else:
+                cell.alignment = styles["quantity_alignment"]
+                cell.number_format = "#,##0"
+    for column_number, header in enumerate(headers, start=1):
+        content_width = max(
+            (len(str(row[column_number - 1])) for row in rows),
+            default=0,
+        )
+        requested_width = (
+            max(content_width + 2, _longest_header_word_width(header))
+            if column_number == 1 or not stack_header_words
+            else _longest_header_word_width(header)
+        )
+        column_letter = worksheet.cell(row=header_row, column=column_number).column_letter
+        existing_width = worksheet.column_dimensions[column_letter].width or 0
+        worksheet.column_dimensions[column_letter].width = (
+            requested_width
+            if stack_header_words
+            else max(existing_width, requested_width)
+        )
+    header_line_count = max(
+        (max(len(header.splitlines()), 1) for header in displayed_headers),
+        default=1,
+    )
+    worksheet.row_dimensions[start_row].height = 20
+    worksheet.row_dimensions[header_row].height = max(
+        18,
+        12 * header_line_count + 2,
+    )
 
 
 def _workbook_sheet_columns(sheet: ReviewWorkbookSheet) -> tuple[str, ...]:
@@ -850,13 +920,50 @@ def _review_workbook_sheet_issues(workbook: Any, artifact_file: str) -> list[str
             if sheet_name in SHARED_REVIEW_SHEETS:
                 issues.append(f"{artifact_file} is missing sheet {sheet_name!r}")
             continue
-        issues.extend(
-            _review_workbook_header_issues(
-                workbook[sheet_name],
-                sheet_name,
-                artifact_file,
+        if sheet_name == _pc_review_model.EXECUTIVE_SUMMARY_SHEET:
+            issues.extend(
+                _executive_summary_workbook_issues(
+                    workbook[sheet_name],
+                    artifact_file,
+                )
             )
-        )
+        else:
+            issues.extend(
+                _review_workbook_header_issues(
+                    workbook[sheet_name],
+                    sheet_name,
+                    artifact_file,
+                )
+            )
+    return issues
+
+
+def _executive_summary_workbook_issues(
+    worksheet: Any,
+    artifact_file: str,
+) -> list[str]:
+    """Return issues for the two-table Executive Summary layout."""
+    expected_cells = {
+        "A1": _executive_summary.PERFORMANCE_SECTION,
+        "A8": _executive_summary.DATA_ISSUES_SECTION,
+    }
+    issues = [
+        f"{artifact_file} Executive Summary cell {coordinate} is invalid"
+        for coordinate, expected in expected_cells.items()
+        if worksheet[coordinate].value != expected
+    ]
+    performance_headers = tuple(
+        _normalize_header(worksheet.cell(row=2, column=index).value or "")
+        for index in range(1, len(_executive_summary.PERFORMANCE_HEADERS) + 1)
+    )
+    data_issue_headers = tuple(
+        str(worksheet.cell(row=9, column=index).value or "")
+        for index in range(1, len(_executive_summary.DATA_ISSUES_HEADERS) + 1)
+    )
+    if performance_headers != _executive_summary.PERFORMANCE_HEADERS:
+        issues.append(f"{artifact_file} Executive Summary performance headers are invalid")
+    if data_issue_headers != _executive_summary.DATA_ISSUES_HEADERS:
+        issues.append(f"{artifact_file} Executive Summary Data Issues headers are invalid")
     return issues
 
 

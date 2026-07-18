@@ -1,31 +1,26 @@
-"""Build the canonical Audit Executive Summary review table.
+"""Build the two-table Audit Executive Summary.
 
-The summary is a bounded presentation and navigation layer over existing
-validated review tables. It deliberately performs no financial calculation.
+The summary contains quantities only. Performance quantities use mutually
+exclusive status buckets, while Data Issues quantities are grouped by stable
+issue type and sorted from largest to smallest.
 """
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
-from collections.abc import Mapping
+from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, TypedDict
 
 import polars as pl
 
 import ppar.utilities as util
 from ppar.errors import PpaError
-from ppar.audit import rendering
-from ppar.audit import review_model
+from ppar.audit import schema as pc_cols
 from ppar.audit.data_issues import checks as data_issue_checks
-from ppar.audit.data_issues.vocabulary import (
-    DATA_ISSUE_REGISTRY,
-    DataIssueCategory,
-    DataIssueType,
-)
-from ppar.audit.performance_comparison import explain
-from ppar.audit.performance_comparison import findings
-from ppar.audit.performance_comparison.vocabulary import CauseArea
+from ppar.audit.data_issues.vocabulary import DataIssueType
+from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
+from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.specification import (
     AuditSpecification,
     PORTFOLIO_COMPARISON_LEVEL,
@@ -33,645 +28,338 @@ from ppar.audit.specification import (
 )
 
 SUMMARY_SECTION: Final[str] = "summary_section"
-SUMMARY_ITEM: Final[str] = "summary_item"
-SUMMARY_RESULT: Final[str] = "summary_result"
-SUMMARY_DETAIL: Final[str] = "summary_detail"
-REVIEW_DESTINATION: Final[str] = "review_destination"
-REVIEW_KEY: Final[str] = "review_key"
+SUMMARY_LABEL: Final[str] = "summary_label"
+TOTAL_QUANTITY: Final[str] = "total_quantity"
+NO_PERFORMANCE_DIFFERENCES: Final[str] = "no_performance_differences"
+FULLY_EXPLAINED_DIFFERENCES: Final[str] = "fully_explained_differences"
+PARTLY_EXPLAINED_DIFFERENCES: Final[str] = "partly_explained_differences"
+UNEXPLAINED_DIFFERENCES: Final[str] = "unexplained_differences"
+SETUP_INCOMPLETE: Final[str] = "setup_incomplete"
+DATA_ISSUE_QUANTITY: Final[str] = "data_issue_quantity"
+
 EXECUTIVE_SUMMARY_COLUMNS: Final[tuple[str, ...]] = (
     SUMMARY_SECTION,
-    SUMMARY_ITEM,
-    SUMMARY_RESULT,
-    SUMMARY_DETAIL,
-    REVIEW_DESTINATION,
-    REVIEW_KEY,
+    SUMMARY_LABEL,
+    TOTAL_QUANTITY,
+    NO_PERFORMANCE_DIFFERENCES,
+    FULLY_EXPLAINED_DIFFERENCES,
+    PARTLY_EXPLAINED_DIFFERENCES,
+    UNEXPLAINED_DIFFERENCES,
+    SETUP_INCOMPLETE,
+    DATA_ISSUE_QUANTITY,
 )
-PRIORITY_REVIEW_UNIT_LIMIT: Final[int] = 10
 
-_STATUS_ORDER = {
-    "Unexplained": 0,
-    "Partly Explained": 1,
-    "Missing YAML Specifications": 2,
-    "Fully Explained": 3,
+PERFORMANCE_SECTION: Final[str] = "Performance Differences"
+DATA_ISSUES_SECTION: Final[str] = "Data Issues"
+PERFORMANCE_TABLE_CAPTION: Final[str] = "Performance Differences Summary"
+DATA_ISSUES_TABLE_CAPTION: Final[str] = "Data Issues Summary"
+PERFORMANCE_HEADERS: Final[tuple[str, ...]] = (
+    "",
+    "Total Quantity",
+    "No Performance Differences",
+    "Fully Explained Differences",
+    "Partly Explained Differences",
+    "Unexplained Differences",
+    "Setup Incomplete",
+)
+DATA_ISSUES_HEADERS: Final[tuple[str, ...]] = ("Issue Type", "Quantity")
+
+_NO_DIFFERENCE = "No Performance Differences"
+_FULLY_EXPLAINED = "Fully Explained"
+_PARTLY_EXPLAINED = "Partly Explained"
+_UNEXPLAINED = "Unexplained"
+_SETUP_INCOMPLETE = "Missing YAML Specifications"
+_STATUS_PRECEDENCE: Final[Mapping[str, int]] = {
+    _NO_DIFFERENCE: 0,
+    _FULLY_EXPLAINED: 1,
+    _PARTLY_EXPLAINED: 2,
+    _UNEXPLAINED: 3,
+    _SETUP_INCOMPLETE: 4,
 }
-_PERFORMANCE_DESTINATION = review_model.PERFORMANCE_DIFFERENCES_SHEET
-_CAUSE_DESTINATION = review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
-_DATA_ISSUES_DESTINATION = review_model.DATA_ISSUES_SHEET
-_CAUSE_AREA_LABELS: Final[Mapping[CauseArea, str]] = {
-    CauseArea.SECURITY_RETURN_OR_CONTRIBUTION: "Security returns or contributions",
-    CauseArea.MARKET_VALUE_OR_HOLDING: "Market values or holdings",
-    CauseArea.TRANSACTION_ACTIVITY: "Transaction activity",
-    CauseArea.FX_RATE: "Foreign-exchange rates",
-    CauseArea.PORTFOLIO_PERFORMANCE_INPUT: "Portfolio performance inputs",
-    CauseArea.CLASSIFICATION_OR_REFERENCE: "Classification or reference data",
-    CauseArea.UNEXPLAINED: "Unexplained",
-}
-_ISSUE_CATEGORY_LABELS: Final[Mapping[DataIssueCategory, str]] = {
-    DataIssueCategory.CONTINUITY: "Data continuity",
-    DataIssueCategory.DUPLICATE: "Duplicate rows",
-    DataIssueCategory.PRICE: "Price consistency",
-    DataIssueCategory.INCOME: "Income consistency",
-    DataIssueCategory.ACCRUED_INTEREST: "Accrued-interest consistency",
-    DataIssueCategory.POSITION_VALUE: "Position-value consistency",
-    DataIssueCategory.CORPORATE_ACTION: "Corporate-action consistency",
-}
-_ISSUE_TYPE_LABELS: Final[Mapping[DataIssueType, str]] = {
-    DataIssueType.DUPLICATE_TRANSACTIONS: "Duplicate transactions",
-    DataIssueType.DIVIDEND_RATE: "Dividend-rate consistency",
-    DataIssueType.HOLDINGS_ACCRUED_RATE: "Holdings accrued-interest consistency",
-    DataIssueType.HOLDINGS_PRICE_RANGE: "Holdings price consistency",
-    DataIssueType.MISSING_DIVIDEND: "Potential missing dividends",
-    DataIssueType.PA_SA_RATE: "Purchase/sale accrued-interest consistency",
-    DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY: (
-        "Portfolio market-value continuity"
-    ),
-    DataIssueType.SECURITY_MARKET_VALUE_CONTINUITY: (
-        "Security market-value continuity"
-    ),
-    DataIssueType.TRANSACTIONS_PRICE_RANGE: "Transaction price consistency",
-}
+_PERFORMANCE_VALUE_COLUMNS: Final[tuple[str, ...]] = (
+    TOTAL_QUANTITY,
+    NO_PERFORMANCE_DIFFERENCES,
+    FULLY_EXPLAINED_DIFFERENCES,
+    PARTLY_EXPLAINED_DIFFERENCES,
+    UNEXPLAINED_DIFFERENCES,
+    SETUP_INCOMPLETE,
+)
+
+
+class ExecutiveSummaryDisplayTable(TypedDict):
+    """One rendered Executive Summary quantity table."""
+
+    columns: list[str]
+    rows: list[list[str]]
 
 
 @dataclass(frozen=True)
 class ExecutiveSummaryContext:
-    """Configuration context displayed in the Executive Summary.
+    """Evaluated comparison scope used to count unchanged review units.
 
     Attributes:
-        comparison_level: Portfolio or security review level.
-        snapshot_a_label: User-facing Snapshot A label.
-        snapshot_b_label: User-facing Snapshot B label.
+        comparison_level: Portfolio or security comparison level.
+        evaluated_unit_keys: Union of primary performance keys in both snapshots.
     """
 
     comparison_level: str
-    snapshot_a_label: str
-    snapshot_b_label: str
+    evaluated_unit_keys: tuple[tuple[object, ...], ...] = ()
 
 
 def executive_summary_context(
     comparison_path: util.PathLike | None,
     comparison_level: str,
 ) -> ExecutiveSummaryContext:
-    """Return summary context from the already validated comparison inputs.
+    """Return the evaluated primary-performance scope for the summary.
 
     Args:
         comparison_path: Optional Audit YAML path.
-        comparison_level: Portfolio or security review level.
+        comparison_level: Portfolio or security comparison level.
 
     Returns:
-        Context containing the report level and available snapshot labels.
+        Comparison context. When no YAML path is available, the evaluated scope
+        is left empty and the summary uses the known review rows only.
     """
+    _assert_supported_level(comparison_level)
     if comparison_path is None:
-        return ExecutiveSummaryContext(
-            comparison_level=comparison_level,
-            snapshot_a_label="Snapshot A",
-            snapshot_b_label="Snapshot B",
-        )
+        return ExecutiveSummaryContext(comparison_level=comparison_level)
     specification = AuditSpecification(
         comparison_path,
         comparison_level=comparison_level,
     )
+    frames = _primary_performance_frames(specification, comparison_level)
+    key_columns = _unit_key_columns(comparison_level)
+    keys = {
+        tuple(row[column] for column in key_columns)
+        for frame in frames
+        for row in frame.select(key_columns).iter_rows(named=True)
+    }
     return ExecutiveSummaryContext(
         comparison_level=comparison_level,
-        snapshot_a_label=specification.snapshot_a.label,
-        snapshot_b_label=specification.snapshot_b.label,
+        evaluated_unit_keys=tuple(sorted(keys, key=_sortable_key)),
     )
 
 
 def executive_summary_table(
     primary_changes: pl.DataFrame,
-    cause_summary: pl.DataFrame,
     data_issues: pl.DataFrame,
-    impact_coverage: pl.DataFrame,
     *,
     context: ExecutiveSummaryContext,
 ) -> pl.DataFrame:
-    """Return the bounded canonical Executive Summary table.
+    """Return the canonical quantitative Executive Summary table.
 
     Args:
         primary_changes: Reconciled Performance Differences table.
-        cause_summary: Existing cause-area summary table.
         data_issues: Existing canonical Data Issues table.
-        impact_coverage: Existing impact-coverage summary table.
-        context: Report-level and snapshot-label context.
+        context: Evaluated primary-performance scope.
 
     Returns:
-        Ordered summary rows shared by CSV, XLSX, and HTML.
+        Two performance quantity rows followed by Data Issues type quantities.
 
     Raises:
-        PpaError: If a supposedly canonical issue type or cause area is unknown.
+        PpaError: If a review status, issue type, or comparison level is unknown.
     """
-    changed_rows = _changed_primary_rows(primary_changes)
+    _assert_supported_level(context.comparison_level)
+    changed_statuses = _changed_unit_statuses(primary_changes, context.comparison_level)
+    evaluated_units = set(context.evaluated_unit_keys) | set(changed_statuses)
+    unit_statuses = {
+        key: changed_statuses.get(key, _NO_DIFFERENCE) for key in evaluated_units
+    }
     rows = [
-        _bottom_line_row(changed_rows, data_issues, context.comparison_level),
-        *_performance_rows(changed_rows, impact_coverage, context.comparison_level),
-        *_cause_rows(cause_summary, context.comparison_level),
+        _performance_row(
+            "Portfolios",
+            _portfolio_statuses(unit_statuses),
+        ),
+        _performance_row(
+            _period_label(context.comparison_level),
+            tuple(unit_statuses.values()),
+        ),
         *_data_issue_rows(data_issues),
-        *_next_step_rows(changed_rows, data_issues),
-        *_context_rows(changed_rows, context),
     ]
-    return pl.DataFrame(rows, schema={column: pl.String for column in EXECUTIVE_SUMMARY_COLUMNS})
+    return pl.DataFrame(rows, schema=_summary_schema())
 
 
-def _row(
-    section: str,
-    item: str,
-    result: object,
-    detail: str,
-    destination: str = "",
-    review_key: str = "",
-) -> dict[str, str]:
-    """Return one canonical summary row."""
+def executive_summary_display_tables(
+    table: pl.DataFrame,
+) -> dict[str, ExecutiveSummaryDisplayTable]:
+    """Return the two deterministic display payloads for HTML/XLSX parity."""
+    performance = table.filter(pl.col(SUMMARY_SECTION) == PERFORMANCE_SECTION)
+    data_issues = table.filter(pl.col(SUMMARY_SECTION) == DATA_ISSUES_SECTION)
     return {
-        SUMMARY_SECTION: section,
-        SUMMARY_ITEM: item,
-        SUMMARY_RESULT: rendering.format_value(result),
-        SUMMARY_DETAIL: detail,
-        REVIEW_DESTINATION: destination,
-        REVIEW_KEY: review_key,
+        PERFORMANCE_TABLE_CAPTION: {
+            "columns": list(PERFORMANCE_HEADERS),
+            "rows": [
+                [
+                    str(row[SUMMARY_LABEL]),
+                    *[str(row[column]) for column in _PERFORMANCE_VALUE_COLUMNS],
+                ]
+                for row in performance.iter_rows(named=True)
+            ],
+        },
+        DATA_ISSUES_TABLE_CAPTION: {
+            "columns": list(DATA_ISSUES_HEADERS),
+            "rows": [
+                [str(row[SUMMARY_LABEL]), str(row[DATA_ISSUE_QUANTITY])]
+                for row in data_issues.iter_rows(named=True)
+            ],
+        },
     }
 
 
-def _bottom_line_row(
-    changed_rows: list[dict[str, object]],
-    data_issues: pl.DataFrame,
+def _primary_performance_frames(
+    specification: AuditSpecification,
     comparison_level: str,
-) -> dict[str, str]:
-    """Return the plain-English first answer a reviewer should read."""
-    statuses = Counter(str(row.get("review_status", "")) for row in changed_rows)
-    unit = _review_unit_label(comparison_level, len(changed_rows))
-    if not changed_rows:
-        performance_message = "No reported performance changes were found."
-    else:
-        attention_phrases = _performance_attention_phrases(statuses)
-        if attention_phrases:
-            attention_count = sum(
-                statuses[status]
-                for status in (
-                    "Unexplained",
-                    "Partly Explained",
-                    "Missing YAML Specifications",
-                )
-            )
-            review_sentence = (
-                "This requires review."
-                if attention_count == 1
-                else f"These {attention_count} require review."
-            )
-            performance_message = (
-                f"{len(changed_rows)} {unit} changed; "
-                f"{_joined_phrases(attention_phrases)}. {review_sentence}"
-            )
-        else:
-            performance_message = (
-                f"{len(changed_rows)} {unit} changed; all are fully explained by "
-                "supported evidence."
-            )
-    continuity_count = _continuity_count(data_issues)
-    if continuity_count:
-        data_message = (
-            f" Separately, {continuity_count:,} data-continuity rows require attention."
-        )
-    elif data_issues.height:
-        data_message = f" Separately, {data_issues.height:,} data-quality rows require attention."
-    else:
-        data_message = " No separate data-quality rows require attention."
-    return _row(
-        "At a Glance",
-        "Bottom line",
-        performance_message + data_message,
-        "Use the review steps below for the shortest path to supporting evidence.",
-        _PERFORMANCE_DESTINATION if changed_rows else _DATA_ISSUES_DESTINATION,
-    )
-
-
-def _performance_attention_phrases(statuses: Counter[str]) -> list[str]:
-    """Return plain-English status phrases that require reviewer attention."""
-    phrases: list[str] = []
-    for status, singular, plural in (
-        ("Unexplained", "is unexplained", "are unexplained"),
-        ("Partly Explained", "is only partly explained", "are only partly explained"),
-        (
-            "Missing YAML Specifications",
-            "lacks explanation setup",
-            "lack explanation setup",
-        ),
-    ):
-        count = statuses[status]
-        if count:
-            phrases.append(f"{count} {singular if count == 1 else plural}")
-    return phrases
-
-
-def _joined_phrases(phrases: list[str]) -> str:
-    """Join short phrases with a readable final conjunction."""
-    if len(phrases) < 2:
-        return phrases[0]
-    return ", ".join(phrases[:-1]) + f" and {phrases[-1]}"
-
-
-def _changed_primary_rows(table: pl.DataFrame) -> list[dict[str, object]]:
-    """Return real changed review units, excluding honest empty-state rows."""
-    return [
-        row
-        for row in table.iter_rows(named=True)
-        if row.get("review_status") != "No differences"
-        and row.get("performance_change") is not None
-    ]
-
-
-def _report_level_label(comparison_level: str) -> str:
-    """Return the user-facing report-level label."""
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Return normalized Snapshot A and B primary-performance frames."""
     if comparison_level == PORTFOLIO_COMPARISON_LEVEL:
-        return "Portfolio"
-    if comparison_level == SECURITY_COMPARISON_LEVEL:
-        return "Security"
-    raise PpaError(f"Unsupported comparison level: {comparison_level!r}", None)
+        portfolio_loader = PortfolioPerformanceLoader(specification)
+        return portfolio_loader.load("a"), portfolio_loader.load("b")
+    security_loader = SecurityPerformanceLoader(specification)
+    snapshot_a = security_loader.load("a")
+    snapshot_b = security_loader.load("b")
+    if snapshot_a is None or snapshot_b is None:
+        raise PpaError("Security performance input is unavailable.", None)
+    return snapshot_a, snapshot_b
 
 
-def _review_unit_label(comparison_level: str, count: int) -> str:
-    """Return a readable singular or plural review-unit label."""
-    base = (
-        "portfolio period"
-        if comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        else "security period"
-    )
-    return base if count == 1 else f"{base}s"
-
-
-def _scope_result(rows: list[dict[str, object]], comparison_level: str) -> str:
-    """Return a compact changed entity/period scope result."""
-    unit = (
-        "portfolio period"
-        if comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        else "security period"
-    )
-    return f"{len(rows)} changed {unit}{'' if len(rows) == 1 else 's'}"
-
-
-def _scope_detail(rows: list[dict[str, object]], comparison_level: str) -> str:
-    """Return entity and period cardinality available from changed review units."""
-    if not rows:
-        return "No changed review units are present; detailed sheets retain the complete evidence."
-    entity_columns = [findings.PORTFOLIO_ID]
-    if comparison_level == SECURITY_COMPARISON_LEVEL:
-        entity_columns.append(findings.SECURITY_ID)
-    entities = {tuple(row.get(column) for column in entity_columns) for row in rows}
-    periods = {
-        (row.get(findings.FROM_DATE), row.get(findings.THRU_DATE)) for row in rows
-    }
-    entity_label = "entity" if len(entities) == 1 else "entities"
-    period_label = "period" if len(periods) == 1 else "periods"
-    return (
-        f"{len(entities)} affected {entity_label} across {len(periods)} distinct "
-        f"{period_label}."
-    )
-
-
-def _performance_rows(
-    changed_rows: list[dict[str, object]],
-    impact_coverage: pl.DataFrame,
+def _changed_unit_statuses(
+    primary_changes: pl.DataFrame,
     comparison_level: str,
-) -> list[dict[str, str]]:
-    """Return performance overview and bounded priority-unit rows."""
-    statuses = Counter(str(row.get("review_status", "")) for row in changed_rows)
-    count = len(changed_rows)
-    rows = [
-        _row(
-            "Performance",
-            "What changed?",
-            f"{count} changed {_review_unit_label(comparison_level, count)}",
-            (
-                f"Fully explained: {statuses['Fully Explained']}; partly explained: "
-                f"{statuses['Partly Explained']}; unexplained: "
-                f"{statuses['Unexplained']}."
-            ),
-            _PERFORMANCE_DESTINATION,
-        )
-    ]
-    limited_count = _method_limited_count(impact_coverage)
-    if limited_count:
-        coverage_verb = "has" if limited_count == 1 else "have"
-        rows.append(
-            _row(
-                "Performance",
-                "Can every supporting cause be quantified?",
-                (
-                    f"No — {limited_count} changed "
-                    f"{_review_unit_label(comparison_level, limited_count)} "
-                    f"{coverage_verb} incomplete estimates"
-                ),
-                (
-                    "Some supporting causes have incomplete estimates, evidence only, "
-                    "or missing inputs."
-                ),
-                _CAUSE_DESTINATION,
-            )
-        )
-    if not changed_rows:
-        return rows
-    for index, row in enumerate(_priority_rows(changed_rows), start=1):
-        rows.append(
-            _row(
-                "Performance",
-                "Review next" if index == 1 else f"Then review #{index}",
-                _primary_identity(row, comparison_level),
-                (
-                    f"{row.get('review_status')}. Reported return change: "
-                    f"{_percentage_points(row.get('performance_change'))}; explained: "
-                    f"{_percentage_points(row.get('estimated_cause_total'))}; unexplained: "
-                    f"{_percentage_points(row.get('unexplained_change'))}."
-                ),
-                _PERFORMANCE_DESTINATION,
-                str(row.get(REVIEW_KEY, "")),
-            )
-        )
-    return rows
-
-
-def _percentage_points(value: object) -> str:
-    """Return a return difference as signed percentage points for display."""
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return f"{float(value) * 100:+.6f} percentage points"
-    return "not available"
-
-
-def _method_limited_count(coverage: pl.DataFrame) -> int:
-    """Return the existing count of non-complete impact-coverage units."""
-    if explain.IMPACT_COVERAGE_STATUS not in coverage.columns:
-        return 0
-    return sum(
-        row.get(explain.IMPACT_COVERAGE_STATUS)
-        != explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES
-        for row in coverage.iter_rows(named=True)
-    )
-
-
-def _priority_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Return at most ten changed units in deterministic review order."""
-    review_needed_rows = [
-        row for row in rows if row.get("review_status") != "Fully Explained"
-    ]
-    return sorted(
-        review_needed_rows,
-        key=lambda row: (
-            _STATUS_ORDER.get(str(row.get("review_status")), len(_STATUS_ORDER)),
-            -_absolute_numeric(row.get("unexplained_change")),
-            -_absolute_numeric(row.get("performance_change")),
-            str(row.get(REVIEW_KEY, "")),
-        ),
-    )[:PRIORITY_REVIEW_UNIT_LIMIT]
-
-
-def _absolute_numeric(value: object) -> float:
-    """Return an absolute numeric value for deterministic priority sorting."""
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return abs(float(value))
-    return 0.0
-
-
-def _primary_identity(row: Mapping[str, object], comparison_level: str) -> str:
-    """Return a stable, readable review-unit identity."""
-    values = [
-        row.get(findings.PORTFOLIO_ID),
-        row.get(findings.FROM_DATE),
-        row.get(findings.THRU_DATE),
-    ]
-    if comparison_level == SECURITY_COMPARISON_LEVEL:
-        values.insert(1, row.get(findings.SECURITY_ID))
-    return " | ".join(rendering.format_value(value) for value in values)
-
-
-def _cause_rows(
-    cause_summary: pl.DataFrame,
-    comparison_level: str,
-) -> list[dict[str, str]]:
-    """Return stable cause-area affected-unit counts."""
-    affected: dict[CauseArea, set[tuple[object, ...]]] = defaultdict(set)
-    for row in cause_summary.iter_rows(named=True):
-        try:
-            area = CauseArea(str(row.get(explain.ROOT_CAUSE_AREA)))
-        except ValueError as error:
-            raise PpaError(
-                f"Executive Summary received unknown cause area: "
-                f"{row.get(explain.ROOT_CAUSE_AREA)!r}",
-                None,
-            ) from error
-        key = [
-            row.get(findings.PORTFOLIO_ID),
-            row.get(findings.FROM_DATE),
-            row.get(findings.THRU_DATE),
-        ]
-        if comparison_level == SECURITY_COMPARISON_LEVEL:
-            key.insert(1, row.get(findings.SECURITY_ID))
-        affected[area].add(tuple(key))
-    if not affected:
-        return [
-            _row(
-                "Explanation",
-                "What supports the explanation?",
-                "No supported cause is available",
-                "Review the detailed evidence for unresolved changes.",
-                _CAUSE_DESTINATION,
-            )
-        ]
-    return [
-        _row(
-            "Explanation",
-            "What supports the explanation?",
-            _CAUSE_AREA_LABELS[area],
-            (
-                f"This evidence affects {len(affected[area])} "
-                f"{_review_unit_label(comparison_level, len(affected[area]))}."
-            ),
-            _CAUSE_DESTINATION,
-        )
-        for area in CauseArea
-        if area in affected
-    ]
-
-
-def _data_issue_rows(data_issues: pl.DataFrame) -> list[dict[str, str]]:
-    """Return concise, plain-English Data Issues attention rows."""
-    type_counts: Counter[DataIssueType] = Counter()
-    category_counts: Counter[DataIssueCategory] = Counter()
-    for row in data_issues.iter_rows(named=True):
-        raw_type = str(row.get(data_issue_checks.ISSUE_TYPE))
-        try:
-            issue_type = DataIssueType(raw_type)
-        except ValueError as error:
-            raise PpaError(
-                f"Executive Summary received unknown Data Issues issue type: {raw_type!r}",
-                None,
-            ) from error
-        definition = DATA_ISSUE_REGISTRY[issue_type]
-        type_counts[issue_type] += 1
-        category_counts[definition.category] += 1
-    if data_issues.is_empty():
-        return [
-            _row(
-                "Data Quality",
-                "Does other source-data need attention?",
-                "No",
-                "No separate Data Issues rows were found.",
-                _DATA_ISSUES_DESTINATION,
-            )
-        ]
-    rows = [
-        _row(
-            "Data Quality",
-            "Does other source-data need attention?",
-            f"Yes — {data_issues.height:,} rows",
-            (
-                "These are source-data checks, separate from the performance "
-                "explanation; they are not validated incident counts."
-            ),
-            _DATA_ISSUES_DESTINATION,
-        )
-    ]
-    rows.extend(
-        _row(
-            "Data Quality",
-            (
-                "Review continuity first"
-                if category == DataIssueCategory.CONTINUITY
-                else "Also review"
-            ),
-            f"{_ISSUE_CATEGORY_LABELS[category]} — {category_counts[category]:,} rows",
-            _issue_type_breakdown(category, type_counts),
-            _DATA_ISSUES_DESTINATION,
-        )
-        for category in DataIssueCategory
-        if category_counts[category]
-    )
-    return rows
-
-
-def _issue_type_breakdown(
-    category: DataIssueCategory,
-    type_counts: Counter[DataIssueType],
-) -> str:
-    """Return readable issue-type counts within one stable category."""
-    parts = [
-        f"{_ISSUE_TYPE_LABELS[issue_type]}: {type_counts[issue_type]:,}"
-        for issue_type in DataIssueType
-        if type_counts[issue_type]
-        and DATA_ISSUE_REGISTRY[issue_type].category == category
-    ]
-    return "; ".join(parts) + "."
-
-
-def _continuity_count(data_issues: pl.DataFrame) -> int:
-    """Return mandatory continuity rows while failing closed on unknown types."""
-    count = 0
-    for row in data_issues.iter_rows(named=True):
-        raw_type = str(row.get(data_issue_checks.ISSUE_TYPE))
-        try:
-            issue_type = DataIssueType(raw_type)
-        except ValueError as error:
-            raise PpaError(
-                f"Executive Summary received unknown Data Issues issue type: {raw_type!r}",
-                None,
-            ) from error
-        if DATA_ISSUE_REGISTRY[issue_type].category == DataIssueCategory.CONTINUITY:
-            count += 1
-    return count
-
-
-def _next_step_rows(
-    changed_rows: list[dict[str, object]],
-    data_issues: pl.DataFrame,
-) -> list[dict[str, str]]:
-    """Return deterministic next-review cues without combining attention types."""
-    statuses = Counter(str(row.get("review_status", "")) for row in changed_rows)
-    performance_attention = statuses["Partly Explained"] + statuses["Unexplained"]
-    continuity_count = 0
-    other_issue_count = 0
-    for row in data_issues.iter_rows(named=True):
-        try:
-            issue_type = DataIssueType(str(row.get(data_issue_checks.ISSUE_TYPE)))
-        except ValueError:
+) -> dict[tuple[object, ...], str]:
+    """Return one validated review status per changed primary unit."""
+    key_columns = _unit_key_columns(comparison_level)
+    statuses: dict[tuple[object, ...], str] = {}
+    for row in primary_changes.iter_rows(named=True):
+        status = str(row.get("review_status", ""))
+        if status == "No differences":
             continue
-        if DATA_ISSUE_REGISTRY[issue_type].category == DataIssueCategory.CONTINUITY:
-            continuity_count += 1
-        else:
-            other_issue_count += 1
-    rows: list[dict[str, str]] = []
-    if performance_attention:
-        rows.append(
-            _row(
-                "Next Steps",
-                "What should I do first?",
-                "Review the unexplained performance change",
-                (
-                    "Open Performance Differences, then follow its supporting "
-                    "cause and source-evidence links."
-                ),
-                _PERFORMANCE_DESTINATION,
+        if status not in _STATUS_PRECEDENCE or status == _NO_DIFFERENCE:
+            raise PpaError(
+                f"Executive Summary received unknown performance status: {status!r}",
+                None,
             )
-        )
-    if data_issues.height:
-        issue_result = (
-            f"Review {continuity_count:,} continuity rows"
-            if continuity_count
-            else f"Review {other_issue_count:,} data-quality rows"
-        )
-        detail = (
-            f"Then review {other_issue_count:,} other data-quality rows."
-            if continuity_count and other_issue_count
-            else "Open Data Issues for the affected source rows and exact values."
-        )
-        rows.append(
-            _row(
-                "Next Steps",
-                "What else needs attention?",
-                issue_result,
-                detail,
-                _DATA_ISSUES_DESTINATION,
-            )
-        )
-    if not rows:
-        rows.append(
-            _row(
-                "Next Steps",
-                "What should I do next?",
-                "No immediate exception review",
-                "Retain the report bundle as evidence of the comparison.",
-            )
-        )
-    return rows
+        key = tuple(row.get(column) for column in key_columns)
+        statuses[key] = status
+    return statuses
 
 
-def _context_rows(
-    changed_rows: list[dict[str, object]],
-    context: ExecutiveSummaryContext,
-) -> list[dict[str, str]]:
-    """Return concise comparison context after the decision-useful content."""
+def _portfolio_statuses(
+    unit_statuses: Mapping[tuple[object, ...], str],
+) -> tuple[str, ...]:
+    """Roll unit statuses to one mutually exclusive worst status per portfolio."""
+    by_portfolio: dict[object, list[str]] = {}
+    for key, status in unit_statuses.items():
+        by_portfolio.setdefault(key[0], []).append(status)
+    return tuple(
+        max(statuses, key=_STATUS_PRECEDENCE.__getitem__)
+        for _, statuses in sorted(by_portfolio.items(), key=lambda item: str(item[0]))
+    )
+
+
+def _performance_row(label: str, statuses: Sequence[str]) -> dict[str, object]:
+    """Return one performance quantity row whose buckets foot to total."""
+    counts = Counter(statuses)
+    row: dict[str, object] = {
+        SUMMARY_SECTION: PERFORMANCE_SECTION,
+        SUMMARY_LABEL: label,
+        TOTAL_QUANTITY: len(statuses),
+        NO_PERFORMANCE_DIFFERENCES: counts[_NO_DIFFERENCE],
+        FULLY_EXPLAINED_DIFFERENCES: counts[_FULLY_EXPLAINED],
+        PARTLY_EXPLAINED_DIFFERENCES: counts[_PARTLY_EXPLAINED],
+        UNEXPLAINED_DIFFERENCES: counts[_UNEXPLAINED],
+        SETUP_INCOMPLETE: counts[_SETUP_INCOMPLETE],
+        DATA_ISSUE_QUANTITY: None,
+    }
+    bucket_total = sum(
+        counts[status]
+        for status in (
+            _NO_DIFFERENCE,
+            _FULLY_EXPLAINED,
+            _PARTLY_EXPLAINED,
+            _UNEXPLAINED,
+            _SETUP_INCOMPLETE,
+        )
+    )
+    if bucket_total != len(statuses):
+        raise PpaError("Executive Summary performance quantities do not reconcile.", None)
+    return row
+
+
+def _data_issue_rows(data_issues: pl.DataFrame) -> list[dict[str, object]]:
+    """Return issue-type quantities sorted descending with a stable tie-breaker."""
+    counts: Counter[DataIssueType] = Counter()
+    for row in data_issues.iter_rows(named=True):
+        raw_type = str(row.get(data_issue_checks.ISSUE_TYPE))
+        try:
+            issue_type = DataIssueType(raw_type)
+        except ValueError as error:
+            raise PpaError(
+                f"Executive Summary received unknown Data Issues issue type: {raw_type!r}",
+                None,
+            ) from error
+        counts[issue_type] += 1
     return [
-        _row(
-            "Context",
-            "What was compared?",
-            f"{context.snapshot_a_label} to {context.snapshot_b_label}",
-            (
-                f"{_report_level_label(context.comparison_level)} report; "
-                f"{_scope_result(changed_rows, context.comparison_level)}. "
-                f"{_scope_detail(changed_rows, context.comparison_level)}"
-            ),
-            _PERFORMANCE_DESTINATION,
-        ),
-        _row(
-            "Context",
-            "How were supported effects reviewed?",
-            "Modified Dietz",
-            "The summary reuses existing validated results; it does not recalculate returns.",
-            _CAUSE_DESTINATION,
-        ),
-        _row(
-            "Context",
-            "What does this report not prove?",
-            "It does not certify official performance",
-            (
-                "PPAR explains supported changes but does not determine which "
-                "snapshot is correct."
-            ),
-        ),
+        {
+            SUMMARY_SECTION: DATA_ISSUES_SECTION,
+            SUMMARY_LABEL: issue_type.value,
+            TOTAL_QUANTITY: None,
+            NO_PERFORMANCE_DIFFERENCES: None,
+            FULLY_EXPLAINED_DIFFERENCES: None,
+            PARTLY_EXPLAINED_DIFFERENCES: None,
+            UNEXPLAINED_DIFFERENCES: None,
+            SETUP_INCOMPLETE: None,
+            DATA_ISSUE_QUANTITY: quantity,
+        }
+        for issue_type, quantity in sorted(
+            counts.items(),
+            key=lambda item: (-item[1], item[0].value),
+        )
     ]
+
+
+def _unit_key_columns(comparison_level: str) -> tuple[str, ...]:
+    """Return primary review-unit key columns for one comparison level."""
+    _assert_supported_level(comparison_level)
+    columns = [pc_cols.PORTFOLIO_ID]
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        columns.append(pc_cols.SECURITY_ID)
+    columns.extend((pc_cols.FROM_DATE, pc_cols.THRU_DATE))
+    return tuple(columns)
+
+
+def _period_label(comparison_level: str) -> str:
+    """Return the report-level period quantity label."""
+    return (
+        "Portfolio Periods"
+        if comparison_level == PORTFOLIO_COMPARISON_LEVEL
+        else "Security Periods"
+    )
+
+
+def _assert_supported_level(comparison_level: str) -> None:
+    """Raise when a comparison level cannot support the summary."""
+    if comparison_level not in {
+        PORTFOLIO_COMPARISON_LEVEL,
+        SECURITY_COMPARISON_LEVEL,
+    }:
+        raise PpaError(f"Unsupported comparison level: {comparison_level!r}", None)
+
+
+def _summary_schema() -> dict[str, type[pl.DataType]]:
+    """Return the stable canonical Executive Summary schema."""
+    return {
+        SUMMARY_SECTION: pl.String,
+        SUMMARY_LABEL: pl.String,
+        TOTAL_QUANTITY: pl.Int64,
+        NO_PERFORMANCE_DIFFERENCES: pl.Int64,
+        FULLY_EXPLAINED_DIFFERENCES: pl.Int64,
+        PARTLY_EXPLAINED_DIFFERENCES: pl.Int64,
+        UNEXPLAINED_DIFFERENCES: pl.Int64,
+        SETUP_INCOMPLETE: pl.Int64,
+        DATA_ISSUE_QUANTITY: pl.Int64,
+    }
+
+
+def _sortable_key(values: tuple[object, ...]) -> tuple[str, ...]:
+    """Return a deterministic representation for evaluated source keys."""
+    return tuple(str(value) for value in values)

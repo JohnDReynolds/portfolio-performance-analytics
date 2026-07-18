@@ -5,17 +5,32 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.4 |
-| Date | 2026-07-17 |
+| Version | 1.6 |
+| Date | 2026-07-18 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
 | Canonical scope | Product identity, current truth, principles, boundaries, capability status, validation doctrine, and roadmap |
 | Specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
 | Preserved pre-split snapshot | [`archive/PPAR_Audit_Foundational_Product_Design_v0.10.md`](archive/PPAR_Audit_Foundational_Product_Design_v0.10.md) |
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Slice 2 Executive Summary usability acceptance |
+| Next gate | Slice 3 first additional Data Issues rule review |
 
 ## Change Log
+
+### Version 1.6 — 2026-07-18
+
+- Recorded founder acceptance of the revised two-table Executive Summary and
+  closed Slice 2.
+- Advanced the active MVP implementation sequence to Slice 3, beginning with
+  one conservative additional Data Issues rule.
+
+### Version 1.5 — 2026-07-18
+
+- Replaced the rejected jargon-heavy Executive Summary presentation with the
+  founder-approved two-table quantity design.
+- Removed narrative, links, priority lists, and YAML display policy from the
+  current Executive Summary contract.
+- Kept Slice 2 open for founder usability acceptance of the revised output.
 
 ### Version 1.4 — 2026-07-17
 
@@ -346,7 +361,7 @@ Current report bundles can include:
 - complete `source_detail.csv` and `findings.csv` evidence;
 - primary and supporting CSV summaries and diagnostics;
 - `review_summary.json` handoff metadata;
-- `manifest.json` version 6;
+- `manifest.json` version 7;
 - cause lineage and typed semantic/display fingerprints; and
 - compact or expanded audit-support artifacts.
 
@@ -368,7 +383,7 @@ diagnostics remain secondary.
 | Data Issues checks | CURRENT — DEMONSTRATED; value and noise require validation |
 | Technical preflight/readiness controls | CURRENT — DOCUMENTED; unified product experience remains APPROVED DIRECTION |
 | XLSX, HTML, CSV, manifest, and bundle output | CURRENT — DEMONSTRATED; management usability requires validation |
-| Executive Summary | CURRENT — UNDER USABILITY REFINEMENT; shared model implemented, first presentation rejected in founder review |
+| Executive Summary | CURRENT — FOUNDER ACCEPTED; two-table quantity presentation |
 | Persistent history, health dashboard, Operational Intelligence | APPROVED DIRECTION but implementation DEFERRED behind recurring-use evidence |
 | Managed human workflow | Distant evidence-gated possibility; not an assumed product layer |
 | Broad non-Axys/APX compatibility | CANDIDATE only after a documented, tested, supportable source contract |
@@ -594,7 +609,7 @@ Validation may conclude that PPAR should provide no managed workflow.
 | Performance Change Investigation | Current foundation and product center | Formula-bound, evidence-preserving, conservative, client validation required |
 | Performance Data Quality Audit | Current selected checks; approved strengthening | Findings remain independent of counted performance causes |
 | Audit Readiness | Current technical controls; APPROVED DIRECTION for unified experience | Ready/Qualified Ready/Blocked cannot waive safety; Diagnostic Only remains separate |
-| Executive Summary worksheet | CURRENT — UNDER USABILITY REFINEMENT | First XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
+| Executive Summary worksheet | CURRENT — FOUNDER ACCEPTED | Two quantity tables; first XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
 | Data Issues issue-type expansion | APPROVED DIRECTION and required MVP gap | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
 | Cause/issue codification and YAML control | APPROVED DIRECTION and required MVP gap | Stable vocabulary and fail-closed configuration; user policy cannot redefine product arithmetic |
 | Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | Evidence-scoped scenarios, exact-case capability, source contracts, and staging controls must preserve posted-transaction boundaries |
@@ -797,18 +812,17 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## 9.8 Immediate priorities
 
-1. Complete founder usability acceptance of the 30-second Executive Summary.
-2. Review and select the first approved high-value additional Data Issues issue
-   type, then implement it with fixtures, YAML policy,
+1. Implement the first approved high-value additional Data Issues issue type
+   with fixtures, YAML policy,
    reviewer output, and false-positive tests.
-3. Implement the current-capability Axys/APX scenarios defined by the active MVP
+2. Implement the current-capability Axys/APX scenarios defined by the active MVP
    plan.
-4. Implement the exact-case, normalized source-contract, and staging-control
+3. Implement the exact-case, normalized source-contract, and staging-control
    work required by the active MVP plan.
-5. Complete remaining approved issue types and re-run report parity,
+4. Complete remaining approved issue types and re-run report parity,
    determinism, financial invariants, demo coverage, and
    the 500x release-candidate scale check after the cross-cutting MVP changes.
-6. Only then decide whether the product is ready for validation-partner planning.
+5. Only then decide whether the product is ready for validation-partner planning.
 
 ---
 
@@ -843,9 +857,9 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
     Axys/APX transaction-semantics and demo work defined by the active MVP plan.
 18. Workstream D is blocking for MVP completion but remains sequenced after the
     Executive Summary and first additional issue-type slices.
-19. The Executive Summary uses the approved Section 5 boundary and a fixed,
-    version-controlled initial limit of ten priority review units; YAML display
-    control is deferred.
+19. The Executive Summary uses the founder-approved two-table quantity design
+    in active MVP-plan Section 5; narrative, links, priority lists, and YAML
+    display control are excluded.
 
 ## 10.2 Material open questions
 

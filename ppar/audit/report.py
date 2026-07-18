@@ -216,31 +216,62 @@ def _html_document_parts(
 
 def _html_workbook_sheet_section(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
     """Return one HTML section matching a review workbook sheet."""
-    content = _html_workbook_sheet_table(sheet)
     if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
-        content = "\n".join([_html_executive_callout(sheet), content])
+        content = _html_executive_summary_tables(sheet)
+    else:
+        content = _html_workbook_sheet_table(sheet)
     return _html_section(
         sheet.sheet_name,
         content,
     )
 
 
-def _html_executive_callout(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
-    """Return the Executive Summary bottom line before its supporting table."""
-    if sheet.table.is_empty():
-        return ""
-    first_row = sheet.table.row(0, named=True)
-    answer = first_row.get(_executive_summary.SUMMARY_RESULT, "")
-    detail = first_row.get(_executive_summary.SUMMARY_DETAIL, "")
-    return "\n".join(
-        [
-            '<div class="pc-executive-callout">',
-            "<span>Bottom line</span>",
-            f"<strong>{_escape_html(answer)}</strong>",
-            f"<p>{_escape_html(detail)}</p>",
-            "</div>",
+def _html_executive_summary_tables(
+    sheet: _pc_workbook.ReviewWorkbookSheet,
+) -> str:
+    """Return two simple quantity tables for the Executive Summary."""
+    payloads = _executive_summary.executive_summary_display_tables(sheet.table)
+    sections: list[str] = []
+    for section_name, caption in (
+        (
+            _executive_summary.PERFORMANCE_SECTION,
+            _executive_summary.PERFORMANCE_TABLE_CAPTION,
+        ),
+        (
+            _executive_summary.DATA_ISSUES_SECTION,
+            _executive_summary.DATA_ISSUES_TABLE_CAPTION,
+        ),
+    ):
+        payload = payloads[caption]
+        headers = "".join(
+            f'<th scope="col">{_escape_html(header)}</th>'
+            for header in payload["columns"]
+        )
+        body_rows = [
+            "<tr>"
+            + "".join(
+                f'<td class="{"pc-left" if index == 0 else "pc-right"}">'
+                f"{_escape_html(value)}</td>"
+                for index, value in enumerate(row)
+            )
+            + "</tr>"
+            for row in payload["rows"]
         ]
-    )
+        sections.extend(
+            [
+                f"<h3>{_escape_html(section_name)}</h3>",
+                '<div class="pc-table-wrap">',
+                '<table class="pc-table">',
+                f"<caption>{_escape_html(caption)}</caption>",
+                f"<thead><tr>{headers}</tr></thead>",
+                "<tbody>",
+                *body_rows,
+                "</tbody>",
+                "</table>",
+                "</div>",
+            ]
+        )
+    return "\n".join(sections)
 
 
 def _html_workbook_sheet_table(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:

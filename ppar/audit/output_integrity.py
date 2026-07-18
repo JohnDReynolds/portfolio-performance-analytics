@@ -17,6 +17,7 @@ import polars as pl
 
 # Project imports
 from ppar.audit import rendering as _pc_rendering
+from ppar.audit import executive_summary as _executive_summary
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import workbook as _pc_workbook
 
@@ -66,6 +67,22 @@ def review_sheet_manifest_metadata(
     for sheet in sheets:
         columns = _review_sheet_columns(sheet)
         headers = _review_sheet_headers(sheet, columns)
+        if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
+            display_payload = _executive_summary.executive_summary_display_tables(
+                sheet.table
+            )
+            metadata[sheet.artifact_name] = {
+                "sheet_name": sheet.sheet_name,
+                "rows": sheet.table.height,
+                "internal_columns": list(columns),
+                "display_headers": [
+                    *_executive_summary.PERFORMANCE_HEADERS,
+                    *_executive_summary.DATA_ISSUES_HEADERS,
+                ],
+                "layout": "two_quantity_tables_v1",
+                _DISPLAY_HASH: _payload_hash(display_payload),
+            }
+            continue
         metadata[sheet.artifact_name] = {
             "sheet_name": sheet.sheet_name,
             "rows": sheet.table.height,
@@ -265,6 +282,20 @@ def _html_review_parity_issues(
         if sheet_name not in parser.section_titles:
             issues.append(f"HTML report is missing review section {sheet_name!r}")
             continue
+        if artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
+            actual_payload = {
+                caption: parser.tables.get(caption)
+                for caption in (
+                    _executive_summary.PERFORMANCE_TABLE_CAPTION,
+                    _executive_summary.DATA_ISSUES_TABLE_CAPTION,
+                )
+            }
+            if (
+                None in actual_payload.values()
+                or _payload_hash(actual_payload) != metadata.get(_DISPLAY_HASH)
+            ):
+                issues.append(f"HTML review table {sheet_name!r} parity failed")
+            continue
         if expected_rows == 0:
             if sheet_name in parser.tables:
                 issues.append(f"HTML empty review section {sheet_name!r} contains rows")
@@ -311,7 +342,7 @@ def _xlsx_review_parity_issues(
             "XLSX report must begin with review sheet "
             f"{_pc_review_model.EXECUTIVE_SUMMARY_SHEET!r}"
         )
-    for raw_metadata in review_sheets.values():
+    for artifact_name, raw_metadata in review_sheets.items():
         metadata = _mapping(raw_metadata)
         sheet_name = metadata.get("sheet_name")
         if not isinstance(sheet_name, str):
@@ -320,6 +351,15 @@ def _xlsx_review_parity_issues(
             issues.append(f"XLSX report is missing review sheet {sheet_name!r}")
             continue
         worksheet = workbook[sheet_name]
+        if artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
+            row_count = metadata.get("rows")
+            actual_payload = _xlsx_executive_summary_payload(
+                worksheet,
+                row_count if isinstance(row_count, int) else 0,
+            )
+            if _payload_hash(actual_payload) != metadata.get(_DISPLAY_HASH):
+                issues.append(f"XLSX review sheet {sheet_name!r} parity failed")
+            continue
         rows = list(worksheet.iter_rows())
         if not rows:
             issues.append(f"XLSX review sheet {sheet_name!r} has no header row")
@@ -335,6 +375,44 @@ def _xlsx_review_parity_issues(
             issues.append(f"XLSX review sheet {sheet_name!r} parity failed")
     workbook.close()
     return issues
+
+
+def _xlsx_executive_summary_payload(
+    worksheet: Any,
+    canonical_row_count: int,
+) -> dict[str, dict[str, list[str] | list[list[str]]]]:
+    """Return the two Executive Summary tables from their fixed XLSX layout."""
+    performance_rows = [
+        [
+            _xlsx_display_value(worksheet.cell(row=row_number, column=column_number))
+            for column_number in range(
+                1,
+                len(_executive_summary.PERFORMANCE_HEADERS) + 1,
+            )
+        ]
+        for row_number in (3, 4)
+    ]
+    data_issue_count = max(canonical_row_count - len(performance_rows), 0)
+    data_issue_rows = [
+        [
+            _xlsx_display_value(worksheet.cell(row=row_number, column=column_number))
+            for column_number in range(
+                1,
+                len(_executive_summary.DATA_ISSUES_HEADERS) + 1,
+            )
+        ]
+        for row_number in range(10, 10 + data_issue_count)
+    ]
+    return {
+        _executive_summary.PERFORMANCE_TABLE_CAPTION: {
+            "columns": list(_executive_summary.PERFORMANCE_HEADERS),
+            "rows": performance_rows,
+        },
+        _executive_summary.DATA_ISSUES_TABLE_CAPTION: {
+            "columns": list(_executive_summary.DATA_ISSUES_HEADERS),
+            "rows": data_issue_rows,
+        },
+    }
 
 
 def _review_sheet_columns(

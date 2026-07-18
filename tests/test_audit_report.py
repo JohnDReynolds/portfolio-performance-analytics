@@ -565,7 +565,7 @@ class TestAuditReport(unittest.TestCase):
                     "expanded_directory": "supporting_files",
                     "expand_option": "--expand-all-supporting-files",
                 },
-                "manifest_version": 6,
+                "manifest_version": 7,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -722,9 +722,10 @@ class TestAuditReport(unittest.TestCase):
             self.assertNotIn("Browser review surface", html_report)
             self.assertIn("Performance Differences", html_report)
             self.assertIn("Performance Difference Causes", html_report)
-            self.assertIn('class="pc-executive-callout"', html_report)
-            self.assertIn("Bottom line</span>", html_report)
-            self.assertNotIn("market_value_or_holding", html_report)
+            self.assertIn("<h3>Performance Differences</h3>", html_report)
+            self.assertIn("<h3>Data Issues</h3>", html_report)
+            self.assertIn("Performance Differences Summary", html_report)
+            self.assertIn("Data Issues Summary", html_report)
             self.assertNotIn("<h2>Source Detail</h2>", html_report)
 
             readme = paths["readme"].read_text(encoding="utf-8")
@@ -1675,22 +1676,90 @@ class TestAuditReport(unittest.TestCase):
                     "Data Issues",
                 ],
             )
+            executive_summary_sheet = workbook["Executive Summary"]
             self.assertEqual(
-                workbook["Executive Summary"]["E2"].hyperlink.target,
-                "#'Performance Differences'!A1",
+                executive_summary_sheet["A1"].value,
+                "Performance Differences",
+            )
+            self.assertEqual(executive_summary_sheet["A8"].value, "Data Issues")
+            self.assertEqual(
+                [
+                    _normalized_header(cell.value)
+                    for cell in executive_summary_sheet[2]
+                ],
+                [
+                    None,
+                    "Total Quantity",
+                    "No Performance Differences",
+                    "Fully Explained Differences",
+                    "Partly Explained Differences",
+                    "Unexplained Differences",
+                    "Setup Incomplete",
+                ],
             )
             self.assertEqual(
                 [
                     _normalized_header(cell.value)
-                    for cell in workbook["Executive Summary"][1]
-                ],
-                ["Topic", "Question", "Answer", "Explanation", "Open Detail"],
+                    for cell in executive_summary_sheet[9]
+                ][:2],
+                ["Issue Type", "Quantity"],
             )
-            self.assertEqual(workbook["Executive Summary"].row_dimensions[2].height, 54)
+            self.assertEqual(executive_summary_sheet.row_dimensions[1].height, 20)
+            self.assertEqual(executive_summary_sheet.row_dimensions[2].height, 38)
+            self.assertEqual(executive_summary_sheet.row_dimensions[8].height, 20)
+            self.assertEqual(executive_summary_sheet.row_dimensions[9].height, 18)
+            for title_row, header_row, column_count in ((1, 2, 7), (8, 9, 2)):
+                title_cell = executive_summary_sheet.cell(row=title_row, column=1)
+                header_cell = executive_summary_sheet.cell(row=header_row, column=1)
+                self.assertEqual(title_cell.font.size, 14)
+                self.assertEqual(title_cell.alignment.horizontal, "center")
+                self.assertEqual(title_cell.fill.fgColor.rgb, header_cell.fill.fgColor.rgb)
+                self.assertEqual(title_cell.border.bottom.style, "thin")
+                for column_number in range(1, column_count + 1):
+                    section_cell = executive_summary_sheet.cell(
+                        row=title_row,
+                        column=column_number,
+                    )
+                    self.assertEqual(section_cell.border.bottom.style, "thin")
+                end_column = openpyxl.utils.get_column_letter(column_count)
+                self.assertIn(
+                    f"A{title_row}:{end_column}{title_row}",
+                    {str(merged_range) for merged_range in executive_summary_sheet.merged_cells},
+                )
+            for cell in executive_summary_sheet[2][1:]:
+                self.assertEqual(str(cell.value).splitlines(), str(cell.value).split())
+                self.assertTrue(cell.alignment.wrap_text)
+            for row_number in (3, 4):
+                for cell in executive_summary_sheet[row_number][1:]:
+                    self.assertEqual(cell.data_type, "n")
+                    self.assertEqual(cell.number_format, "#,##0")
+                    self.assertEqual(cell.alignment.horizontal, "right")
+                    self.assertEqual(cell.alignment.vertical, "bottom")
+            data_issue_quantity = executive_summary_sheet["B10"]
+            self.assertEqual(data_issue_quantity.data_type, "n")
+            self.assertEqual(data_issue_quantity.number_format, "#,##0")
+            self.assertEqual(data_issue_quantity.alignment.horizontal, "right")
+            self.assertEqual(data_issue_quantity.alignment.vertical, "bottom")
+            for column_number, cell in enumerate(
+                executive_summary_sheet[2][1:],
+                start=2,
+            ):
+                column_letter = executive_summary_sheet.cell(
+                    row=2,
+                    column=column_number,
+                ).column_letter
+                widest_header_word = max(
+                    len(word) for word in str(cell.value).split()
+                )
+                self.assertEqual(
+                    executive_summary_sheet.column_dimensions[column_letter].width,
+                    widest_header_word + 2,
+                )
             self.assertTrue(
                 all(
                     workbook[sheet_name].row_dimensions[1].height is None
                     for sheet_name in workbook.sheetnames
+                    if sheet_name != "Executive Summary"
                 )
             )
             performance_change_sheet = workbook["Performance Differences"]

@@ -395,9 +395,7 @@ def audit_review_workbook_sheets(
         sheet_name=_pc_review_model.EXECUTIVE_SUMMARY_SHEET,
         table=_executive_summary.executive_summary_table(
             primary_sheet.table,
-            table_cache.cause_summary(comparison_level),
             data_issues_sheet.table,
-            table_cache.primary_coverage(comparison_level),
             context=_executive_summary.executive_summary_context(
                 comparison_path,
                 comparison_level,

@@ -1001,11 +1001,11 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Slice 2 Executive Summary usability acceptance",
+            "Slice 3 first additional Data Issues rule review",
             constitution,
         )
         self.assertIn(
-            "Slice 2 — Executive Summary shared model — Usability Refinement",
+            "Slice 2 — Executive Summary shared model — Complete",
             plan,
         )
         self.assertIn("same commit whenever the number or identity", audit_index)
