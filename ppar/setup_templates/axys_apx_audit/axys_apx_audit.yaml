@@ -231,6 +231,40 @@ data_issues:
     absolute_tolerance: 0.01
     percent_tolerance: 0.05
 
+  holdings_stale_price:
+    # Flags the same positive price observed across supplied holding dates for
+    # at least the configured number of calendar days. It does not claim PPAR
+    # observed every intervening market day. The demo preserves the real GOOGL
+    # market-value baseline but injects its 2025-12-31 price into ALPHA's
+    # 2026-01-30 PRICE field in both snapshots as an isolated source anomaly.
+    enabled: true
+    only:
+      security_id:
+        - GOOGL
+      security_reference.security_type: csus
+    minimum_calendar_days: 28
+
+  large_price_variation:
+    # Combines beginning/end boundary holdings prices with eligible intra-period
+    # transaction prices, split-normalizes them to the period-ending share
+    # basis, and reports one maximum variation per rule/security/period. Rules
+    # are independently identified so overlapping populations remain visible.
+    # This demo rule uses the real AVGO observations and the default 20 percent
+    # decimal tolerance. Transaction-code filtering applies only to transaction
+    # observations; the two boundary holdings observations remain eligible.
+    enabled: true
+    rules:
+      - rule_id: common_stock_20_percent
+        only:
+          security_id:
+            - AVGO
+          transactions.transaction_code:
+            - by
+            - sl
+          security_reference.security_type: csus
+        minimum_calendar_days: 1
+        minimum_tolerance: 0.20
+
   transactions_price_range:
     # Checks same-day same-security transactions.price values across
     # portfolios. Intraday trades can naturally occur at different prices, so

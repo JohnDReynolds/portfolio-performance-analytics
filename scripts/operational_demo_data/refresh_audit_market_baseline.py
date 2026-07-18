@@ -43,6 +43,10 @@ _CONTRIBUTION_HOLDINGS: Final = {
     "2026-02-28": 100_000.0,
     "2026-03-31": 101_000.0,
 }
+_STALE_PRICE_DEMO_PORTFOLIO: Final = "ALPHA"
+_STALE_PRICE_DEMO_SECURITY: Final = "GOOGL"
+_STALE_PRICE_SOURCE_DATE: Final = "2025-12-31"
+_STALE_PRICE_TARGET_DATE: Final = "2026-01-30"
 
 
 def main() -> None:
@@ -216,8 +220,34 @@ def refresh_holdings(
             previous_date = holding_date
         refreshed_parts.append(rows)
     refreshed = pd.concat(refreshed_parts, ignore_index=True)
+    refreshed = _apply_stale_price_demo_anomaly(refreshed)
     refreshed["HOLDING_DATE"] = refreshed["HOLDING_DATE"].dt.date
     return refreshed.loc[:, holdings.columns]
+
+
+def _apply_stale_price_demo_anomaly(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Inject the named stale-price field anomaly after real-market refresh."""
+    output = holdings.copy()
+    portfolio_security = output["PORT"].eq(_STALE_PRICE_DEMO_PORTFOLIO) & output[
+        "SEC"
+    ].eq(_STALE_PRICE_DEMO_SECURITY)
+    source = portfolio_security & output["HOLDING_DATE"].eq(
+        pd.Timestamp(_STALE_PRICE_SOURCE_DATE)
+    )
+    target = portfolio_security & output["HOLDING_DATE"].eq(
+        pd.Timestamp(_STALE_PRICE_TARGET_DATE)
+    )
+    if not source.any() and not target.any():
+        return output
+    if int(source.sum()) != 1 or int(target.sum()) != 1:
+        raise ValueError(
+            "Stale-price demo anomaly requires exactly one source and target "
+            f"holding for {_STALE_PRICE_DEMO_PORTFOLIO}/"
+            f"{_STALE_PRICE_DEMO_SECURITY}."
+        )
+    source_price = float(output.loc[source, "PRICE"].iloc[0])
+    output.loc[target, "PRICE"] = source_price
+    return output
 
 
 def recalibrate_holding_scenarios(

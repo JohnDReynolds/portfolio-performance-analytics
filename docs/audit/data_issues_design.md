@@ -77,6 +77,16 @@ data_issues:
         - TEST_PORTFOLIO
     absolute_tolerance: 0.01
     percent_tolerance: 0.50
+
+  large_price_variation:
+    enabled: true
+    rules:
+      - rule_id: common_stock_20_percent
+        only:
+          transactions.transaction_code: [by, sl]
+          security_reference.security_type: csus
+        minimum_calendar_days: 1
+        minimum_tolerance: 0.20
 ```
 
 Interpretation:
@@ -92,6 +102,12 @@ Interpretation:
   `security_reference.asset_class_code` in `only`.
   `transaction_security_type_mismatch` requires the exact
   `security_reference.security_type` population it compares against.
+  `holdings_stale_price` also requires that reference population plus an
+  explicit positive integer `minimum_calendar_days` threshold.
+- `large_price_variation` is off by default and uses an issue-specific nonempty
+  `rules` list. Every rule has a unique lowercase snake-case `rule_id`; optional
+  rule-level `enabled`, `only`, `exclude`, `minimum_calendar_days`, and
+  `minimum_tolerance` settings do not become controls for unrelated checks.
 - `only`: optional exact-match include filters. A row must match every listed
   field to enter the check.
 - `exclude`: optional exact-match exclude filters. A row is dropped when it
@@ -101,6 +117,12 @@ Interpretation:
   dataset-qualified names such as `holdings.security_type` and
   `transactions.transaction_code`. Optional security-master qualifiers use the
   explicit `security_reference.*` namespace.
+- Within one `large_price_variation` rule, values in a filter list are OR,
+  different `only` fields are AND, and any matching `exclude` field removes an
+  observation. `holdings.*` and `transactions.*` filters apply only to that
+  observation source, so a transaction-code population does not discard the
+  beginning and ending holdings prices. Common entity and
+  `security_reference.*` filters apply to both sources.
 - Tolerances stay per issue type because noisy fields need different limits.
 
 This section is a strict fail-closed contract. The comparison specification is
@@ -113,7 +135,10 @@ rejected before source loading or report generation when:
 - `only`/`exclude` is not a mapping, names an unsupported normalized field, or
   contains an empty or nonscalar value; or
 - a conservative opt-in check is enabled without its required nonempty `only`
-  population.
+  population; or
+- `large_price_variation` has missing, duplicate, or malformed rule IDs, a
+  malformed/nonempty-rules violation, an unknown rule key or dataset namespace,
+  a nonpositive calendar-day minimum, or an invalid decimal tolerance.
 
 Supported filter fields are `snapshot`, `portfolio`/`portfolio_id`,
 `security`/`security_id`, `security_type`, `asset_class`, and
@@ -145,13 +170,19 @@ symbol-plus-type or another composite identity, its extract must first supply a
 stable, unambiguous normalized `security_id`; PPAR must not guess between
 duplicate symbols.
 
-The ten optional checks support `enabled`, `only`, and `exclude`. Numeric
+Eleven row-level optional checks support `enabled`, `only`, and `exclude`. Numeric
 range/rate checks additionally support both tolerance keys. Duplicate,
 missing-dividend, nonpositive-price, and classification-mismatch checks do not
-accept unused tolerance keys. The two mandatory continuity blocks accept only
-absolute and percent tolerances; they cannot be disabled or filtered.
-`validate_config` prints the effective optional checks, mandatory continuity
-checks, and master-switch policy.
+accept unused tolerance keys. Only `holdings_stale_price` accepts
+`minimum_calendar_days`; it must be a positive, non-Boolean integer. The two
+mandatory continuity blocks accept only absolute and percent tolerances; they
+cannot be disabled or filtered. `validate_config` prints the effective optional
+checks, mandatory continuity checks, and master-switch policy.
+
+The twelfth optional check, `large_price_variation`, accepts only top-level
+`enabled` and `rules`. Rule IDs are output provenance and part of the review
+key. Rule defaults are one inclusive calendar day and decimal tolerance `0.20`.
+Rule order is canonicalized by ID so reordering YAML does not change output.
 
 ### Initial Checks
 
@@ -173,26 +204,48 @@ normalized datasets, and easy to explain:
    compare the transaction and snapshot-reference types using exact source
    case. The issue reports both text values in its explanation, distinguishes
    case-only differences, and does not choose which classification is correct.
-4. `holdings_price_range`: for each snapshot, security, and holding date,
+4. `holdings_stale_price`: within each snapshot, portfolio, and security in an
+   explicitly configured reference population, track an uninterrupted run of
+   supplied nonzero-quantity observations with the same positive price. Flag a
+   current observation once the run spans at least `minimum_calendar_days`.
+   The explanation names the first and current supplied dates and states that
+   PPAR did not observe every intervening day.
+5. `large_price_variation`: within each snapshot, portfolio, established
+   performance period, security, and enabled named rule, combine the ending
+   holding price from the immediately linked prior period, the current period's
+   ending holding price, and positive eligible transaction prices whose
+   normalized trade date is within the current inclusive boundaries. Missing
+   boundary holdings are allowed, but at least two comparable positive
+   observations are required. Period length is
+   `(thru_date - from_date).days + 1`; periods shorter than the rule minimum are
+   discarded. Split factors with `observation_date < split_date <= thru_date`
+   divide the earlier raw price so all observations use the period-ending share
+   basis. A split-date transaction is treated as post-split. Conflicting
+   same-date factors and nonpositive factors fail closed. The maximum variation
+   is `(maximum adjusted price - minimum adjusted price) / minimum adjusted
+   price`; equality with the tolerance does not report. Conflicting nonblank
+   price currencies are not compared. Multiple matching rules each emit one
+   independently identified row.
+6. `holdings_price_range`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.price` values across portfolios.
-5. `transactions_price_range`: for each snapshot, security, and transaction
+7. `transactions_price_range`: for each snapshot, security, and transaction
    date, compare same-day same-security `transactions.price` values across
    portfolios.
-6. `duplicate_transactions`: for each snapshot, flag exact duplicate
+8. `duplicate_transactions`: for each snapshot, flag exact duplicate
    transaction rows with the same portfolio, date, security, code, amount,
    quantity, and price.
-7. `dividend_rate`: for each snapshot, security, and dividend date, compare
+9. `dividend_rate`: for each snapshot, security, and dividend date, compare
    same-day same-security dividend rates across portfolios.
-8. `missing_dividend`: for each snapshot, security, and dividend date where at
+10. `missing_dividend`: for each snapshot, security, and dividend date where at
    least one portfolio has a dividend, flag other portfolios that
    conservatively appear eligible for that dividend. A portfolio qualifies only
    when it has positive beginning-period quantity, or positive buy activity
    before the dividend date, and has no pre-dividend transaction activity other
    than buys.
-9. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
+11. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
    same-day same-security purchase-accrued and sale-accrued rates across
    portfolios.
-10. `holdings_accrued_rate`: for each snapshot, security, and holding date,
+12. `holdings_accrued_rate`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.accrued` per unit across
    portfolios.
 
@@ -205,6 +258,21 @@ exceptions. A finding means “review this valuation or population,” not “th
 security or transaction is conclusively mispriced.” Transaction checks must
 also name the site-reviewed transaction-code population; the security reference
 qualifies that population but does not assign transaction semantics.
+
+The stale-price check is also a review signal rather than a market-data
+conclusion. It sees only supplied holding observations. It does not establish
+that the price remained unchanged on every intervening market day, and the same
+price may legitimately recur. Missing, nonpositive, and zero-quantity
+observations break an unchanged run rather than being silently skipped.
+
+The large-variation check is likewise a review signal. Missing split evidence
+can leave a mechanical raw-price discontinuity visible, but the finding does
+not conclude that a split is missing or that a legitimate market move is bad.
+The explanation identifies the named rule, inclusive period, selected minimum
+and maximum source/date evidence, adjusted prices, and any cumulative split
+factor. Ties select the earliest date, then holdings before transactions, then
+original source order. The absolute `Difference` remains `Observed Value -
+Reference Value`; the explanation carries the percentage variation.
 
 The optional security-reference dataset makes carefully scoped classification
 qualifiers available now. Continue to defer checks that require additional

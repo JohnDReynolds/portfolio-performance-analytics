@@ -285,7 +285,7 @@ def reconcile_analytics_returns(
 
     Raises:
         ValueError: If any source return differs from adjusted prices by more
-            than the hard one-percentage-point tolerance.
+            than the hard ten-basis-point tolerance.
     """
     source_rows = (
         performance.loc[

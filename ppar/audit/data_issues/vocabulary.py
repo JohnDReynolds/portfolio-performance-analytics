@@ -23,6 +23,8 @@ class DataIssueType(StrEnum):
     HOLDINGS_ACCRUED_RATE = "holdings_accrued_rate"
     HOLDINGS_NONPOSITIVE_PRICE = "holdings_nonpositive_price"
     HOLDINGS_PRICE_RANGE = "holdings_price_range"
+    HOLDINGS_STALE_PRICE = "holdings_stale_price"
+    LARGE_PRICE_VARIATION = "large_price_variation"
     MISSING_DIVIDEND = "missing_dividend"
     PA_SA_RATE = "pa_sa_rate"
     PORTFOLIO_MARKET_VALUE_CONTINUITY = "portfolio_market_value_continuity"
@@ -63,6 +65,8 @@ class DataIssueDefinition:
         reviewer_meaning: Concise, non-conclusive meaning for a reviewer.
         requires_only_filter: Whether explicit enablement requires a nonempty
             ``only`` population filter.
+        supports_minimum_calendar_days: Whether the check accepts a positive
+            integer calendar-day threshold in YAML.
     """
 
     category: DataIssueCategory
@@ -73,6 +77,7 @@ class DataIssueDefinition:
     supports_percent_tolerance: bool
     reviewer_meaning: str
     requires_only_filter: bool = False
+    supports_minimum_calendar_days: bool = False
 
 
 _NUMERIC_CHECK = {
@@ -129,6 +134,32 @@ DATA_ISSUE_REGISTRY: Final[
             required_datasets=("holdings",),
             **_NUMERIC_CHECK,
             reviewer_meaning="Same-day holdings prices differ across portfolios.",
+        ),
+        DataIssueType.HOLDINGS_STALE_PRICE: DataIssueDefinition(
+            category=DataIssueCategory.PRICE,
+            mandatory=False,
+            default_enabled=False,
+            required_datasets=("holdings", "security_reference"),
+            supports_absolute_tolerance=False,
+            supports_percent_tolerance=False,
+            reviewer_meaning=(
+                "The same positive holding price recurs across supplied holding "
+                "observations for at least the configured calendar-day threshold."
+            ),
+            requires_only_filter=True,
+            supports_minimum_calendar_days=True,
+        ),
+        DataIssueType.LARGE_PRICE_VARIATION: DataIssueDefinition(
+            category=DataIssueCategory.PRICE,
+            mandatory=False,
+            default_enabled=False,
+            required_datasets=("portfolio_performance",),
+            supports_absolute_tolerance=False,
+            supports_percent_tolerance=False,
+            reviewer_meaning=(
+                "Split-normalized holding and transaction prices vary beyond a "
+                "named rule's minimum tolerance within one portfolio period."
+            ),
         ),
         DataIssueType.MISSING_DIVIDEND: DataIssueDefinition(
             category=DataIssueCategory.INCOME,

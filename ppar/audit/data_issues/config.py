@@ -5,6 +5,7 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Mapping
 import math
+import re
 from typing import Final
 
 # Project imports
@@ -22,6 +23,11 @@ _ONLY_KEY: Final[str] = "only"
 _EXCLUDE_KEY: Final[str] = "exclude"
 _ABSOLUTE_TOLERANCE_KEY: Final[str] = "absolute_tolerance"
 _PERCENT_TOLERANCE_KEY: Final[str] = "percent_tolerance"
+_MINIMUM_CALENDAR_DAYS_KEY: Final[str] = "minimum_calendar_days"
+_MINIMUM_TOLERANCE_KEY: Final[str] = "minimum_tolerance"
+_RULES_KEY: Final[str] = "rules"
+_RULE_ID_KEY: Final[str] = "rule_id"
+_RULE_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[a-z][a-z0-9_]*$")
 _OPTIONAL_CHECK_KEYS: Final[frozenset[str]] = frozenset(
     {_ENABLED_KEY, _ONLY_KEY, _EXCLUDE_KEY}
 )
@@ -134,15 +140,26 @@ def security_reference_filter_fields(
         raw_check = raw_config.get(issue_type.value)
         if not isinstance(raw_check, Mapping):
             continue
-        for filter_key in (_ONLY_KEY, _EXCLUDE_KEY):
-            raw_filter = raw_check.get(filter_key)
-            if not isinstance(raw_filter, Mapping):
-                continue
-            for field_name in raw_filter:
-                normalized = str(field_name).strip().lower()
-                prefix = "security_reference."
-                if normalized.startswith(prefix):
-                    fields.add(normalized.removeprefix(prefix))
+        filter_owners: list[Mapping[object, object]] = [raw_check]
+        if issue_type is DataIssueType.LARGE_PRICE_VARIATION:
+            raw_rules = raw_check.get(_RULES_KEY, [])
+            filter_owners = []
+            if isinstance(raw_rules, list):
+                filter_owners = [
+                    rule
+                    for rule in raw_rules
+                    if isinstance(rule, Mapping)
+                    and rule.get(_ENABLED_KEY, True) is not False
+                ]
+        for owner in filter_owners:
+            for raw_filter in (owner.get(_ONLY_KEY), owner.get(_EXCLUDE_KEY)):
+                if not isinstance(raw_filter, Mapping):
+                    continue
+                for field_name in raw_filter:
+                    normalized = str(field_name).strip().lower()
+                    prefix = "security_reference."
+                    if normalized.startswith(prefix):
+                        fields.add(normalized.removeprefix(prefix))
     return frozenset(fields)
 
 
@@ -184,7 +201,7 @@ def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object
             "mandatory continuity checks remain active; "
             + (
                 "established optional checks are enabled by default; conservative "
-                "checks require explicit enablement and an only filter"
+                "checks require explicit enablement and issue-specific scope"
                 if optional_master_enabled
                 else "optional checks are disabled"
             )
@@ -204,6 +221,10 @@ def _validate_check(
     if not isinstance(raw_check, Mapping):
         raise ValueError(f"{path} must be a mapping.")
 
+    if issue_type is DataIssueType.LARGE_PRICE_VARIATION:
+        _validate_large_price_variation(raw_check, path)
+        return
+
     supported_keys = _supported_check_keys(definition)
     unsupported_keys = sorted(str(key) for key in raw_check if key not in supported_keys)
     if unsupported_keys:
@@ -217,6 +238,11 @@ def _validate_check(
     for tolerance_key in (_ABSOLUTE_TOLERANCE_KEY, _PERCENT_TOLERANCE_KEY):
         if tolerance_key in raw_check:
             _validate_tolerance(raw_check[tolerance_key], f"{path}.{tolerance_key}")
+    if _MINIMUM_CALENDAR_DAYS_KEY in raw_check:
+        _validate_positive_integer(
+            raw_check[_MINIMUM_CALENDAR_DAYS_KEY],
+            f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY}",
+        )
     if definition.requires_only_filter and raw_check.get(_ENABLED_KEY) is True:
         only_filter = raw_check.get(_ONLY_KEY)
         if not isinstance(only_filter, Mapping) or not only_filter:
@@ -233,6 +259,109 @@ def _validate_check(
         and raw_check.get(_ENABLED_KEY) is True
     ):
         _validate_security_type_comparison_population(raw_check, path)
+    if (
+        issue_type is DataIssueType.HOLDINGS_STALE_PRICE
+        and raw_check.get(_ENABLED_KEY) is True
+    ):
+        _validate_stale_price_population(raw_check, path)
+
+
+def _validate_large_price_variation(
+    raw_check: Mapping[object, object],
+    path: str,
+) -> None:
+    """Validate the issue-specific named-rule configuration."""
+    supported_keys = {_ENABLED_KEY, _RULES_KEY}
+    unsupported_keys = sorted(
+        str(key) for key in raw_check if key not in supported_keys
+    )
+    if unsupported_keys:
+        raise ValueError(f"{path} has unsupported keys: {', '.join(unsupported_keys)}.")
+    if _ENABLED_KEY in raw_check:
+        _validate_boolean(raw_check[_ENABLED_KEY], f"{path}.{_ENABLED_KEY}")
+
+    raw_rules = raw_check.get(_RULES_KEY)
+    if raw_rules is None:
+        if raw_check.get(_ENABLED_KEY) is True:
+            raise ValueError(f"{path}.rules is required when {path}.enabled is true.")
+        return
+    if not isinstance(raw_rules, list) or not raw_rules:
+        raise ValueError(f"{path}.rules must be a nonempty list.")
+
+    rule_ids: set[str] = set()
+    for index, raw_rule in enumerate(raw_rules):
+        rule_path = f"{path}.rules[{index}]"
+        if not isinstance(raw_rule, Mapping):
+            raise ValueError(f"{rule_path} must be a mapping.")
+        _validate_large_price_variation_rule(raw_rule, rule_path)
+        rule_id = str(raw_rule[_RULE_ID_KEY])
+        if rule_id in rule_ids:
+            raise ValueError(f"{path}.rules has duplicate rule_id {rule_id!r}.")
+        rule_ids.add(rule_id)
+
+
+def _validate_large_price_variation_rule(
+    raw_rule: Mapping[object, object],
+    path: str,
+) -> None:
+    """Validate one named large-price-variation rule."""
+    supported_keys = {
+        _RULE_ID_KEY,
+        _ENABLED_KEY,
+        _ONLY_KEY,
+        _EXCLUDE_KEY,
+        _MINIMUM_CALENDAR_DAYS_KEY,
+        _MINIMUM_TOLERANCE_KEY,
+    }
+    unsupported_keys = sorted(
+        str(key) for key in raw_rule if key not in supported_keys
+    )
+    if unsupported_keys:
+        raise ValueError(f"{path} has unsupported keys: {', '.join(unsupported_keys)}.")
+
+    rule_id = raw_rule.get(_RULE_ID_KEY)
+    if not isinstance(rule_id, str) or not _RULE_ID_PATTERN.fullmatch(rule_id):
+        raise ValueError(
+            f"{path}.rule_id must be a lowercase snake-case identifier."
+        )
+    if _ENABLED_KEY in raw_rule:
+        _validate_boolean(raw_rule[_ENABLED_KEY], f"{path}.enabled")
+    for filter_key in (_ONLY_KEY, _EXCLUDE_KEY):
+        if filter_key in raw_rule:
+            _validate_filter(raw_rule[filter_key], f"{path}.{filter_key}")
+            _validate_large_price_filter_names(
+                raw_rule[filter_key],
+                f"{path}.{filter_key}",
+            )
+    if _MINIMUM_CALENDAR_DAYS_KEY in raw_rule:
+        _validate_positive_integer(
+            raw_rule[_MINIMUM_CALENDAR_DAYS_KEY],
+            f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY}",
+        )
+    if _MINIMUM_TOLERANCE_KEY in raw_rule:
+        _validate_tolerance(
+            raw_rule[_MINIMUM_TOLERANCE_KEY],
+            f"{path}.{_MINIMUM_TOLERANCE_KEY}",
+        )
+
+
+def _validate_large_price_filter_names(value: object, path: str) -> None:
+    """Restrict dataset-qualified filters to the two observation sources."""
+    if not isinstance(value, Mapping):
+        return
+    supported_namespaces = {
+        "holdings",
+        "transactions",
+        "security_reference",
+    }
+    for field_name in value:
+        normalized = str(field_name).strip().lower()
+        namespace, separator, _ = normalized.rpartition(".")
+        if separator and namespace not in supported_namespaces:
+            raise ValueError(
+                f"{path}.{field_name} uses unsupported dataset namespace "
+                f"{namespace!r}."
+            )
 
 
 def _validate_priced_transaction_population(
@@ -273,6 +402,28 @@ def _validate_security_type_comparison_population(
         )
 
 
+def _validate_stale_price_population(
+    raw_check: Mapping[object, object],
+    path: str,
+) -> None:
+    """Require an explicit reference population and calendar-day threshold."""
+    raw_only = raw_check.get(_ONLY_KEY)
+    only_filter = raw_only if isinstance(raw_only, Mapping) else {}
+    normalized_fields = {
+        _normalized_filter_field_name(str(field_name)) for field_name in only_filter
+    }
+    required_field = "security_reference.security_type"
+    if required_field not in normalized_fields:
+        raise ValueError(
+            f"{path}.only must include {required_field} when {path}.enabled is true."
+        )
+    if _MINIMUM_CALENDAR_DAYS_KEY not in raw_check:
+        raise ValueError(
+            f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY} is required when "
+            f"{path}.enabled is true."
+        )
+
+
 def _normalized_filter_field_name(field_name: str) -> str:
     """Return a canonical native or security-reference filter field name."""
     normalized = field_name.strip().lower()
@@ -288,6 +439,8 @@ def _supported_check_keys(definition: DataIssueDefinition) -> frozenset[str]:
         keys.add(_ABSOLUTE_TOLERANCE_KEY)
     if definition.supports_percent_tolerance:
         keys.add(_PERCENT_TOLERANCE_KEY)
+    if definition.supports_minimum_calendar_days:
+        keys.add(_MINIMUM_CALENDAR_DAYS_KEY)
     return frozenset(keys)
 
 
@@ -306,6 +459,12 @@ def _validate_tolerance(value: object, path: str) -> None:
         or float(value) < 0.0
     ):
         raise ValueError(f"{path} must be a finite nonnegative number.")
+
+
+def _validate_positive_integer(value: object, path: str) -> None:
+    """Require a positive, non-Boolean integer."""
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{path} must be a positive integer.")
 
 
 def _validate_filter(value: object, path: str) -> None:

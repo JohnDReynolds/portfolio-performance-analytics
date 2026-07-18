@@ -4,8 +4,8 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Slice 3C implemented; founder output review active |
-| Version | 1.2 |
+| Status | Active MVP implementation plan — Slice 3E implemented; founder output review active |
+| Version | 1.4 |
 | Date | 2026-07-18 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Product roadmap | [`roadmap.md`](roadmap.md) |
@@ -56,13 +56,15 @@ retain their prior relative order, schemas, and financial semantics.
 
 ## 2.2 Current Data Issues vocabulary
 
-The current code has ten optional issue-type strings:
+The current code has twelve optional issue-type strings:
 
 - `duplicate_transactions`
 - `dividend_rate`
 - `holdings_accrued_rate`
 - `holdings_nonpositive_price`
 - `holdings_price_range`
+- `holdings_stale_price`
+- `large_price_variation`
 - `missing_dividend`
 - `pa_sa_rate`
 - `transaction_security_type_mismatch`
@@ -78,12 +80,18 @@ These values now serialize through public `DataIssueType` members without
 changing their strings. `DATA_ISSUE_REGISTRY` carries the category,
 mandatory/default enablement, required datasets, tolerance applicability, and
 reviewer meaning for every implemented issue type. The conservative
-`holdings_nonpositive_price`, `transactions_nonpositive_price`, and
-`transaction_security_type_mismatch` are off by default. All require a nonempty
-`only` population when explicitly enabled. The transaction-price check also
-requires a transaction-code filter and a reviewed security-reference type or
-asset-class qualifier. The mismatch check requires the reviewed
-`security_reference.security_type` population it compares against.
+`holdings_nonpositive_price`, `holdings_stale_price`,
+`large_price_variation`, `transactions_nonpositive_price`, and
+`transaction_security_type_mismatch` are off by default. The row-level checks
+require a nonempty `only` population when explicitly enabled. The stale-price
+check also requires an explicit positive
+`minimum_calendar_days` and reviewed `security_reference.security_type`
+population. The transaction-price check requires a transaction-code filter and
+a reviewed security-reference type or asset-class qualifier. The mismatch
+check requires the reviewed `security_reference.security_type` population it
+compares against. `large_price_variation` instead requires a nonempty list of
+uniquely identified rules when enabled; each rule may define its own filters,
+inclusive-period minimum days, and decimal minimum variation tolerance.
 
 ## 2.3 Current cause vocabulary
 
@@ -110,6 +118,11 @@ Users can already control each optional Data Issues check through:
 - exact-match `exclude` filters;
 - `absolute_tolerance`; and
 - `percent_tolerance`.
+
+The issue-specific `large_price_variation` block adds uniquely identified
+named rules with rule-level filters, inclusive `minimum_calendar_days`, and a
+decimal `minimum_tolerance`. It does not make named rules available to unrelated
+checks.
 
 YAML also controls transaction semantics, impact methods, evidence-only fields,
 tolerances, and suppressions.
@@ -358,12 +371,32 @@ These should initially require narrow, visible YAML populations or exclusions.
 Worthless securities, cash conventions, accrued-only rows, shorts, derivatives,
 and vendor-specific valuation representations are known false-positive risks.
 
-## 6.3 Deferred candidates
+## 6.3 Revisited price-observation checks and remaining deferred candidates
 
-Do not include in the first MVP batch without stronger source evidence:
+The founder approved two previously deferred price-observation checks after the
+packaged demo adopted dated real-market prices, dividends, and splits:
 
-- stale-price conclusions;
-- extreme price-change conclusions without split/corporate-action handling;
+1. **`holdings_stale_price` — implemented for Slice 3D review.** Within an
+   explicitly configured population, the same positive `holdings.price` recurs
+   across supplied observations for at least `minimum_calendar_days`. The rule
+   states that PPAR did not observe every intervening day and does not conclude
+   that an unchanged price is necessarily wrong.
+2. **`large_price_variation` — implemented for Slice 3E review.** For each
+   snapshot, portfolio, established performance period, security, and named
+   rule, union the linked previous-period ending `holdings.price`, current
+   period-ending `holdings.price`, and eligible `transactions.price` rows whose
+   trade dates fall on either inclusive period boundary or between them. Prices
+   are normalized to the period-ending share basis using same-snapshot split
+   factors. The rule reports one maximum variation when
+   `(maximum - minimum) / minimum` strictly exceeds `minimum_tolerance`.
+   `minimum_calendar_days` uses inclusive day count
+   `(thru_date - from_date) + 1`. Defaults are one calendar day and decimal
+   tolerance `0.20`. The packaged rule reports real AVGO movements, including
+   the 20.04 percent BALANCED observation supported by the current dated source
+   values. A raw discontinuity remains visible when split evidence is missing.
+
+The following remain deferred without stronger source evidence:
+
 - amount-versus-price-times-quantity transaction arithmetic across mixed asset
   types;
 - missing corporate actions or spin-offs;
@@ -372,13 +405,16 @@ Do not include in the first MVP batch without stronger source evidence:
 - broad security-master validation.
 
 These may become valuable later, but their false-positive and source-contract
-surface is too large for an initial bounded implementation.
+surface remains too large for the current bounded implementation.
 
 ## 6.4 Acceptance
 
 - Each approved issue type is an enum/registry member.
 - Each has a packaged fixture or focused validation fixture with expected rows.
-- YAML enable/disable, filter, and tolerance behavior is fail closed and tested.
+- YAML enable/disable, filter, tolerance, and issue-specific threshold behavior
+  is fail closed and tested.
+- Named large-price-variation rules retain unique provenance and emit one row
+  per matching rule rather than applying hidden precedence or de-duplication.
 - Reviewer output includes stable issue type, category, observed values,
   tolerance, explanation, and review key.
 - No new issue changes `Performance Difference Explained`, residual, or
@@ -407,8 +443,8 @@ The following additional demo scenarios are defensible with that boundary:
    `holdings_accrued_rate` and `pa_sa_rate` configurations include a reviewed
    fixed-income asset-class qualifier without changing either rate calculation
    or transaction meaning.
-3. **Transaction-versus-reference security-type mismatch — implemented for
-   Slice 3C review.** The opt-in `transaction_security_type_mismatch` issue
+3. **Transaction-versus-reference security-type mismatch — founder accepted.**
+   The opt-in `transaction_security_type_mismatch` issue
    compares the transaction row's exact-case `security_type` with the snapshot
    security reference for the same exact-case security identifier. This is not
    expressible as a field-to-field comparison with today's filters and
@@ -620,13 +656,16 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
   `transactions_nonpositive_price`, requiring transaction-code and reviewed
   security-reference populations, and reference-scoped the existing fixed-
   income rate checks.
-- **Slice 3C — implemented for founder review:** added the exact-case
+- **Slice 3C — founder accepted:** added the exact-case
   `transaction_security_type_mismatch` issue defined in Section 6.5 with an
   isolated case-only demo row in each snapshot.
-- After founder review of Slice 3C, close Slice 3 and proceed to Slice 4 rather
-  than expanding the issue catalog.
-- Stale-price and large-price-change conclusions remain deferred under Section
-  6.3 until their observation-grain and corporate-action contracts are approved.
+- **Slice 3D — implemented:** added the opt-in
+  `holdings_stale_price` observed-date rule with a strict calendar-day threshold
+  and an isolated two-snapshot GOOGL source-price anomaly.
+- **Slice 3E — implemented for founder review:** added split-normalized,
+  period-level `large_price_variation` with uniquely identified overlapping
+  rules, scalar-or-list source filters, inclusive period days, strict decimal
+  thresholds, deterministic evidence selection, and real AVGO demo findings.
 
 ## Slice 4 — Required current-capability Axys/APX scenarios
 

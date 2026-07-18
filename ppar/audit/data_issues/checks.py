@@ -29,6 +29,7 @@ from ppar.audit.portfolio_performance import (
 )
 from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.security_reference import SecurityReferenceLoader
+from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import AuditSpecification
 from ppar.audit.transactions import TransactionsLoader
 from ppar.audit.data_issues.vocabulary import DATA_ISSUE_REGISTRY, DataIssueType
@@ -52,6 +53,10 @@ ISSUE_HOLDINGS_NONPOSITIVE_PRICE: Final[str] = (
     DataIssueType.HOLDINGS_NONPOSITIVE_PRICE.value
 )
 ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = DataIssueType.HOLDINGS_PRICE_RANGE.value
+ISSUE_HOLDINGS_STALE_PRICE: Final[str] = DataIssueType.HOLDINGS_STALE_PRICE.value
+ISSUE_LARGE_PRICE_VARIATION: Final[str] = (
+    DataIssueType.LARGE_PRICE_VARIATION.value
+)
 ISSUE_MISSING_DIVIDEND: Final[str] = DataIssueType.MISSING_DIVIDEND.value
 ISSUE_PA_SA_RATE: Final[str] = DataIssueType.PA_SA_RATE.value
 ISSUE_PORTFOLIO_MV_CONTINUITY: Final[str] = (
@@ -110,6 +115,7 @@ _HOLDING_FILTER_ISSUES: Final[frozenset[str]] = frozenset(
         ISSUE_HOLDINGS_ACCRUED_RATE,
         ISSUE_HOLDINGS_NONPOSITIVE_PRICE,
         ISSUE_HOLDINGS_PRICE_RANGE,
+        ISSUE_HOLDINGS_STALE_PRICE,
     }
 )
 _TRANSACTION_FILTER_ISSUES: Final[frozenset[str]] = frozenset(
@@ -225,6 +231,50 @@ class _RowFilter:
         return not any(condition.matches(row) for condition in self.exclude)
 
 
+@dataclass(frozen=True)
+class _LargePriceVariationRule:
+    """One validated named rule for period-level price observations.
+
+    Attributes:
+        rule_id: Stable configuration and review-key identity.
+        minimum_calendar_days: Minimum inclusive performance-period length.
+        minimum_tolerance: Minimum decimal price variation, such as ``0.20``.
+        holdings_filter: Filters applicable to holdings observations.
+        transactions_filter: Filters applicable to transaction observations.
+    """
+
+    rule_id: str
+    minimum_calendar_days: int
+    minimum_tolerance: float
+    holdings_filter: _RowFilter
+    transactions_filter: _RowFilter
+
+
+@dataclass(frozen=True)
+class _PriceObservation:
+    """One raw and split-normalized comparable price observation.
+
+    Attributes:
+        observation_date: Holding valuation date or transaction trade date.
+        source: Reviewer-facing source and boundary meaning.
+        source_rank: Stable tie-break rank; holdings precede transactions.
+        source_order: Original row order within the loaded snapshot union.
+        raw_price: Positive source price before split normalization.
+        adjusted_price: Price expressed on the performance-period ending basis.
+        cumulative_split_factor: Product applied to the raw price.
+        currency: Normalized source price currency, when supplied.
+    """
+
+    observation_date: dt.date
+    source: str
+    source_rank: int
+    source_order: int
+    raw_price: float
+    adjusted_price: float
+    cumulative_split_factor: float
+    currency: str
+
+
 def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     """Return source-data consistency issues for an Audit YAML file.
 
@@ -298,9 +348,24 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
                 dataset_name=pc_cols.TRANSACTIONS,
                 specification=specification,
             )
+    split_rows: tuple[dict[str, object], ...] = ()
+    if _check_enabled(config, ISSUE_LARGE_PRICE_VARIATION):
+        split_rows = _snapshot_rows(
+            _snapshot_frames(SplitsLoader(specification), pc_cols.SPLITS)
+        )
     rows.extend(_duplicate_transaction_issues(transaction_rows, config))
     rows.extend(_holdings_nonpositive_price_issues(holding_rows, config))
     rows.extend(_holding_price_range_issues(holding_rows, config))
+    rows.extend(_holdings_stale_price_issues(holding_rows, config))
+    rows.extend(
+        _large_price_variation_issues(
+            _snapshot_rows(portfolio_performance),
+            holding_rows,
+            transaction_rows,
+            split_rows,
+            config,
+        )
+    )
     rows.extend(_transaction_security_type_mismatch_issues(transaction_rows, config))
     rows.extend(_transactions_nonpositive_price_issues(transaction_rows, config))
     rows.extend(_transaction_price_range_issues(transaction_rows, config))
@@ -511,6 +576,15 @@ def _security_reference_requirements(
         if not _check_enabled(config, check_name):
             continue
         fields = _security_reference_filter_fields(_check_config(config, check_name))
+        if check_name == ISSUE_LARGE_PRICE_VARIATION:
+            fields = frozenset(
+                field
+                for rule_config in _large_price_variation_rule_configs(config)
+                for field in _security_reference_filter_fields(rule_config)
+            )
+            requirements[pc_cols.HOLDINGS].update(fields)
+            requirements[pc_cols.TRANSACTIONS].update(fields)
+            continue
         if check_name in _HOLDING_FILTER_ISSUES:
             requirements[pc_cols.HOLDINGS].update(fields)
         if check_name in _TRANSACTION_FILTER_ISSUES:
@@ -657,6 +731,17 @@ def _tolerance(config: Mapping[str, object], check_name: str) -> _Tolerance:
             _DEFAULT_PERCENT_TOLERANCE,
         ),
     )
+
+
+def _minimum_calendar_days(
+    config: Mapping[str, object],
+    check_name: str,
+) -> int:
+    """Return a validated observed-price calendar-day threshold."""
+    value = _check_config(config, check_name).get("minimum_calendar_days", 28)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return 28
+    return value
 
 
 def _float_config(
@@ -848,6 +933,555 @@ def _transaction_price_range_issues(
         issue_type=ISSUE_TRANSACTIONS_PRICE_RANGE,
         explanation_prefix="Same-day same-security transactions.price",
     )
+
+
+def _holdings_stale_price_issues(
+    holdings: Sequence[Mapping[str, object]],
+    config: Mapping[str, object],
+) -> list[dict[str, object]]:
+    """Return unchanged positive prices spanning the configured observed period."""
+    check_name = ISSUE_HOLDINGS_STALE_PRICE
+    if not _check_enabled(config, check_name):
+        return []
+
+    row_filter = _row_filter(config, check_name)
+    grouped = _holdings_by_portfolio_security(
+        row for row in holdings if row_filter.allows(row)
+    )
+    minimum_days = _minimum_calendar_days(config, check_name)
+    issues: list[dict[str, object]] = []
+    for rows in grouped.values():
+        unchanged_start_date: dt.date | None = None
+        unchanged_price: float | None = None
+        for row in rows:
+            holding_date = _date(row.get(pc_cols.HOLDING_DATE))
+            price = _number(row.get(pc_cols.PRICE))
+            quantity = _number(row.get(pc_cols.QUANTITY))
+            if (
+                holding_date is None
+                or price is None
+                or price <= 0
+                or quantity is None
+                or quantity == 0
+            ):
+                unchanged_start_date = None
+                unchanged_price = None
+                continue
+            if unchanged_price != price or unchanged_start_date is None:
+                unchanged_start_date = holding_date
+                unchanged_price = price
+                continue
+            elapsed_days = (holding_date - unchanged_start_date).days
+            if elapsed_days < minimum_days:
+                continue
+            security_id = _text(row.get(pc_cols.SECURITY_ID))
+            issues.append(
+                _issue_row(
+                    snapshot=_text(row.get(SNAPSHOT)),
+                    portfolio_id=_text(row.get(pc_cols.PORTFOLIO_ID)),
+                    as_of_date=holding_date,
+                    dataset_field="holdings.price",
+                    security_id=security_id,
+                    issue_type=check_name,
+                    value_a=unchanged_price,
+                    value_b=price,
+                    difference=0.0,
+                    tolerance=(
+                        f"unchanged for at least {minimum_days} calendar days"
+                    ),
+                    explanation=(
+                        f"The same holdings.price {price:g} was observed for "
+                        f"{security_id} on {unchanged_start_date.isoformat()} and "
+                        f"{holding_date.isoformat()}, {elapsed_days} calendar days "
+                        "apart. PPAR did not observe every intervening day; review "
+                        "whether the later price is stale or intentionally unchanged."
+                    ),
+                )
+            )
+    return issues
+
+
+def _large_price_variation_issues(
+    periods: Sequence[Mapping[str, object]],
+    holdings: Sequence[Mapping[str, object]],
+    transactions: Sequence[Mapping[str, object]],
+    splits: Sequence[Mapping[str, object]],
+    config: Mapping[str, object],
+) -> list[dict[str, object]]:
+    """Return maximum split-normalized price variation per named rule and period."""
+    check_name = ISSUE_LARGE_PRICE_VARIATION
+    if not _check_enabled(config, check_name):
+        return []
+
+    rules = _large_price_variation_rules(config)
+    if not rules:
+        return []
+    period_scopes = _rows_by_portfolio_scope(periods)
+    holding_scopes = _indexed_rows_by_portfolio_security(holdings)
+    transaction_scopes = _indexed_rows_by_portfolio_security(transactions)
+    split_index = _split_factor_index(splits)
+
+    issues: list[dict[str, object]] = []
+    for scope in sorted(period_scopes):
+        snapshot, portfolio_id = scope
+        holding_securities = holding_scopes.get(scope, {})
+        transaction_securities = transaction_scopes.get(scope, {})
+        security_ids = sorted(
+            set(holding_securities).union(transaction_securities)
+        )
+        prior_thru_date: dt.date | None = None
+        for period in period_scopes[scope]:
+            from_date = _date(period.get(pc_cols.FROM_DATE))
+            thru_date = _date(period.get(pc_cols.THRU_DATE))
+            if from_date is None or thru_date is None or thru_date < from_date:
+                prior_thru_date = thru_date
+                continue
+            beginning_holding_date = (
+                prior_thru_date
+                if prior_thru_date is not None
+                and from_date == prior_thru_date + dt.timedelta(days=1)
+                else None
+            )
+            inclusive_period_days = (thru_date - from_date).days + 1
+            prior_thru_date = thru_date
+
+            for rule in rules:
+                if inclusive_period_days < rule.minimum_calendar_days:
+                    continue
+                for security_id in security_ids:
+                    observations = _period_price_observations(
+                        holding_securities.get(security_id, ()),
+                        transaction_securities.get(security_id, ()),
+                        split_index.get((snapshot, security_id), ()),
+                        rule,
+                        beginning_holding_date=beginning_holding_date,
+                        from_date=from_date,
+                        thru_date=thru_date,
+                    )
+                    if len(observations) < 2:
+                        continue
+                    currencies = {
+                        observation.currency
+                        for observation in observations
+                        if observation.currency
+                    }
+                    if len(currencies) > 1:
+                        # Raw prices in different currencies are not comparable.
+                        continue
+                    minimum = min(
+                        observations,
+                        key=_minimum_price_observation_key,
+                    )
+                    maximum = min(
+                        observations,
+                        key=_maximum_price_observation_key,
+                    )
+                    price_difference = maximum.adjusted_price - minimum.adjusted_price
+                    variation = price_difference / minimum.adjusted_price
+                    if variation <= rule.minimum_tolerance:
+                        continue
+                    dataset_field = " + ".join(
+                        sorted(
+                            {
+                                (
+                                    "transactions.price"
+                                    if observation.source_rank
+                                    else "holdings.price"
+                                )
+                                for observation in observations
+                            }
+                        )
+                    )
+                    issues.append(
+                        _issue_row(
+                            snapshot=snapshot,
+                            portfolio_id=portfolio_id,
+                            as_of_date=thru_date,
+                            dataset_field=dataset_field,
+                            security_id=security_id,
+                            issue_type=check_name,
+                            value_a=minimum.adjusted_price,
+                            value_b=maximum.adjusted_price,
+                            difference=price_difference,
+                            tolerance=(
+                                f"rule {rule.rule_id}: variation > "
+                                f"{_decimal_percent_text(rule.minimum_tolerance)}"
+                            ),
+                            explanation=_large_price_variation_explanation(
+                                rule,
+                                minimum,
+                                maximum,
+                                observations,
+                                from_date=from_date,
+                                thru_date=thru_date,
+                                inclusive_period_days=inclusive_period_days,
+                                variation=variation,
+                            ),
+                            review_identity=f"rule:{rule.rule_id}",
+                        )
+                    )
+    return issues
+
+
+def _large_price_variation_rules(
+    config: Mapping[str, object],
+) -> tuple[_LargePriceVariationRule, ...]:
+    """Compile enabled named rules in canonical rule-ID order."""
+    rules: list[_LargePriceVariationRule] = []
+    for raw_rule in _large_price_variation_rule_configs(config):
+        rule_id = _text(raw_rule.get("rule_id"))
+        minimum_days = raw_rule.get("minimum_calendar_days", 1)
+        minimum_tolerance = raw_rule.get("minimum_tolerance", 0.20)
+        if (
+            not rule_id
+            or isinstance(minimum_days, bool)
+            or not isinstance(minimum_days, int)
+            or minimum_days <= 0
+            or isinstance(minimum_tolerance, bool)
+            or not isinstance(minimum_tolerance, (int, float))
+        ):
+            continue
+        rules.append(
+            _LargePriceVariationRule(
+                rule_id=rule_id,
+                minimum_calendar_days=minimum_days,
+                minimum_tolerance=float(minimum_tolerance),
+                holdings_filter=_large_price_variation_filter(
+                    raw_rule,
+                    pc_cols.HOLDINGS,
+                ),
+                transactions_filter=_large_price_variation_filter(
+                    raw_rule,
+                    pc_cols.TRANSACTIONS,
+                ),
+            )
+        )
+    return tuple(rules)
+
+
+def _large_price_variation_rule_configs(
+    config: Mapping[str, object],
+) -> tuple[Mapping[str, object], ...]:
+    """Return enabled named-rule mappings in canonical rule-ID order."""
+    check_config = _check_config(config, ISSUE_LARGE_PRICE_VARIATION)
+    raw_rules = check_config.get("rules", [])
+    if not isinstance(raw_rules, list):
+        return ()
+    rules = [
+        rule
+        for rule in raw_rules
+        if isinstance(rule, Mapping) and rule.get("enabled", True) is not False
+    ]
+    return tuple(sorted(rules, key=lambda rule: _text(rule.get("rule_id"))))
+
+
+def _large_price_variation_filter(
+    rule_config: Mapping[str, object],
+    dataset_name: str,
+) -> _RowFilter:
+    """Compile filters relevant to one side of the observation union."""
+    return _RowFilter(
+        only=_compiled_filters(
+            _source_filter_mapping(rule_config.get("only", {}), dataset_name)
+        ),
+        exclude=_compiled_filters(
+            _source_filter_mapping(rule_config.get("exclude", {}), dataset_name)
+        ),
+    )
+
+
+def _source_filter_mapping(
+    filter_config: object,
+    dataset_name: str,
+) -> dict[str, object]:
+    """Return generic and source-specific filters applicable to one dataset."""
+    return {
+        field_name: raw_values
+        for field_name, raw_values in _filter_mapping(filter_config)
+        if _filter_applies_to_source(field_name, dataset_name)
+    }
+
+
+def _filter_applies_to_source(field_name: str, dataset_name: str) -> bool:
+    """Return whether a rule filter qualifies this observation source."""
+    normalized = field_name.strip().lower()
+    namespace, separator, normalized_name = normalized.rpartition(".")
+    if separator and namespace in {pc_cols.HOLDINGS, pc_cols.TRANSACTIONS}:
+        return namespace == dataset_name
+    if not separator and normalized_name == pc_cols.TRANSACTION_CODE:
+        return dataset_name == pc_cols.TRANSACTIONS
+    return True
+
+
+def _rows_by_portfolio_scope(
+    rows: Sequence[Mapping[str, object]],
+) -> dict[tuple[str, str], tuple[Mapping[str, object], ...]]:
+    """Group rows by snapshot and portfolio in canonical period order."""
+    grouped: dict[tuple[str, str], list[Mapping[str, object]]] = {}
+    for row in rows:
+        key = (
+            _text(row.get(SNAPSHOT)),
+            _text(row.get(pc_cols.PORTFOLIO_ID)),
+        )
+        grouped.setdefault(key, []).append(row)
+    return {
+        key: tuple(
+            sorted(
+                scope_rows,
+                key=lambda row: (
+                    _date(row.get(pc_cols.FROM_DATE)) or dt.date.max,
+                    _date(row.get(pc_cols.THRU_DATE)) or dt.date.max,
+                ),
+            )
+        )
+        for key, scope_rows in grouped.items()
+    }
+
+
+def _indexed_rows_by_portfolio_security(
+    rows: Sequence[Mapping[str, object]],
+) -> dict[
+    tuple[str, str],
+    dict[str, tuple[tuple[int, Mapping[str, object]], ...]],
+]:
+    """Index source rows by snapshot, portfolio, security, and source order."""
+    grouped: dict[
+        tuple[str, str],
+        dict[str, list[tuple[int, Mapping[str, object]]]],
+    ] = {}
+    for source_order, row in enumerate(rows):
+        scope = (
+            _text(row.get(SNAPSHOT)),
+            _text(row.get(pc_cols.PORTFOLIO_ID)),
+        )
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        if not security_id:
+            continue
+        grouped.setdefault(scope, {}).setdefault(security_id, []).append(
+            (source_order, row)
+        )
+    return {
+        scope: {
+            security_id: tuple(security_rows)
+            for security_id, security_rows in securities.items()
+        }
+        for scope, securities in grouped.items()
+    }
+
+
+def _split_factor_index(
+    splits: Sequence[Mapping[str, object]],
+) -> dict[tuple[str, str], tuple[tuple[dt.date, float], ...]]:
+    """Return one positive split factor per snapshot, security, and date."""
+    grouped: dict[tuple[str, str], dict[dt.date, float]] = {}
+    for row in splits:
+        snapshot = _text(row.get(SNAPSHOT))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        split_date = _date(row.get(pc_cols.SPLIT_DATE))
+        split_factor = _number(row.get(pc_cols.SPLIT_FACTOR))
+        if not snapshot or not security_id or split_date is None:
+            continue
+        if split_factor is None or split_factor <= 0:
+            raise PpaError(
+                "large_price_variation requires positive finite split factors.",
+                504,
+                context={
+                    "snapshot": snapshot,
+                    "security_id": security_id,
+                    "split_date": split_date.isoformat(),
+                },
+            )
+        factors = grouped.setdefault((snapshot, security_id), {})
+        prior_factor = factors.get(split_date)
+        if prior_factor is not None and prior_factor != split_factor:
+            raise PpaError(
+                "large_price_variation found conflicting split factors.",
+                504,
+                context={
+                    "snapshot": snapshot,
+                    "security_id": security_id,
+                    "split_date": split_date.isoformat(),
+                },
+            )
+        factors[split_date] = split_factor
+    return {
+        key: tuple(sorted(factors.items()))
+        for key, factors in grouped.items()
+    }
+
+
+def _period_price_observations(
+    holding_rows: Sequence[tuple[int, Mapping[str, object]]],
+    transaction_rows: Sequence[tuple[int, Mapping[str, object]]],
+    split_factors: Sequence[tuple[dt.date, float]],
+    rule: _LargePriceVariationRule,
+    *,
+    beginning_holding_date: dt.date | None,
+    from_date: dt.date,
+    thru_date: dt.date,
+) -> tuple[_PriceObservation, ...]:
+    """Return comparable boundary-holding and inclusive-transaction prices."""
+    observations: list[_PriceObservation] = []
+    boundary_dates = {thru_date}
+    if beginning_holding_date is not None:
+        boundary_dates.add(beginning_holding_date)
+    for source_order, row in holding_rows:
+        holding_date = _date(row.get(pc_cols.HOLDING_DATE))
+        if (
+            holding_date is None
+            or holding_date not in boundary_dates
+            or not rule.holdings_filter.allows(row)
+        ):
+            continue
+        source = (
+            "beginning-period holdings.price"
+            if holding_date == beginning_holding_date
+            else "ending-period holdings.price"
+        )
+        observation = _price_observation(
+            row,
+            split_factors,
+            observation_date=holding_date,
+            source=source,
+            source_rank=0,
+            source_order=source_order,
+            thru_date=thru_date,
+        )
+        if observation is not None:
+            observations.append(observation)
+    for source_order, row in transaction_rows:
+        trade_date = _date(row.get(pc_cols.TRANSACTION_DATE))
+        if (
+            trade_date is None
+            or trade_date < from_date
+            or trade_date > thru_date
+            or not rule.transactions_filter.allows(row)
+        ):
+            continue
+        observation = _price_observation(
+            row,
+            split_factors,
+            observation_date=trade_date,
+            source="transactions.price",
+            source_rank=1,
+            source_order=source_order,
+            thru_date=thru_date,
+        )
+        if observation is not None:
+            observations.append(observation)
+    return tuple(observations)
+
+
+def _price_observation(
+    row: Mapping[str, object],
+    split_factors: Sequence[tuple[dt.date, float]],
+    *,
+    observation_date: dt.date,
+    source: str,
+    source_rank: int,
+    source_order: int,
+    thru_date: dt.date,
+) -> _PriceObservation | None:
+    """Return one positive price expressed on the period-ending share basis."""
+    raw_price = _number(row.get(pc_cols.PRICE))
+    if raw_price is None or raw_price <= 0:
+        return None
+    cumulative_factor = 1.0
+    for split_date, split_factor in split_factors:
+        if observation_date < split_date <= thru_date:
+            cumulative_factor *= split_factor
+    return _PriceObservation(
+        observation_date=observation_date,
+        source=source,
+        source_rank=source_rank,
+        source_order=source_order,
+        raw_price=raw_price,
+        adjusted_price=raw_price / cumulative_factor,
+        cumulative_split_factor=cumulative_factor,
+        currency=_text(row.get(pc_cols.CURRENCY)).upper(),
+    )
+
+
+def _minimum_price_observation_key(
+    observation: _PriceObservation,
+) -> tuple[float, dt.date, int, int]:
+    """Return deterministic minimum-price and evidence tie-break keys."""
+    return (
+        observation.adjusted_price,
+        observation.observation_date,
+        observation.source_rank,
+        observation.source_order,
+    )
+
+
+def _maximum_price_observation_key(
+    observation: _PriceObservation,
+) -> tuple[float, dt.date, int, int]:
+    """Return deterministic maximum-price and evidence tie-break keys."""
+    return (
+        -observation.adjusted_price,
+        observation.observation_date,
+        observation.source_rank,
+        observation.source_order,
+    )
+
+
+def _large_price_variation_explanation(
+    rule: _LargePriceVariationRule,
+    minimum: _PriceObservation,
+    maximum: _PriceObservation,
+    observations: Sequence[_PriceObservation],
+    *,
+    from_date: dt.date,
+    thru_date: dt.date,
+    inclusive_period_days: int,
+    variation: float,
+) -> str:
+    """Return deterministic evidence and split-normalization guidance."""
+    applied_factors = sorted(
+        {
+            observation.cumulative_split_factor
+            for observation in observations
+            if observation.cumulative_split_factor != 1.0
+        }
+    )
+    if applied_factors:
+        split_text = (
+            "Split normalization applied cumulative factor(s) "
+            + ", ".join(f"{factor:g}" for factor in applied_factors)
+            + "."
+        )
+    else:
+        split_text = (
+            "No supplied split factor applied to these observations; review "
+            "whether the variation is legitimate or split evidence is missing."
+        )
+    return (
+        f"Rule {rule.rule_id} found a {_decimal_percent_text(variation)} maximum "
+        f"price variation in the inclusive {from_date.isoformat()} through "
+        f"{thru_date.isoformat()} performance period ({inclusive_period_days} "
+        f"calendar days). Minimum {_price_observation_text(minimum)}; maximum "
+        f"{_price_observation_text(maximum)}. {split_text}"
+    )
+
+
+def _price_observation_text(observation: _PriceObservation) -> str:
+    """Return concise source, date, raw-price, and adjustment evidence."""
+    evidence = (
+        f"{observation.adjusted_price:g} from {observation.source} on "
+        f"{observation.observation_date.isoformat()}"
+    )
+    if observation.cumulative_split_factor == 1.0:
+        return evidence
+    return (
+        f"{evidence} (raw {observation.raw_price:g}, cumulative split factor "
+        f"{observation.cumulative_split_factor:g})"
+    )
+
+
+def _decimal_percent_text(value: float) -> str:
+    """Return a decimal tolerance or result as a compact percentage."""
+    return f"{value * 100:.2f}".rstrip("0").rstrip(".") + "%"
 
 
 def _transactions_nonpositive_price_issues(
@@ -1456,6 +2090,7 @@ def _issue_row(
     difference: float | None,
     tolerance: str,
     explanation: str,
+    review_identity: str = "",
 ) -> dict[str, object]:
     """Return one Data Issues row."""
     issue_category = DATA_ISSUE_REGISTRY[DataIssueType(issue_type)].category.value
@@ -1482,6 +2117,7 @@ def _issue_row(
                 dataset_field,
                 security_id,
                 issue_type,
+                *([review_identity] if review_identity else []),
             )
         ),
     }

@@ -7,6 +7,7 @@ not make yfinance a PPAR runtime dependency.
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from typing import Final, Mapping, Sequence, cast
 
@@ -25,8 +26,8 @@ MARKET_HISTORY_COLUMNS: Final = (
     "split_factor",
     "repaired",
 )
-RETURN_WARNING_TOLERANCE: Final = 0.001
-RETURN_FAILURE_TOLERANCE: Final = 0.01
+RETURN_WARNING_TOLERANCE: Final = 0.0002
+RETURN_FAILURE_TOLERANCE: Final = 0.001
 _DOWNLOAD_FIELDS: Final = {
     "Adj Close": "adjusted_close",
     "Close": "raw_close",
@@ -83,10 +84,7 @@ def load_market_history(path: Path) -> pd.DataFrame:
         | history["adjusted_close"].le(0.0)
     )
     if bool(invalid_prices.any()):
-        invalid = cast(
-            pd.DataFrame,
-            history.loc[invalid_prices, ["identifier", "date"]],
-        ).head(5)
+        invalid = history.loc[invalid_prices, ["identifier", "date"]].head(5)
         raise ValueError(
             "Market-history cache contains nonpositive prices: "
             f"{invalid.to_dict(orient='records')}"
@@ -179,7 +177,7 @@ def download_market_history(
         RuntimeError: If yfinance is not installed or returns no usable data.
     """
     try:
-        import yfinance as yf  # pylint: disable=import-outside-toplevel
+        yf = importlib.import_module("yfinance")
     except ImportError as error:  # pragma: no cover - maintainer environment.
         raise RuntimeError(
             "yfinance is required only when refreshing the demo market-history cache."

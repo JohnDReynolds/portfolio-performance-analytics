@@ -1010,7 +1010,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Founder review of the implemented Slice 3C Data Issues rule",
+            "Founder review of the implemented Slice 3D and Slice 3E Data "
+            "Issues rules",
             audit_roadmap,
         )
         self.assertIn(
@@ -1711,8 +1712,16 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("91282Y5Y1", holding_ids)
 
     def test_axys_demo_equities_do_not_use_long_constant_price_runs(self) -> None:
-        """Packaged equity prices vary across holding dates at least 28 days apart."""
+        """Only the founder-approved stale-price demo run may remain constant."""
         axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
+        expected_failures = [
+            (
+                "ALPHA",
+                "GOOGL",
+                date(2025, 12, 31),
+                date(2026, 1, 30),
+            )
+        ]
 
         for snapshot_name in ("snapshot_a", "snapshot_b"):
             snapshot = Path(str(axys_demo_data / snapshot_name))
@@ -1755,7 +1764,7 @@ class TestPackageMetadata(unittest.TestCase):
                         )
 
             with self.subTest(snapshot=snapshot_name):
-                self.assertEqual(failures, [])
+                self.assertEqual(failures, expected_failures)
 
     def test_axys_demo_changed_transactions_have_matching_holdings(self) -> None:
         """Material transaction demo changes have matching month-end holdings evidence."""

@@ -12,7 +12,7 @@ acceptance criteria, and slice status for the active phase.
 | Date | 2026-07-18 |
 | Governing product authority | [`product_constitution.md`](product_constitution.md) |
 | Active implementation plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Founder review of the implemented Slice 3C Data Issues rule |
+| Next gate | Founder review of the implemented Slice 3D and Slice 3E Data Issues rules |
 
 ## Roadmap Doctrine
 
@@ -111,7 +111,8 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## Immediate Priorities
 
-1. Review the implemented Slice 3C `transaction_security_type_mismatch` output.
+1. Review the implemented Slice 3D `holdings_stale_price` and Slice 3E
+   `large_price_variation` output.
 2. Implement the current-capability Axys/APX scenarios defined by the active MVP
    plan.
 3. Implement the exact-case, normalized source-contract, and staging-control

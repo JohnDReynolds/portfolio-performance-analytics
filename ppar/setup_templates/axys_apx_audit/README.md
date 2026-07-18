@@ -84,6 +84,13 @@ per-check keys, malformed filters, non-Boolean enablement, invalid tolerances, a
 an enabled conservative check without its required `only` population stop with the
 exact YAML path. Mandatory portfolio/security market-value continuity remains active
 when optional Data Issues checks are disabled.
+The opt-in `large_price_variation` check instead uses a strict nonempty list of
+uniquely identified rules. Each rule can use scalar-or-list exact-match filters,
+an inclusive-period calendar-day minimum, and a decimal minimum variation. It
+combines linked boundary holdings with inclusive trade-date transaction prices
+and uses optional `splits.csv` factors to put prices on the period-ending share
+basis. The packaged AVGO rule uses real dated observations without injecting a
+price or market value.
 Optional `secref.csv` fields can qualify Data Issues populations through
 `security_reference.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
@@ -166,12 +173,13 @@ differences from identifiable input differences and other evidence:
   and Snapshot B. The packaged demo includes focused examples for holdings and
   transaction price ranges, duplicate transactions, a narrowly scoped
   nonpositive holding price, a reference-scoped nonpositive transaction price,
+  an observed-date stale GOOGL holding price,
   an exact-case transaction-versus-reference security-type mismatch,
   dividend-rate mismatches, fixed-income
   accrued-interest transaction-rate mismatches, missing dividends, and
-  holdings.accrued rate mismatches. Both nonpositive-price examples and the
-  classification mismatch are present in both snapshots and do not create
-  A-versus-B performance differences.
+  holdings.accrued rate mismatches. Both nonpositive-price examples, the stale
+  price, and the classification mismatch are present in both snapshots and do
+  not create A-versus-B performance differences.
 - Optional reconstruction diagnostics can add `Reconstruction Summary`,
   `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
@@ -195,9 +203,10 @@ Data used:
 - Files: Axys/APX-style portfolio performance, security performance,
   transactions, holdings, and optional security reference.
 - `secref.csv` is snapshot-specific Data Issues enrichment. The packaged
-  nonpositive-price, classification-mismatch, and fixed-income rate checks use
-  reviewed `security_reference` qualifiers without affecting Modified Dietz,
-  choosing an authoritative classification, or assigning transaction semantics.
+  nonpositive-price, stale-price, classification-mismatch, and fixed-income
+  rate checks use reviewed `security_reference` qualifiers without affecting
+  Modified Dietz, choosing an authoritative classification, or assigning
+  transaction semantics.
 - `portperf.csv.BASE_CURRENCY` is authoritative for each portfolio. PPAR fills
   missing row-level base currency from it and rejects contradictory holdings or
   transaction/cash values. Security-performance rows do not repeat currency metadata.

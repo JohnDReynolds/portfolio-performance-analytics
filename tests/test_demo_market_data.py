@@ -7,12 +7,20 @@ import pandas as pd
 import pytest
 
 from ppar._demo_market_data import (
+    RETURN_FAILURE_TOLERANCE,
+    RETURN_WARNING_TOLERANCE,
     adjusted_period_return,
     load_market_history,
     price_on_or_before,
     raw_total_period_return,
     reconcile_total_returns,
 )
+
+
+def test_reconciliation_tolerances_use_basis_point_scale() -> None:
+    """Shared demo reconciliation uses reviewed two- and ten-basis-point gates."""
+    assert RETURN_WARNING_TOLERANCE == 0.0002
+    assert RETURN_FAILURE_TOLERANCE == 0.001
 
 
 def test_load_reconstructs_contemporaneous_closes_from_split_history() -> None:
@@ -48,7 +56,7 @@ def test_raw_corporate_action_return_reconciles_to_adjusted_close() -> None:
 def test_total_return_reconciliation_stops_above_failure_tolerance() -> None:
     """A material corporate-action mismatch stops deterministic generation."""
     history = _split_and_dividend_history()
-    history.loc[history["date"].eq(pd.Timestamp("2026-01-04")), "adjusted_close"] = 52.5
+    history.loc[history["date"].eq(pd.Timestamp("2026-01-04")), "adjusted_close"] = 53.555
 
     with pytest.raises(ValueError, match="failure tolerance"):
         reconcile_total_returns(
@@ -58,6 +66,21 @@ def test_total_return_reconciliation_stops_above_failure_tolerance() -> None:
                 {"from_date": ["2026-01-02"], "thru_date": ["2026-01-04"]}
             ),
         )
+
+
+def test_total_return_reconciliation_warns_above_warning_tolerance() -> None:
+    """A small mismatch above two basis points remains visible as a warning."""
+    history = _split_and_dividend_history()
+    history.loc[history["date"].eq(pd.Timestamp("2026-01-04")), "adjusted_close"] = 53.515
+
+    reconciliation = reconcile_total_returns(
+        history,
+        ["DEMO"],
+        pd.DataFrame({"from_date": ["2026-01-02"], "thru_date": ["2026-01-04"]}),
+    )
+
+    assert reconciliation.loc[0, "absolute_difference"] == pytest.approx(0.0003)
+    assert reconciliation.loc[0, "status"] == "warning"
 
 
 def _split_and_dividend_history() -> pd.DataFrame:

@@ -1725,11 +1725,11 @@ class TestAuditCli(unittest.TestCase):
             result.stdout,
         )
         self.assertIn(
-            "Data Issues policy: mandatory continuity checks remain active; "
-            "established optional checks are enabled by default; conservative "
-            "checks require explicit enablement and an only filter",
-            result.stdout,
-        )
+                "Data Issues policy: mandatory continuity checks remain active; "
+                "established optional checks are enabled by default; conservative "
+                "checks require explicit enablement and issue-specific scope",
+                result.stdout,
+            )
         self.assertIn("Transaction rules configured: 15", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)

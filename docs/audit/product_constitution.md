@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.10 |
+| Version | 1.12 |
 | Date | 2026-07-18 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
@@ -16,6 +16,28 @@
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
 
 ## Change Log
+
+### Version 1.12 — 2026-07-18
+
+- Replaced the planned holdings-only large-price rule with the founder-approved
+  `large_price_variation` period-observation rule.
+- Recorded inclusive performance-period boundaries, trade-date inclusion,
+  linked beginning holdings, split normalization, one maximum variation per
+  security/rule/period, decimal defaults, and independent overlapping rules.
+- Confirmed scalar-or-list exact-match filters, with source-qualified filters
+  applying only to their holdings or transaction observation source.
+
+### Version 1.11 — 2026-07-18
+
+- Recorded founder acceptance of the Slice 3C exact-case security-type
+  mismatch output.
+- Continued Slice 3 with the observed-date stale-holding-price check.
+- Recorded founder approval for the narrow demo gate change that requires the
+  one named ALPHA/GOOGL stale-price anomaly while rejecting every other equity
+  price repeated across observations at least 28 days apart.
+- Initially reserved `holdings_large_price_change` for Slice 3E with a 20
+  percent threshold and the real AVGO movement; rejected `extreme` wording.
+  Version 1.12 records the subsequently approved replacement.
 
 ### Version 1.10 — 2026-07-18
 
@@ -366,9 +388,13 @@ Current optional checks cover:
 - conservatively identified missing dividends;
 - exact duplicate transactions;
 - holdings accrued-rate consistency;
+- unchanged positive holding prices spanning a configured number of calendar
+  days between supplied observations;
 - nonpositive holding prices inside an explicitly configured population;
 - nonpositive transaction prices inside explicit transaction-code and reviewed
   security-reference populations;
+- split-normalized maximum holding/transaction price variation within one
+  established portfolio period under independently identified named rules;
 - exact-case transaction-versus-reference security-type mismatches inside an
   explicitly reviewed reference population;
 - purchase/sale accrued-interest rate consistency;
@@ -643,7 +669,7 @@ Validation may conclude that PPAR should provide no managed workflow.
 | Performance Data Quality Audit | Current selected checks; approved strengthening | Findings remain independent of counted performance causes |
 | Audit Readiness | Current technical controls; APPROVED DIRECTION for unified experience | Ready/Qualified Ready/Blocked cannot waive safety; Diagnostic Only remains separate |
 | Executive Summary worksheet | CURRENT — FOUNDER ACCEPTED | Two quantity tables; first XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
-| Data Issues issue-type expansion | FIRST RULE IMPLEMENTED — FOUNDER REVIEW PENDING | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
+| Data Issues issue-type expansion | SELECTED RULES IMPLEMENTED — FOUNDER REVIEW PENDING | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
 | Cause/issue codification and YAML control | APPROVED DIRECTION and required MVP gap | Stable vocabulary and fail-closed configuration; user policy cannot redefine product arithmetic |
 | Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | Evidence-scoped scenarios, exact-case capability, source contracts, and staging controls must preserve posted-transaction boundaries |
 | Broad Audit Rules Library | Long-term APPROVED DIRECTION | Defer a broad catalog; MVP work is limited to the codification and checks above |

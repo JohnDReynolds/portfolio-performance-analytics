@@ -44,6 +44,7 @@ those details as verified Axys/APX facts.
 | `secref.csv` | Optional snapshot-specific security reference used only to qualify Data Issues populations. | Exact source case is preserved. Security-master fields do not enter performance calculations, and local field names, code dictionaries, and historical classification behavior must be validated. |
 | `portperf.csv` | Reported portfolio-period performance target used for comparison. | `portperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 | `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
+| `splits.csv` | Optional security-level split factors used as review evidence and by `large_price_variation` normalization. | The factor is the new-shares-per-old-share multiplier on its effective date. Same-date price observations are treated as post-split; local date/factor meaning must be validated. |
 
 ## Market-Data Provenance
 
@@ -61,9 +62,22 @@ file. The normalized cache preserves:
 Cash holdings remain at 1.00. The demo's CUSIP-like fixed-income rows are still
 synthetic instruments; their dated price/return behavior comes from BIL (T-bill),
 SHY (short Treasury), IEI (intermediate Treasury), and MBB (agency MBS) proxies.
-Controlled Snapshot A errors, including the CVNA split-processing story and
-nonpositive-price Data Issues examples, remain deliberately synthetic and are
-identified as review scenarios rather than market facts.
+Controlled errors, including the CVNA split-processing story, nonpositive-price
+examples, and isolated ALPHA/GOOGL stale `PRICE` field, remain deliberately
+synthetic and are identified as review scenarios rather than market facts. The
+GOOGL market value remains derived from the real dated observation; only the
+later displayed source price is replaced after baseline refresh. The packaged-
+equity variation gate retains its 28-day threshold and requires exactly this
+one named ALPHA/GOOGL exception in each snapshot; every other long unchanged
+equity-price run still fails.
+
+The packaged `common_stock_20_percent` named rule uses unmodified real AVGO
+holding prices. It reports six rows across the two snapshots: ALPHA and INCOME
+each show the full April 309.51-to-417.43 movement, while BALANCED's segmented
+April 1–10 period shows 309.51-to-371.55, or 20.04 percent under the implemented
+minimum-price denominator. This executable result supersedes the earlier rough
+20.4 percent description. No AVGO price or market value is injected for this
+scenario.
 
 ## Extraction Requirement Labels
 
@@ -101,6 +115,7 @@ the target performance dataset:
 | `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
 | `fx_rates` | Optional evidence links a rate change to a counted base-currency value. | `from_currency`, `to_currency`, `rate_date`, `fx_rate`; add `portfolio_id` and `local_exposure` for report linkage |
 | `security_reference` | A Data Issues `only` or `exclude` filter references `security_reference.*`. | `security_id`; each referenced qualifier column must also be present and nonblank for relevant source rows |
+| `splits` | Optional; when present, `large_price_variation` uses it to normalize earlier prices to the performance-period ending share basis. | `security_id`, `split_date`, `split_factor`; factor must be finite and strictly positive for the enabled rule |
 
 Currency basis follows the normalized field name and dataset scope. In
 holdings and transactions, unqualified monetary fields use the row

@@ -152,9 +152,10 @@ yFinance and replace its cached observations. Normal repeat construction reads
 the cache without network access.
 
 The shared return gate compares close-plus-dividend/split calculations with
-adjusted-close returns. Differences above 0.10 percentage points are recorded
-as warnings; differences above 1.00 percentage point stop generation with the
-security, period, source values, and calculated returns. Split records also
+adjusted-close returns. Differences above 0.02 percentage points (2 basis
+points) are recorded as warnings; differences above 0.10 percentage points
+(10 basis points) stop generation and report the security, period, source
+values, and calculated returns. Split records also
 drive direct quantity roll-forward checks rather than relying on the return
 tolerance alone.
 

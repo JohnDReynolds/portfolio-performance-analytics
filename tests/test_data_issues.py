@@ -84,6 +84,8 @@ class TestDataIssues(unittest.TestCase):
                 "dividend_rate",
                 "holdings_nonpositive_price",
                 "holdings_price_range",
+                "holdings_stale_price",
+                "large_price_variation",
                 "missing_dividend",
                 "transaction_security_type_mismatch",
                 "transactions_nonpositive_price",
@@ -193,6 +195,87 @@ class TestDataIssues(unittest.TestCase):
         self.assertEqual(
             set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
             {"KO"},
+        )
+
+    def test_packaged_demo_scopes_stale_holding_price_example(self) -> None:
+        """The packaged stale-price example is one observed run per snapshot."""
+        comparison_path = (
+            Path(__file__).resolve().parents[1]
+            / "ppar"
+            / "setup_templates"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
+        )
+
+        issues = data_issues.data_issues_table(comparison_path).filter(
+            pl.col(data_issues.ISSUE_TYPE)
+            == data_issues.ISSUE_HOLDINGS_STALE_PRICE
+        )
+
+        self.assertEqual(issues.height, 2)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"ALPHA"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"GOOGL"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.VALUE_A).to_list()),
+            {313.0},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.AS_OF_DATE).to_list()),
+            {dt.date(2026, 1, 30)},
+        )
+
+    def test_packaged_demo_reports_real_avgo_large_price_variations(self) -> None:
+        """The packaged named rule reports real AVGO period observations."""
+        comparison_path = (
+            Path(__file__).resolve().parents[1]
+            / "ppar"
+            / "setup_templates"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
+        )
+
+        issues = data_issues.data_issues_table(comparison_path).filter(
+            pl.col(data_issues.ISSUE_TYPE)
+            == data_issues.ISSUE_LARGE_PRICE_VARIATION
+        )
+
+        self.assertEqual(issues.height, 6)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"AVGO"},
+        )
+        balanced = issues.filter(
+            pl.col(pc_cols.PORTFOLIO_ID) == "BALANCED"
+        )
+        self.assertEqual(balanced.height, 2)
+        self.assertEqual(
+            set(balanced.get_column(data_issues.VALUE_A).to_list()),
+            {309.51},
+        )
+        self.assertEqual(
+            set(balanced.get_column(data_issues.VALUE_B).to_list()),
+            {371.55},
+        )
+        self.assertTrue(
+            all(
+                "20.04% maximum price variation" in explanation
+                and "10 calendar days" in explanation
+                for explanation in balanced.get_column(data_issues.EXPLANATION)
+            )
         )
 
     def test_packaged_demo_scopes_security_type_mismatch_example(self) -> None:
@@ -399,6 +482,292 @@ class TestDataIssues(unittest.TestCase):
             )
 
         self.assertNotIn(data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE, issue_types)
+
+    def test_holdings_stale_price_tracks_observed_unchanged_run(self) -> None:
+        """Stale-price review uses supplied dates and resets when price changes."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[
+                    "P1,ABC,2026-01-01,100,10,1000,0",
+                    "P1,ABC,2026-01-15,100,10,1000,0",
+                    "P1,ABC,2026-01-29,100,10,1000,0",
+                    "P1,ABC,2026-02-01,100,11,1100,0",
+                    "P1,ABC,2026-03-01,100,11,1100,0",
+                    "P2,ABC,2026-01-01,0,10,0,0",
+                    "P2,ABC,2026-03-01,0,10,0,0",
+                ],
+                transaction_rows=[],
+                security_reference_rows=["ABC,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  holdings_stale_price:
+                    enabled: true
+                    only:
+                      security_reference.security_type: csus
+                    minimum_calendar_days: 28
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_HOLDINGS_STALE_PRICE
+            )
+            performance_findings = compare_snapshots(comparison_path)
+
+        self.assertEqual(issues.height, 4)
+        self.assertEqual(
+            set(issues.get_column(data_issues.AS_OF_DATE).to_list()),
+            {dt.date(2026, 1, 29), dt.date(2026, 3, 1)},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"P1"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.VALUE_A).to_list()),
+            {10.0, 11.0},
+        )
+        self.assertTrue(
+            all(
+                "did not observe every intervening day" in explanation
+                for explanation in issues.get_column(data_issues.EXPLANATION)
+            )
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"price"},
+        )
+        self.assertTrue(performance_findings.is_empty())
+
+    def test_holdings_stale_price_is_off_by_default(self) -> None:
+        """Existing configurations do not activate observed-price enrichment."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[
+                    "P1,ABC,2026-01-01,100,10,1000,0",
+                    "P1,ABC,2026-02-01,100,10,1000,0",
+                ],
+                transaction_rows=[],
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn(data_issues.ISSUE_HOLDINGS_STALE_PRICE, issue_types)
+
+    def test_large_price_variation_uses_named_rules_and_inclusive_periods(
+        self,
+    ) -> None:
+        """Named rules retain holdings while filtering inclusive trade prices."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                portfolio_performance_rows=[
+                    "P1,2026-01-01,2026-01-31,0.01",
+                    "P1,2026-02-01,2026-02-01,0.01",
+                ],
+                holdings_rows=[
+                    "P1,ABC,2026-01-31,100,100,10000,0",
+                    "P1,ABC,2026-02-01,100,115,11500,0",
+                ],
+                transaction_rows=[
+                    "P1,2026-02-01,2026-02-01,ABC,by,csus,,,,,10,130,1300,0",
+                    "P1,2026-02-01,2026-02-01,ABC,dv,csus,,,,,0,500,100,0",
+                ],
+                security_reference_rows=["ABC,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  large_price_variation:
+                    enabled: true
+                    rules:
+                      - rule_id: common_stock_default
+                        only:
+                          transactions.transaction_code: [by, sl]
+                          security_reference.security_type: csus
+                      - rule_id: common_stock_25_percent
+                        only:
+                          transactions.transaction_code: [by, sl]
+                          security_reference.security_type: csus
+                        minimum_calendar_days: 1
+                        minimum_tolerance: 0.25
+                      - rule_id: requires_two_days
+                        minimum_calendar_days: 2
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_LARGE_PRICE_VARIATION
+            )
+            performance_findings = compare_snapshots(comparison_path)
+
+        self.assertEqual(issues.height, 4)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(set(issues.get_column(data_issues.VALUE_A)), {100.0})
+        self.assertEqual(set(issues.get_column(data_issues.VALUE_B)), {130.0})
+        self.assertEqual(set(issues.get_column(data_issues.DIFFERENCE)), {30.0})
+        self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 4)
+        self.assertTrue(
+            all(
+                "1 calendar days" in explanation
+                and "beginning-period holdings.price" in explanation
+                and "transactions.price" in explanation
+                for explanation in issues.get_column(data_issues.EXPLANATION)
+            )
+        )
+        self.assertFalse(
+            any(
+                "500" in explanation
+                for explanation in issues.get_column(data_issues.EXPLANATION)
+            )
+        )
+        self.assertTrue(performance_findings.is_empty())
+
+    def test_large_price_variation_split_normalizes_to_period_end_basis(self) -> None:
+        """A supplied split removes its mechanical raw-price discontinuity."""
+        config = """
+        data_issues:
+          large_price_variation:
+            enabled: true
+            rules:
+              - rule_id: common_stock_default
+        """
+        periods = [
+            "P1,2026-01-01,2026-01-31,0.01",
+            "P1,2026-02-01,2026-02-01,0.01",
+        ]
+        holdings = [
+            "P1,ABC,2026-01-31,100,100,10000,0",
+            "P1,ABC,2026-02-01,200,50,10000,0",
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            normalized_path = _write_site(
+                root / "normalized",
+                portfolio_performance_rows=periods,
+                holdings_rows=holdings,
+                transaction_rows=[],
+                split_rows=["ABC,2026-02-01,2"],
+                data_issues_config=config,
+            )
+            missing_split_path = _write_site(
+                root / "missing_split",
+                portfolio_performance_rows=periods,
+                holdings_rows=holdings,
+                transaction_rows=[],
+                data_issues_config=config,
+            )
+
+            normalized_issues = data_issues.data_issues_table(
+                normalized_path
+            ).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_LARGE_PRICE_VARIATION
+            )
+            missing_split_issues = data_issues.data_issues_table(
+                missing_split_path
+            ).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_LARGE_PRICE_VARIATION
+            )
+
+        self.assertTrue(normalized_issues.is_empty())
+        self.assertEqual(missing_split_issues.height, 2)
+        self.assertEqual(
+            set(missing_split_issues.get_column(data_issues.VALUE_A)),
+            {50.0},
+        )
+        self.assertEqual(
+            set(missing_split_issues.get_column(data_issues.VALUE_B)),
+            {100.0},
+        )
+        self.assertTrue(
+            all(
+                "split evidence is missing" in explanation
+                for explanation in missing_split_issues.get_column(
+                    data_issues.EXPLANATION
+                )
+            )
+        )
+
+    def test_large_price_variation_allows_missing_boundary_and_exceeds_strictly(
+        self,
+    ) -> None:
+        """Transactions can replace a boundary, and equality does not report."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                portfolio_performance_rows=[
+                    "P1,2026-01-01,2026-01-31,0.01",
+                    "P1,2026-02-01,2026-02-01,0.01",
+                ],
+                holdings_rows=[
+                    "P1,ABC,2026-02-01,100,120,12000,0",
+                ],
+                transaction_rows=[
+                    "P1,2026-02-01,2026-02-01,ABC,by,csus,,,,,10,100,1000,0",
+                ],
+                data_issues_config="""
+                data_issues:
+                  large_price_variation:
+                    enabled: true
+                    rules:
+                      - rule_id: exact_20_percent
+                      - rule_id: below_observed_variation
+                        minimum_tolerance: 0.199
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_LARGE_PRICE_VARIATION
+            )
+
+        self.assertEqual(issues.height, 2)
+        self.assertTrue(
+            all(
+                "below_observed_variation" in tolerance
+                for tolerance in issues.get_column(data_issues.TOLERANCE)
+            )
+        )
+        self.assertEqual(set(issues.get_column(data_issues.VALUE_A)), {100.0})
+        self.assertEqual(set(issues.get_column(data_issues.VALUE_B)), {120.0})
+        self.assertEqual(
+            set(issues.get_column(data_issues.DATASET_FIELD)),
+            {"holdings.price + transactions.price"},
+        )
+
+    def test_large_price_variation_is_off_by_default(self) -> None:
+        """Existing configurations do not activate period price variation."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                portfolio_performance_rows=[
+                    "P1,2026-01-01,2026-01-31,0.01",
+                    "P1,2026-02-01,2026-02-01,0.01",
+                ],
+                holdings_rows=[
+                    "P1,ABC,2026-01-31,100,100,10000,0",
+                    "P1,ABC,2026-02-01,100,130,13000,0",
+                ],
+                transaction_rows=[],
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn(data_issues.ISSUE_LARGE_PRICE_VARIATION, issue_types)
 
     def test_transactions_nonpositive_price_is_scoped_and_independent(self) -> None:
         """The opt-in trade check requires quantity, code, and reference scope."""
@@ -829,7 +1198,9 @@ def _write_site(
     *,
     holdings_rows: list[str],
     transaction_rows: list[str],
+    portfolio_performance_rows: list[str] | None = None,
     security_reference_rows: list[str] | None = None,
+    split_rows: list[str] | None = None,
     data_issues_config: str = "data_issues: {}",
     transaction_rules: str = "",
 ) -> Path:
@@ -840,7 +1211,8 @@ def _write_site(
         _write_csv(
             snapshot_directory / "portperf.csv",
             "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN",
-            ["P1,2026-01-31,2026-02-28,0.01"],
+            portfolio_performance_rows
+            or ["P1,2026-01-31,2026-02-28,0.01"],
         )
         _write_csv(
             snapshot_directory / "holdings.csv",
@@ -863,6 +1235,12 @@ def _write_site(
                 "SECURITY_ID,SECURITY_TYPE,ASSET_CLASS_CODE",
                 security_reference_rows,
             )
+        if split_rows is not None:
+            _write_csv(
+                snapshot_directory / "splits.csv",
+                "SEC,SPLIT_DATE,SPLIT_FACTOR",
+                split_rows,
+            )
 
     comparison_path = root / "ppar.yaml"
     optional_blocks = "\n".join(
@@ -878,6 +1256,7 @@ def _write_site(
         if security_reference_rows is not None
         else ""
     )
+    splits_file = "\n  splits: splits.csv" if split_rows is not None else ""
     base_yaml = textwrap.dedent(
         """
         comparison:
@@ -892,7 +1271,7 @@ def _write_site(
           holdings: holdings.csv
           transactions: transactions.csv
         """
-    ).strip() + security_reference_file
+    ).strip() + security_reference_file + splits_file
     comparison_path.write_text(
         "\n".join([base_yaml, optional_blocks]).strip() + "\n",
         encoding="utf-8",

@@ -417,6 +417,19 @@ transaction_impact_methods:
                     "only": {"security_id": ["ABC"]},
                     "exclude": {"portfolio_id": "TEST"},
                 },
+                "large_price_variation": {
+                    "enabled": True,
+                    "rules": [
+                        {
+                            "rule_id": "common_stock_20_percent",
+                            "only": {
+                                "transactions.transaction_code": ["by", "sl"],
+                            },
+                            "minimum_calendar_days": 1,
+                            "minimum_tolerance": 0.20,
+                        }
+                    ],
+                },
             }
             configuration["data_issues"] = data_issues
             path = _write_yaml(directory, configuration)
@@ -528,6 +541,162 @@ transaction_impact_methods:
                 },
                 "data_issues.holdings_nonpositive_price has unsupported keys: "
                 "absolute_tolerance",
+            ),
+            (
+                {"holdings_stale_price": {"enabled": True}},
+                "data_issues.holdings_stale_price.only must be a nonempty mapping "
+                "when data_issues.holdings_stale_price.enabled is true",
+            ),
+            (
+                {
+                    "holdings_stale_price": {
+                        "enabled": True,
+                        "only": {"security_id": "ABC"},
+                        "minimum_calendar_days": 28,
+                    }
+                },
+                "data_issues.holdings_stale_price.only must include security_"
+                "reference.security_type when data_issues.holdings_stale_price."
+                "enabled is true",
+            ),
+            (
+                {
+                    "holdings_stale_price": {
+                        "enabled": True,
+                        "only": {"security_reference.security_type": "csus"},
+                    }
+                },
+                "data_issues.holdings_stale_price.minimum_calendar_days is required "
+                "when data_issues.holdings_stale_price.enabled is true",
+            ),
+            (
+                {
+                    "holdings_stale_price": {
+                        "enabled": True,
+                        "only": {"security_reference.security_type": "csus"},
+                        "minimum_calendar_days": 0,
+                    }
+                },
+                "data_issues.holdings_stale_price.minimum_calendar_days must be a "
+                "positive integer",
+            ),
+            (
+                {
+                    "holdings_stale_price": {
+                        "enabled": True,
+                        "only": {"security_reference.security_type": "csus"},
+                        "minimum_calendar_days": 28,
+                        "percent_tolerance": 1,
+                    }
+                },
+                "data_issues.holdings_stale_price has unsupported keys: "
+                "percent_tolerance",
+            ),
+            (
+                {"large_price_variation": {"enabled": True}},
+                "data_issues.large_price_variation.rules is required when "
+                "data_issues.large_price_variation.enabled is true",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": {"rule_id": "common_stock"},
+                    }
+                },
+                "data_issues.large_price_variation.rules must be a nonempty list",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": ["common_stock"],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0] must be a mapping",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [{"rule_id": "Common Stock"}],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0].rule_id must be a "
+                "lowercase snake-case identifier",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {"rule_id": "common_stock"},
+                            {"rule_id": "common_stock"},
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules has duplicate rule_id "
+                "'common_stock'",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {
+                                "rule_id": "common_stock",
+                                "minimum_calendar_days": 0,
+                            }
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0].minimum_calendar_days "
+                "must be a positive integer",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {
+                                "rule_id": "common_stock",
+                                "minimum_tolerance": True,
+                            }
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0].minimum_tolerance "
+                "must be a finite nonnegative number",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {
+                                "rule_id": "common_stock",
+                                "only": {"portfolio_performance.portfolio_id": "P1"},
+                            }
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0].only.portfolio_"
+                "performance.portfolio_id uses unsupported dataset namespace",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {
+                                "rule_id": "common_stock",
+                                "percent_tolerance": 20,
+                            }
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0] has unsupported keys: "
+                "percent_tolerance",
             ),
             (
                 {"transactions_nonpositive_price": {"enabled": True}},

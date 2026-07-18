@@ -26,6 +26,8 @@ class TestDataIssuesVocabulary(unittest.TestCase):
                 "holdings_accrued_rate",
                 "holdings_nonpositive_price",
                 "holdings_price_range",
+                "holdings_stale_price",
+                "large_price_variation",
                 "missing_dividend",
                 "pa_sa_rate",
                 "portfolio_market_value_continuity",
@@ -46,6 +48,14 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertEqual(
             data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE,
             DataIssueType.HOLDINGS_NONPOSITIVE_PRICE.value,
+        )
+        self.assertEqual(
+            data_issues.ISSUE_HOLDINGS_STALE_PRICE,
+            DataIssueType.HOLDINGS_STALE_PRICE.value,
+        )
+        self.assertEqual(
+            data_issues.ISSUE_LARGE_PRICE_VARIATION,
+            DataIssueType.LARGE_PRICE_VARIATION.value,
         )
         self.assertEqual(
             data_issues.ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH,
@@ -97,6 +107,8 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             opt_in_checks,
             {
                 DataIssueType.HOLDINGS_NONPOSITIVE_PRICE,
+                DataIssueType.HOLDINGS_STALE_PRICE,
+                DataIssueType.LARGE_PRICE_VARIATION,
                 DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH,
                 DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE,
             },
@@ -105,6 +117,23 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             DATA_ISSUE_REGISTRY[
                 DataIssueType.HOLDINGS_NONPOSITIVE_PRICE
             ].requires_only_filter
+        )
+        stale_price_definition = DATA_ISSUE_REGISTRY[
+            DataIssueType.HOLDINGS_STALE_PRICE
+        ]
+        self.assertTrue(stale_price_definition.requires_only_filter)
+        self.assertTrue(stale_price_definition.supports_minimum_calendar_days)
+        self.assertEqual(
+            stale_price_definition.required_datasets,
+            ("holdings", "security_reference"),
+        )
+        large_variation_definition = DATA_ISSUE_REGISTRY[
+            DataIssueType.LARGE_PRICE_VARIATION
+        ]
+        self.assertFalse(large_variation_definition.requires_only_filter)
+        self.assertEqual(
+            large_variation_definition.required_datasets,
+            ("portfolio_performance",),
         )
         transaction_price_definition = DATA_ISSUE_REGISTRY[
             DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE
