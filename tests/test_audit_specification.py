@@ -412,6 +412,11 @@ transaction_impact_methods:
                 "portfolio_market_value_continuity": {
                     "absolute_tolerance": 0.01,
                 },
+                "holdings_nonpositive_price": {
+                    "enabled": True,
+                    "only": {"security_id": ["ABC"]},
+                    "exclude": {"portfolio_id": "TEST"},
+                },
             }
             configuration["data_issues"] = data_issues
             path = _write_yaml(directory, configuration)
@@ -475,6 +480,20 @@ transaction_impact_methods:
                 "filter field",
             ),
             (
+                {
+                    "holdings_price_range": {
+                        "only": {"security_reference.transaction_code": "by"}
+                    }
+                },
+                "data_issues.holdings_price_range.only.security_reference."
+                "transaction_code is not a supported filter field",
+            ),
+            (
+                {"holdings_price_range": {"only": {"asset_class_code": "EQ"}}},
+                "data_issues.holdings_price_range.only.asset_class_code is not a "
+                "supported filter field",
+            ),
+            (
                 {"holdings_price_range": {"exclude": {"security_id": {"ABC": 1}}}},
                 "data_issues.holdings_price_range.exclude.security_id must be a "
                 "scalar value",
@@ -483,6 +502,105 @@ transaction_impact_methods:
                 {"duplicate_transactions": {"absolute_tolerance": 1}},
                 "data_issues.duplicate_transactions has unsupported keys: "
                 "absolute_tolerance",
+            ),
+            (
+                {"holdings_nonpositive_price": {"enabled": True}},
+                "data_issues.holdings_nonpositive_price.only must be a nonempty "
+                "mapping when data_issues.holdings_nonpositive_price.enabled is true",
+            ),
+            (
+                {
+                    "holdings_nonpositive_price": {
+                        "enabled": True,
+                        "only": {},
+                    }
+                },
+                "data_issues.holdings_nonpositive_price.only must be a nonempty "
+                "mapping when data_issues.holdings_nonpositive_price.enabled is true",
+            ),
+            (
+                {
+                    "holdings_nonpositive_price": {
+                        "enabled": True,
+                        "only": {"security_id": "ABC"},
+                        "absolute_tolerance": 0.01,
+                    }
+                },
+                "data_issues.holdings_nonpositive_price has unsupported keys: "
+                "absolute_tolerance",
+            ),
+            (
+                {"transactions_nonpositive_price": {"enabled": True}},
+                "data_issues.transactions_nonpositive_price.only must be a nonempty "
+                "mapping when data_issues.transactions_nonpositive_price.enabled "
+                "is true",
+            ),
+            (
+                {
+                    "transactions_nonpositive_price": {
+                        "enabled": True,
+                        "only": {
+                            "security_reference.security_type": "csus",
+                        },
+                    }
+                },
+                "data_issues.transactions_nonpositive_price.only must include "
+                "transaction_code when data_issues.transactions_nonpositive_price."
+                "enabled is true",
+            ),
+            (
+                {
+                    "transactions_nonpositive_price": {
+                        "enabled": True,
+                        "only": {"transactions.transaction_code": ["by", "sl"]},
+                    }
+                },
+                "data_issues.transactions_nonpositive_price.only must include "
+                "security_reference.asset_class_code or security_reference."
+                "security_type when data_issues.transactions_nonpositive_price."
+                "enabled is true",
+            ),
+            (
+                {
+                    "transactions_nonpositive_price": {
+                        "enabled": True,
+                        "only": {
+                            "transaction_code": "by",
+                            "security_reference.asset_class_code": "EQ",
+                        },
+                        "percent_tolerance": 1,
+                    }
+                },
+                "data_issues.transactions_nonpositive_price has unsupported keys: "
+                "percent_tolerance",
+            ),
+            (
+                {"transaction_security_type_mismatch": {"enabled": True}},
+                "data_issues.transaction_security_type_mismatch.only must be a "
+                "nonempty mapping when data_issues.transaction_security_type_"
+                "mismatch.enabled is true",
+            ),
+            (
+                {
+                    "transaction_security_type_mismatch": {
+                        "enabled": True,
+                        "only": {"security_id": "ABC"},
+                    }
+                },
+                "data_issues.transaction_security_type_mismatch.only must include "
+                "security_reference.security_type when data_issues.transaction_"
+                "security_type_mismatch.enabled is true",
+            ),
+            (
+                {
+                    "transaction_security_type_mismatch": {
+                        "enabled": True,
+                        "only": {"security_reference.security_type": "csus"},
+                        "absolute_tolerance": 0,
+                    }
+                },
+                "data_issues.transaction_security_type_mismatch has unsupported "
+                "keys: absolute_tolerance",
             ),
             (
                 {"portfolio_market_value_continuity": {"enabled": False}},

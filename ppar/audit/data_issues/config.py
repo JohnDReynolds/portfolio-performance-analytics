@@ -37,6 +37,28 @@ _FILTER_FIELD_ALIASES: Final[frozenset[str]] = frozenset(
         "transaction_code",
     }
 )
+_SECURITY_REFERENCE_FILTER_FIELDS: Final[frozenset[str]] = frozenset(
+    {
+        "security_name",
+        "ticker",
+        "cusip",
+        "isin",
+        "security_type",
+        "asset_class_code",
+        "asset_class_name",
+        "sector_code",
+        "sector",
+        "country_code",
+        "country",
+        "currency",
+    }
+)
+_PRICE_BEARING_REFERENCE_FILTERS: Final[frozenset[str]] = frozenset(
+    {
+        "security_reference.asset_class_code",
+        "security_reference.security_type",
+    }
+)
 
 
 def validate_data_issues_config(values: Mapping[str, object]) -> None:
@@ -88,6 +110,42 @@ def validate_data_issues_config(values: Mapping[str, object]) -> None:
         )
 
 
+def security_reference_filter_fields(
+    values: Mapping[str, object],
+) -> frozenset[str]:
+    """Return security-reference fields named by Data Issues filters.
+
+    Args:
+        values: Parsed and validated comparison YAML root mapping.
+
+    Returns:
+        Normalized field names following the ``security_reference.`` prefix.
+    """
+    _, raw_config = _configured_section(values)
+    if not isinstance(raw_config, Mapping):
+        return frozenset()
+    if raw_config.get(_ENABLED_KEY, True) is False:
+        return frozenset()
+
+    fields: set[str] = set()
+    for issue_type, definition in DATA_ISSUE_REGISTRY.items():
+        if not _effective_check_enabled(raw_config, issue_type, definition):
+            continue
+        raw_check = raw_config.get(issue_type.value)
+        if not isinstance(raw_check, Mapping):
+            continue
+        for filter_key in (_ONLY_KEY, _EXCLUDE_KEY):
+            raw_filter = raw_check.get(filter_key)
+            if not isinstance(raw_filter, Mapping):
+                continue
+            for field_name in raw_filter:
+                normalized = str(field_name).strip().lower()
+                prefix = "security_reference."
+                if normalized.startswith(prefix):
+                    fields.add(normalized.removeprefix(prefix))
+    return frozenset(fields)
+
+
 def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object]:
     """Return effective Data Issues enablement and mandatory-check policy.
 
@@ -123,8 +181,13 @@ def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object
         "optional_checks_enabled": ", ".join(optional_checks) or "none",
         "mandatory_checks": ", ".join(mandatory_checks),
         "policy": (
-            "mandatory continuity checks remain active; optional checks are "
-            + ("enabled by default" if optional_master_enabled else "disabled")
+            "mandatory continuity checks remain active; "
+            + (
+                "established optional checks are enabled by default; conservative "
+                "checks require explicit enablement and an only filter"
+                if optional_master_enabled
+                else "optional checks are disabled"
+            )
         ),
     }
 
@@ -154,6 +217,68 @@ def _validate_check(
     for tolerance_key in (_ABSOLUTE_TOLERANCE_KEY, _PERCENT_TOLERANCE_KEY):
         if tolerance_key in raw_check:
             _validate_tolerance(raw_check[tolerance_key], f"{path}.{tolerance_key}")
+    if definition.requires_only_filter and raw_check.get(_ENABLED_KEY) is True:
+        only_filter = raw_check.get(_ONLY_KEY)
+        if not isinstance(only_filter, Mapping) or not only_filter:
+            raise ValueError(
+                f"{path}.only must be a nonempty mapping when {path}.enabled is true."
+            )
+    if (
+        issue_type is DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE
+        and raw_check.get(_ENABLED_KEY) is True
+    ):
+        _validate_priced_transaction_population(raw_check, path)
+    if (
+        issue_type is DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH
+        and raw_check.get(_ENABLED_KEY) is True
+    ):
+        _validate_security_type_comparison_population(raw_check, path)
+
+
+def _validate_priced_transaction_population(
+    raw_check: Mapping[object, object],
+    path: str,
+) -> None:
+    """Require explicit transaction-code and reference populations."""
+    raw_only = raw_check.get(_ONLY_KEY)
+    only_filter = raw_only if isinstance(raw_only, Mapping) else {}
+    normalized_fields = {
+        _normalized_filter_field_name(str(field_name)) for field_name in only_filter
+    }
+    if "transaction_code" not in normalized_fields:
+        raise ValueError(
+            f"{path}.only must include transaction_code when {path}.enabled is true."
+        )
+    if not normalized_fields.intersection(_PRICE_BEARING_REFERENCE_FILTERS):
+        expected_fields = " or ".join(sorted(_PRICE_BEARING_REFERENCE_FILTERS))
+        raise ValueError(
+            f"{path}.only must include {expected_fields} when {path}.enabled is true."
+        )
+
+
+def _validate_security_type_comparison_population(
+    raw_check: Mapping[object, object],
+    path: str,
+) -> None:
+    """Require the exact reference field used by the classification check."""
+    raw_only = raw_check.get(_ONLY_KEY)
+    only_filter = raw_only if isinstance(raw_only, Mapping) else {}
+    normalized_fields = {
+        _normalized_filter_field_name(str(field_name)) for field_name in only_filter
+    }
+    required_field = "security_reference.security_type"
+    if required_field not in normalized_fields:
+        raise ValueError(
+            f"{path}.only must include {required_field} when {path}.enabled is true."
+        )
+
+
+def _normalized_filter_field_name(field_name: str) -> str:
+    """Return a canonical native or security-reference filter field name."""
+    normalized = field_name.strip().lower()
+    if normalized.startswith("security_reference."):
+        return normalized
+    return normalized.rsplit(".", maxsplit=1)[-1]
 
 
 def _supported_check_keys(definition: DataIssueDefinition) -> frozenset[str]:
@@ -191,8 +316,13 @@ def _validate_filter(value: object, path: str) -> None:
         field_path = f"{path}.{field_name}"
         if not isinstance(field_name, str) or not field_name.strip():
             raise ValueError(f"{path} field names must be nonempty strings.")
-        normalized_name = field_name.strip().lower().rsplit(".", maxsplit=1)[-1]
-        if normalized_name not in _FILTER_FIELD_ALIASES:
+        normalized_field = field_name.strip().lower()
+        namespace, separator, normalized_name = normalized_field.rpartition(".")
+        if separator and namespace == "security_reference":
+            supported = normalized_name in _SECURITY_REFERENCE_FILTER_FIELDS
+        else:
+            supported = normalized_name in _FILTER_FIELD_ALIASES
+        if not supported:
             raise ValueError(f"{field_path} is not a supported filter field.")
         if isinstance(raw_values, list):
             if not raw_values:

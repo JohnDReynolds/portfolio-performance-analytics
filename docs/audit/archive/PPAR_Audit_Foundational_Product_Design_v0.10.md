@@ -3,7 +3,8 @@
 > **Archived migration snapshot.** This v0.10 document is preserved for
 > traceability and is not maintained. Use
 > [`../product_constitution.md`](../product_constitution.md)
-> for the current product constitution and roadmap, and
+> for the current product constitution,
+> [`../roadmap.md`](../roadmap.md) for the current product roadmap, and
 > [`../product_specifications_index.md`](../product_specifications_index.md)
 > for approved detailed specifications.
 

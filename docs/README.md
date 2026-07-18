@@ -5,10 +5,10 @@ infrastructure.
 
 | Area | Location | Purpose |
 | --- | --- | --- |
-| PPAR Audit | [`audit/README.md`](audit/README.md) | Audit product direction, active implementation, technical contracts, operator guidance, and historical references. |
+| PPAR Audit | [`audit/README.md`](audit/README.md) | Audit product doctrine, roadmap, active implementation, technical contracts, operator guidance, and historical references. |
 | PPAR Analytics | [`analytics/roadmap.md`](analytics/roadmap.md) | Analytics product direction and demo-refresh guidance. |
 | Axys/APX integration | [`axys_apx/`](axys_apx/) | Shared Axys/APX research, evidence, contracts, reference material, and common-core export guidance. |
-| Shared platform | This directory | Architecture, repository orientation, and the concise portfolio-level roadmap. |
+| Shared platform | This directory | Architecture, repository orientation, and repeatable maintenance guidance. |
 | Documentation assets | [`images/`](images/) | Generated images and product-overview maintenance guidance. |
 
 Start with:
@@ -16,10 +16,10 @@ Start with:
 - [`architecture.md`](architecture.md) for the shared system boundary.
 - [`maintainer_guide.md`](maintainer_guide.md) for repeatable maintenance,
   validation, demo, and release workflows.
-- [`roadmap.md`](roadmap.md) for current cross-product direction and document
-  ownership.
 - [`audit/README.md`](audit/README.md) for the Audit documentation map and
   authority order.
+- [`audit/roadmap.md`](audit/roadmap.md) for Audit product stages, evidence
+  gates, and priorities.
 - [`analytics/roadmap.md`](analytics/roadmap.md) for Analytics product direction.
 - [`analytics/analytics_demo_refresh.md`](analytics/analytics_demo_refresh.md)
   for Analytics demo and README-asset maintenance.
@@ -39,10 +39,10 @@ belong under [`archive/`](archive/).
 3. Keep repeatable repository operations in
    [`maintainer_guide.md`](maintainer_guide.md); keep detailed packaged-demo
    instructions beside the packaged demo.
-4. Keep Audit product direction in its product constitution and active work in
-   its MVP implementation plan.
-5. Keep Analytics direction in [`analytics/roadmap.md`](analytics/roadmap.md)
-   and shared-platform direction in [`roadmap.md`](roadmap.md).
+4. Keep Audit doctrine and founder decisions in its product constitution,
+   forward-looking direction in [`audit/roadmap.md`](audit/roadmap.md), and
+   active implementation detail in its MVP plan.
+5. Keep Analytics direction in [`analytics/roadmap.md`](analytics/roadmap.md).
 6. Keep Axys/APX facts, evidence, and implementation contracts under
    [`axys_apx/`](axys_apx/) according to that area's documented file roles.
 7. Keep deep implementation rationale in its owning product directory and

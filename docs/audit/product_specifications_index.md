@@ -3,9 +3,10 @@
 | Document field | Value |
 | --- | --- |
 | Status | Current index to retained founder-approved product-design detail |
-| Version | 2.0 |
-| Date | 2026-07-17 |
-| Governing product document | [PPAR Audit Product Constitution and Roadmap](product_constitution.md) |
+| Version | 2.1 |
+| Date | 2026-07-18 |
+| Governing product document | [PPAR Audit Product Constitution](product_constitution.md) |
+| Product roadmap | [PPAR Audit Roadmap](roadmap.md) |
 | Active implementation plan | [PPAR Audit MVP Completion Plan](mvp_plan.md) |
 | Retained detailed source | [Foundational Product Design v0.10](archive/PPAR_Audit_Foundational_Product_Design_v0.10.md) |
 | Purpose | Locate approved historical requirements without duplicating the archived 9,000-line design corpus |
@@ -28,7 +29,7 @@ When sources disagree, use:
    contracts;
 2. the current safety-invariant catalog and maintainer contract;
 3. current user/setup documentation;
-4. the Product Constitution and active MVP plan;
+4. the Product Constitution, product roadmap, and active MVP plan;
 5. current sections of the technical design reference; and
 6. the approved historical detail linked here.
 
@@ -62,7 +63,8 @@ owning current document rather than in the historical snapshot.
 
 | Subject | Current owner |
 | --- | --- |
-| Product identity, principles, boundaries, claims, and roadmap | [Product Constitution and Roadmap](product_constitution.md) |
+| Product identity, principles, boundaries, claims, and founder decisions | [Product Constitution](product_constitution.md) |
+| Product stages, evidence gates, priorities, and open questions | [Audit Roadmap](roadmap.md) |
 | Active MVP scope, sequence, and acceptance gates | [MVP Completion Plan](mvp_plan.md) |
 | Comparison-engine contracts and implementation rationale | [Performance Comparison Design](performance_comparison_design.md) |
 | Data Issues contracts and configuration | [Data Issues Design](data_issues_design.md) |

@@ -45,6 +45,7 @@ As Of Date
 Dataset Field
 Security
 Issue Type
+Category
 Reference Value
 Observed Value
 Difference
@@ -69,7 +70,8 @@ data_issues:
   dividend_rate:
     enabled: true
     only:
-      security_type: stock
+      transactions.security_type: csus
+      security_reference.asset_class_code: EQ
     exclude:
       portfolio_id:
         - TEST_PORTFOLIO
@@ -81,8 +83,15 @@ Interpretation:
 
 - `data_issues.enabled`: master switch for optional consistency checks;
   mandatory beginning/ending continuity findings remain active.
-- Each issue type is enabled by default when the worksheet is enabled. Set
-  `enabled: false` under one issue type to opt out of that check.
+- The seven established optional issue types are enabled by default when the
+  worksheet is enabled. Set `enabled: false` under one issue type to opt out.
+- Conservative opt-in issue types declare that policy in the registry.
+  `holdings_nonpositive_price` requires `enabled: true` and a nonempty `only`
+  population. `transactions_nonpositive_price` additionally requires an exact
+  transaction-code population and either `security_reference.security_type` or
+  `security_reference.asset_class_code` in `only`.
+  `transaction_security_type_mismatch` requires the exact
+  `security_reference.security_type` population it compares against.
 - `only`: optional exact-match include filters. A row must match every listed
   field to enter the check.
 - `exclude`: optional exact-match exclude filters. A row is dropped when it
@@ -90,7 +99,8 @@ Interpretation:
 - Filter values can be scalars or lists. Field names may be common normalized
   names such as `security_id`, `security_type`, and `portfolio_id`, or
   dataset-qualified names such as `holdings.security_type` and
-  `transactions.transaction_code`.
+  `transactions.transaction_code`. Optional security-master qualifiers use the
+  explicit `security_reference.*` namespace.
 - Tolerances stay per issue type because noisy fields need different limits.
 
 This section is a strict fail-closed contract. The comparison specification is
@@ -101,7 +111,9 @@ rejected before source loading or report generation when:
 - `enabled` is not an actual YAML Boolean;
 - a tolerance is Boolean, nonnumeric, nonfinite, or negative; or
 - `only`/`exclude` is not a mapping, names an unsupported normalized field, or
-  contains an empty or nonscalar value.
+  contains an empty or nonscalar value; or
+- a conservative opt-in check is enabled without its required nonempty `only`
+  population.
 
 Supported filter fields are `snapshot`, `portfolio`/`portfolio_id`,
 `security`/`security_id`, `security_type`, `asset_class`, and
@@ -109,51 +121,104 @@ Supported filter fields are `snapshot`, `portfolio`/`portfolio_id`,
 after the final dot. Scalar and list values are compared as case-insensitive
 strings.
 
-The seven optional checks support `enabled`, `only`, and `exclude`. Numeric
-range/rate checks additionally support both tolerance keys. Duplicate and
-missing-dividend checks do not accept unused tolerance keys. The two mandatory
-continuity blocks accept only absolute and percent tolerances; they cannot be
-disabled or filtered. `validate_config` prints the effective optional checks,
-mandatory continuity checks, and master-switch policy.
+When `files.security_reference` is configured, a Data Issues filter may also
+use `security_reference.security_name`, `ticker`, `cusip`, `isin`,
+`security_type`, `asset_class_code`, `asset_class_name`, `sector_code`,
+`sector`, `country_code`, `country`, or `currency`. These fields are a separate
+reference namespace: `transactions.security_type` means the value carried by a
+transaction row, while `security_reference.security_type` means the value
+joined from `secref.csv` for the same snapshot.
+
+Reference joins and reference-filter values preserve exact source case. This is
+deliberately stricter than the compatibility behavior for established native
+row filters. A configured reference filter fails closed when either snapshot
+lacks `files.security_reference`, the referenced column is absent, a relevant
+source security has no exact-case reference row, a required reference value is
+blank, or an exact-case security identifier is duplicated. The reference data
+only qualifies Data Issues populations; it does not enter Modified Dietz,
+change performance findings, or create source-detail explanations.
+
+The normalized `security_id` is the join key and must be unique within each
+reference snapshot. This is a PPAR input contract, not a claim that symbol alone
+is the native Axys/APX key. If a site can distinguish securities only with a
+symbol-plus-type or another composite identity, its extract must first supply a
+stable, unambiguous normalized `security_id`; PPAR must not guess between
+duplicate symbols.
+
+The ten optional checks support `enabled`, `only`, and `exclude`. Numeric
+range/rate checks additionally support both tolerance keys. Duplicate,
+missing-dividend, nonpositive-price, and classification-mismatch checks do not
+accept unused tolerance keys. The two mandatory continuity blocks accept only
+absolute and percent tolerances; they cannot be disabled or filtered.
+`validate_config` prints the effective optional checks, mandatory continuity
+checks, and master-switch policy.
 
 ### Initial Checks
 
 Implemented checks should stay high signal, available from the current
 normalized datasets, and easy to explain:
 
-1. `holdings_price_range`: for each snapshot, security, and holding date,
+1. `holdings_nonpositive_price`: for each snapshot row in an explicitly
+   configured `only` population, flag a finite `holdings.price` less than or
+   equal to zero when finite holding quantity is nonzero. The check is off by
+   default, uses the fixed condition `price > 0`, and does not treat a missing
+   price or zero quantity as this issue.
+2. `transactions_nonpositive_price`: for each snapshot row in an explicitly
+   configured transaction-code and reviewed reference population, flag a finite
+   `transactions.price` less than or equal to zero when finite transaction
+   quantity is nonzero. The rule does not infer that a configured transaction
+   code is universally price-bearing.
+3. `transaction_security_type_mismatch`: for each transaction row in an
+   explicitly configured `security_reference.security_type` population,
+   compare the transaction and snapshot-reference types using exact source
+   case. The issue reports both text values in its explanation, distinguishes
+   case-only differences, and does not choose which classification is correct.
+4. `holdings_price_range`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.price` values across portfolios.
-2. `transactions_price_range`: for each snapshot, security, and transaction
+5. `transactions_price_range`: for each snapshot, security, and transaction
    date, compare same-day same-security `transactions.price` values across
    portfolios.
-3. `duplicate_transactions`: for each snapshot, flag exact duplicate
+6. `duplicate_transactions`: for each snapshot, flag exact duplicate
    transaction rows with the same portfolio, date, security, code, amount,
    quantity, and price.
-4. `dividend_rate`: for each snapshot, security, and dividend date, compare
+7. `dividend_rate`: for each snapshot, security, and dividend date, compare
    same-day same-security dividend rates across portfolios.
-5. `missing_dividend`: for each snapshot, security, and dividend date where at
+8. `missing_dividend`: for each snapshot, security, and dividend date where at
    least one portfolio has a dividend, flag other portfolios that
    conservatively appear eligible for that dividend. A portfolio qualifies only
    when it has positive beginning-period quantity, or positive buy activity
    before the dividend date, and has no pre-dividend transaction activity other
    than buys.
-6. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
+9. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
    same-day same-security purchase-accrued and sale-accrued rates across
    portfolios.
-7. `holdings_accrued_rate`: for each snapshot, security, and holding date,
+10. `holdings_accrued_rate`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.accrued` per unit across
    portfolios.
 
-Defer checks that require extra reference data or more source-system evidence:
+The nonpositive-price checks are intentionally conservative. Worthless
+securities, cash conventions, accrued-only rows, shorts, derivatives, and
+vendor-specific valuation representations can legitimately carry zero or
+negative prices. Sites should include only a population where positive price is
+an understood source-data requirement, and should use `exclude` for known
+exceptions. A finding means “review this valuation or population,” not “the
+security or transaction is conclusively mispriced.” Transaction checks must
+also name the site-reviewed transaction-code population; the security reference
+qualifies that population but does not assign transaction semantics.
+
+The optional security-reference dataset makes carefully scoped classification
+qualifiers available now. Continue to defer checks that require additional
+economic attributes, event histories, or ledger evidence:
 
 - paydown amount/rate checks;
 - bond accrued-interest expectation checks;
 - split factor versus quantity-jump plausibility;
 - cash roll-forward checks.
 
-Those deferred checks are valuable, but they should not be first because they
-can easily imply security-master, dividend-rate, pool-factor, coupon/accrual,
-or cash-ledger data that is not yet part of the normalized source contract.
+Those deferred checks are valuable, but they need dividend-rate, pool-factor,
+coupon/accrual, event-history, or cash-ledger data that is not yet part of the
+normalized source contract. A present-day classification value alone is not
+enough to infer those economics.
 
 ### Report Semantics
 

@@ -194,8 +194,8 @@ firm-specific mapping.
 
 | Caveat | Confidence | Notes |
 |---|---:|---|
-| Uppercase transaction codes may represent reversal or deletion transactions in an Axys import context. | High Confidence | Observed ByAllAccounts example converts original transaction code to uppercase, e.g. `by` to `BY`. |
-| It is unknown whether every uppercase code is always a delete/reversal marker across all Axys/APX contexts, versions, and import methods. | Unknown | Requires vendor documentation or production tests. |
+| An integration tool may uppercase a historical transaction code while creating a cancellation Trade Blotter instruction. | High Confidence for the cited workflow | Source-stage evidence is required; this does not prove a posted cash transaction. |
+| It is unknown whether uppercase cancellation instructions survive in ordinary posted extracts or represent a universal native convention. | Unknown | Requires vendor or installed-system evidence by extraction path and version. |
 | Transaction-code semantics may be site-configured, version-sensitive, or dependent on source/destination fields. | Medium Confidence | Do not interpret cash activity from transaction code alone. |
 | Cash classification depends on code, sign, quantity, amount, security type, source/destination type, source/destination symbol, and configuration. | High Confidence as implementation guidance | Strongly supported by integration examples. |
 
@@ -408,7 +408,7 @@ ACCTX,010117,WD,100,100,CAUS,MMF,CAUS,CASH
 | Dividend-wash and income-like symbols may be excluded from sweep-removal logic. | Observed | Observed | High Confidence | Treat `dvwash`, `dvshrt`, `dvlong`, `cashrt`, `calong`, and `income` cautiously. |
 | Older Axys versions may use a cash asset-class code other than `c`. | Observed | Unknown | High Confidence for Axys CI | Do not hard-code cash asset class without client validation. |
 | Non-system-currency Axys transactions may require Mark to Market values in import files. | Observed | Unknown | High Confidence for Axys CI | Multi-currency cash imports require special validation. |
-| Uppercase transaction codes may be reversal/delete indicators in an Axys import context. | Observed | Unknown | High Confidence for Axys CI | Extract/replay tools must separate corrections from new activity. |
+| Uppercase cancellation instructions can occur in a Trade Blotter staging/control context. | Observed | Observed in reviewed integration evidence | Medium-High | Extract/replay tools must use source-stage evidence and keep controls separate from posted cash activity. |
 | Adjustment transactions used for reconciliation/conversion can affect downstream performance in target systems. | Medium Confidence | Medium Confidence | Medium Confidence | Cash-balancing entries can alter contribution/withdrawal treatment if misclassified. |
 | Cash balance may be derived rather than stored. | Unknown | Unknown | Unknown | Need client sample data or vendor documentation. |
 | Settled versus trade-date cash treatment is not established. | Unknown | Unknown | Unknown | High-priority accounting/reporting gap. |

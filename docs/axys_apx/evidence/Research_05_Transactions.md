@@ -111,7 +111,7 @@ fixtures, and safety policy.
 
 | Claim | Evidence synthesis | Confidence | Safe conclusion |
 |---|---|---:|---|
-| TRN-C160 | Documented Axys/APX integrations can cancel or delete a transaction by uppercasing its original code, such as `by -> BY`; examples also reference `SL`, `SS`, and `CS`. | Medium-High; TRN-S03-S06, TRN-S12 | Treat uppercase rows as reversal/control candidates before economic classification. Universality is Unknown. |
+| TRN-C160 | Reviewed Axys/APX integration tools can create cancellation Trade Blotter instructions by uppercasing historical transaction codes, such as `by -> BY`; examples also reference `SL`, `SS`, and `CS`. | Medium-High; TRN-S03-S06, TRN-S12 | Treat this as staging/control evidence. Posted-export availability and native universality are Unknown. |
 | TRN-C161 | An APX cancellation must sufficiently match original transaction fields or the Trade Blotter can reject it. | Medium; TRN-S03, TRN-S05 | Prefer source transaction ID; otherwise use strict, unique matching and preserve unmatched rows. |
 | TRN-C162 | Cancellation workflows may derive records from historical transaction files and carry backup/review warnings. | Medium; TRN-S05-S06 | Do not infer native deletion retention or idempotency. |
 | TRN-C163 | `pa`/`sa` are usable only with fixed-income context, a paired principal trade, aligned trade/settlement dates, accrued-interest amount, and coherent settlement economics. | Medium for source meaning; High as safety boundary | They are not investor contributions or withdrawals. Native holdings/performance rows remain unverified. |
@@ -120,6 +120,7 @@ fixtures, and safety policy.
 | TRN-C166 | `ss` and `cs` are internal security trades, not external capital flows. | High conceptually; Medium-High for code meaning | Production use requires short exposure, signs, and short-cash/margin/source-destination evidence. |
 | TRN-C167 | A synthetic short lifecycle may assume negative position and market value, separate proceeds/collateral, and gain/loss on cover. | General accounting inference, not native evidence | Suitable only when explicitly disclosed; never proof of universal Axys/APX mechanics. |
 | TRN-C168 | A split can appear as `;` in integration mappings, while normal Axys split evidence may instead reside in central split-factor data such as `split.inf`. | Low-Medium; integration evidence plus Chapter 09 provenance | Prefer split-factor evidence over requiring account-level transaction rows. |
+| TRN-C169 | The APX AIA guide distinguishes selected case-sensitive APX identifiers from its case-insensitive Transaction Translation evaluator. | High for cited workflow; TRN-S05, TRN-S12 claim WEB-20260718-001 | Preserve native transaction and context-field case; reproduce case-insensitive evaluation only under an explicit workflow/site contract. |
 
 ## Fields, Reports, and Interface Evidence
 
@@ -142,7 +143,7 @@ fixtures, and safety policy.
 | TRN-X001 | Sources use `epus` and `exus` inconsistently for management fees, expenses, taxes, labels, or special securities. | Preserve token role and local mapping; do not make either a universal standalone code. |
 | TRN-X002 | `li`/`lo` look like external-flow mnemonics but also represent security transfers, credits/debits, and internal movement. | Require source/destination, security type, signs, and local settings. |
 | TRN-X003 | `dp`/`wd` look cash-directional but can be fee, tax, cash-security trade, sweep, transfer, or external activity. | Require special-security and source/destination context. |
-| TRN-X004 | Uppercase cancellation is well documented in integration workflows but not as a universal native convention. | Preserve case and classify uppercase rows as candidates pending linkage. |
+| TRN-X004 | Uppercase cancellation is documented for Trade Blotter staging/control, but not as a universal native convention or an ordinary posted-export representation. | Preserve case. Require source-stage evidence and original linkage; an uppercase posted row remains unknown from case alone. |
 | TRN-X005 | `;` can be a journal/other/split transaction marker or a comment/control boundary. | Require the file, field, and local mapping context. |
 | TRN-X006 | Short code meaning is stronger than evidence for quantity, market value, proceeds, collateral, and performance signs. | Separate code recognition from accounting classification. |
 | TRN-X007 | Translation tables prove observed defaults while simultaneously documenting site customization. | Treat defaults as provenance and require overrides/site evidence in production. |

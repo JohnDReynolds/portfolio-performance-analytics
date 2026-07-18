@@ -322,6 +322,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         "Dataset.Field",
                         "Security",
                         "Issue Type",
+                        "Category",
                         "Reference Value",
                         "Observed Value",
                         "Difference",

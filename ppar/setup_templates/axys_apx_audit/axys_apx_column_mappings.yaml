@@ -96,6 +96,30 @@ security_performance_path: snapshot_a/secperf.csv
 #   # Security contribution for the period.
 #   contribution: CONTRIBUTION
 
+
+# =========================
+# Security Reference Export
+# =========================
+# Optional: Security Reference Column Overrides
+# Add this section only if your secref.csv uses source column names that PPAR
+# cannot infer. SECURITY_ID is the exact-case join key. Other fields are loaded
+# only as qualifiers for Data Issues filters and do not affect performance math.
+#
+# security_reference_columns:
+#   identifier: SECURITY_ID
+#   security_name: SECURITY_NAME
+#   ticker: TICKER
+#   cusip: CUSIP
+#   isin: ISIN
+#   security_type: SECURITY_TYPE
+#   asset_class_code: ASSET_CLASS_CODE
+#   asset_class_name: ASSET_CLASS_NAME
+#   sector_code: SECTOR_CODE
+#   sector: SECTOR_DESC
+#   country_code: COUNTRY_CODE
+#   country: COUNTRY_DESC
+#   currency: CURRENCY_CODE
+
 # =========================
 # Mappings
 # =========================

@@ -372,13 +372,13 @@ This table is an observed-code catalog only. It is not a complete official Axys/
 | Code | Observed Meaning / Context | Axys | APX | IMEX | REP | Confidence |
 |---|---|---:|---:|---:|---:|---|
 | `by` | Buy. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `BY` | Cancellation/deletion/reversal of buy in uppercase-code workflows. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `BY` | Cancellation instruction derived from `by` in a reviewed Trade Blotter staging/control workflow. | Observed | Observed | Trade Blotter control context | Posted-export availability Unknown | Medium Confidence |
 | `sl` | Sell. | Likely observed in examples; native status Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `SL` | Uppercase sell code appears in AIA delete/translation examples. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `ss` | Short sale; APX integration evidence maps `SELL / SHORT` to lowercase `ss`. Uppercase `SS` may be cancellation/delete evidence. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High for code meaning; Unknown native mechanics |
-| `SS` | Uppercase short-sale code appears in AIA delete/translation examples. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `cs` | Cover short; APX integration evidence maps `BUY / COVER SHORT` to lowercase `cs`. Uppercase `CS` may be cancellation/delete evidence. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High for code meaning; Unknown native mechanics |
-| `CS` | Uppercase cover-short code appears in AIA delete/translation examples. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `SL` | Uppercase sell-derived instruction appears in AIA cancellation Trade Blotter examples. | Unknown | Observed | Trade Blotter control context | Posted-export availability Unknown | Medium Confidence |
+| `ss` | Short sale; APX integration evidence maps `SELL / SHORT` to exact lowercase `ss`. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High for code meaning; Unknown native mechanics |
+| `SS` | Uppercase short-sale-derived instruction appears in AIA cancellation Trade Blotter examples. | Unknown | Observed | Trade Blotter control context | Posted-export availability Unknown | Medium Confidence |
+| `cs` | Cover short; APX integration evidence maps `BUY / COVER SHORT` to exact lowercase `cs`. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High for code meaning; Unknown native mechanics |
+| `CS` | Uppercase cover-short-derived instruction appears in AIA cancellation Trade Blotter examples. | Unknown | Observed | Trade Blotter control context | Posted-export availability Unknown | Medium Confidence |
 | `li` | Deliver in / transfer in / credit / deposit / positive direction depending context. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `lo` | Deliver out / transfer out / debit / withdrawal / negative direction depending context. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `dv` | Dividend / income / reinvestment leg. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
@@ -581,6 +581,26 @@ not define the native schema behind them.
 Topic-specific Unknowns are maintained in the owning subject chapter rather
 than repeated here.
 
+### Case-Handling Policy
+
+Observed casing is part of a literal value unless a separate domain or site
+contract authorizes normalization. The examples in this dictionary do not
+establish a general lowercase or uppercase convention.
+
+| Field family | Default handling | Evidence boundary |
+|---|---|---|
+| Security/vehicle symbol and ticker-like product identifier | Preserve raw case; exact-case match by default. | APX AIA explicitly identifies vehicle symbols as case-sensitive; broader native rules remain Unknown. |
+| Security type and special-security type/symbol | Preserve raw case; do not copy casing from an example into a global rule. | Axys/APX CI material contains mixed-case examples. |
+| Portfolio/account code | Preserve raw case; exact-case match by default. | APX AIA explicitly identifies account code as case-sensitive for the cited workflow. |
+| Asset-class, sector, industry, and other classification codes | Preserve raw case pending a site-specific dictionary. | No complete native casing contract was recovered. |
+| Transaction code | Preserve raw case. Any case-insensitive rule evaluation must be explicit and must not merge posted rows with Trade Blotter cancellation controls. | AIA evaluator behavior and cancellation staging are workflow-specific. |
+| Descriptive text and report labels | Preserve the extracted value; presentation casing is not identifier semantics. | Report labels are not native-field contracts. |
+| ISO currency code | Normalize only under the separate currency-domain contract. | Independent standardized domain; not an Axys/APX identifier rule. |
+
+If a site authorizes case-insensitive comparison, retain the raw value and use a
+separate comparison key. Case-only differences must remain available for audit
+and reconciliation.
+
 ---
 
 ## 8. References
@@ -619,3 +639,4 @@ This chapter is based on the supplied repository blueprint and supplied research
 8. When a field appears in multiple contexts, document each context separately.
 9. Version-tag fields and layouts whenever the evidence is version-specific.
 10. If a field’s meaning is uncertain, keep the meaning Unknown rather than inferring from portfolio-accounting convention.
+11. Never use a case-insensitive integration rule as proof that native product identifiers are case-insensitive.

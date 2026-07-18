@@ -413,9 +413,9 @@ These tokens are examples only. They are not a full RepLang dictionary.
 |---|---:|---|
 | Transactions are central accounting events that affect holdings, cash, lots, cost basis, income, realized gain/loss, performance, reports, IMEX, REP, reconciliation, and audit workflows. | High Confidence | Supported by transaction research and general accounting role. |
 | Axys transaction imports can route through `topost.trn` Trade Blotter in supplied CI workflow. | Verified for CI workflow | Complete field layout Unknown. |
-| Observed transaction codes include `by`, `sl`, `li`, `lo`, `dv`, `in`, `dp`, `wd`, `ss`, `cs`, `rc`, `pd`, `ai`, `sa`, and uppercase cancellation examples. | Medium Confidence | Observed in third-party integration material; not official code matrix. |
+| Observed transaction codes include `by`, `sl`, `li`, `lo`, `dv`, `in`, `dp`, `wd`, `ss`, `cs`, `rc`, `pd`, `ai`, and `sa`; separate uppercase cancellation instructions appear in Trade Blotter staging/control examples. | Medium Confidence | Observed in third-party integration material; not an official code matrix or proof of posted-export representation. |
 | Transaction meaning can depend on code, sign, security type, source/destination fields, special security fields, configuration, and context. | High Confidence as implementation rule | Do not interpret code alone. |
-| Uppercase transaction codes may represent cancellation/deletion in supplied workflows. | Medium Confidence | Do not generalize to all native workflows without vendor documentation. |
+| A reviewed Trade Blotter workflow uses uppercased transaction codes as cancellation/deletion instructions. | Medium Confidence | Require explicit source-stage evidence; do not generalize to posted extracts or all native workflows. |
 
 ### 8.4 Holdings / Positions
 
@@ -660,7 +660,7 @@ Any Axys extract used for integration, audit, or research should record the foll
 | Security ambiguity blocks imports in CI workflows. | Axys/APX CI | Verified | Resolve symbol/type ambiguity and translations before import. |
 | Symbol alone is not reliable for security joins. | Axys/APX CI | Verified | Preserve security type with symbol. |
 | Transaction code alone is not enough to infer accounting behavior. | Axys/APX integration | High Confidence | Use sign, amount, source/destination, security type, special symbols, and configuration. |
-| Uppercase transaction-code cancellation examples are workflow-specific. | Axys/APX integration | Medium Confidence | Do not treat as universal native rule without documentation. |
+| Uppercase transaction-code cancellation examples are staging/control-workflow-specific. | Axys/APX integration | Medium Confidence | Require source-stage evidence; do not treat as a posted-export or universal native rule. |
 | REP/Report Writer manual edits can create supportability issues. | Axys/APX reporting | Medium / High Confidence | Preserve originals and document customizations. |
 | APX fixed-format IMEX generation reportedly removed in cited versions. | APX | Medium Confidence | Do not design APX extracts assuming fixed-format output. |
 | Historical holdings extraction may require report calculation. | Axys/APX AIA | Verified for AIA workflow | Current-date and historical extraction paths can differ. |
@@ -817,7 +817,8 @@ Supplied transaction and IMEX research includes a public example row.
 acct123,010101,010101,by,csus,appl,100,caus,cash,10000
 ```
 
-A cancellation example changes `by` to `BY`:
+A reviewed tool creates a cancellation Trade Blotter instruction by changing
+`by` to `BY`:
 
 ```csv
 acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
@@ -828,7 +829,7 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 | `acct123` | Account/portfolio code, Medium Confidence. |
 | `010101`, `010101` | Date fields, exact meanings Unknown. |
 | `by` | Buy transaction code in observed integration example, Medium Confidence. |
-| `BY` | Cancellation/deletion form in observed integration example, Medium Confidence. |
+| `BY` | Cancellation staging/control instruction in the observed integration example, Medium Confidence; posted-export availability Unknown. |
 | `csus`, `appl`, `caus`, `cash` | Security/source/destination type-symbol fields in observed example, exact native dictionary Unknown. |
 | `100`, `10000` | Quantity/amount-like fields, exact field order Unknown. |
 

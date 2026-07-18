@@ -21,11 +21,14 @@ class DataIssueType(StrEnum):
     DUPLICATE_TRANSACTIONS = "duplicate_transactions"
     DIVIDEND_RATE = "dividend_rate"
     HOLDINGS_ACCRUED_RATE = "holdings_accrued_rate"
+    HOLDINGS_NONPOSITIVE_PRICE = "holdings_nonpositive_price"
     HOLDINGS_PRICE_RANGE = "holdings_price_range"
     MISSING_DIVIDEND = "missing_dividend"
     PA_SA_RATE = "pa_sa_rate"
     PORTFOLIO_MARKET_VALUE_CONTINUITY = "portfolio_market_value_continuity"
     SECURITY_MARKET_VALUE_CONTINUITY = "security_market_value_continuity"
+    TRANSACTION_SECURITY_TYPE_MISMATCH = "transaction_security_type_mismatch"
+    TRANSACTIONS_NONPOSITIVE_PRICE = "transactions_nonpositive_price"
     TRANSACTIONS_PRICE_RANGE = "transactions_price_range"
 
 
@@ -39,6 +42,7 @@ class DataIssueCategory(StrEnum):
     ACCRUED_INTEREST = "accrued_interest"
     POSITION_VALUE = "position_value"
     CORPORATE_ACTION = "corporate_action"
+    CLASSIFICATION = "classification"
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,8 @@ class DataIssueDefinition:
         supports_percent_tolerance: Whether the check accepts a percent
             tolerance in YAML.
         reviewer_meaning: Concise, non-conclusive meaning for a reviewer.
+        requires_only_filter: Whether explicit enablement requires a nonempty
+            ``only`` population filter.
     """
 
     category: DataIssueCategory
@@ -66,6 +72,7 @@ class DataIssueDefinition:
     supports_absolute_tolerance: bool
     supports_percent_tolerance: bool
     reviewer_meaning: str
+    requires_only_filter: bool = False
 
 
 _NUMERIC_CHECK = {
@@ -101,6 +108,19 @@ DATA_ISSUE_REGISTRY: Final[
             required_datasets=("holdings",),
             **_NUMERIC_CHECK,
             reviewer_meaning="Same-day holdings accrued rates differ across portfolios.",
+        ),
+        DataIssueType.HOLDINGS_NONPOSITIVE_PRICE: DataIssueDefinition(
+            category=DataIssueCategory.PRICE,
+            mandatory=False,
+            default_enabled=False,
+            required_datasets=("holdings",),
+            supports_absolute_tolerance=False,
+            supports_percent_tolerance=False,
+            reviewer_meaning=(
+                "A nonzero holding has a zero or negative price in the configured "
+                "population."
+            ),
+            requires_only_filter=True,
         ),
         DataIssueType.HOLDINGS_PRICE_RANGE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
@@ -148,6 +168,32 @@ DATA_ISSUE_REGISTRY: Final[
             reviewer_meaning=(
                 "Prior ending and next beginning security market values differ."
             ),
+        ),
+        DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE: DataIssueDefinition(
+            category=DataIssueCategory.PRICE,
+            mandatory=False,
+            default_enabled=False,
+            required_datasets=("transactions", "security_reference"),
+            supports_absolute_tolerance=False,
+            supports_percent_tolerance=False,
+            reviewer_meaning=(
+                "A nonzero-quantity transaction has a zero or negative price in "
+                "the configured price-bearing population."
+            ),
+            requires_only_filter=True,
+        ),
+        DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH: DataIssueDefinition(
+            category=DataIssueCategory.CLASSIFICATION,
+            mandatory=False,
+            default_enabled=False,
+            required_datasets=("transactions", "security_reference"),
+            supports_absolute_tolerance=False,
+            supports_percent_tolerance=False,
+            reviewer_meaning=(
+                "A transaction security type differs from the snapshot reference "
+                "type for the same exact-case security ID."
+            ),
+            requires_only_filter=True,
         ),
         DataIssueType.TRANSACTIONS_PRICE_RANGE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,

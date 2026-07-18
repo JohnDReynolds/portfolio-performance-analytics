@@ -160,6 +160,7 @@ my_ppar_data/
       portperf.csv
       holdings.csv
       transactions.csv
+      secref.csv
       secperf.csv
       fx_rates.csv
       splits.csv
@@ -167,6 +168,7 @@ my_ppar_data/
       portperf.csv
       holdings.csv
       transactions.csv
+      secref.csv
       secperf.csv
       fx_rates.csv
       splits.csv

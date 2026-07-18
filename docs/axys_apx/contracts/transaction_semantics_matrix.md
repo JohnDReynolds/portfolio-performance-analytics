@@ -48,15 +48,16 @@ Important boundary rules:
   code.
 - `li`, `lo`, `dp`, and `wd` require context before ppar may treat them as
   external flows or non-external flows.
-- Uppercase cancellation/delete behavior is observed in integration workflows,
-  but native universality remains Unknown.
+- Uppercase cancellation/delete instructions are observed in Trade Blotter
+  staging/control workflows, but their ordinary posted-export representation
+  and native universality remain Unknown.
 - `epus` and `exus` are observed fee/expense classification tokens, but sources
   disagree on whether they are transaction codes, labels, security types, or
   special-security terms.
-- Preserve native transaction-code and security-identifier case. Some observed
-  integration translation logic is case-insensitive, but ppar matching and
-  equality checks should not become case-insensitive unless an explicit site
-  mapping says so.
+- Preserve native transaction-code, security-identifier, and context-field case.
+  Some observed integration translation logic is case-insensitive, but ppar
+  semantic rules, matching, and equality checks should not become
+  case-insensitive unless an explicit, versioned site contract says so.
 
 ## Field Meanings
 
@@ -84,8 +85,8 @@ table directly.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `by` | Buy; reinvestment buy leg; non-cash deposit paired leg. | `buy` | `negative` | `performance` | `code`, `security`, `amount_or_quantity_signs` | Medium | Medium | Covered by packaged demo data and tests. | `packaged_demo` | Packaged demo includes normal buy rows; reinvestment-pair coverage remains backlog under pair_patterns.dv_by_reinvestment. |
 | `sl` | Sell; positive closure leg. | `sell` | `positive` | `performance` | `code`, `security`, `amount_or_quantity_signs` | Medium | Medium | Covered by packaged demo data and tests. | `packaged_demo` | Packaged demo includes normal sell rows with cash proceeds and security quantity changes. |
-| `ss` | Short sale; ByAllAccounts APX mapping evidence maps SELL / SHORT to ss. | `sell`, `unknown_pending_review` | `positive`, `collateral_like`, `short_proceeds_specific`, `context_dependent` | `performance`, `unknown` | `lowercase_code`, `security`, `quantity`, `amount`, `short_security_type_or_negative_exposure`, `cash_margin_short_symbols`, `source_destination_context` | Medium High For Code Low Medium For Mechanics | Medium | Partially documented or tested, but not fully covered. | `packaged_demo`, `site_variants/short_side_trades` | Packaged demo covers ss only in a disclosed synthetic TSLA short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown, and uppercase SS may be reversal/delete evidence. |
-| `cs` | Cover short; ByAllAccounts APX mapping evidence maps BUY / COVER SHORT to cs. | `buy`, `unknown_pending_review` | `negative`, `collateral_like`, `short_cash_release_specific`, `context_dependent` | `performance`, `unknown` | `lowercase_code`, `security`, `quantity`, `amount`, `prior_or_resulting_short_exposure`, `cash_margin_short_symbols`, `source_destination_context` | Medium High For Code Low Medium For Mechanics | Medium | Partially documented or tested, but not fully covered. | `packaged_demo`, `site_variants/short_side_trades` | Packaged demo covers cs only in a disclosed synthetic TSLA cover-short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown, and uppercase CS cancellation evidence must stay separate from economic cover-short treatment. |
+| `ss` | Short sale; ByAllAccounts APX mapping evidence maps SELL / SHORT to ss. | `sell`, `unknown_pending_review` | `positive`, `collateral_like`, `short_proceeds_specific`, `context_dependent` | `performance`, `unknown` | `lowercase_code`, `security`, `quantity`, `amount`, `short_security_type_or_negative_exposure`, `cash_margin_short_symbols`, `source_destination_context` | Medium High For Code Low Medium For Mechanics | Medium | Partially documented or tested, but not fully covered. | `packaged_demo`, `site_variants/short_side_trades` | Packaged demo covers lowercase ss only in a disclosed synthetic TSLA short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown. Uppercase SS is only bounded staging/control cancellation evidence and requires explicit source-stage handling. |
+| `cs` | Cover short; ByAllAccounts APX mapping evidence maps BUY / COVER SHORT to cs. | `buy`, `unknown_pending_review` | `negative`, `collateral_like`, `short_cash_release_specific`, `context_dependent` | `performance`, `unknown` | `lowercase_code`, `security`, `quantity`, `amount`, `prior_or_resulting_short_exposure`, `cash_margin_short_symbols`, `source_destination_context` | Medium High For Code Low Medium For Mechanics | Medium | Partially documented or tested, but not fully covered. | `packaged_demo`, `site_variants/short_side_trades` | Packaged demo covers lowercase cs only in a disclosed synthetic TSLA cover-short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown. Uppercase CS is only bounded staging/control cancellation evidence and requires explicit source-stage handling. |
 | `dv` | Dividend, dividend-paying security income, reinvested-dividend leg. | `income` | `positive` | `performance` | `code`, `security_or_income_context`, `amount_sign` | Medium | Medium | Covered by packaged demo data and tests. | `packaged_demo` | Packaged demo includes ordinary dividend income rows; paired dividend-reinvestment coverage remains backlog under pair_patterns.dv_by_reinvestment. |
 | `in` | Income, interest, cash-security dividend/income. | `income` | `positive` | `performance` | `code`, `security_type`, `amount_sign` | Medium | Medium | Covered by packaged demo data and tests. | `packaged_demo` | Packaged demo includes fixed-income/cash income rows used as performance income. |
 | `ai` | Negative interest or margin interest. | `fee_expense`, `income` | `negative`, `context_dependent` | `performance` | `security_type`, `margin_symbols`, `amount_sign`, `local_mapping` | Medium | Medium | Partially documented or tested, but not fully covered. | `site_variants/ai_margin_interest` | Test-only site variant covers margin-style negative-interest treatment through explicit YAML rules. Code-only treatment remains unknown, and packaged-demo use still needs local mapping or REP/report evidence. |
@@ -106,7 +107,7 @@ table directly.
 
 | Pattern | Observed meaning | ppar treatment | Required evidence | Coverage status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `BY`, `SL`, `SS`, `CS` uppercase examples | Delete/cancellation or blotter-delete logic in integration workflows. | `correction/reversal` or `unknown pending review`; do not treat as new economic event until linked to original. | Original transaction link or enough matching fields to identify the reversal target. | Partially documented; not yet covered by performance demo fixtures. | Universality across native Axys/APX versions is Unknown. |
+| `BY`, `SL`, `SS`, `CS` uppercase examples | Cancellation Trade Blotter instructions in reviewed staging/control workflows. | Quarantine from posted economics when source-stage evidence proves the control role; otherwise keep `unknown pending review`. | Explicit source stage plus original transaction link or enough strict matching fields to identify the target. | Blocking MVP backlog; no posted-transaction demo fixture. | Ordinary REP, IMEX/APXIX, SQL, REST, and report-export availability and native universality are Unknown. |
 | `dp` / `wd` pair | Cash sweep or intra-account cash journal candidate. | `transfer` / `neutral` when context proves internal sweep. | Matching account/date/amount/security/source-destination fields and sweep/cash symbols. | Covered in site-variant tests at row-classification level. | Integration tools may remove such pairs before import. |
 | `li` / `lo` pair | Transfer-in/transfer-out or internal movement candidate. | `transfer` / `neutral` unless external party context proves external flow. | Source/destination type and symbol, security type, quantity/amount signs, account mapping. | Covered in site-variant tests at row-classification level; inserted cash-flow behavior is test-only. | Can also represent true capital movement. |
 | `ti` / `to` pair | Observed opposite cash-journal pair in cash research. | `unknown pending review` until supported by transaction-code evidence. | Local mapping, source/destination fields, matching pair evidence. | Not yet covered. | Mentioned as AIA pair logic; exact ppar treatment unresolved. |
@@ -136,7 +137,9 @@ is strong enough to avoid invented linkage:
 
 Use this order before assigning `external_flow`:
 
-1. Detect corrections, cancellations, deletes, and reversal-like rows.
+1. Establish source stage before interpreting corrections, cancellations,
+   deletes, and reversal-like rows. Case alone does not prove that an ordinary
+   posted extract contains a cancellation.
 2. Apply explicit site mapping and reviewed REP/report semantics.
 3. For IMEX rows, require the context fields declared in the site extract
    contract before classifying ambiguous codes. Context-field presence alone is
@@ -162,7 +165,8 @@ Future demo data and tests should add explicit examples for:
 - real-world split/corporate-action example using an actual historical split
   date and security when the demo period is designed to support it;
 - reinvested dividend pair: `dv` + `by` with dividend-wash context;
-- uppercase cancellation/reversal examples with original-transaction matching;
+- a separate Trade Blotter staging/control fixture for uppercase cancellation
+  instructions, with source-stage evidence and original-transaction matching;
 - cash-journal pair families beyond the current `dp`/`wd`, `li`/`lo` examples:
   `ti`/`to`, `si`/`so`, and `tr`/`ts`;
 - local-review fixtures where code and context are present but treatment remains

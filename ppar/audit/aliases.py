@@ -177,3 +177,32 @@ HOLDINGS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
     pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
 }
+
+SECURITY_REFERENCE_REQUIRED_ALIASES: Final[ColumnAliases] = {
+    pc_cols.SECURITY_ID: SECURITY_PERFORMANCE_REQUIRED_ALIASES[pc_cols.SECURITY_ID],
+}
+
+SECURITY_REFERENCE_OPTIONAL_ALIASES: Final[ColumnAliases] = {
+    pc_cols.SECURITY_NAME: ("SECURITY_NAME", "SEC_NAME", "DESCRIPTION", "NAME"),
+    pc_cols.TICKER: ("TICKER", "SYMBOL"),
+    pc_cols.CUSIP: ("CUSIP",),
+    pc_cols.ISIN: ("ISIN",),
+    pc_cols.SECURITY_TYPE: (
+        "SECURITY_TYPE",
+        "SECURITY_TYPE_CODE",
+        "SEC_TYPE",
+        "SEC_TYPE_CODE",
+        "TYPE",
+    ),
+    pc_cols.ASSET_CLASS_CODE: ("ASSET_CLASS_CODE", "ASSET_CLASS", "ASSETCLASS"),
+    pc_cols.ASSET_CLASS_NAME: (
+        "ASSET_CLASS_NAME",
+        "ASSET_CLASS_DESC",
+        "ASSET_CLASS_DESCRIPTION",
+    ),
+    pc_cols.SECTOR_CODE: ("SECTOR_CODE",),
+    pc_cols.SECTOR: ("SECTOR", "SECTOR_DESC", "SECTOR_NAME"),
+    pc_cols.COUNTRY_CODE: ("COUNTRY_CODE",),
+    pc_cols.COUNTRY: ("COUNTRY", "COUNTRY_DESC", "COUNTRY_NAME"),
+    pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
+}

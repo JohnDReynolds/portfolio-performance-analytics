@@ -28,13 +28,15 @@ from ppar.audit.portfolio_performance import (
     SnapshotKey,
 )
 from ppar.audit.security_performance import SecurityPerformanceLoader
+from ppar.audit.security_reference import SecurityReferenceLoader
 from ppar.audit.specification import AuditSpecification
 from ppar.audit.transactions import TransactionsLoader
-from ppar.audit.data_issues.vocabulary import DataIssueType
+from ppar.audit.data_issues.vocabulary import DATA_ISSUE_REGISTRY, DataIssueType
 
 SNAPSHOT: Final[str] = "snapshot"
 AS_OF_DATE: Final[str] = "as_of_date"
 ISSUE_TYPE: Final[str] = "issue_type"
+CATEGORY: Final[str] = "category"
 DATASET_FIELD: Final[str] = "dataset_field"
 VALUE_A: Final[str] = "value_a"
 VALUE_B: Final[str] = "value_b"
@@ -46,6 +48,9 @@ REVIEW_KEY: Final[str] = "review_key"
 ISSUE_DUPLICATE_TRANSACTIONS: Final[str] = DataIssueType.DUPLICATE_TRANSACTIONS.value
 ISSUE_DIVIDEND_RATE: Final[str] = DataIssueType.DIVIDEND_RATE.value
 ISSUE_HOLDINGS_ACCRUED_RATE: Final[str] = DataIssueType.HOLDINGS_ACCRUED_RATE.value
+ISSUE_HOLDINGS_NONPOSITIVE_PRICE: Final[str] = (
+    DataIssueType.HOLDINGS_NONPOSITIVE_PRICE.value
+)
 ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = DataIssueType.HOLDINGS_PRICE_RANGE.value
 ISSUE_MISSING_DIVIDEND: Final[str] = DataIssueType.MISSING_DIVIDEND.value
 ISSUE_PA_SA_RATE: Final[str] = DataIssueType.PA_SA_RATE.value
@@ -54,6 +59,12 @@ ISSUE_PORTFOLIO_MV_CONTINUITY: Final[str] = (
 )
 ISSUE_SECURITY_MV_CONTINUITY: Final[str] = (
     DataIssueType.SECURITY_MARKET_VALUE_CONTINUITY.value
+)
+ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH: Final[str] = (
+    DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH.value
+)
+ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE: Final[str] = (
+    DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE.value
 )
 ISSUE_TRANSACTIONS_PRICE_RANGE: Final[str] = (
     DataIssueType.TRANSACTIONS_PRICE_RANGE.value
@@ -66,6 +77,7 @@ DATA_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
     DATASET_FIELD,
     pc_cols.SECURITY_ID,
     ISSUE_TYPE,
+    CATEGORY,
     VALUE_A,
     VALUE_B,
     DIFFERENCE,
@@ -92,6 +104,25 @@ _FILTER_FIELD_ALIASES: Final[dict[str, str]] = {
     "asset_class": pc_cols.ASSET_CLASS,
     "transaction_code": pc_cols.TRANSACTION_CODE,
 }
+_SECURITY_REFERENCE_PREFIX: Final[str] = f"{pc_cols.SECURITY_REFERENCE}."
+_HOLDING_FILTER_ISSUES: Final[frozenset[str]] = frozenset(
+    {
+        ISSUE_HOLDINGS_ACCRUED_RATE,
+        ISSUE_HOLDINGS_NONPOSITIVE_PRICE,
+        ISSUE_HOLDINGS_PRICE_RANGE,
+    }
+)
+_TRANSACTION_FILTER_ISSUES: Final[frozenset[str]] = frozenset(
+    {
+        ISSUE_DUPLICATE_TRANSACTIONS,
+        ISSUE_DIVIDEND_RATE,
+        ISSUE_MISSING_DIVIDEND,
+        ISSUE_PA_SA_RATE,
+        ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH,
+        ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE,
+        ISSUE_TRANSACTIONS_PRICE_RANGE,
+    }
+)
 
 _ISSUE_SCHEMA: Final[dict[str, type[pl.DataType]]] = {
     SNAPSHOT: pl.String,
@@ -100,6 +131,7 @@ _ISSUE_SCHEMA: Final[dict[str, type[pl.DataType]]] = {
     DATASET_FIELD: pl.String,
     pc_cols.SECURITY_ID: pl.String,
     ISSUE_TYPE: pl.String,
+    CATEGORY: pl.String,
     VALUE_A: pl.Float64,
     VALUE_B: pl.Float64,
     DIFFERENCE: pl.Float64,
@@ -148,6 +180,27 @@ class _Tolerance:
 
 
 @dataclass(frozen=True)
+class _CompiledFilter:
+    """One normalized YAML filter condition.
+
+    Attributes:
+        column: Enriched or native row column to inspect.
+        values: Accepted scalar strings.
+        exact_case: Whether matching preserves case.
+    """
+
+    column: str
+    values: frozenset[str]
+    exact_case: bool
+
+    def matches(self, row: Mapping[str, object]) -> bool:
+        """Return whether one row matches this condition."""
+        value = _text(row.get(self.column))
+        candidate = value if self.exact_case else value.lower()
+        return candidate in self.values
+
+
+@dataclass(frozen=True)
 class _RowFilter:
     """Precompiled include/exclude filters for one data-audit check.
 
@@ -160,22 +213,16 @@ class _RowFilter:
         avoids repeating that work for every source row at large sites.
     """
 
-    only: tuple[tuple[str, frozenset[str]], ...]
-    exclude: tuple[tuple[str, frozenset[str]], ...]
+    only: tuple[_CompiledFilter, ...]
+    exclude: tuple[_CompiledFilter, ...]
 
     def allows(self, row: Mapping[str, object]) -> bool:
         """Return whether one row passes the compiled filters."""
-        if self.only and not all(
-            _text(row.get(column_name)).lower() in values
-            for column_name, values in self.only
-        ):
+        if self.only and not all(condition.matches(row) for condition in self.only):
             return False
         if not self.exclude:
             return True
-        return not any(
-            _text(row.get(column_name)).lower() in values
-            for column_name, values in self.exclude
-        )
+        return not any(condition.matches(row) for condition in self.exclude)
 
 
 def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
@@ -225,8 +272,37 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
         return _issues_table(rows)
     transaction_rows = _snapshot_rows(transactions)
     holding_rows = _snapshot_rows(holdings)
+    reference_requirements = _security_reference_requirements(config)
+    if reference_requirements:
+        reference_maps = _security_reference_maps(
+            specification,
+            required_columns=frozenset(
+                column
+                for columns in reference_requirements.values()
+                for column in columns
+            ),
+        )
+        if reference_requirements.get(pc_cols.HOLDINGS):
+            holding_rows = _enrich_with_security_reference(
+                holding_rows,
+                reference_maps,
+                reference_requirements[pc_cols.HOLDINGS],
+                dataset_name=pc_cols.HOLDINGS,
+                specification=specification,
+            )
+        if reference_requirements.get(pc_cols.TRANSACTIONS):
+            transaction_rows = _enrich_with_security_reference(
+                transaction_rows,
+                reference_maps,
+                reference_requirements[pc_cols.TRANSACTIONS],
+                dataset_name=pc_cols.TRANSACTIONS,
+                specification=specification,
+            )
     rows.extend(_duplicate_transaction_issues(transaction_rows, config))
+    rows.extend(_holdings_nonpositive_price_issues(holding_rows, config))
     rows.extend(_holding_price_range_issues(holding_rows, config))
+    rows.extend(_transaction_security_type_mismatch_issues(transaction_rows, config))
+    rows.extend(_transactions_nonpositive_price_issues(transaction_rows, config))
     rows.extend(_transaction_price_range_issues(transaction_rows, config))
     rows.extend(_same_day_rate_issues(transaction_rows, holding_rows, config))
     rows.extend(_missing_dividend_issues(holding_rows, transaction_rows, config))
@@ -422,6 +498,119 @@ def _snapshot_labels() -> tuple[tuple[SnapshotKey, str], ...]:
     return (("a", _SNAPSHOT_A_LABEL), ("b", _SNAPSHOT_B_LABEL))
 
 
+def _security_reference_requirements(
+    config: Mapping[str, object],
+) -> dict[str, frozenset[str]]:
+    """Return reference columns required by enabled holding/transaction filters."""
+    requirements: dict[str, set[str]] = {
+        pc_cols.HOLDINGS: set(),
+        pc_cols.TRANSACTIONS: set(),
+    }
+    for issue_type in DataIssueType:
+        check_name = issue_type.value
+        if not _check_enabled(config, check_name):
+            continue
+        fields = _security_reference_filter_fields(_check_config(config, check_name))
+        if check_name in _HOLDING_FILTER_ISSUES:
+            requirements[pc_cols.HOLDINGS].update(fields)
+        if check_name in _TRANSACTION_FILTER_ISSUES:
+            requirements[pc_cols.TRANSACTIONS].update(fields)
+    return {
+        dataset_name: frozenset(columns)
+        for dataset_name, columns in requirements.items()
+        if columns
+    }
+
+
+def _security_reference_filter_fields(
+    check_config: Mapping[str, object],
+) -> frozenset[str]:
+    """Return normalized reference fields used by one check's filters."""
+    fields: set[str] = set()
+    for filter_key in ("only", "exclude"):
+        for field_name, _ in _filter_mapping(check_config.get(filter_key, {})):
+            normalized = field_name.strip().lower()
+            if normalized.startswith(_SECURITY_REFERENCE_PREFIX):
+                fields.add(normalized.removeprefix(_SECURITY_REFERENCE_PREFIX))
+    return frozenset(fields)
+
+
+def _security_reference_maps(
+    specification: AuditSpecification,
+    *,
+    required_columns: frozenset[str],
+) -> dict[str, dict[str, dict[str, object]]]:
+    """Return exact-case security-reference rows keyed by snapshot and security."""
+    loader = SecurityReferenceLoader(specification)
+    reference_maps: dict[str, dict[str, dict[str, object]]] = {}
+    for snapshot_key, snapshot_label in _snapshot_labels():
+        frame = loader.load(snapshot_key)
+        if frame is None:
+            raise PpaError(
+                (
+                    f"{specification.path}: Data Issues filters reference "
+                    "security_reference fields, but files.security_reference is "
+                    f"missing for snapshot {snapshot_key}."
+                ),
+                504,
+            )
+        missing_columns = sorted(required_columns - set(frame.columns))
+        if missing_columns:
+            raise PpaError(
+                (
+                    f"{specification.path}: security_reference for snapshot "
+                    f"{snapshot_key} is missing filter columns: "
+                    f"{', '.join(missing_columns)}."
+                ),
+                504,
+            )
+        reference_maps[snapshot_label] = {
+            str(row[pc_cols.SECURITY_ID]): dict(row)
+            for row in frame.iter_rows(named=True)
+        }
+    return reference_maps
+
+
+def _enrich_with_security_reference(
+    rows: Sequence[Mapping[str, object]],
+    reference_maps: Mapping[str, Mapping[str, Mapping[str, object]]],
+    required_columns: frozenset[str],
+    *,
+    dataset_name: str,
+    specification: AuditSpecification,
+) -> tuple[dict[str, object], ...]:
+    """Attach required exact-case reference values or fail closed."""
+    enriched_rows: list[dict[str, object]] = []
+    for row in rows:
+        snapshot = _text(row.get(SNAPSHOT))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        reference_row = reference_maps.get(snapshot, {}).get(security_id)
+        if reference_row is None:
+            raise PpaError(
+                (
+                    f"{specification.path}: {dataset_name} security_id "
+                    f"{security_id!r} in {snapshot} has no exact-case "
+                    "security_reference row required by a Data Issues filter."
+                ),
+                504,
+            )
+        enriched_row = dict(row)
+        for column in required_columns:
+            value = reference_row.get(column)
+            if value is None or not str(value).strip():
+                raise PpaError(
+                    (
+                        f"{specification.path}: security_reference security_id "
+                        f"{security_id!r} in {snapshot} has no value for "
+                        f"{column!r}, required by a Data Issues filter."
+                    ),
+                    504,
+                )
+            enriched_row[f"{_SECURITY_REFERENCE_PREFIX}{column}"] = value
+        enriched_rows.append(enriched_row)
+    return tuple(enriched_rows)
+
+
 def _data_issues_config(
     specification_values: Mapping[str, object],
 ) -> Mapping[str, object]:
@@ -449,7 +638,11 @@ def _check_config(config: Mapping[str, object], check_name: str) -> Mapping[str,
 def _check_enabled(config: Mapping[str, object], check_name: str) -> bool:
     """Return whether one Data Issues check is enabled."""
     check_config = _check_config(config, check_name)
-    enabled = check_config.get("enabled", True)
+    issue_type = DataIssueType(check_name)
+    enabled = check_config.get(
+        "enabled",
+        DATA_ISSUE_REGISTRY[issue_type].default_enabled,
+    )
     return not isinstance(enabled, bool) or enabled
 
 
@@ -573,6 +766,55 @@ def _holding_price_range_issues(
     )
 
 
+def _holdings_nonpositive_price_issues(
+    holdings: Sequence[Mapping[str, object]],
+    config: Mapping[str, object],
+) -> list[dict[str, object]]:
+    """Return configured nonzero holdings with zero or negative prices."""
+    check_name = ISSUE_HOLDINGS_NONPOSITIVE_PRICE
+    if not _check_enabled(config, check_name):
+        return []
+
+    row_filter = _row_filter(config, check_name)
+    rows: list[dict[str, object]] = []
+    for row in holdings:
+        if not row_filter.allows(row):
+            continue
+        quantity = _number(row.get(pc_cols.QUANTITY))
+        observed_price = _number(row.get(pc_cols.PRICE))
+        holding_date = _date(row.get(pc_cols.HOLDING_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        if (
+            quantity is None
+            or quantity == 0
+            or observed_price is None
+            or observed_price > 0
+            or holding_date is None
+            or not security_id
+        ):
+            continue
+        rows.append(
+            _issue_row(
+                snapshot=_text(row.get(SNAPSHOT)),
+                portfolio_id=_text(row.get(pc_cols.PORTFOLIO_ID)),
+                as_of_date=holding_date,
+                dataset_field="holdings.price",
+                security_id=security_id,
+                issue_type=check_name,
+                value_a=None,
+                value_b=observed_price,
+                difference=None,
+                tolerance="price must be greater than 0",
+                explanation=(
+                    "A nonzero holding has a nonpositive holdings.price for "
+                    f"{security_id}; review the valuation or exclude an intentional "
+                    "pricing convention."
+                ),
+            )
+        )
+    return rows
+
+
 def _transaction_price_range_issues(
     transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
@@ -606,6 +848,123 @@ def _transaction_price_range_issues(
         issue_type=ISSUE_TRANSACTIONS_PRICE_RANGE,
         explanation_prefix="Same-day same-security transactions.price",
     )
+
+
+def _transactions_nonpositive_price_issues(
+    transactions: Sequence[Mapping[str, object]],
+    config: Mapping[str, object],
+) -> list[dict[str, object]]:
+    """Return configured nonzero transactions with zero or negative prices."""
+    check_name = ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE
+    if not _check_enabled(config, check_name):
+        return []
+
+    row_filter = _row_filter(config, check_name)
+    rows: list[dict[str, object]] = []
+    for row in transactions:
+        if not row_filter.allows(row):
+            continue
+        quantity = _number(row.get(pc_cols.QUANTITY))
+        observed_price = _number(row.get(pc_cols.PRICE))
+        transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        transaction_code = _text(row.get(pc_cols.TRANSACTION_CODE))
+        if (
+            quantity is None
+            or quantity == 0
+            or observed_price is None
+            or observed_price > 0
+            or transaction_date is None
+            or not security_id
+        ):
+            continue
+        rows.append(
+            _issue_row(
+                snapshot=_text(row.get(SNAPSHOT)),
+                portfolio_id=_text(row.get(pc_cols.PORTFOLIO_ID)),
+                as_of_date=transaction_date,
+                dataset_field="transactions.price",
+                security_id=security_id,
+                issue_type=check_name,
+                value_a=None,
+                value_b=observed_price,
+                difference=None,
+                tolerance="price must be greater than 0",
+                explanation=(
+                    "A nonzero-quantity transaction in the configured "
+                    "price-bearing population has a nonpositive "
+                    f"transactions.price for {security_id} (code "
+                    f"{transaction_code}); review the trade price or population."
+                ),
+            )
+        )
+    return rows
+
+
+def _transaction_security_type_mismatch_issues(
+    transactions: Sequence[Mapping[str, object]],
+    config: Mapping[str, object],
+) -> list[dict[str, object]]:
+    """Return exact-case transaction-versus-reference type mismatches."""
+    check_name = ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH
+    if not _check_enabled(config, check_name):
+        return []
+
+    row_filter = _row_filter(config, check_name)
+    reference_field = f"{_SECURITY_REFERENCE_PREFIX}{pc_cols.SECURITY_TYPE}"
+    rows: list[dict[str, object]] = []
+    for row in transactions:
+        if not row_filter.allows(row):
+            continue
+        transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
+        security_id = _text(row.get(pc_cols.SECURITY_ID))
+        transaction_type = _text(row.get(pc_cols.SECURITY_TYPE))
+        reference_type = _text(row.get(reference_field))
+        if (
+            transaction_date is None
+            or not security_id
+            or transaction_type == reference_type
+        ):
+            continue
+        if not transaction_type:
+            comparison = (
+                "has a blank transactions.security_type while "
+                f"security_reference.security_type is {reference_type!r}"
+            )
+        elif transaction_type.casefold() == reference_type.casefold():
+            comparison = (
+                f"has transactions.security_type {transaction_type!r}, which differs "
+                "only by case from security_reference.security_type "
+                f"{reference_type!r}"
+            )
+        else:
+            comparison = (
+                f"has transactions.security_type {transaction_type!r} and "
+                f"security_reference.security_type {reference_type!r}"
+            )
+        rows.append(
+            _issue_row(
+                snapshot=_text(row.get(SNAPSHOT)),
+                portfolio_id=_text(row.get(pc_cols.PORTFOLIO_ID)),
+                as_of_date=transaction_date,
+                dataset_field=(
+                    "transactions.security_type -> "
+                    "security_reference.security_type"
+                ),
+                security_id=security_id,
+                issue_type=check_name,
+                value_a=None,
+                value_b=None,
+                difference=None,
+                tolerance="exact-case equality",
+                explanation=(
+                    f"Transaction {security_id} {comparison}; review the source "
+                    "classification mapping. PPAR does not choose which value is "
+                    "correct."
+                ),
+            )
+        )
+    return rows
 
 
 def _price_range_issues(
@@ -896,11 +1255,14 @@ def _missing_dividend_issues(
             ) in dividend_keys:
                 continue
             if not row_filter.allows(
-                {
-                    SNAPSHOT: snapshot,
-                    pc_cols.PORTFOLIO_ID: portfolio_id,
-                    pc_cols.SECURITY_ID: security_id,
-                }
+                _reference_context_row(
+                    representative_row,
+                    {
+                        SNAPSHOT: snapshot,
+                        pc_cols.PORTFOLIO_ID: portfolio_id,
+                        pc_cols.SECURITY_ID: security_id,
+                    },
+                )
             ):
                 continue
             rows.append(
@@ -1096,6 +1458,7 @@ def _issue_row(
     explanation: str,
 ) -> dict[str, object]:
     """Return one Data Issues row."""
+    issue_category = DATA_ISSUE_REGISTRY[DataIssueType(issue_type)].category.value
     return {
         SNAPSHOT: snapshot,
         pc_cols.PORTFOLIO_ID: portfolio_id,
@@ -1103,6 +1466,7 @@ def _issue_row(
         DATASET_FIELD: dataset_field,
         pc_cols.SECURITY_ID: security_id,
         ISSUE_TYPE: issue_type,
+        CATEGORY: issue_category,
         VALUE_A: value_a,
         VALUE_B: value_b,
         DIFFERENCE: difference,
@@ -1166,13 +1530,22 @@ def _row_filter(config: Mapping[str, object], check_name: str) -> _RowFilter:
 
 def _compiled_filters(
     filter_config: object,
-) -> tuple[tuple[str, frozenset[str]], ...]:
+) -> tuple[_CompiledFilter, ...]:
     """Normalize a YAML row-filter mapping once for repeated matching."""
-    compiled: list[tuple[str, frozenset[str]]] = []
+    compiled: list[_CompiledFilter] = []
     for field_name, raw_values in _filter_mapping(filter_config):
-        values = _text_filter_values(raw_values)
+        exact_case = field_name.strip().lower().startswith(
+            _SECURITY_REFERENCE_PREFIX
+        )
+        values = _text_filter_values(raw_values, exact_case=exact_case)
         if values:
-            compiled.append((_filter_column_name(field_name), values))
+            compiled.append(
+                _CompiledFilter(
+                    column=_filter_column_name(field_name),
+                    values=values,
+                    exact_case=exact_case,
+                )
+            )
     return tuple(compiled)
 
 
@@ -1202,11 +1575,14 @@ def _field_matches(
     raw_values: object,
 ) -> bool:
     """Return whether one row field matches one scalar-or-list filter."""
-    values = _text_filter_values(raw_values)
+    exact_case = field_name.strip().lower().startswith(_SECURITY_REFERENCE_PREFIX)
+    values = _text_filter_values(raw_values, exact_case=exact_case)
     if not values:
         return False
     column_name = _filter_column_name(field_name)
-    return _text(row.get(column_name)).lower() in values
+    value = _text(row.get(column_name))
+    candidate = value if exact_case else value.lower()
+    return candidate in values
 
 
 def _filter_mapping(filter_config: object) -> tuple[tuple[str, object], ...]:
@@ -1222,23 +1598,50 @@ def _filter_mapping(filter_config: object) -> tuple[tuple[str, object], ...]:
 def _filter_column_name(field_name: str) -> str:
     """Return the normalized row column name for a YAML filter field."""
     normalized_name = field_name.strip().lower()
+    if normalized_name.startswith(_SECURITY_REFERENCE_PREFIX):
+        return normalized_name
     if "." in normalized_name:
         normalized_name = normalized_name.rsplit(".", maxsplit=1)[-1]
     return _FILTER_FIELD_ALIASES.get(normalized_name, normalized_name)
 
 
-def _text_filter_values(value: object) -> frozenset[str]:
-    """Return lower-cased exact-match values from a YAML scalar or sequence."""
+def _text_filter_values(
+    value: object,
+    *,
+    exact_case: bool = False,
+) -> frozenset[str]:
+    """Return normalized exact-match values from a YAML scalar or sequence."""
     if isinstance(value, (str, int, float, bool)):
-        text = str(value).strip().lower()
+        text = str(value).strip()
+        text = text if exact_case else text.lower()
         return frozenset({text}) if text else frozenset()
     if isinstance(value, Iterable):
         return frozenset(
-            str(item).strip().lower()
+            (
+                str(item).strip()
+                if exact_case
+                else str(item).strip().lower()
+            )
             for item in value
             if str(item).strip()
         )
     return frozenset()
+
+
+def _reference_context_row(
+    source_row: Mapping[str, object],
+    target_row: Mapping[str, object],
+) -> dict[str, object]:
+    """Copy reference-enrichment fields into a derived filter row."""
+    enriched = dict(target_row)
+    enriched.update(
+        {
+            key: value
+            for key, value in source_row.items()
+            if key.startswith(_SECURITY_REFERENCE_PREFIX)
+        }
+    )
+    return enriched
 
 
 def _number(value: object) -> float | None:

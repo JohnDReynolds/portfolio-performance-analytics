@@ -245,7 +245,8 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 
 | Interpretation | Confidence |
 |---|---:|
-| The example demonstrates uppercase transformation of transaction code in an AIA/APX cancellation workflow. | Verified example syntax |
+| The example demonstrates uppercase transformation of a historical transaction code while creating an AIA/APX cancellation Trade Blotter. | Verified example syntax for the staging/control workflow |
+| The uppercase instruction is proven to survive as a posted transaction or be exportable through ordinary IMEX/APXIX, REP, SQL, REST, or report paths. | Unknown |
 | Whether uppercase transaction codes are universal APX-native cancellation semantics across all versions and import paths is not established. | Unknown |
 | Exact column meanings in the example are not fully documented by supplied material. | Unknown for full layout |
 
@@ -539,6 +540,7 @@ This workflow is documented as a WealthTechs AIA/APX workflow. It is not asserte
 | Import logs | Advent IMEX Log and Advent IMEX History Log support troubleshooting imports and blotter issues. | Verified for AIA |
 | Account data | Account Blotter can add/update account demographic data. | Verified for AIA |
 | Initial transactions | AIA can create initial deliver-in transactions from positions when an account has no transactions. | Verified for AIA |
+| APX identifier case | The guide describes APX as case-sensitive when configuring vehicle symbols, account codes, and the management-fee symbol. Preserve exact source case; broader field rules remain Unknown. | Verified for the cited AIA workflow |
 | Transaction translation | IF/THEN-style logic can transform source-data transaction rows; rules are not case-sensitive in the AIA guide. This is an AIA translation-rule behavior, not a general instruction to compare native transaction codes or security identifiers case-insensitively. | Verified for AIA |
 | Special assignment tokens | Examples include `[*-1]`, `[TradeDate]`, and `[SettleDate]`. | Verified for AIA |
 | Vehicle filter | Can eliminate transactions, prices, and positions for specific vehicles from appearing in any APX blotter or import output. | Verified for AIA |
@@ -552,7 +554,7 @@ Supplied transaction research documents observed transaction codes and uppercase
 | Rule | Confidence |
 |---|---:|
 | Do not interpret transaction import rows from code alone. Sign, security type, source/destination type, source/destination symbol, special security fields, fee mappings, and integration configuration may affect meaning. | High Confidence as design rule; Medium Confidence source evidence |
-| Uppercase transaction code behavior is observed in Axys/APX integration cancellation workflows but is not proven as universal native behavior. | Medium Confidence for integration workflows; native universality Unknown |
+| Uppercase transaction-code cancellation behavior is observed in Trade Blotter staging/control workflows, but is not proven as a posted-export representation or universal native behavior. | Medium Confidence for integration workflows; posted-export availability and native universality Unknown |
 
 ---
 
@@ -586,7 +588,7 @@ Supplied transaction research documents observed transaction codes and uppercase
 | Report Writer checksum issue | Yes | Yes | Medium Confidence | Manual Replang edits may break later GUI editing in Report Writer Pro. |
 | APX public views are limited | No | Yes | Medium Confidence | Validate view coverage before relying on public views for full extracts. |
 | APX fixed-format generation eliminated in early APX range | No | Yes | Medium Confidence | Version-specific import/export behavior must be checked. |
-| Uppercase cancellation examples | Yes | Yes | Verified examples; Unknown native universality | Treat as observed integration behavior, not a universal rule. |
+| Uppercase cancellation instructions | Yes | Yes | Verified Trade Blotter staging/control examples; posted-export representation and native universality Unknown | Require explicit source-stage evidence and segregate from posted economics. |
 | Large Audit Trail IMEX export reliability | Yes | Unknown | Medium Confidence | Audit exports may need operational validation and backup strategy. |
 
 ---
@@ -669,8 +671,9 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 
 | Interpretation | Confidence |
 |---|---:|
-| The example demonstrates lowercase `by` transformed to uppercase `BY` in an AIA/APX cancellation workflow. | Verified example syntax |
+| The example demonstrates lowercase `by` transformed to uppercase `BY` while creating an AIA/APX cancellation Trade Blotter. | Verified example syntax for staging/control |
 | Full column meanings are not established by supplied material. | Unknown |
+| Availability of `BY` as a posted transaction in ordinary extraction paths is established. | No; Unknown |
 | Universal native APX cancellation semantics are not established. | Unknown |
 
 ### 10.5 REP/report extraction example

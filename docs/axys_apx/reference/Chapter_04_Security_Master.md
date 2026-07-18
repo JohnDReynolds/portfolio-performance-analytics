@@ -90,7 +90,33 @@ In the supplied research, `Symbol` plus `Type` is the clearest recurring operati
 | Symbol alone is not safe as a unique cross-system key. | Yes | Yes | High Confidence | Supported by duplicate-symbol examples. |
 | Symbol + type is the formal native primary key. | Unknown | Unknown | Unknown | Not established by the supplied material. |
 
-### 2.3 External Identifier Matching
+### 2.3 Case and Identifier Handling
+
+The reviewed public material does not support a global lowercase or uppercase
+convention for Axys/APX identifiers. The APX AIA onboarding guide explicitly
+describes APX as case-sensitive when configuring vehicle symbols, account
+codes, and the management-fee symbol. That is strong evidence for the cited
+integration workflow, but it is not a complete native-field specification for
+every APX version.
+
+The Axys and APX CI guides also contain mixed-case examples: security symbols
+such as `IBM` and `LMNVX`, security types such as `csus` and `efus`, and exported
+translation-file examples such as `CAUS` and `CSUS`. Those examples establish
+observed spellings, not interchangeable values or a platform-wide casing rule.
+
+| Rule | Recommended handling | Evidence boundary |
+|---|---|---|
+| Product symbol, account/portfolio code, and management-fee symbol | Preserve the exact source string and use exact-case matching by default. | APX AIA explicitly identifies these selected values as case-sensitive. |
+| Security type and other product-specific codes | Preserve exact case; do not infer a lowercase or uppercase convention from examples or report typography. | CI examples use mixed case; the complete native rule is Unknown. |
+| AIA transaction-translation conditions | A case-insensitive evaluator may be modeled only when reproducing that documented AIA workflow. | Tool-specific behavior; it does not make APX identifiers case-insensitive. |
+| Site-authorized case-insensitive matching | Retain the raw value and create a separate comparison key under a versioned site contract. | Implementation policy, not a native product claim. |
+| Currency codes and other independently standardized domains | Apply their own documented normalization rules without changing product identifiers. | Separate domain contract. |
+
+Case-only differences should remain observable in audit output. Never rewrite a
+source identifier merely to make a join or translation succeed, and do not infer
+identifier case from an uppercased report heading or integration-file example.
+
+### 2.4 External Identifier Matching
 
 External matching may use ticker, CUSIP, name, institution, and account number. The research supports this primarily through CI and AIA workflows.
 
@@ -102,7 +128,7 @@ External matching may use ticker, CUSIP, name, institution, and account number. 
 | Institution | Used in CI security translation files. | Yes | Yes | Verified |
 | WP Account # | Used for account-specific translations. | Yes | Yes | Verified |
 
-### 2.4 Primary Key Status
+### 2.5 Primary Key Status
 
 | Question | Axys | APX | Answer |
 |---|---:|---:|---|
@@ -735,6 +761,7 @@ The following assumptions are safe for implementation planning, but only within 
 | `sec.inf` and `type.inf` are important security/security-type exchange files in CI workflows for both Axys/APX. | CI context. | Verified |
 | External identifiers such as ticker and CUSIP can create ambiguous matches. | CI/AIA matching context. | Verified |
 | Security translations may be required when matching is ambiguous or undesired. | CI context. | Verified |
+| Product-specific identifiers should retain exact source case; APX AIA evidence explicitly identifies selected identifiers as case-sensitive. | Cited APX AIA workflow; broader native rules remain Unknown. | Verified for workflow |
 | Report/export labels are not necessarily native schema fields. | Repository-wide caution. | High Confidence |
 | Security type / asset-class changes can have downstream performance consequences. | Advent implementation caution; not fully separated. | Medium Confidence / Verified as practitioner statement |
 
@@ -752,6 +779,7 @@ The following assumptions are safe for implementation planning, but only within 
 | APX public views expose all security-master fields. | Public views are described as limited; security coverage Unknown. |
 | `aw`, `br`, `ex`, `ep`, `pi`, `rs` are universal APX type rules. | They are only verified as APX CI reserved-prefix exclusions. |
 | Connector version support equals product compatibility. | Connector-specific evidence only. |
+| Axys/APX identifiers are normally lowercase, normally uppercase, or safely interchangeable by case. | Reviewed examples use mixed case, and APX AIA explicitly identifies selected identifiers as case-sensitive. |
 
 ### 13.3 Suggested Extract Validation Checklist
 
@@ -764,6 +792,7 @@ This checklist is derived from supplied evidence and known unknowns.
 | Confirm whether extract source is native file, IMEX, REP, public view, or integration artifact. | Yes | Yes | Prevents confusing output labels with native fields. |
 | Confirm treatment of ticker-vs-CUSIP duplicates. | Yes | Yes | Known duplicate-matching issue. |
 | Confirm account-specific translation behavior. | Yes | Yes | Can constrain future translations. |
+| Confirm exact-case rules for symbols, types, account/portfolio codes, and other site identifiers. | Yes | Yes | Mixed-case evidence and explicit APX AIA sensitivity make global normalization unsafe. |
 | Confirm classification dependencies before import. | Yes | Yes | Industry group/sector dependencies may block imports. |
 | Confirm whether security type import is supported in the target environment. | Yes | Yes | Not vendor-confirmed in supplied material. |
 | Confirm whether performance must be regenerated after type/asset-class changes. | Yes | Yes | Known implementation caution. |

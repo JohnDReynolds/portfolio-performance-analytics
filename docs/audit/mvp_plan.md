@@ -4,10 +4,11 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Slices 1–2 complete; Slice 3 active |
-| Version | 0.9 |
+| Status | Active MVP implementation plan — Slice 3C implemented; founder output review active |
+| Version | 1.2 |
 | Date | 2026-07-18 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
+| Product roadmap | [`roadmap.md`](roadmap.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
 | Scope | Four founder-defined reporting, Data Issues, codification, and Axys/APX transaction-semantics capabilities required before MVP |
 | Excluded | History, dashboards, Operational Intelligence, additional platforms, managed workflow, and broad speculative rules catalog |
@@ -55,14 +56,17 @@ retain their prior relative order, schemas, and financial semantics.
 
 ## 2.2 Current Data Issues vocabulary
 
-The current code has seven optional issue-type strings:
+The current code has ten optional issue-type strings:
 
 - `duplicate_transactions`
 - `dividend_rate`
 - `holdings_accrued_rate`
+- `holdings_nonpositive_price`
 - `holdings_price_range`
 - `missing_dividend`
 - `pa_sa_rate`
+- `transaction_security_type_mismatch`
+- `transactions_nonpositive_price`
 - `transactions_price_range`
 
 It also has two mandatory continuity types:
@@ -73,7 +77,13 @@ It also has two mandatory continuity types:
 These values now serialize through public `DataIssueType` members without
 changing their strings. `DATA_ISSUE_REGISTRY` carries the category,
 mandatory/default enablement, required datasets, tolerance applicability, and
-reviewer meaning for every implemented issue type.
+reviewer meaning for every implemented issue type. The conservative
+`holdings_nonpositive_price`, `transactions_nonpositive_price`, and
+`transaction_security_type_mismatch` are off by default. All require a nonempty
+`only` population when explicitly enabled. The transaction-price check also
+requires a transaction-code filter and a reviewed security-reference type or
+asset-class qualifier. The mismatch check requires the reviewed
+`security_reference.security_type` population it compares against.
 
 ## 2.3 Current cause vocabulary
 
@@ -122,8 +132,8 @@ implementation order is:
    the behavior-preserving codification and strict configuration contract.
 2. **Executive Summary — complete.** The founder accepted the revised two-table
    quantity presentation after workbook review.
-3. **Additional Data Issues checks — active** — add an approved issue type one
-   at a time through the new registry and YAML contract.
+3. **Additional Data Issues checks — founder review active** — add an approved
+   issue type one at a time through the new registry and YAML contract.
 4. **Axys/APX transaction semantics and demo coverage** — implement all Section
    7 requirements, keeping posted transactions, staging controls, and audit
    evidence distinct.
@@ -330,12 +340,16 @@ An issue type should not enter the MVP merely because it is easy to name.
 The following are the strongest candidates that appear supportable from current
 normalized data, subject to founder approval and fixture review:
 
-1. **`holdings_nonpositive_price`** — a nonzero holding quantity has a zero or
-   negative price within an explicitly configured population.
-2. **`transactions_nonpositive_price`** — a buy/sell-like transaction expected
-   to carry a price has a zero or negative price; transaction-category policy is
-   required so dividends, cash journals, and corporate actions are not treated
-   as priced trades.
+1. **`holdings_nonpositive_price` — founder accepted.** A nonzero
+   holding quantity has a zero or negative price within an explicitly
+   configured population. It is opt-in, requires a nonempty `only` filter,
+   accepts no tolerance, and reports the observed price without treating the
+   issue as performance explanation arithmetic.
+2. **`transactions_nonpositive_price` — founder accepted.** A
+   nonzero-quantity transaction has a zero or negative price inside an explicit
+   transaction-code and reviewed security-reference population. The check is
+   opt-in, accepts no tolerance, does not infer transaction meaning, and ignores
+   missing prices and zero-quantity rows.
 3. **`holdings_quantity_value_mismatch`** — quantity and market value have a
    suspicious zero/nonzero relationship within an explicitly configured
    population.
@@ -370,6 +384,60 @@ surface is too large for an initial bounded implementation.
 - No new issue changes `Performance Difference Explained`, residual, or
   analytical status.
 - Demo coverage and fixture isolation checks protect the intended story.
+
+## 6.5 Security-reference-enabled scenarios
+
+The optional `security_reference` dataset adds reviewed classification context;
+it does not create transaction semantics. In the current runtime,
+`security_reference.*` values are available only as exact-match `only` and
+`exclude` qualifiers for Data Issues checks. A reference row must therefore not
+cause PPAR to assign a transaction category, cash-flow sign, or performance
+treatment by itself.
+
+The following additional demo scenarios are defensible with that boundary:
+
+1. **Reference-scoped priced transactions — founder accepted.**
+   `transactions_nonpositive_price` demonstrates a nonpositive buy price inside
+   an explicit reviewed price-bearing security population. It combines the
+   transaction-code population with a
+   `security_reference.asset_class_code` or
+   `security_reference.security_type` qualifier so cash, unpriced corporate
+   actions, and other site-specific conventions remain outside the rule.
+2. **Reference-scoped fixed-income rate review — implemented.** The packaged
+   `holdings_accrued_rate` and `pa_sa_rate` configurations include a reviewed
+   fixed-income asset-class qualifier without changing either rate calculation
+   or transaction meaning.
+3. **Transaction-versus-reference security-type mismatch — implemented for
+   Slice 3C review.** The opt-in `transaction_security_type_mismatch` issue
+   compares the transaction row's exact-case `security_type` with the snapshot
+   security reference for the same exact-case security identifier. This is not
+   expressible as a field-to-field comparison with today's filters and
+   therefore requires a new issue type. It requires a nonempty population,
+   reports both observed values in its explanation, distinguishes case-only
+   differences, fails closed on ambiguous reference rows, and makes no claim
+   that either classification is universally correct.
+
+A later, separately approved extension could allow an explicitly named
+`security_reference.*` field in `transaction_rules.*.when`. That would support
+site-scoped variants when an otherwise usable transaction extract lacks its own
+security-type column. It could corroborate the already evidenced contextual
+handling of `ai`, `pa`/`sa`, `pd`, `li`/`lo`, and `dp`/`wd`; it would not prove a
+new transaction code or allow classification from asset class alone. The rule
+must explicitly request the reference field, preserve exact source case, and
+fail closed when the required reference row or field is absent. PPAR must not
+silently substitute reference data for missing transaction evidence.
+
+Do not initially add currency-mismatch, universal security-type-to-asset-class
+consistency, or inferred-corporate-action checks. A reference currency may mean
+trading, pricing, or income currency, and type/class dictionaries remain
+version- and site-specific. Snapshot-to-snapshot classification-change evidence
+may be useful later, but belongs with the deferred broad security-master work
+until its reviewer meaning and source contract are defined.
+
+The founder accepted the priced-transaction output and continued Slice 3 with
+the security-type mismatch. None adds a blocking requirement to Workstream D,
+and the reference-aware transaction-rule extension is not required for the
+current-capability scenarios in Section 7.2.
 
 ---
 
@@ -419,8 +487,10 @@ distinct reviewer lesson.
 
 ## 7.3 Exact-case handling and cancellation boundary
 
-PPAR must be capable of preserving and matching transaction codes by exact
-case when a source contract requires it. Exact-case capability must not create a
+PPAR must be capable of preserving and matching transaction codes and native
+transaction-context identifiers by exact case when a source contract requires
+it. This includes security type, source/destination symbol, and special-security
+values used in conditional YAML rules. Exact-case capability must not create a
 global rule that uppercase codes are cancellations: a site may legitimately use
 uppercase economic transaction codes.
 
@@ -443,6 +513,13 @@ Therefore:
   contract, plus linkage to the original transaction; and
 - an uppercase row in an ordinary posted-transaction extract remains unknown
   unless local evidence establishes its role.
+
+Snapshot transaction matching and reviewer metadata already preserve native
+case. The remaining implementation gap is semantic classification: current
+built-in category inference, YAML rule keys and conditions, coverage summaries,
+and several audit helpers still normalize case. Slice 5 must close that gap
+without changing currency-domain normalization or weakening existing exact-case
+portfolio/security matching.
 
 ## 7.4 Required normalized-contract and product work
 
@@ -534,12 +611,22 @@ Implemented as a bounded presentation change:
 
 The founder accepted the two-table quantity presentation on 2026-07-18.
 
-## Slice 3 — First approved additional issue type
+## Slice 3 — Additional Data Issues issue types — Active
 
-- implement one rule end to end;
-- add YAML, fixtures, reviewer wording, and false-positive cases;
-- verify independent Data Issues treatment; and
-- review output before adding the next type.
+- **Slice 3A — founder accepted:** implemented `holdings_nonpositive_price` end
+  to end with strict opt-in policy, two-snapshot fixtures, category output, and
+  false-positive controls.
+- **Slice 3B — founder accepted:** added
+  `transactions_nonpositive_price`, requiring transaction-code and reviewed
+  security-reference populations, and reference-scoped the existing fixed-
+  income rate checks.
+- **Slice 3C — implemented for founder review:** added the exact-case
+  `transaction_security_type_mismatch` issue defined in Section 6.5 with an
+  isolated case-only demo row in each snapshot.
+- After founder review of Slice 3C, close Slice 3 and proceed to Slice 4 rather
+  than expanding the issue catalog.
+- Stale-price and large-price-change conclusions remain deferred under Section
+  6.3 until their observation-grain and corporate-action contracts are approved.
 
 ## Slice 4 — Required current-capability Axys/APX scenarios
 
@@ -552,8 +639,8 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
 
 ## Slice 5 — Exact case and required transaction source-contract work
 
-- implement exact-case transaction rule capability without globally assigning
-  cancellation meaning to uppercase codes;
+- implement exact-case transaction rule and context-condition capability without
+  globally assigning cancellation meaning to uppercase codes;
 - add original-cost/date support and the bounded deliver-in completeness check;
 - add APX Mark-to-Market context and version/site-aware validation;
 - add the separate Trade Blotter cancellation-control fixture; and
@@ -562,7 +649,8 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
 
 ## Slice 6 — Remaining approved issue types and MVP release audit
 
-- repeat the end-to-end Data Issues rule process;
+- repeat the end-to-end Data Issues rule process for any remaining approved
+  candidates;
 - run the full relevant suite and release-candidate checks;
 - generate final representative portfolio/security bundles; and
 - assess whether the founder considers the resulting product an MVP.
@@ -576,8 +664,10 @@ Workstream D's MVP-blocking status, are founder-approved. Workstream D remains
 sequenced after Slices 2 and 3; blocking MVP completion does not make it a Slice
 2 prerequisite.
 
-1. **First new issue types:** approve, revise, or replace the three candidates in
-   Section 6.2 before their detection logic is implemented.
+1. **Slice 3 output:** approve or revise the implemented
+   `holdings_nonpositive_price` reviewer presentation before Slice 4 begins;
+   approve the remaining candidates separately before their detection logic is
+   implemented.
 2. **YAML priority:** confirm that `review_priority: high | normal | low` and
    comparable workflow/presentation policy are deferred. Recommended: defer
    until real usage establishes a need.

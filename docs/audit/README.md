@@ -1,15 +1,17 @@
 # PPAR Audit Documentation
 
 PPAR Audit documentation is organized by authority and maintenance lifecycle.
-Start with the product constitution for product direction and the MVP plan for
-the work currently in scope. Historical design material is retained under
-[`archive/`](archive/) and is not current implementation authority.
+Start with the product constitution for stable product authority, the roadmap
+for forward-looking direction, and the MVP plan for the work currently in
+scope. Historical design material is retained under [`archive/`](archive/) and
+is not current implementation authority.
 
 ## Start Here
 
 | Need | Document | Authority |
 | --- | --- | --- |
-| Understand the product, approved MVP capability boundary, and roadmap | [Product Constitution and Roadmap](product_constitution.md) | Current Audit product and capability-scope authority |
+| Understand product identity, doctrine, boundaries, claims, and founder decisions | [Product Constitution](product_constitution.md) | Current Audit product and capability-scope authority |
+| Understand product stages, evidence gates, priorities, and open questions | [Audit Roadmap](roadmap.md) | Current Audit product-direction authority within the constitution's boundaries |
 | Understand active MVP sequence, slice status, and acceptance gates | [MVP Completion Plan](mvp_plan.md) | Current Audit implementation-plan authority within the constitution's scope |
 | Locate approved historical requirements | [Product Specifications Index](product_specifications_index.md) | Index to retained founder-approved detail; not executable truth |
 | Understand the comparison engine | [Performance Comparison Design](performance_comparison_design.md) | Current technical reference, subordinate to executable behavior |
@@ -50,10 +52,11 @@ When documents disagree, use this order:
 3. Current setup and user documentation
 4. Audit Product Constitution for product scope, boundaries, and founder
    decisions
-5. Active MVP plan for implementation sequence, detailed acceptance, and status
-6. Current technical reference sections
-7. Product Specifications Index and linked approved historical requirements
-8. Archived snapshots, checkpoints, prompts, and brainstorming material
+5. Audit roadmap for stages, evidence gates, priorities, and open questions
+6. Active MVP plan for implementation sequence, detailed acceptance, and status
+7. Current technical reference sections
+8. Product Specifications Index and linked approved historical requirements
+9. Archived snapshots, checkpoints, prompts, and brainstorming material
 
 Product direction does not turn a proposed capability into implemented behavior,
 and historical implementation text does not override current contracts.
@@ -63,11 +66,11 @@ and historical implementation text does not override current contracts.
 - Add a new document only when it has a distinct audience, authority, and
   maintenance lifecycle.
 - Link to product doctrine and contracts instead of copying them.
-- Put current product direction in the constitution and active work in the MVP
-  plan.
-- Update the constitution and active plan in the same commit whenever the number
-  or identity of MVP capabilities changes; the plan must not expand the
-  constitution's capability boundary by itself.
+- Put product doctrine and founder decisions in the constitution, forward-looking
+  direction in the roadmap, and active work in the MVP plan.
+- Update the constitution, roadmap, and active plan in the same commit whenever
+  the number or identity of MVP capabilities changes; neither the roadmap nor
+  the plan may expand the constitution's capability boundary by itself.
 - Put executable policy in code or machine-readable contracts and explain it in
   the nearest owning technical document.
 - Move completed prompts, checkpoints, and superseded plans to `archive/`.

@@ -154,6 +154,14 @@ files:
   #   Likely source: IMEX transaction export. Use REP/custom output or another
   #   reviewed source if IMEX omits the context needed for ambiguous codes.
   #
+  # security_reference:
+  #   Required only when applicable: configure this file when a Data Issues
+  #   only/exclude filter uses a security_reference.* qualifier. SECURITY_ID is
+  #   required and must be unique with exact source case. Classification fields
+  #   such as SECURITY_TYPE and ASSET_CLASS_CODE are optional until referenced.
+  #   Likely source: IMEX security-information export, a security-master report,
+  #   or another reviewed security-reference extract.
+  #
   # fx_rates:
   #   Required only when applicable: to explain a changed FX rate itself, use
   #   PORT, FROM_CURRENCY, TO_CURRENCY, RATE_DATE, FX_RATE, and LOCAL_EXPOSURE.
@@ -172,6 +180,7 @@ files:
   security_performance: secperf.csv
   holdings: holdings.csv
   transactions: transactions.csv
+  security_reference: secref.csv
   fx_rates: fx_rates.csv
   splits: splits.csv
 
@@ -190,12 +199,26 @@ data_issues:
   #   few securities so the worksheet remains readable.
   #
   # Filtering:
-  #   Each issue type is on by default. Set enabled: false under a check to
-  #   turn it off. Use only/exclude for simple exact-match filters. Field names
-  #   may be common names such as security_id and portfolio_id, or
-  #   dataset.field names such as holdings.security_type and
-  #   transactions.transaction_code.
+  #   Established issue types are on by default. Conservative opt-in checks
+  #   explicitly say so below and require a narrow only population. Set
+  #   enabled: false under an established check to turn it off. Use only/exclude
+  #   for simple exact-match filters. Field names may be common names such as
+  #   security_id and portfolio_id, or dataset.field names such as
+  #   holdings.security_type and transactions.transaction_code.
   enabled: true
+
+  holdings_nonpositive_price:
+    # Flags a nonzero holding with a zero or negative price. This conservative
+    # check is off by default and requires both explicit enablement and a
+    # nonempty only population. Worthless securities, cash, accrued-only rows,
+    # shorts, derivatives, and site-specific valuation conventions can be
+    # legitimate exclusions. The demo scopes one deliberate MSFT example in
+    # each snapshot. The fixed condition does not accept tolerance settings.
+    enabled: true
+    only:
+      security_id:
+        - MSFT
+      security_reference.asset_class_code: EQ
 
   holdings_price_range:
     # Checks same-day same-security holdings.price values across portfolios.
@@ -220,6 +243,33 @@ data_issues:
         - by
     absolute_tolerance: 0.01
     percent_tolerance: 0.05
+
+  transactions_nonpositive_price:
+    # Flags a nonzero-quantity transaction with a zero or negative price. This
+    # conservative check is off by default and requires explicit transaction-
+    # code and reviewed security-reference populations. It does not infer that
+    # a transaction code is universally price-bearing. The demo isolates one
+    # zero-price KO buy in each snapshot; the zero-quantity duplicate rows do
+    # not qualify. The fixed condition does not accept tolerance settings.
+    enabled: true
+    only:
+      security_id:
+        - KO
+      transactions.transaction_code:
+        - by
+      security_reference.security_type: csus
+
+  transaction_security_type_mismatch:
+    # Compares the transaction row's exact-case security type with the reviewed
+    # snapshot security reference. The demo's uppercase CSUS value differs only
+    # by case; PPAR reports both values without choosing which one is correct.
+    # This conservative check is off by default, requires an explicit reference
+    # type population, and does not accept tolerance settings.
+    enabled: true
+    only:
+      security_id:
+        - KO
+      security_reference.security_type: csus
 
   duplicate_transactions:
     # Checks exact duplicate transaction rows. This is a simple source-data
@@ -262,6 +312,7 @@ data_issues:
     only:
       security_id:
         - 91282Y5Y1
+      security_reference.asset_class_code: FI
     absolute_tolerance: 0.000001
     percent_tolerance: 0.5
 
@@ -272,6 +323,7 @@ data_issues:
     only:
       security_id:
         - 91282Y5Y1
+      security_reference.asset_class_code: FI
     absolute_tolerance: 0.00001
     percent_tolerance: 0.5
 

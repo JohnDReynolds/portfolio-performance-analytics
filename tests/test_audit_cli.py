@@ -361,6 +361,10 @@ class TestAuditCli(unittest.TestCase):
             self.assertTrue(
                 (comparison_path / "axys_apx_column_mappings.yaml").exists()
             )
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                self.assertTrue(
+                    (comparison_path / snapshot_name / "secref.csv").exists()
+                )
 
     def test_setup_creates_starter_workspace(self) -> None:
         """Setup creates Analytics and Audit starter folders."""
@@ -1695,7 +1699,7 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Configured datasets:", result.stdout)
         self.assertIn(
             "Minimum required datasets: holdings, portfolio_performance, "
-            "security_performance, transactions",
+            "security_performance, security_reference, transactions",
             result.stdout,
         )
         self.assertIn("Required source-data columns:", result.stdout)
@@ -1722,7 +1726,8 @@ class TestAuditCli(unittest.TestCase):
         )
         self.assertIn(
             "Data Issues policy: mandatory continuity checks remain active; "
-            "optional checks are enabled by default",
+            "established optional checks are enabled by default; conservative "
+            "checks require explicit enablement and an only filter",
             result.stdout,
         )
         self.assertIn("Transaction rules configured: 15", result.stdout)

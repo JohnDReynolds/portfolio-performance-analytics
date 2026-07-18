@@ -17,7 +17,7 @@ are canonical in that chapter.
 | SEC-S06 | Salentica Data Broker documentation | Connector evidence for REP32, reports/macros, and RepLang extraction. | Connector scope only. |
 | SEC-S07 | AdventGuru security, merger, and APX reporting material | Practitioner evidence for lookup dependencies, reclassification effects, public views, SQL/REST paths, and Report Writer/RepLang. | Version/site applicability requires validation. |
 | SEC-S08 | APX and Axys product material | Product/security-master context only; no native dictionary. |
-| SEC-S09 | [`Public_Web_Research_2026-07-17.md`](Public_Web_Research_2026-07-17.md) | Cross-topic ledger, especially WEB-20260717-002 and 006-007. |
+| SEC-S09 | [`Public_Web_Research_2026-07-17.md`](Public_Web_Research_2026-07-17.md) | Cross-topic ledger, especially WEB-20260717-002, 006-007, and WEB-20260718-001-002. |
 
 ## Supported Claims
 
@@ -38,6 +38,8 @@ are canonical in that chapter.
 | SEC-C013 | Practitioner evidence reports industry-group/sector lookup dependencies and historical-performance risk from reclassification. | SEC-S07 | Medium Confidence implementation caution | Chapters 04 and 11 |
 | SEC-C014 | APX public views/SQL and official security-master REST loading capability are evidenced, but view/endpoint fields, keys, entitlements, and coverage remain Unknown. | SEC-S07, SEC-S09 claim WEB-20260717-002 | Verified for REST capability; Medium Confidence for access surfaces; contracts Unknown | Chapters 03 and 04 |
 | SEC-C015 | Complete `sec.inf`/`type.inf` layouts, official IMEX object names, native keys, import requiredness, security-type dictionary, and fixed-income/derivative fields remain unavailable. | Absence across SEC-S02-S09 | Unknown | Chapter 04 Unknowns |
+| SEC-C016 | The reviewed APX AIA guide describes APX as case-sensitive for vehicle symbols, account codes, and the management-fee symbol, while its Transaction Translation evaluator is separately described as not case-sensitive. | SEC-S03, SEC-S09 claim WEB-20260718-001 | Verified for AIA workflow; broader native fields Unknown | Chapters 04, 05, 12, and 15 |
+| SEC-C017 | Reviewed Axys/APX CI guides contain mixed-case symbol and security-type examples; they do not support a global lowercase or uppercase convention. | SEC-S02, SEC-S09 claim WEB-20260718-002 | Verified examples; native equivalence rules Unknown | Chapters 04 and 15 |
 
 ## Evidence Needed to Resolve Current Unknowns
 

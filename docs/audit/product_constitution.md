@@ -1,21 +1,50 @@
 # PPAR Audit
 
-## Product Constitution and Roadmap
+## Product Constitution
 
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.6 |
+| Version | 1.10 |
 | Date | 2026-07-18 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
-| Canonical scope | Product identity, current truth, principles, boundaries, capability status, validation doctrine, and roadmap |
+| Canonical scope | Product identity, current truth, principles, boundaries, capability status, validation doctrine, claims, and founder decisions |
 | Specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
 | Preserved pre-split snapshot | [`archive/PPAR_Audit_Foundational_Product_Design_v0.10.md`](archive/PPAR_Audit_Foundational_Product_Design_v0.10.md) |
+| Product roadmap | [`roadmap.md`](roadmap.md) |
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Slice 3 first additional Data Issues rule review |
 
 ## Change Log
+
+### Version 1.10 — 2026-07-18
+
+- Recorded founder acceptance of the Slice 3B nonpositive-transaction-price
+  output.
+- Continued Slice 3 with the opt-in exact-case transaction-versus-reference
+  security-type mismatch check.
+
+### Version 1.9 — 2026-07-18
+
+- Recorded founder acceptance of the Slice 3A nonpositive-holding-price output.
+- Continued Slice 3 with the reference-scoped nonpositive-transaction-price
+  check and fixed-income rate qualifiers.
+
+### Version 1.8 — 2026-07-18
+
+- Moved forward-looking stages, immediate priorities, evidence gates, and open
+  product questions into a separate Audit roadmap.
+- Narrowed this document to product doctrine, boundaries, current truth,
+  capability authority, claims, and founder decisions.
+- Preserved the MVP plan as the separate owner of implementation sequence,
+  acceptance criteria, and slice status.
+
+### Version 1.7 — 2026-07-18
+
+- Implemented the first conservative additional Data Issues rule,
+  `holdings_nonpositive_price`, for founder output review.
+- Kept the rule opt-in with an explicit-population requirement and preserved
+  Data Issues independence from performance explanation arithmetic.
 
 ### Version 1.6 — 2026-07-18
 
@@ -100,8 +129,7 @@
 6. [Information and Presentation Strategy](#6-information-and-presentation-strategy)
 7. [Capability Map](#7-capability-map)
 8. [First-Client Validation and Claims](#8-first-client-validation-and-claims)
-9. [Product Roadmap and Evidence Gates](#9-product-roadmap-and-evidence-gates)
-10. [Decisions, Open Questions, and Governing References](#10-decisions-open-questions-and-governing-references)
+9. [Decisions and Governing References](#9-decisions-and-governing-references)
 
 ---
 
@@ -338,6 +366,11 @@ Current optional checks cover:
 - conservatively identified missing dividends;
 - exact duplicate transactions;
 - holdings accrued-rate consistency;
+- nonpositive holding prices inside an explicitly configured population;
+- nonpositive transaction prices inside explicit transaction-code and reviewed
+  security-reference populations;
+- exact-case transaction-versus-reference security-type mismatches inside an
+  explicitly reviewed reference population;
 - purchase/sale accrued-interest rate consistency;
 - transaction price ranges;
 - holdings price ranges; and
@@ -610,7 +643,7 @@ Validation may conclude that PPAR should provide no managed workflow.
 | Performance Data Quality Audit | Current selected checks; approved strengthening | Findings remain independent of counted performance causes |
 | Audit Readiness | Current technical controls; APPROVED DIRECTION for unified experience | Ready/Qualified Ready/Blocked cannot waive safety; Diagnostic Only remains separate |
 | Executive Summary worksheet | CURRENT — FOUNDER ACCEPTED | Two quantity tables; first XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
-| Data Issues issue-type expansion | APPROVED DIRECTION and required MVP gap | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
+| Data Issues issue-type expansion | FIRST RULE IMPLEMENTED — FOUNDER REVIEW PENDING | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
 | Cause/issue codification and YAML control | APPROVED DIRECTION and required MVP gap | Stable vocabulary and fail-closed configuration; user policy cannot redefine product arithmetic |
 | Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | Evidence-scoped scenarios, exact-case capability, source contracts, and staging controls must preserve posted-transaction boundaries |
 | Broad Audit Rules Library | Long-term APPROVED DIRECTION | Defer a broad catalog; MVP work is limited to the codification and checks above |
@@ -713,122 +746,9 @@ measured evidence.
 
 ---
 
-# 9. Product Roadmap and Evidence Gates
+# 9. Decisions and Governing References
 
-## 9.1 Roadmap doctrine
-
-Validation comes before scale. Product specificity should stop at the evidence
-horizon. A phase is not complete because every imaginable field is documented;
-it is complete when current decisions, boundaries, evidence needs, and the next
-safe gate are clear.
-
-## 9.2 Stage 1 — Current foundation
-
-**Status:** substantial internal foundation; commercial validation absent.
-
-Current work has established the two-snapshot investigation engine, selected
-Data Issues checks, evidence packs, safety invariants, deterministic outputs,
-Axys/APX-oriented setup, and a packaged demonstration scope.
-
-The product-design foundation through Phase 3F is founder-approved. Detailed
-specifications are retained in the separate reference, but approval does not
-mean each approved direction should be implemented.
-
-## 9.3 Stage 2 — Validation partners
-
-**Priority:** highest.
-
-Exit evidence:
-
-- at least one real client export can be mapped and run safely;
-- client experts agree with labeled supported, unresolved, and Data Issues cases;
-- implementation effort and source-contract gaps are measured;
-- presentation supports correct management and analyst interpretation;
-- safety and evidence behavior survive real-site variability; and
-- the next product changes are supported by observed value rather than theory.
-
-## 9.4 Stage 3 — Repeatable Axys/APX product
-
-Begin only after pilot evidence.
-
-Potential work includes:
-
-- repeatable onboarding and approved starter contracts;
-- better operator-facing readiness and remediation;
-- validation-driven refinement of the current Executive Summary;
-- prioritized, reusable high-value rules;
-- accepted client regression cases;
-- packaging, deployment, update, and support hardening; and
-- measured claims and pilot-to-product conversion.
-
-Exit evidence: a second and subsequent client can be implemented without a
-client-specific code fork or founder-dependent interpretation.
-
-## 9.5 Stage 4 — Recurring product use
-
-Only after repeatability, evaluate whether recurring operation justifies local
-history, repeated-change analysis, a health dashboard, or Operational
-Intelligence.
-
-The implementation gate requires retained comparable runs, stable provenance,
-a management decision improved by history, and value sufficient to justify
-storage and support complexity.
-
-## 9.6 Distant possibilities
-
-- additional vendor source contracts;
-- broader asset/transaction rule packs;
-- enterprise deployment and controlled integrations;
-- cross-portfolio monitoring within one client-controlled environment; and
-- a narrowly tailored human-disposition capability if distant-future evidence
-  shows a common problem PPAR should own.
-
-These are not near-term commitments.
-
-## 9.7 Active phase — MVP completion
-
-The visionary product-design phase is complete and **good enough for now**. The
-active work is to define, implement, test, and demonstrate four bounded MVP
-capabilities:
-
-1. **Executive Summary:** retain the implemented concise first worksheet and
-   equivalent first HTML section derived from existing validated review tables.
-2. **Additional Data Issues issue types:** expand the current enumerated checks
-   only where existing source-data supports transparent, high-signal logic and
-   manageable false-positive controls.
-3. **Cause/issue codification and YAML control:** create stable product
-   vocabulary and fail-closed configuration for supported user choices without
-   allowing YAML to redefine analytical truth or safety invariants.
-4. **Axys/APX transaction semantics and demo coverage:** complete the
-   founder-approved, evidence-scoped scenarios, exact-case capability, normalized
-   source contracts, and staging controls defined by the active MVP plan without
-   turning site- or workflow-specific evidence into universal semantics.
-
-The active implementation plan is maintained in
-[`mvp_plan.md`](mvp_plan.md).
-
-History, dashboards, Operational Intelligence, additional platforms, managed
-workflow, and a broad speculative rules catalog are not part of MVP completion.
-
-## 9.8 Immediate priorities
-
-1. Implement the first approved high-value additional Data Issues issue type
-   with fixtures, YAML policy,
-   reviewer output, and false-positive tests.
-2. Implement the current-capability Axys/APX scenarios defined by the active MVP
-   plan.
-3. Implement the exact-case, normalized source-contract, and staging-control
-   work required by the active MVP plan.
-4. Complete remaining approved issue types and re-run report parity,
-   determinism, financial invariants, demo coverage, and
-   the 500x release-candidate scale check after the cross-cutting MVP changes.
-5. Only then decide whether the product is ready for validation-partner planning.
-
----
-
-# 10. Decisions, Open Questions, and Governing References
-
-## 10.1 Confirmed decisions
+## 9.1 Confirmed decisions
 
 1. PPAR Audit is separate from Performance Analytics.
 2. Changed-performance investigation is the commercial wedge.
@@ -849,11 +769,12 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 14. Client workflow varies; managed workflow is a distant possibility, not an
     assumed layer.
 15. Product detail should stop at the evidence horizon.
-16. Product identity/roadmap and detailed specifications have separate document
-    lifecycles.
+16. The product constitution, product roadmap, active implementation plan, and
+    detailed specifications have separate document lifecycles.
 17. Visionary product design is good enough for now; MVP completion requires
-    the Executive Summary, additional Data Issues issue types, stronger
-    cause/issue codification with bounded YAML control, and the evidence-scoped
+    four bounded MVP capabilities: the Executive Summary, additional Data Issues
+    issue types, stronger cause/issue codification with bounded YAML control,
+    and the evidence-scoped
     Axys/APX transaction-semantics and demo work defined by the active MVP plan.
 18. Workstream D is blocking for MVP completion but remains sequenced after the
     Executive Summary and first additional issue-type slices.
@@ -861,28 +782,7 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
     in active MVP-plan Section 5; narrative, links, priority lists, and YAML
     display control are excluded.
 
-## 10.2 Material open questions
-
-- Which firm and role will become the first strong validation partner and daily
-  user?
-- What exact source/extract and transaction-policy variation appears in real
-  Axys/APX sites?
-- Which information hierarchy, terminology, and actions work without coaching?
-- Which current Data Issues checks create value, noise, or missing coverage?
-- What pilot scope, commercial structure, responsibilities, and reliance limits
-  best support product validation?
-- What minimal non-portfolio metadata, if any, may leave the client environment
-  for licensing or updates?
-- Under what exceptional authorization may minimized/redacted evidence be used
-  for support?
-- Which small rules-library framework should be prioritized after client
-  evidence?
-
-Workflow schemas, assignments, comments, approval states, storage, and
-notifications are intentionally **not** current open design questions. They are
-distant discovery topics unless evidence changes the roadmap.
-
-## 10.3 Authority hierarchy
+## 9.2 Authority hierarchy
 
 When sources conflict, use this order:
 
@@ -892,17 +792,18 @@ When sources conflict, use this order:
 3. Current README, setup documentation, and architecture document
 4. This document's current product scope, status, boundaries, and founder
    decisions
-5. The active MVP plan's implementation sequence, detailed acceptance, and
+5. The Audit roadmap's stages, evidence gates, priorities, and open questions
+6. The active MVP plan's implementation sequence, detailed acceptance, and
    status
-6. Explicit current-checkpoint notes in the deep design reference
-7. Machine-readable transaction-semantics and extract contracts
-8. Approved detailed product specifications
-9. Historical journals, snapshots, and brainstorming material
+7. Explicit current-checkpoint notes in the deep design reference
+8. Machine-readable transaction-semantics and extract contracts
+9. Approved detailed product specifications
+10. Historical journals, snapshots, and brainstorming material
 
 Current implementation truth outranks a stale product description. Founder
 product direction does not convert a future capability into current behavior.
 
-## 10.4 Governing references
+## 9.3 Governing references
 
 | Reference | Authority and use |
 |---|---|
@@ -911,28 +812,32 @@ product direction does not convert a future capability into current behavior.
 | [`mvp_plan.md`](mvp_plan.md) | Active implementation sequence, current-state evidence, detailed acceptance, and slice status within this constitution's MVP capability boundary |
 | [`safety_invariants.md`](safety_invariants.md) | Current safety guarantees and failure classes |
 | [`performance_comparison_design.md`](performance_comparison_design.md) | Deep current/historical implementation design reference |
-| [`../roadmap.md`](../roadmap.md) | Portfolio-level priorities, shared-platform work, and document ownership |
+| [`roadmap.md`](roadmap.md) | Audit stages, evidence gates, active priorities, deferred directions, and material product questions |
 | [`../archive/roadmap_through_v0.1.5.md`](../archive/roadmap_through_v0.1.5.md) | Frozen pre-restructure engineering journal; historical context only |
 | [`../axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml) | Machine-readable transaction-semantics authority |
 | [`../axys_apx/contracts/transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md) | Rendered transaction-semantics reference |
 | [`demo_source_contract.md`](demo_source_contract.md) | Packaged-demo source boundary |
 | [`site_extract_readiness_checklist.md`](site_extract_readiness_checklist.md) | Site-extract readiness guidance |
 
-## 10.5 Document maintenance rule
+## 9.4 Document maintenance rule
 
 Update this governing document only when product identity, current status,
-principles, boundaries, roadmap, claims, or founder decisions change.
+principles, boundaries, claims, or founder decisions change. Update the
+separate roadmap when stages, evidence gates, priorities, deferred directions,
+or material product questions change.
 
 Update the specifications index only when the location, current interpretation,
 or owner of approved historical detail changes. Record current product decisions
-in this document or the active plan rather than expanding the index.
+in this document, forward-looking direction in the roadmap, and implementation
+detail in the active plan rather than expanding the index.
 
 Update executable contracts, tests, and implementation documentation with the
 code they govern. Link across documents instead of copying large sections.
 
 Any change to the number or identity of MVP capabilities must update this
-constitution and the active MVP plan in the same commit. The constitution owns
-the capability boundary; the plan owns sequence, detailed acceptance, and
-implementation status.
+constitution, the roadmap, and the active MVP plan in the same commit. The
+constitution owns the capability boundary; the roadmap owns the active product
+phase; and the plan owns sequence, detailed acceptance, and implementation
+status.
 
 When a polished idea conflicts with product truth, product truth wins.

@@ -13,8 +13,9 @@ import unittest
 import polars as pl
 
 # Project imports
-from ppar.audit import schema as pc_cols
+from ppar.audit import compare_snapshots, schema as pc_cols
 from ppar.audit.data_issues import checks as data_issues
+from ppar.errors import PpaError
 
 
 class TestDataIssues(unittest.TestCase):
@@ -81,8 +82,11 @@ class TestDataIssues(unittest.TestCase):
             {
                 "duplicate_transactions",
                 "dividend_rate",
+                "holdings_nonpositive_price",
                 "holdings_price_range",
                 "missing_dividend",
+                "transaction_security_type_mismatch",
+                "transactions_nonpositive_price",
                 "transactions_price_range",
                 "holdings_accrued_rate",
                 "pa_sa_rate",
@@ -131,6 +135,103 @@ class TestDataIssues(unittest.TestCase):
         self.assertEqual(
             set(pa_rate_issues.get_column("portfolio_id").to_list()),
             {"ALPHA", "INCOME"},
+        )
+
+    def test_packaged_demo_scopes_nonpositive_holding_price_example(self) -> None:
+        """The packaged opt-in price check flags only its deliberate population."""
+        comparison_path = (
+            Path(__file__).resolve().parents[1]
+            / "ppar"
+            / "setup_templates"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
+        )
+
+        issues = data_issues.data_issues_table(comparison_path).filter(
+            pl.col(data_issues.ISSUE_TYPE)
+            == data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE
+        )
+
+        self.assertEqual(issues.height, 2)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"ALPHA"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"MSFT"},
+        )
+
+    def test_packaged_demo_scopes_nonpositive_transaction_price_example(self) -> None:
+        """The packaged trade-price check ignores zero-quantity duplicate rows."""
+        comparison_path = (
+            Path(__file__).resolve().parents[1]
+            / "ppar"
+            / "setup_templates"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
+        )
+
+        issues = data_issues.data_issues_table(comparison_path).filter(
+            pl.col(data_issues.ISSUE_TYPE)
+            == data_issues.ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE
+        )
+
+        self.assertEqual(issues.height, 2)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"DATAAUDIT"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"KO"},
+        )
+
+    def test_packaged_demo_scopes_security_type_mismatch_example(self) -> None:
+        """The packaged classification example is an isolated case-only mismatch."""
+        comparison_path = (
+            Path(__file__).resolve().parents[1]
+            / "ppar"
+            / "setup_templates"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
+        )
+
+        issues = data_issues.data_issues_table(comparison_path).filter(
+            pl.col(data_issues.ISSUE_TYPE)
+            == data_issues.ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH
+        )
+
+        self.assertEqual(issues.height, 2)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"DATAAUDIT"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"KO"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"classification"},
+        )
+        self.assertTrue(
+            all(
+                "differs only by case" in explanation
+                for explanation in issues.get_column(data_issues.EXPLANATION)
+            )
         )
 
     def test_data_issues_detect_rate_and_missing_dividend_issues(self) -> None:
@@ -226,6 +327,258 @@ class TestDataIssues(unittest.TestCase):
 
         self.assertIn("holdings_price_range", issue_types)
         self.assertIn("transactions_price_range", issue_types)
+
+    def test_holdings_nonpositive_price_is_scoped_and_independent(self) -> None:
+        """The opt-in check respects its population without changing findings."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[
+                    "P1,ZERO,2026-02-28,100,0,1000,0",
+                    "P2,NEGATIVE,2026-02-28,-50,-2,-100,0",
+                    "P3,ZERO_QUANTITY,2026-02-28,0,0,0,0",
+                    "P4,EXCLUDED,2026-02-28,100,0,1000,0",
+                ],
+                transaction_rows=[],
+                data_issues_config="""
+                data_issues:
+                  holdings_nonpositive_price:
+                    enabled: true
+                    only:
+                      security_id:
+                        - ZERO
+                        - NEGATIVE
+                        - ZERO_QUANTITY
+                        - EXCLUDED
+                    exclude:
+                      portfolio_id: P4
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE
+            )
+            performance_findings = compare_snapshots(comparison_path)
+
+        self.assertEqual(issues.height, 4)
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"ZERO", "NEGATIVE"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.VALUE_B).to_list()),
+            {0.0, -2.0},
+        )
+        self.assertTrue(issues.get_column(data_issues.VALUE_A).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.DIFFERENCE).is_null().all())
+        self.assertEqual(
+            set(issues.get_column(data_issues.TOLERANCE).to_list()),
+            {"price must be greater than 0"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"price"},
+        )
+        self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 4)
+        self.assertTrue(performance_findings.is_empty())
+
+    def test_holdings_nonpositive_price_is_off_by_default(self) -> None:
+        """Existing configurations do not run the conservative new check."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ZERO,2026-02-28,100,0,1000,0"],
+                transaction_rows=[],
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn(data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE, issue_types)
+
+    def test_transactions_nonpositive_price_is_scoped_and_independent(self) -> None:
+        """The opt-in trade check requires quantity, code, and reference scope."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,by,csus,$cash,CASHUSD,,,"
+                    "10,0,-100,0",
+                    "P2,2026-02-16,2026-02-16,ABC,sl,csus,$cash,CASHUSD,,,"
+                    "-5,-2,10,0",
+                    "P3,2026-02-17,2026-02-17,ABC,dv,csus,$income,$cash,,,"
+                    "10,0,20,0",
+                    "P4,2026-02-18,2026-02-18,ABC,by,csus,$cash,CASHUSD,,,"
+                    "0,0,0,0",
+                    "P5,2026-02-19,2026-02-19,CASH,by,caus,$cash,CASHUSD,,,"
+                    "10,0,0,0",
+                ],
+                security_reference_rows=["ABC,csus,EQ", "CASH,caus,CASH"],
+                data_issues_config="""
+                data_issues:
+                  transactions_nonpositive_price:
+                    enabled: true
+                    only:
+                      transactions.transaction_code:
+                        - by
+                        - sl
+                      security_reference.security_type: csus
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE
+            )
+            performance_findings = compare_snapshots(comparison_path)
+
+        self.assertEqual(issues.height, 4)
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"P1", "P2"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.VALUE_B).to_list()),
+            {0.0, -2.0},
+        )
+        self.assertTrue(issues.get_column(data_issues.VALUE_A).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.DIFFERENCE).is_null().all())
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"price"},
+        )
+        self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 4)
+        self.assertTrue(performance_findings.is_empty())
+
+    def test_transactions_nonpositive_price_is_off_by_default(self) -> None:
+        """Existing configurations do not require reference data for the new check."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,,ABC,by,csus,$cash,CASHUSD,,,10,0,-100,0"
+                ],
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn(
+            data_issues.ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE,
+            issue_types,
+        )
+
+    def test_transaction_security_type_mismatch_is_exact_case_and_neutral(
+        self,
+    ) -> None:
+        """Classification mismatches report both values without choosing one."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,by,csus,$cash,CASHUSD,,,"
+                    "10,10,-100,0",
+                    "P2,2026-02-16,2026-02-16,ABC,by,CSUS,$cash,CASHUSD,,,"
+                    "10,10,-100,0",
+                    "P3,2026-02-17,2026-02-17,ABC,by,fius,$cash,CASHUSD,,,"
+                    "10,10,-100,0",
+                    "P4,2026-02-18,2026-02-18,ABC,by,,$cash,CASHUSD,,,"
+                    "10,10,-100,0",
+                ],
+                security_reference_rows=["ABC,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  transaction_security_type_mismatch:
+                    enabled: true
+                    only:
+                      security_reference.security_type: csus
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH
+            )
+            performance_findings = compare_snapshots(comparison_path)
+
+        self.assertEqual(issues.height, 6)
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"P2", "P3", "P4"},
+        )
+        explanations = issues.get_column(data_issues.EXPLANATION).to_list()
+        self.assertTrue(any("differs only by case" in text for text in explanations))
+        self.assertTrue(
+            any("'fius'" in text and "'csus'" in text for text in explanations)
+        )
+        self.assertTrue(any("blank" in text for text in explanations))
+        self.assertTrue(all("does not choose" in text for text in explanations))
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"classification"},
+        )
+        self.assertTrue(issues.get_column(data_issues.VALUE_A).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.VALUE_B).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.DIFFERENCE).is_null().all())
+        self.assertTrue(performance_findings.is_empty())
+
+    def test_transaction_security_type_mismatch_is_off_by_default(self) -> None:
+        """Existing configurations do not require a reference dataset for it."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,by,CSUS,$cash,CASHUSD,,,"
+                    "10,10,-100,0"
+                ],
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn(
+            data_issues.ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH,
+            issue_types,
+        )
+
+    def test_transaction_security_type_mismatch_rejects_ambiguous_reference(
+        self,
+    ) -> None:
+        """The comparison fails closed when a reference ID is duplicated."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,by,CSUS,$cash,CASHUSD,,,"
+                    "10,10,-100,0"
+                ],
+                security_reference_rows=["ABC,csus,EQ", "ABC,fius,FI"],
+                data_issues_config="""
+                data_issues:
+                  transaction_security_type_mismatch:
+                    enabled: true
+                    only:
+                      security_reference.security_type: csus
+                """,
+            )
+
+            with self.assertRaisesRegex(PpaError, "one exact-case row"):
+                data_issues.data_issues_table(comparison_path)
 
     def test_data_issues_detect_duplicate_transactions(self) -> None:
         """Duplicate-transaction checks flag exact repeated activity rows."""
@@ -327,12 +680,156 @@ class TestDataIssues(unittest.TestCase):
 
         self.assertEqual(dividend_issues.height, 0)
 
+    def test_security_reference_filter_qualifies_rows_with_exact_case(self) -> None:
+        """Reference qualifiers join by security ID and preserve source case."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            matching_path = _write_site(
+                root / "matching",
+                holdings_rows=[
+                    "P1,ABC,2026-02-28,100,10.00,1000,0",
+                    "P2,ABC,2026-02-28,100,10.25,1025,0",
+                ],
+                transaction_rows=[],
+                security_reference_rows=["ABC,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    only:
+                      security_reference.asset_class_code: EQ
+                """,
+            )
+            wrong_case_path = _write_site(
+                root / "wrong_case",
+                holdings_rows=[
+                    "P1,ABC,2026-02-28,100,10.00,1000,0",
+                    "P2,ABC,2026-02-28,100,10.25,1025,0",
+                ],
+                transaction_rows=[],
+                security_reference_rows=["ABC,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    only:
+                      security_reference.asset_class_code: eq
+                """,
+            )
+
+            matching_issues = data_issues.data_issues_table(matching_path).filter(
+                pl.col(data_issues.ISSUE_TYPE) == data_issues.ISSUE_HOLDINGS_PRICE_RANGE
+            )
+            wrong_case_issues = data_issues.data_issues_table(wrong_case_path).filter(
+                pl.col(data_issues.ISSUE_TYPE) == data_issues.ISSUE_HOLDINGS_PRICE_RANGE
+            )
+
+        self.assertEqual(matching_issues.height, 4)
+        self.assertTrue(wrong_case_issues.is_empty())
+
+    def test_security_reference_filter_requires_dataset(self) -> None:
+        """A reference-dependent filter fails closed without the dataset."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
+                transaction_rows=[],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    only:
+                      security_reference.asset_class_code: EQ
+                """,
+            )
+
+            with self.assertRaisesRegex(PpaError, "files.security_reference"):
+                data_issues.data_issues_table(comparison_path)
+
+    def test_disabled_security_reference_filter_does_not_require_dataset(self) -> None:
+        """A retained filter under a disabled check does not activate enrichment."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
+                transaction_rows=[],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    enabled: false
+                    only:
+                      security_reference.asset_class_code: EQ
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path)
+
+        self.assertNotIn(
+            data_issues.ISSUE_HOLDINGS_PRICE_RANGE,
+            set(issues.get_column(data_issues.ISSUE_TYPE).to_list()),
+        )
+
+    def test_security_reference_filter_requires_referenced_column(self) -> None:
+        """A qualifier cannot silently evaluate against an absent reference field."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
+                transaction_rows=[],
+                security_reference_rows=["ABC,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    only:
+                      security_reference.ticker: ABC
+                """,
+            )
+
+            with self.assertRaisesRegex(PpaError, "missing filter columns: ticker"):
+                data_issues.data_issues_table(comparison_path)
+
+    def test_security_reference_join_requires_exact_case_identifier(self) -> None:
+        """A differently cased reference identifier cannot qualify a source row."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
+                transaction_rows=[],
+                security_reference_rows=["abc,csus,EQ"],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    only:
+                      security_reference.asset_class_code: EQ
+                """,
+            )
+
+            with self.assertRaisesRegex(PpaError, "no exact-case security_reference"):
+                data_issues.data_issues_table(comparison_path)
+
+    def test_security_reference_rejects_duplicate_identifier(self) -> None:
+        """Reference data must contain one exact-case row per security ID."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
+                transaction_rows=[],
+                security_reference_rows=["ABC,csus,EQ", "ABC,fius,FI"],
+                data_issues_config="""
+                data_issues:
+                  holdings_price_range:
+                    only:
+                      security_reference.asset_class_code: EQ
+                """,
+            )
+
+            with self.assertRaisesRegex(PpaError, "one exact-case row"):
+                data_issues.data_issues_table(comparison_path)
+
 
 def _write_site(
     root: Path,
     *,
     holdings_rows: list[str],
     transaction_rows: list[str],
+    security_reference_rows: list[str] | None = None,
     data_issues_config: str = "data_issues: {}",
     transaction_rules: str = "",
 ) -> Path:
@@ -360,6 +857,12 @@ def _write_site(
                 ),
                 transaction_rows,
             )
+        if security_reference_rows is not None:
+            _write_csv(
+                snapshot_directory / "secref.csv",
+                "SECURITY_ID,SECURITY_TYPE,ASSET_CLASS_CODE",
+                security_reference_rows,
+            )
 
     comparison_path = root / "ppar.yaml"
     optional_blocks = "\n".join(
@@ -369,6 +872,11 @@ def _write_site(
             textwrap.dedent(data_issues_config).strip(),
         )
         if block
+    )
+    security_reference_file = (
+        "\n  security_reference: secref.csv"
+        if security_reference_rows is not None
+        else ""
     )
     base_yaml = textwrap.dedent(
         """
@@ -384,7 +892,7 @@ def _write_site(
           holdings: holdings.csv
           transactions: transactions.csv
         """
-    ).strip()
+    ).strip() + security_reference_file
     comparison_path.write_text(
         "\n".join([base_yaml, optional_blocks]).strip() + "\n",
         encoding="utf-8",

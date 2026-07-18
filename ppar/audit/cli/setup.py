@@ -37,6 +37,7 @@ _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "holdings.csv",
     "transactions.csv",
+    "secref.csv",
     "splits.csv",
 )
 _AUDIT_SETUP_FILES: Final[tuple[str, ...]] = (
@@ -342,6 +343,9 @@ is:
   extract must include the source/destination and special-security context named
   in `audit/ppar.yaml`; otherwise use REP, a custom report, or another reviewed
   source.
+- Security reference: needed only when Data Issues filters use
+  `security_reference.*` qualifiers. Use a reviewed security-information IMEX
+  export, security-master report, or equivalent extract and preserve exact case.
 - FX rates: needed only when a changed FX rate itself must be explained. Use a
   locally validated REP, FX/price, or other controlled rate source.
 - Split factors: optional review information, usually from `split.inf` or an
@@ -395,6 +399,7 @@ python audit/run_audit.py -h
       portperf.csv
       holdings.csv
       transactions.csv
+      secref.csv
       secperf.csv
       fx_rates.csv
       splits.csv
@@ -402,6 +407,7 @@ python audit/run_audit.py -h
       portperf.csv
       holdings.csv
       transactions.csv
+      secref.csv
       secperf.csv
       fx_rates.csv
       splits.csv

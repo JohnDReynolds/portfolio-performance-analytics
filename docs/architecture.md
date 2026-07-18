@@ -185,11 +185,11 @@ Use this rough guide before adding code or docs:
 | Add performance-comparison logic | `ppar/audit/performance_comparison/` plus focused tests under `tests/`. |
 | Add Data Issues behavior | `ppar/audit/data_issues/` plus focused tests under `tests/`. |
 | Add transaction coverage | Update evidence/docs first, then test-only fixtures, then packaged demo rows only when realistic. |
-| Add portfolio-level or shared-platform direction | `docs/roadmap.md`. |
-| Add Audit product direction or active MVP scope | `docs/audit/product_constitution.md` or `docs/audit/mvp_plan.md`. |
+| Add shared maintenance or release policy | `docs/maintainer_guide.md`. |
+| Add Audit product doctrine, direction, or active MVP scope | `docs/audit/product_constitution.md`, `docs/audit/roadmap.md`, or `docs/audit/mvp_plan.md`. |
 | Add Analytics product direction | `docs/analytics/roadmap.md`. |
 | Add Axys/APX facts or evidence gaps | `docs/axys_apx/` using its documented chapter, evidence, and contract roles. |
 
-Keep new docs rare. Prefer updating the owning product roadmap, portfolio
-roadmap, architecture map, maintainer guide, setup README, or YAML comments
-before adding another document.
+Keep new docs rare. Prefer updating the owning product roadmap, architecture
+map, maintainer guide, setup README, or YAML comments before adding another
+document.

@@ -11,8 +11,8 @@ are not current product, roadmap, specification, or implementation authorities.
 | [`performance_comparison_evidence_pack_review.md`](performance_comparison_evidence_pack_review.md) | Reviewer aid for an earlier evidence-pack checkpoint. |
 | [`operational_demo_data_notes.md`](operational_demo_data_notes.md) | Historical/process notes for operational demo-data construction. |
 
-Use the [Audit Product Constitution and Roadmap](../product_constitution.md)
-for current product direction, the
+Use the [Audit Product Constitution](../product_constitution.md) for current
+product authority, the [Audit Roadmap](../roadmap.md) for product direction, the
 [Audit MVP Completion Plan](../mvp_plan.md) for active
 implementation, and executable behavior, tests, safety invariants, and
 machine-readable contracts for current implementation truth.

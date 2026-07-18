@@ -504,28 +504,29 @@ def _analytics_large_site_scale(requested_scale: int) -> int:
     return min(requested_scale, _MAX_ANALYTICS_LARGE_SITE_SCALE)
 
 
-def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, set[int]]:
-    """Write a fixed 5x Audit history and return rows and expected years."""
+def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, int]:
+    """Write a fixed 5x Audit history and return rows and static-reference rows."""
     shutil.copytree(_AUDIT_TEMPLATE, directory)
     (directory / "axys_apx_audit.yaml").rename(
         directory / "ppar.yaml"
     )
     row_count = 0
-    expected_years: set[int] = set()
+    static_reference_rows = 0
     for snapshot_name in ("snapshot_a", "snapshot_b"):
         snapshot = directory / snapshot_name
         for path in snapshot.glob("*.csv"):
-            expanded = _expanded_audit_history_frame(
-                pl.read_csv(path),
-                _LONG_HISTORY_SCALE,
-            )
+            source = pl.read_csv(path)
+            if path.name == "secref.csv":
+                expanded = source
+                static_reference_rows += source.height
+            else:
+                expanded = _expanded_audit_history_frame(
+                    source,
+                    _LONG_HISTORY_SCALE,
+                )
             expanded.write_csv(path)
             row_count += expanded.height
-            if snapshot_name == "snapshot_a" and path.name == "portperf.csv":
-                expected_years = set(
-                    expanded.get_column("FROM_DATE").dt.year().to_list()
-                )
-    return directory, row_count, expected_years
+    return directory, row_count, static_reference_rows
 
 
 def _prepare_selected_analytics(directory: Path, scale: int) -> tuple[Path, int]:
@@ -755,11 +756,15 @@ def _check_long_history_audit(workspace: Path) -> tuple[int, float]:
     _require_workspace_path(workspace, baseline_path)
     _require_workspace_path(workspace, site_path)
     baseline_site, baseline_rows = _prepare_audit(baseline_path, 1)
-    site, row_count, _ = _prepare_long_history_audit(site_path)
-    if row_count != baseline_rows * _LONG_HISTORY_SCALE:
+    site, row_count, static_reference_rows = _prepare_long_history_audit(site_path)
+    expected_rows = (
+        (baseline_rows - static_reference_rows) * _LONG_HISTORY_SCALE
+        + static_reference_rows
+    )
+    if row_count != expected_rows:
         raise RuntimeError(
             "Audit long-history row count differs from the expected 5x history: "
-            f"expected={baseline_rows * _LONG_HISTORY_SCALE}, actual={row_count}."
+            f"expected={expected_rows}, actual={row_count}."
         )
 
     baseline_elapsed = _run(

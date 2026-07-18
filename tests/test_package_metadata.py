@@ -561,16 +561,20 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
     def test_eventual_axys_integration_reference_is_documented(self) -> None:
-        """The roadmap parks advanced Axys/APX integration publishing explicitly."""
-        roadmap = Path("docs/roadmap.md").read_text(encoding=util.ENCODING)
+        """The Axys/APX index parks advanced reference publishing explicitly."""
+        reference_index = " ".join(
+            Path("docs/axys_apx/README.md")
+            .read_text(encoding=util.ENCODING)
+            .split()
+        )
 
         self.assertIn(
             "Publishing an advanced Axys/APX integration reference remains "
             "a candidate",
-            roadmap,
+            reference_index,
         )
-        self.assertIn("should not copy the full research archive", roadmap)
-        self.assertIn("available to installed-package users", roadmap)
+        self.assertIn("should not copy the full research archive", reference_index)
+        self.assertIn("available to installed-package users", reference_index)
 
     def test_common_core_export_reference_avoids_unverified_imex_recipes(self) -> None:
         """The export-planning note does not present invented native profiles."""
@@ -714,6 +718,7 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/audit/demo_source_contract.md"),
             Path("docs/audit/README.md"),
             Path("docs/audit/product_constitution.md"),
+            Path("docs/audit/roadmap.md"),
             Path("docs/audit/mvp_plan.md"),
             Path("docs/audit/product_specifications_index.md"),
             Path("docs/analytics/analytics_demo_refresh.md"),
@@ -732,6 +737,7 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/safety_invariants.md"),
             Path("docs/demo_source_contract.md"),
             Path("docs/analytics_demo_refresh.md"),
+            Path("docs/roadmap.md"),
             Path("docs/audit/PPAR_Audit_Foundational_Product_Design_v0.10.md"),
             Path("docs/audit/PPAR_Audit_Work_App_Handoff_Prompt.md"),
             Path("docs/repository_guide.md"),
@@ -741,6 +747,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("PPAR Analytics", documentation_index)
         for documented_path in (
             "audit/README.md",
+            "audit/roadmap.md",
             "analytics/roadmap.md",
             "archive/roadmap_through_v0.1.5.md",
             "maintainer_guide.md",
@@ -815,7 +822,7 @@ class TestPackageMetadata(unittest.TestCase):
         source_contract = Path(
             "docs/audit/demo_source_contract.md"
         )
-        roadmap = Path("docs/roadmap.md")
+        audit_index = Path("docs/audit/README.md")
 
         self.assertTrue(matrix_path.exists())
         self.assertTrue(matrix_yaml_path.exists())
@@ -834,7 +841,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIn(
             "axys_apx/contracts/transaction_semantics_matrix.yaml",
-            roadmap.read_text(encoding=util.ENCODING),
+            audit_index.read_text(encoding=util.ENCODING),
         )
 
     def test_fixed_income_transaction_boundary_is_current(self) -> None:
@@ -944,37 +951,36 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("External-Flow Decision Rules", matrix_contract)
         self.assertIn("Coverage Backlog", matrix_contract)
 
-    def test_portfolio_roadmap_separates_current_direction_from_history(self) -> None:
-        """Current roadmap authority stays concise and separate from history."""
-        portfolio_roadmap = Path("docs/roadmap.md").read_text(
+    def test_product_roadmaps_separate_current_direction_from_history(self) -> None:
+        """Each product owns current direction separately from shared history."""
+        audit_roadmap = Path("docs/audit/roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+        analytics_roadmap = Path("docs/analytics/roadmap.md").read_text(
             encoding=util.ENCODING
         )
         archived_roadmap = Path(
             "docs/archive/roadmap_through_v0.1.5.md"
         ).read_text(encoding=util.ENCODING)
 
-        self.assertIn("# PPAR Portfolio Roadmap", portfolio_roadmap)
-        self.assertIn("PPAR has two products", portfolio_roadmap)
-        self.assertIn("It is not a\nthird PPAR product", portfolio_roadmap)
+        self.assertFalse(Path("docs/roadmap.md").exists())
+        self.assertIn("# PPAR Audit Roadmap", audit_roadmap)
+        self.assertIn("# PPAR Analytics Roadmap", analytics_roadmap)
         for expected_path in (
-            "audit/product_constitution.md",
-            "audit/mvp_plan.md",
-            "analytics/roadmap.md",
-            "axys_apx/reference/Chapter_01_Overview.md#axys_apx-blockers",
-            "archive/roadmap_through_v0.1.5.md",
+            "product_constitution.md",
+            "mvp_plan.md",
         ):
-            self.assertIn(expected_path, portfolio_roadmap)
+            self.assertIn(expected_path, audit_roadmap)
         for heading in (
-            "## Where Roadmap Decisions Live",
-            "## Current Portfolio Priorities",
-            "## Shared Platform Priorities",
-            "## Candidate Cross-Product Work",
+            "## Roadmap Doctrine",
+            "## Active Phase — MVP Completion",
+            "## Immediate Priorities",
+            "## Material Open Questions",
             "## Maintenance Rule",
         ):
-            self.assertIn(heading, portfolio_roadmap)
-        self.assertNotIn("## Implementation Phases", portfolio_roadmap)
-        self.assertNotIn("### Phase ", portfolio_roadmap)
-        self.assertLess(len(portfolio_roadmap.splitlines()), 200)
+            self.assertIn(heading, audit_roadmap)
+        self.assertNotIn("## Proposed Implementation Slices", audit_roadmap)
+        self.assertNotIn("## Workstream", audit_roadmap)
         self.assertIn("**Archived implementation journal.**", archived_roadmap)
 
     def test_audit_mvp_authorities_agree_on_scope_and_sequence(self) -> None:
@@ -992,8 +998,10 @@ class TestPackageMetadata(unittest.TestCase):
         audit_index = " ".join(
             Path("docs/audit/README.md").read_text(encoding=util.ENCODING).split()
         )
-        portfolio_roadmap = " ".join(
-            Path("docs/roadmap.md").read_text(encoding=util.ENCODING).split()
+        audit_roadmap = " ".join(
+            Path("docs/audit/roadmap.md")
+            .read_text(encoding=util.ENCODING)
+            .split()
         )
 
         self.assertIn("four bounded MVP capabilities", constitution)
@@ -1001,15 +1009,19 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Slice 3 first additional Data Issues rule review",
-            constitution,
+            "Founder review of the implemented Slice 3C Data Issues rule",
+            audit_roadmap,
         )
         self.assertIn(
             "Slice 2 — Executive Summary shared model — Complete",
             plan,
         )
+        self.assertIn(
+            "Slice 3 — Additional Data Issues issue types — Active",
+            plan,
+        )
         self.assertIn("same commit whenever the number or identity", audit_index)
-        self.assertIn("four founder-approved capability boundaries", portfolio_roadmap)
+        self.assertIn("four bounded MVP capabilities", audit_roadmap)
 
     def test_axys_apx_reference_documents_blockers(self) -> None:
         """The Axys/APX reference keeps a single blocker summary discoverable."""
@@ -1637,6 +1649,8 @@ class TestPackageMetadata(unittest.TestCase):
             "axys_apx_column_mappings.yaml",
             "axys_apx_audit.yaml",
             "snapshot_a/portperf.csv",
+            "snapshot_a/secref.csv",
+            "snapshot_b/secref.csv",
             "snapshot_b/transactions.csv",
         )
 

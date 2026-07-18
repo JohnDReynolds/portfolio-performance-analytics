@@ -59,6 +59,14 @@ Implementation-facing files live in `contracts/` so they do not compete with
 the reader-facing chapters. See [contracts/README.md](contracts/README.md) for
 the contract and template index.
 
+## Publication Boundary
+
+Publishing an advanced Axys/APX integration reference remains a candidate. It
+should become available to installed-package users only when the supported
+conclusions, Unknowns, source contracts, and maintenance responsibility are
+clear. Ordinary setup should remain concise and should not copy the full
+research archive into each starter workspace.
+
 ## Evidence Archive
 
 The `evidence/Research_*.md` files preserve traceability as compact claim

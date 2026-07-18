@@ -219,6 +219,7 @@ def workbook_column_labels() -> dict[str, str]:
         findings.SECURITY_ID: "Security",
         data_issue_checks.SNAPSHOT: "Snapshot",
         data_issue_checks.ISSUE_TYPE: "Issue Type",
+        data_issue_checks.CATEGORY: "Category",
         data_issue_checks.VALUE_A: "Reference Value",
         data_issue_checks.VALUE_B: "Observed Value",
         data_issue_checks.DIFFERENCE: "Difference",
@@ -343,6 +344,7 @@ def workbook_column_tooltip(column: str) -> str:
         data_issue_checks.ISSUE_TYPE: (
             "Type of cross-reference consistency issue."
         ),
+        data_issue_checks.CATEGORY: "Stable reviewer grouping for the issue type.",
         data_issue_checks.VALUE_A: (
             "Expected value or minimum rate found for this consistency check."
         ),

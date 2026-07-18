@@ -12,7 +12,10 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.audit.data_issues.config import validate_data_issues_config
+from ppar.audit.data_issues.config import (
+    security_reference_filter_fields,
+    validate_data_issues_config,
+)
 from ppar.audit.performance_comparison.methods import (
     ModifiedDietzDayCount,
     ModifiedDietzFlowTiming,
@@ -40,6 +43,7 @@ _PORTFOLIO_RETURN_RECONSTRUCTION_KEY: Final[str] = "portfolio_return_reconstruct
 _SECURITY_RETURN_RECONSTRUCTION_KEY: Final[str] = "security_return_reconstruction"
 _PORTFOLIO_PERFORMANCE_KEY: Final[str] = "portfolio_performance"
 _SECURITY_PERFORMANCE_KEY: Final[str] = "security_performance"
+_SECURITY_REFERENCE_KEY: Final[str] = "security_reference"
 _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
     {
         _PORTFOLIO_PERFORMANCE_KEY,
@@ -48,6 +52,7 @@ _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
         "holdings",
         "transactions",
         "fx_rates",
+        _SECURITY_REFERENCE_KEY,
     }
 )
 _REMOVED_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
@@ -244,6 +249,7 @@ class AuditSpecification:
         self.snapshot_b = self._snapshot(_SNAPSHOT_B_KEY)
         self.files = self._files()
         self._validate_reconstruction_files()
+        self._validate_data_issues_reference_file()
         self._validate_required_files()
 
     def _validate_data_issues_configuration(self) -> None:
@@ -666,6 +672,8 @@ class AuditSpecification:
         required_names = {self._required_performance_file_name()}
         if self._active_return_reconstruction_configured():
             required_names.update({"holdings", "transactions"})
+        if security_reference_filter_fields(self.values):
+            required_names.add(_SECURITY_REFERENCE_KEY)
         return frozenset(required_names)
 
     def _active_return_reconstruction_configured(self) -> bool:
@@ -712,6 +720,19 @@ class AuditSpecification:
                     ),
                     504,
                 )
+
+    def _validate_data_issues_reference_file(self) -> None:
+        """Require the optional reference dataset when a filter names it."""
+        if not security_reference_filter_fields(self.values):
+            return
+        if _SECURITY_REFERENCE_KEY not in self.files:
+            raise PpaError(
+                self._error_message(
+                    "Data Issues security_reference.* filters require "
+                    "files.security_reference."
+                ),
+                504,
+            )
 
     def _error_message(self, message: str) -> str:
         """Return an error message with Audit specification context."""

@@ -19,7 +19,7 @@ are canonical in that chapter.
 | IMEX-S08 | APX product and release material | Product, SQL-oriented platform, and versioned REST capability context. | REST capability is separate from IMEX/APXIX. |
 | IMEX-S09 | APX Market Data Manager / Interactive Data RemotePlus material | Adjacent price/reference-data path; not IMEX. |
 | IMEX-S10 | FinFolio and other conversion material | Migration leads for Axys/APX file families and reference exports. | Not an official object catalog. |
-| IMEX-S11 | [`Public_Web_Research_2026-07-17.md`](Public_Web_Research_2026-07-17.md) | Cross-topic ledger, especially WEB-20260717-002-007 and 013. |
+| IMEX-S11 | [`Public_Web_Research_2026-07-17.md`](Public_Web_Research_2026-07-17.md) | Cross-topic ledger, especially WEB-20260717-002-007, 013, and WEB-20260718-001. |
 
 ## Supported Claims
 
@@ -39,6 +39,7 @@ are canonical in that chapter.
 | IMEX-C012 | APX transaction input requiredness, including Mark-to-Market behavior, can be version/workflow-specific. | IMEX-S11 claim WEB-20260717-013 | Verified for the cited documentation | Chapters 05 and 12 |
 | IMEX-C013 | No reviewed public source provides one complete authoritative Axys/APX IMEX object-and-field dictionary. | Absence across IMEX-S02-S11 | Unknown | Chapters 12 and 15 |
 | IMEX-C014 | A reliable implementation should maintain a versioned, installation-specific catalog with exact object/field labels, direction, type/width, examples, source, and confidence. | IMEX-S02-S11 | High Confidence design guidance | Chapter 12 |
+| IMEX-C015 | The APX AIA guide describes selected APX identifiers as case-sensitive while describing its Transaction Translation evaluator as not case-sensitive; evaluator behavior does not establish native identifier equivalence. | IMEX-S04, IMEX-S11 claim WEB-20260718-001 | Verified for AIA workflow; broader native rules Unknown | Chapters 04, 05, 12, and 15 |
 
 ## Evidence Needed to Resolve Current Unknowns
 

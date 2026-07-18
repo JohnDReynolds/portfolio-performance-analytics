@@ -43,6 +43,7 @@ _FINANCIAL_VALIDATION_CACHE: ContextVar[set[Path] | None] = ContextVar(
 _SCHEMA_COLUMN_SECTIONS = {
     pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance_columns",
     pc_cols.SECURITY_PERFORMANCE: "security_performance_columns",
+    pc_cols.SECURITY_REFERENCE: "security_reference_columns",
 }
 _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
     pc_cols.PORTFOLIO_PERFORMANCE: {
@@ -65,6 +66,22 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "security_return": pc_cols.SECURITY_RETURN,
         "weight": pc_cols.WEIGHT,
         "contribution": pc_cols.CONTRIBUTION,
+    },
+    pc_cols.SECURITY_REFERENCE: {
+        "identifier": pc_cols.SECURITY_ID,
+        "security_id": pc_cols.SECURITY_ID,
+        "security_name": pc_cols.SECURITY_NAME,
+        "ticker": pc_cols.TICKER,
+        "cusip": pc_cols.CUSIP,
+        "isin": pc_cols.ISIN,
+        "security_type": pc_cols.SECURITY_TYPE,
+        "asset_class_code": pc_cols.ASSET_CLASS_CODE,
+        "asset_class_name": pc_cols.ASSET_CLASS_NAME,
+        "sector_code": pc_cols.SECTOR_CODE,
+        "sector": pc_cols.SECTOR,
+        "country_code": pc_cols.COUNTRY_CODE,
+        "country": pc_cols.COUNTRY,
+        "currency": pc_cols.CURRENCY,
     },
 }
 

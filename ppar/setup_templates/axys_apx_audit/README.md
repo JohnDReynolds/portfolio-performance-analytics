@@ -71,9 +71,14 @@ Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
 Audit validation checks minimum required datasets, required normalized columns,
 complete YAML treatment for changed source-data fields, and the strict Data Issues check
 contract before report bundles are written. Unknown Data Issues issue types, unsupported
-per-check keys, malformed filters, non-Boolean enablement, and invalid tolerances stop with
-the exact YAML path. Mandatory portfolio/security market-value continuity remains active
+per-check keys, malformed filters, non-Boolean enablement, invalid tolerances, and
+an enabled conservative check without its required `only` population stop with the
+exact YAML path. Mandatory portfolio/security market-value continuity remains active
 when optional Data Issues checks are disabled.
+Optional `secref.csv` fields can qualify Data Issues populations through
+`security_reference.*` filters. Those joins and values preserve exact source
+case and fail closed when required reference evidence is missing; they do not
+change performance calculations.
 The same validation is available through
 `ppar.audit.cli.validate_config` when maintainers need to
 check a YAML file without writing reports; its success summary lists effective optional
@@ -150,10 +155,14 @@ differences from identifiable input differences and other evidence:
   possible causes for remaining unexplained differences.
 - `Data Issues` sheet: consistency checks across the union of Snapshot A
   and Snapshot B. The packaged demo includes focused examples for holdings and
-  transaction price ranges and duplicate transactions,
-  mismatches, dividend-rate mismatches, fixed-income accrued-interest
-  transaction-rate mismatches, missing dividends, holdings.accrued rate
-  mismatches.
+  transaction price ranges, duplicate transactions, a narrowly scoped
+  nonpositive holding price, a reference-scoped nonpositive transaction price,
+  an exact-case transaction-versus-reference security-type mismatch,
+  dividend-rate mismatches, fixed-income
+  accrued-interest transaction-rate mismatches, missing dividends, and
+  holdings.accrued rate mismatches. Both nonpositive-price examples and the
+  classification mismatch are present in both snapshots and do not create
+  A-versus-B performance differences.
 - Optional reconstruction diagnostics can add `Reconstruction Summary`,
   `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
@@ -175,7 +184,11 @@ Data used:
 - Snapshot A: `snapshot_a`
 - Snapshot B: `snapshot_b`
 - Files: Axys/APX-style portfolio performance, security performance,
-  transactions, and holdings.
+  transactions, holdings, and optional security reference.
+- `secref.csv` is snapshot-specific Data Issues enrichment. The packaged
+  nonpositive-price, classification-mismatch, and fixed-income rate checks use
+  reviewed `security_reference` qualifiers without affecting Modified Dietz,
+  choosing an authoritative classification, or assigning transaction semantics.
 - `portperf.csv.BASE_CURRENCY` is authoritative for each portfolio. PPAR fills
   missing row-level base currency from it and rejects contradictory holdings or
   transaction/cash values. Security-performance rows do not repeat currency metadata.

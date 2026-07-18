@@ -41,6 +41,7 @@ those details as verified Axys/APX facts.
 | --- | --- | --- |
 | `transactions.csv` | Normalized transaction extract used to explain changed cash flows, security-level flows, income, fees, and review-only transaction evidence. | Transaction codes should use Axys/APX-style observed codes when the reference material supports them. YAML remains the explicit interpretation contract. |
 | `holdings.csv` | Normalized point-in-time holdings and valuation extract. | Native Axys/APX holding storage is Unknown. This file represents the demo value source used for beginning and ending holdings. |
+| `secref.csv` | Optional snapshot-specific security reference used only to qualify Data Issues populations. | Exact source case is preserved. Security-master fields do not enter performance calculations, and local field names, code dictionaries, and historical classification behavior must be validated. |
 | `portperf.csv` | Reported portfolio-period performance target used for comparison. | `portperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 | `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 
@@ -79,6 +80,7 @@ the target performance dataset:
 | `holdings` | Portfolio or security return reconstruction is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date` |
 | `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
 | `fx_rates` | Optional evidence links a rate change to a counted base-currency value. | `from_currency`, `to_currency`, `rate_date`, `fx_rate`; add `portfolio_id` and `local_exposure` for report linkage |
+| `security_reference` | A Data Issues `only` or `exclude` filter references `security_reference.*`. | `security_id`; each referenced qualifier column must also be present and nonblank for relevant source rows |
 
 Currency basis follows the normalized field name and dataset scope. In
 holdings and transactions, unqualified monetary fields use the row
@@ -97,6 +99,12 @@ Normalized FX rows must provide nonblank pair currencies and dates and a finite,
 strictly positive rate. Pair/date rows must also be unique within the available
 `rate_source` and `rate_type` provenance. These are ppar input-integrity rules,
 not claims about Axys quote conventions or native FX storage.
+
+Security-reference rows are snapshot-specific enrichment only. Their
+`security_id` values must be nonblank and unique with exact source case. A
+reference-qualified Data Issues check stops when the file, exact-case join row,
+referenced column, or referenced value is unavailable; it does not silently
+broaden or empty the reviewed population.
 
 All supplied currency values are normalized to uppercase three-letter codes.
 For a foreign row, a nonzero `holdings.market_value`, `holdings.accrued`, or

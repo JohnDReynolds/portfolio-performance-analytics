@@ -24,11 +24,14 @@ class TestDataIssuesVocabulary(unittest.TestCase):
                 "duplicate_transactions",
                 "dividend_rate",
                 "holdings_accrued_rate",
+                "holdings_nonpositive_price",
                 "holdings_price_range",
                 "missing_dividend",
                 "pa_sa_rate",
                 "portfolio_market_value_continuity",
                 "security_market_value_continuity",
+                "transaction_security_type_mismatch",
+                "transactions_nonpositive_price",
                 "transactions_price_range",
             },
         )
@@ -39,6 +42,18 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertEqual(
             data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY,
             DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY.value,
+        )
+        self.assertEqual(
+            data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE,
+            DataIssueType.HOLDINGS_NONPOSITIVE_PRICE.value,
+        )
+        self.assertEqual(
+            data_issues.ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH,
+            DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH.value,
+        )
+        self.assertEqual(
+            data_issues.ISSUE_TRANSACTIONS_NONPOSITIVE_PRICE,
+            DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE.value,
         )
 
     def test_cause_area_values_preserve_current_serialized_contract(self) -> None:
@@ -72,7 +87,45 @@ class TestDataIssuesVocabulary(unittest.TestCase):
                 self.assertIsInstance(definition.category, DataIssueCategory)
                 self.assertTrue(definition.required_datasets)
                 self.assertTrue(definition.reviewer_meaning)
-                self.assertTrue(definition.default_enabled)
+
+        opt_in_checks = {
+            issue_type
+            for issue_type, definition in DATA_ISSUE_REGISTRY.items()
+            if not definition.default_enabled
+        }
+        self.assertEqual(
+            opt_in_checks,
+            {
+                DataIssueType.HOLDINGS_NONPOSITIVE_PRICE,
+                DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH,
+                DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE,
+            },
+        )
+        self.assertTrue(
+            DATA_ISSUE_REGISTRY[
+                DataIssueType.HOLDINGS_NONPOSITIVE_PRICE
+            ].requires_only_filter
+        )
+        transaction_price_definition = DATA_ISSUE_REGISTRY[
+            DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE
+        ]
+        self.assertTrue(transaction_price_definition.requires_only_filter)
+        self.assertEqual(
+            transaction_price_definition.required_datasets,
+            ("transactions", "security_reference"),
+        )
+        mismatch_definition = DATA_ISSUE_REGISTRY[
+            DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH
+        ]
+        self.assertEqual(
+            mismatch_definition.category,
+            DataIssueCategory.CLASSIFICATION,
+        )
+        self.assertTrue(mismatch_definition.requires_only_filter)
+        self.assertEqual(
+            mismatch_definition.required_datasets,
+            ("transactions", "security_reference"),
+        )
 
         mandatory = {
             issue_type

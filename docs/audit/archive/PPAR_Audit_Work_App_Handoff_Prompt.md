@@ -3,7 +3,7 @@
 > **Archived working prompt.** This handoff predates completion of the
 > foundational product-design exercise and is preserved only for decision
 > provenance. Use `../product_constitution.md` for the current
-> product constitution and roadmap and
+> product constitution, `../roadmap.md` for the current product roadmap, and
 > `../mvp_plan.md` for active implementation scope.
 
 You are taking over a multi-phase product strategy and product-design project for **PPAR Audit**, working inside my local PPAR project with access to its source code, tests, generated artifacts, and documentation.

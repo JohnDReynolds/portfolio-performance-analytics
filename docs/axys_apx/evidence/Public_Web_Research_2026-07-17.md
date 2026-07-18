@@ -5,6 +5,8 @@ into the reader-facing Axys/APX reference chapters on 2026-07-17.
 
 **Retrieval/review date:** 2026-07-17
 
+**Additional review date:** 2026-07-18
+
 This file is an evidence ledger, not a parallel reference manual. The matching
 files under `../reference/` contain the maintained conclusions and implementation
 guidance. Each claim below records only the source, bounded conclusion, confidence,
@@ -30,7 +32,7 @@ and evidence still needed.
 | WEB-20260717-004 | [APX 22.1 product update](https://www.advent.com/news-and-insights/blog/an-ever-more-powerful-and-trusted-solution-for-investment-managers/) | APX 22.1 | More than 60 APIs and expanded historical-change, attribution/analytics, cost, and session-audit access were announced. | Verified release capability; exact contracts and fields Unknown. |
 | WEB-20260717-005 | [SS&C Advent 1H2023 updates](https://www.advent.com/news-and-insights/press-releases/ssc-announces-1h2023-ssc-advent-product-updates/) | APX 23.1 | Report data was expanded and fee/model-fee fields were added. | Verified release statement; exact report/API mappings Unknown. |
 | WEB-20260717-006 | [ByAllAccounts APX Custodial Integrator guide](https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_User_Guide.pdf) | APX CI workflow | `apxix.exe`/`ApxIx` denotes APX Import/Export; security/type exports, translation, blotter, position, and lot workflows are documented. | High Confidence for this integration; native object dictionary still absent. |
-| WEB-20260717-007 | [WealthTechs AIA guide for APX](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | APX AIA workflow | `APXIX.exe`, `imexhist.log`, ordered transformation, uppercase-code cancellation, current SQL holdings, and historical report-calculated holdings are documented. | High Confidence for this integration; native universality and schemas Unknown. |
+| WEB-20260717-007 | [WealthTechs AIA guide for APX](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | APX AIA workflow | `APXIX.exe`, `imexhist.log`, ordered transformation, cancellation Trade Blotter creation using uppercased instructions, current SQL holdings, and historical report-calculated holdings are documented. | High Confidence for this integration; posted-export representation, native universality, and schemas Unknown. |
 | WEB-20260717-008 | [CSSI PRF/PBF name guidance](https://cssisolutions.com/downloads/solving-the-cli-prf-pbf-name-problem) | Axys operational workflow | `.PRF`/`.PBF` are performance-history state; names are copied from `.CLI`/`.GRP` on first creation and are not automatically resynchronized after later renames. | High Confidence operational evidence; exact layout/version coverage Unknown. |
 | WEB-20260717-009 | [Historical PERHSUM guidance](https://static1.1.sqspcdn.com/static/f/425065/4721492/1257913571447/Modifying-PERSHUM-Report.pdf) | Axys 3.6 | `PERHSUM.REP` is Performance History for Selected Time Periods; `.REP` and `.RPW` are distinct report types and `.RPW` remains RepLang-based. | Verified historical evidence; not a current support statement. |
 | WEB-20260717-010 | [CSSI REP32 hyperlink guidance](https://cssisolutions.com/downloads/how-to-add-hyperlinks-to-reports) | Dated Axys workflow | A working `Rep32.exe -m ... -p ... "-b ..."` command pattern and switches `-J`, `-x`, `-su`, and `-z` are demonstrated. | Verified working example; complete syntax and version coverage Unknown. |
@@ -45,6 +47,8 @@ and evidence still needed.
 | WEB-20260717-019 | [Advent Portfolio Exchange Reports Guide](https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf) | Guide-covered APX reports | The guide identifies 29 SSRS-based reports, report purposes/labels, Portfolio Appraisal and Equity Overview behavior, and Risk Statistics metrics. | Verified for the reviewed guide; installed/current inventory, RDLs, datasets, and formulas Unknown. |
 | WEB-20260717-020 | [CSSI equity-assets and Cash Holdings guidance](https://cssisolutions.com/downloads/creating-an-equity-assets-by-type-report-and-a-cash-hold) | Dated Axys Report Writer workflow | Report-visible fields include asset-class/security-type concepts, and a Cash Holdings report is derived through classification logic. | High Confidence for the example; example asset-class code is not universal. |
 | WEB-20260717-021 | [SS&C Advent Corporate Actions for APX brief](https://www.advent.com/resources/all-resources/brief-advent-corporate-actions-for-apx/) | APX ACA workflow | APX sends holdings to ACA; actions are cross-referenced/reviewed; APX Reorg Utility runs; generated transactions post to APX Trade Blotter. | Verified workflow capability; exact fields, statuses, and postings Unknown. |
+| WEB-20260718-001 | [WealthTechs AIA guide for APX](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | APX AIA workflow | The guide describes APX as case-sensitive for vehicle symbols, account codes, and the management-fee symbol, while separately stating that AIA Transaction Translation rules are not case-sensitive. | High Confidence for the cited workflow; not a complete native APX field-by-field casing contract. |
+| WEB-20260718-002 | [ByAllAccounts Axys CI guide](https://www.byallaccounts.net/Manuals/Custodial_Integrator/axys/CI_User_Guide.pdf) and [APX CI guide](https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_User_Guide.pdf) | Axys/APX CI workflows | Security and classification examples use mixed case, including lowercase security types in mapping examples and uppercase types in translation-file examples; the guides do not establish a global lowercase convention. | High Confidence for observed examples; equivalence of values differing only by case is not established. |
 
 ## Topic routing
 
@@ -52,15 +56,15 @@ and evidence still needed.
 |---|---|
 | `Research_02_Axys_Architecture.md` | 001, 008-011, 014 |
 | `Research_03_APX_Architecture.md` | 001-007, 019, 021 |
-| `Research_04_Security_Master.md` | 002, 006, 007 |
-| `Research_05_Transactions.md` | 007, 012, 013 |
+| `Research_04_Security_Master.md` | 002, 006, 007, 20260718-001-002 |
+| `Research_05_Transactions.md` | 007, 012, 013, 20260718-001-002 |
 | `Research_06_Holdings.md` | 007, 019 |
 | `Research_07_Cash.md` | 014, 020 |
 | `Research_08_Pricing.md` | 002, 007 |
 | `Research_09_Corporate_Actions.md` | 021 |
 | `Research_10_Performance.md` | 002-004, 008-009, 014-019 |
 | `Research_11_Classifications.md` | 011, 014, 019 |
-| `Research_12_IMEX.md` | 002-007, 013 |
+| `Research_12_IMEX.md` | 002-007, 013, 20260718-001 |
 | `Research_13_REP.md` | 002-005, 009-010, 019 |
 | `Research_14_Reports.md` | 009, 019 |
 | `Research_17_Multi_Currency.md` | 013-014 |

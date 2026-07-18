@@ -78,7 +78,7 @@ Performance, reports, IMEX, REP, reconciliation, and audit
 | Transactions affect holdings, cash, income, cost basis, realized gain/loss, and performance inputs | Supported conceptually and by supplied research | High | General accounting role is strong; native mechanics vary. |
 | Trade Blotter workflows exist in Axys/APX integration evidence | Supported | Medium | Evidence is third-party integration documentation. |
 | Observed transaction codes such as `by`, `sl`, `li`, `lo`, `dv`, `in`, `dp`, `wd` | Supported as observed codes | Medium | Not a complete official code matrix. |
-| Uppercase cancellation behavior, e.g. `by` → `BY` | Supported in independent Axys/APX integration guides | Medium-High | Universality across versions and import methods is Unknown. |
+| Uppercase cancellation instruction, e.g. `by` → `BY` | Supported in reviewed Trade Blotter staging/control workflows | Medium-High | Not established as an exportable posted transaction or a universal native convention. |
 | Complete native Axys transaction-code matrix | Unknown | Unknown | Not supplied. |
 | Complete native APX transaction-code matrix | Unknown | Unknown | Not supplied. |
 | Official IMEX transaction object names | Unknown | Unknown | Not supplied. |
@@ -117,8 +117,9 @@ symbols, and firm-specific mapping.
 
 Recommended classification order for audit products:
 
-1. Detect reversals, cancellations, and uppercase-code deletes before
-   treating a record as a new economic event.
+1. Establish the source stage before interpreting a reversal or cancellation.
+   An uppercase-code cancellation instruction is supported only for the reviewed
+   Trade Blotter staging/control workflow, not for an ordinary posted extract.
 2. Apply firm-specific transaction translation overrides, because public
    integration tables explicitly allow special cases and
    financial-institution-specific customization.
@@ -146,7 +147,7 @@ meaning. Interpretation may depend on:
 | Special security type/symbol | Used in observed fee and expense handling. | Medium |
 | Portfolio/account configuration | May affect interpretation, including deliver-in/out behavior. | Medium |
 | Custodian or interface translation | Integration-specific mappings may alter native codes. | Medium |
-| Reversal/cancellation context | Uppercase code may represent deletion/cancellation in observed workflows. | Medium |
+| Reversal/cancellation context | Explicit Trade Blotter source stage plus uppercase instruction may identify deletion/cancellation in the observed workflow. | Medium |
 
 ### 1.4 Transaction Matching Boundary
 
@@ -166,10 +167,13 @@ plausible story that is wrong. When a transaction cannot be matched, reports
 should show the Snapshot A and Snapshot B rows as unmatched while still
 explaining the Modified Dietz effect of the observed source-data changes.
 
-Observed AIA transaction-translation logic may be case-insensitive inside that
-integration workflow, but ppar should preserve native transaction-code and
-security-identifier case unless a site-specific mapping explicitly says
-otherwise.
+Observed AIA transaction-translation conditions are evaluated
+case-insensitively inside that integration tool. Separately, the APX AIA guide
+describes APX as case-sensitive for selected identifiers. These statements are
+not contradictory: evaluator behavior does not authorize normalization of
+native transaction codes, security identifiers, or account codes. PPAR should
+preserve their exact source case and perform case-insensitive comparison only
+under an explicit, versioned site contract.
 
 ------------------------------------------------------------------------
 
@@ -252,7 +256,8 @@ behavior, not proof of exclusive native Axys behavior.
 
 | Statement | Confidence | Notes |
 | --- | --- | --- |
-| WealthTechs APX integration evidence documents cancellation by uppercasing the original transaction code, e.g. `by` → `BY`. | High Confidence for that workflow | The guide also documents an ordered translation/import pipeline. |
+| WealthTechs APX integration evidence documents a tool that creates a cancellation Trade Blotter by uppercasing the original transaction code, e.g. `by` → `BY`. | High Confidence for that staging/control workflow | The row is an instruction prepared from historical transaction files before review/posting. |
+| The uppercase cancellation instruction is available as a posted transaction through REP, IMEX/APXIX, SQL, REST, or ordinary reports. | Unknown | The reviewed evidence does not establish this. |
 | Uppercase cancellation behavior is universal across all Axys versions, transaction types, and import methods. | Unknown | Not supported by supplied material. |
 
 ### 2.8 Missing-Cost Operational Evidence
@@ -618,7 +623,7 @@ The supplied research includes this public third-party example row:
 acct123,010101,010101,by,csus,appl,100,caus,cash,10000
 ```
 
-A cancellation example uppercases the transaction code:
+A Trade Blotter cancellation example uppercases the transaction code:
 
 ``` text
 acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
@@ -665,7 +670,7 @@ paydown codes, while preserving the same evidence boundary.
 | Code | Observed Meaning | Axys | APX | Confidence | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `by` | Buy | Observed in examples; official status Unknown | Observed | Medium | Public integration documentation only. |
-| `BY` | Cancellation/deletion of Buy | Observed | Observed | Medium | Uppercase cancellation observed; universality Unknown. |
+| `BY` | Cancellation Trade Blotter instruction derived from `by` in the reviewed staging workflow | Observed | Observed | Medium | Posted-export availability and native universality Unknown. |
 | `sl` | Sell | Unknown | Observed | Medium | Requires vendor confirmation. |
 | `ss` | Short sale | Unknown | Observed | Medium | Requires vendor confirmation. |
 | `cs` | Cover short | Unknown | Observed | Medium | Observed in APX integration evidence. |
@@ -745,7 +750,7 @@ observed research. It is not an official Axys/APX code dictionary.
 | `dp`, `wd` | Cash, fee, expense, external-flow, or cash-security movement | Context-dependent | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, internal movement, or true external movement. |
 | `rc`, `pd` | Corporate action / principal event | Usually no | Confirmed in public Axys/APX translation mapping evidence as cash-producing security events; validate return-of-capital, paydown, cost-basis, factor, amortization, and performance-report treatment. |
 | `;` | Journal, other, placeholder, or locally materialized split marker | Usually no | Prefer central split-factor evidence such as `split.inf` for normal split processing; require firm mapping before treating `;` as split evidence. |
-| Uppercase code, e.g. `BY` | Reversal / deletion | Depends on original | Link to the original transaction and reverse original economics rather than treating it as independent activity. |
+| Uppercase code, e.g. `BY` | Unknown unless source-stage evidence identifies a Trade Blotter cancellation instruction | Unknown | Preserve exact case. Quarantine a proven staging/control instruction and link it to the original; do not infer cancellation from an ordinary posted extract. |
 | `epus`, `exus` | Fee/expense security type or marker | No | Preserve as security/type context, not as a standalone transaction-code conclusion. |
 | `dvwash` | Reinvestment wash symbol | No | Link dividend and reinvestment buy legs; avoid treating wash cash as external cash flow. |
 | `caus margin` | Margin cash symbol/context | No | Supports margin-interest classification; separate financing expense from external flow. |
@@ -767,7 +772,7 @@ for ambiguous transaction families.
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
 | `pa` / `sa` | Bond or fixed-income security | Real symbol | Client-specific | Client-specific | Buy-side or sell-side accrued interest | No | Validate accrued interest, day count, and settlement economics; do not classify as external flow. |
 | `rc` / `pd` | Real security or bond/MBS | Real symbol | Usually `$pty` in ByAllAccounts mapping evidence | Usually `$cash` in ByAllAccounts mapping evidence | Return of capital or principal paydown | No | Confirm context before classification. The packaged demo uses narrow context-gated examples only. |
-| `ss` / `cs` | Shortable security or short-side account context | Real symbol | `ss` mapping evidence uses `awus`; `cs` mapping evidence uses `$pty` | `ss` mapping evidence uses no symbol; `cs` mapping evidence uses `$cash` | Short sale or cover short | No | Require lowercase code, short-position context, quantity, amount, and site cash/proceeds treatment. Uppercase `SS`/`CS` may be reversal/delete evidence. |
+| `ss` / `cs` | Shortable security or short-side account context | Real symbol | `ss` mapping evidence uses `awus`; `cs` mapping evidence uses `$pty` | `ss` mapping evidence uses no symbol; `cs` mapping evidence uses `$cash` | Short sale or cover short | No | Require exact lowercase code, short-position context, quantity, amount, and site cash/proceeds treatment. Uppercase `SS`/`CS` are separate staging/control evidence only when source stage proves that role. |
 
 ### 8.6 Observed Public Mapping Examples
 
@@ -789,7 +794,7 @@ contract and are not universal Axys transaction-code rules.
 | Cash-security buy/sell | Cash security | `dp` / `wd` | Cash-security handling; do not infer external cash flow from the code name. |
 | Return of capital / paydown | Normal / bond | `rc` / `pd` | Issuer/principal event producing portfolio cash in public translation mapping evidence; not client capital flow. |
 | Split / journal / other | Special marker | `;` | Requires firm mapping or manual review. |
-| Reversal / deletion | Original code uppercased | e.g. `BY` | Reverse original economics; flag orphan reversals. |
+| Trade Blotter cancellation control | Original code uppercased in the reviewed staging workflow | e.g. `BY` | Quarantine from posted economics, require source-stage evidence and original linkage, and flag unmatched instructions. |
 
 Ambiguous `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases should
 fall into a "requires review" bucket until firm mapping or supporting
@@ -854,10 +859,11 @@ gate, not a claim that `pa`/`sa` are universal code-only Axys defaults.
 
 | Statement | Axys | APX | Confidence | Notes |
 | --- | --- | --- | --- | --- |
-| Lowercase transaction code may be uppercased to represent cancellation/deletion, e.g. `by` → `BY`. | Observed | Observed | Medium | Third-party workflows. |
+| A tool may uppercase a historical transaction code to create a cancellation Trade Blotter instruction, e.g. `by` → `BY`. | Observed | Observed | Medium | Third-party staging/control workflows. |
 | Cancellation transaction fields must sufficiently match the original transaction or blotter error may occur. | Unknown | Observed | Medium | APX integration evidence. |
 | Cancellation blotters may be created from historical transaction files. | Observed | Observed | Medium | WealthTechs evidence. |
 | Cancellation workflows should be treated as high-risk and backed up/reviewed. | Supported recommendation | Supported recommendation | Medium | Based on source warnings. |
+| An uppercase instruction survives as a posted transaction or appears in ordinary REP, IMEX/APXIX, SQL, REST, or report extracts. | Unknown | Unknown | Unknown | Not established by reviewed evidence. |
 | Uppercase cancellation is universal native behavior across all versions and import methods. | Unknown | Unknown | Unknown | Not supplied. |
 
 ### 8.10 Context-Gated Backlog Transaction Boundaries
@@ -875,8 +881,8 @@ performance-report methodology.
 |---|---|---|
 | `rc` | Return of capital. ByAllAccounts Axys/APX default translation evidence maps return-of-capital activity to `rc`, with `$pty` and `$cash` source/destination context. | Policy-gated. Public evidence confirms the translation mapping and cash destination, but not native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone. |
 | `pd` | Principal paydown / bond-security return-of-capital event. ByAllAccounts translation evidence maps bond-security return-of-capital activity to `pd`, again with portfolio-cash destination context; Morningstar Axys conversion evidence discusses principal paydown rows and zero share quantity. | Fixed-income principal event, not ordinary interest income or client external flow. The packaged demo includes only a narrow context-gated MBS/amortizing-security example with cash receipt, principal/holding evidence, and performance-report treatment. |
-| `ss` | Short sale / sell short. ByAllAccounts APX mapping evidence maps `SELL / SHORT` to lowercase `ss`. | Requires short security type or resulting negative exposure, cash/margin/short-account context, source/destination evidence, and verified amount/quantity sign conventions. Uppercase `SS` may be reversal/delete evidence. |
-| `cs` | Cover short / buy-cover-short. ByAllAccounts APX mapping evidence maps `BUY / COVER SHORT` to lowercase `cs`. | Requires prior or resulting short exposure plus cash/margin/short-account context. Keep lowercase economic cover-short treatment separate from uppercase cancellation/delete patterns. |
+| `ss` | Short sale / sell short. ByAllAccounts APX mapping evidence maps `SELL / SHORT` to lowercase `ss`. | Requires exact lowercase code, short security type or resulting negative exposure, cash/margin/short-account context, source/destination evidence, and verified amount/quantity sign conventions. Uppercase `SS` requires separate source-stage handling. |
+| `cs` | Cover short / buy-cover-short. ByAllAccounts APX mapping evidence maps `BUY / COVER SHORT` to lowercase `cs`. | Requires exact lowercase code, prior or resulting short exposure plus cash/margin/short-account context. Uppercase `CS` requires separate source-stage handling. |
 | `;` | Journal, Other, or locally materialized split marker. Public integration evidence maps split/journal/other concepts to `;`, but newer split-file evidence indicates normal Axys split support is central `split.inf` factor data rather than ordinary account-level transactions. | Marker/comment/corporate-action evidence unless local mapping proves a specific economic role. Prefer split-factor extracts for packaged or audited split scenarios. |
 
 #### 8.10.1 `pd` Principal Paydown Boundary
@@ -1013,9 +1019,10 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 
 | Interpretation Item | Value | Confidence |
 | --- | --- | --- |
-| Cancellation indicator | `BY`, uppercase version of `by` | Medium |
+| Staging/control instruction | `BY`, uppercase version of `by` in the cited Trade Blotter workflow | Medium |
 | Native universality | Unknown | Unknown |
 | Required match fields | Unknown | Unknown for Axys; Medium for APX integration evidence that mismatch can produce blotter error |
+| Availability in posted exports | Unknown | Not established for REP, IMEX/APXIX, SQL, REST, or ordinary reports |
 
 ### 9.3 Reinvestment Pattern
 
@@ -1056,7 +1063,7 @@ patterns, not verified native Axys/APX field rules.
 | Reinvestments may appear as paired transactions. | Supported | Supported | Medium | Axys conversion and APX integration evidence. |
 | Fees may depend on special security type/symbol and description translation. | Supported | Supported | Medium | Terminology differs across sources. |
 | Principal paydowns may produce downstream conversion/reconciliation complications. | Supported | Unknown | Medium | Axys conversion evidence. |
-| Uppercase cancellation codes are observed. | Supported | Supported | Medium | Universality Unknown. |
+| Uppercase cancellation instructions are observed in Trade Blotter staging/control workflows. | Supported | Supported | Medium | Posted-export availability and native universality Unknown. |
 | AIA/APX import may remove pending records, sweeps, intra-account journals, or merge FX/accrued-interest/dividend-interest records. | Not applicable | Supported in integration workflow | Medium | AIA behavior, not confirmed native APX order. |
 | Initial deliver-ins may be generated from positions for accounts with no transactions in AIA/APX workflow. | Unknown | Supported in integration workflow | Medium | Native behavior Unknown. |
 | Statement transactions and posted transactions may be distinguished in APX workflows. | Unknown | Supported | Medium | Workflow evidence. |
@@ -1089,8 +1096,8 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
 | TR-009 Security Translation Failure | Critical | External security cannot be translated. | Medium |
 | TR-010 Unsupported Transaction Type | High | External transaction type has no mapping. | Medium |
 | TR-011 Trade Blotter Exception | Medium | Transaction remains in exception state. | Medium |
-| TR-012 Cancellation Mismatch | High | Cancellation transaction does not sufficiently match original transaction. | Medium |
-| TR-013 Cancellation Control | High | Cancellation blotters require review, backup, and operational controls. | Medium |
+| TR-012 Cancellation Mismatch | High | A proven staging/control cancellation instruction does not sufficiently match its original transaction. | Medium |
+| TR-013 Cancellation Control | High | Cancellation blotters require source-stage identification, segregation from posted economics, review, backup, and operational controls. | Medium |
 
 ### 11.3 Accounting Rules
 
@@ -1124,7 +1131,7 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
 | TR-034 Stale Account / Stale Price Detection | Medium | Import should identify stale accounts and stale prices before export/posting. | Medium |
 | TR-035 External Flow Misclassified | High | Candidate external-flow transaction is classified using code alone without security, source/destination, sign, and firm mapping context. | High |
 | TR-036 Fee / Expense as Flow | High | Fee, expense, tax, cash-security movement, or sweep is treated as a client contribution or withdrawal. | Medium |
-| TR-037 Orphan Reversal | High | Uppercase reversal/cancel code cannot be linked to its original transaction. | Medium |
+| TR-037 Orphan Cancellation Control | High | A source-stage-verified cancellation instruction cannot be linked to its original transaction. | Medium |
 
 ------------------------------------------------------------------------
 
@@ -1160,7 +1167,7 @@ specific references. Confidence varies by source type.
 | SRC-009 | Wealth Management Reports / Advent report sample | Vendor/report sample | APX / SSRS | Transaction Summary Report purpose and sample columns. | Medium |
 | SRC-010 | AdventGuru --- APX to Axys Conversion | Consultant article | Axys/APX | APX-exported CLI files mapped into Axys `topost.trn`; transaction mappings and tax lots. | Medium |
 | SRC-011 | [CSSI missing-cost guidance](https://cssisolutions.com/downloads/how-to-identify-missing-cost-information) | Operational report guidance | Axys | Deliver-in codes, observed report fields, and market-value fallback when original cost is absent. | High for cited workflow |
-| SRC-012 | [WealthTechs APX guide](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | Third-party integration manual | APX | Ordered transformation pipeline, uppercase cancellation, blotters, current/historical holdings. | High for cited workflow |
+| SRC-012 | [WealthTechs APX guide](https://wealthtechs.com/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf) | Third-party integration manual | APX | Ordered transformation pipeline, cancellation Trade Blotter creation, identifier/rule-evaluator case distinction, and current/historical holdings. | High for cited workflow |
 | SRC-013 | [ByAllAccounts APX release notes](https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_releasenotes.pdf) | Third-party integration release notes | APX | Version-specific Mark-to-Market requiredness. | High for cited integration |
 
 ------------------------------------------------------------------------

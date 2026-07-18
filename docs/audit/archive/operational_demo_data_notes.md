@@ -2,9 +2,10 @@
 
 These notes document how the Axys/APX and performance-comparison demo data was
 derived from the packaged Mega-Cap Alpha Portfolio. They are retained as
-historical/process notes. The active forward-looking roadmap is
-the [PPAR Audit Product Constitution and Roadmap](../product_constitution.md),
-with current implementation scope in the
+historical/process notes. Current product authority belongs to the
+[PPAR Audit Product Constitution](../product_constitution.md), forward-looking
+direction belongs to the [Audit Roadmap](../roadmap.md), and implementation
+scope is in the
 [Audit MVP Completion Plan](../mvp_plan.md).
 
 ## Objective

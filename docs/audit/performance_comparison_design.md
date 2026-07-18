@@ -15,7 +15,8 @@ This document is the deep design/reference note. Active Audit implementation is
 tracked in the
 [`PPAR Audit MVP Completion Plan`](mvp_plan.md), and
 broader Audit direction is governed by the
-[`PPAR Audit Product Constitution and Roadmap`](product_constitution.md).
+[`PPAR Audit Product Constitution`](product_constitution.md) and
+[`PPAR Audit Roadmap`](roadmap.md).
 The maintainer-facing safety guarantees and their audited enforcement baseline
 are defined in
 [`Audit Safety Invariants`](safety_invariants.md).
@@ -1860,5 +1861,6 @@ reconstruction checks, and workbook model as the baseline. Current Audit work
 belongs in the
 [`PPAR Audit MVP Completion Plan`](mvp_plan.md), and
 product direction belongs in the
-[`PPAR Audit Product Constitution and Roadmap`](product_constitution.md),
+[`PPAR Audit Product Constitution`](product_constitution.md) and
+[`PPAR Audit Roadmap`](roadmap.md),
 not here as a competing roadmap.

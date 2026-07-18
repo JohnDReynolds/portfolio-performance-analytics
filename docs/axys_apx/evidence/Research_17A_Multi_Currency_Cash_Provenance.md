@@ -47,7 +47,7 @@ superseded synthesis.
 | MCP-C008 | Security trading currency can narrow likely funding currency, but cannot by itself prove the cash security, FX conversion path, or settlement account. | High caution; MCP-S04 | Cross-currency purchases require separate FX and cash evidence. |
 | MCP-C009 | If multiple cash buckets, sweeps, journals, margin/short balances, or contradictory movements remain, the exact source must stay weakly inferred or Unknown. | High as safety boundary | False precision is worse than an explicit evidence gap. |
 | MCP-C010 | A purchase is investment trade activity, not an external contribution merely because cash decreases. | High conceptually; MCP-S01 | External-flow classification remains separate from funding provenance. |
-| MCP-C011 | Uppercase `BY` can be cancellation/delete evidence in observed integrations and must be resolved before funding inference. | Medium-High for workflow; MCP-S01 | Uppercase universality remains Unknown. |
+| MCP-C011 | Uppercase `BY` is observed as a cancellation Trade Blotter instruction in a staging/control workflow and must be resolved before funding inference. | Medium-High for workflow; MCP-S01 | Require source-stage evidence; posted-export availability and native universality remain Unknown. |
 | MCP-C012 | Cash provenance may be strongest in translation or blotter data and weaker after posting or in summarized reports. | Medium as lifecycle inference | Preserve the earliest reliable source row and lineage. |
 
 ## Evidence Ladder

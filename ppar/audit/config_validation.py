@@ -11,10 +11,14 @@ import sys
 from ppar.errors import PpaError
 from ppar.audit import schema as _pc_cols
 from ppar.audit.performance_comparison.compare import PerformanceComparison
-from ppar.audit.data_issues.config import data_issues_config_summary
+from ppar.audit.data_issues.config import (
+    data_issues_config_summary,
+    security_reference_filter_fields,
+)
 from ppar.audit.extract_contract import extract_contract_summary
 from ppar.audit.performance_comparison.findings import findings_to_polars
 from ppar.audit.runner import validate_yaml_setup_complete
+from ppar.audit.security_reference import SecurityReferenceLoader
 from ppar.audit.specification import AuditSpecification
 from ppar.audit.source_data_contract import (
     comparison_required_dataset_names,
@@ -136,6 +140,7 @@ def _validate_config(
     if require_complete_yaml_setup:
         validate_yaml_setup_complete(findings)
     transaction_preview = _validate_transactions(specification)
+    _validate_security_reference(specification)
     contract_summary = extract_contract_summary(
         specification.values,
         specification_path=specification.path,
@@ -149,6 +154,9 @@ def _validate_config(
         ),
         include_security_performance=(
             specification.security_return_reconstruction is not None
+        ),
+        include_security_reference=bool(
+            security_reference_filter_fields(specification.values)
         ),
     )
     data_issues_summary = data_issues_config_summary(specification.values)
@@ -225,6 +233,36 @@ def _validate_transactions(
         ),
         "summary": summary,
     }
+
+
+def _validate_security_reference(specification: AuditSpecification) -> None:
+    """Validate fields required by configured reference qualifiers."""
+    required_columns = security_reference_filter_fields(specification.values)
+    if not required_columns:
+        return
+
+    loader = SecurityReferenceLoader(specification)
+    for snapshot_key in ("a", "b"):
+        frame = loader.load(snapshot_key)
+        if frame is None:
+            raise PpaError(
+                (
+                    "Data Issues security_reference.* filters require "
+                    f"files.security_reference in snapshot {snapshot_key}.  |  "
+                    f"audit_specification_path={specification.path}"
+                ),
+                504,
+            )
+        missing_columns = sorted(required_columns - set(frame.columns))
+        if missing_columns:
+            raise PpaError(
+                (
+                    f"security_reference for snapshot {snapshot_key} is missing "
+                    f"filter columns: {', '.join(missing_columns)}.  |  "
+                    f"audit_specification_path={specification.path}"
+                ),
+                504,
+            )
 
 
 def _missing_optional_files(

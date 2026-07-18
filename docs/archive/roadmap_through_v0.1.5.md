@@ -3,8 +3,10 @@
 > **Archived implementation journal.** This is the former cumulative PPAR
 > roadmap through the local v0.1.5 release boundary. It is preserved for
 > historical rationale and traceability, is no longer maintained, and must not
-> be interpreted as the current product roadmap. Use
-> [`../roadmap.md`](../roadmap.md) for current document ownership and priorities.
+> be interpreted as a current product roadmap. Use the
+> [documentation index](../README.md) for current ownership and the
+> [Audit](../audit/roadmap.md) or [Analytics](../analytics/roadmap.md) roadmap
+> for product direction.
 
 This is the central roadmap for PPAR. It covers Axys/APX-focused analytics,
 performance auditing, onboarding, user-facing documentation, report evolution,

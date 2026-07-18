@@ -3,8 +3,9 @@
 These are historical checkpoint notes from earlier implementation sessions.
 They are useful for continuity, but they are not the active roadmap. Current
 future work belongs in
-the [PPAR Audit Product Constitution and Roadmap](../product_constitution.md),
-with current implementation scope in the
+the [Audit Roadmap](../roadmap.md), within the boundaries of the
+[PPAR Audit Product Constitution](../product_constitution.md), with current
+implementation scope in the
 [Audit MVP Completion Plan](../mvp_plan.md).
 
 ## Historical Checkpoint State

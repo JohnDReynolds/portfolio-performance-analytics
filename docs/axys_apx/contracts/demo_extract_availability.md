@@ -24,6 +24,7 @@ The two packaged snapshots currently use the same file layouts:
 - `portperf.csv`
 - `secperf.csv`
 - `transactions.csv`
+- `secref.csv`
 - `fx_rates.csv`
 - `splits.csv`
 
@@ -75,6 +76,7 @@ These labels describe extraction needs. They are separate from PPAR's internal v
 | `portperf.csv` | Required | The portfolio, period, and reported return define the performance difference PPAR must explain. Likely source: REP performance report preferred; a native performance IMEX object is not verified by the current evidence. | `PORTFOLIO_CODE`, `FROM_DATE`, `THRU_DATE`, `PORT_RETURN` | `BASE_CURRENCY` — Required when the portfolio contains holdings or transactions outside its reporting currency. | `BEGIN_MV`, `END_MV`, `FLOW`, `INCOME`, `GAIN_LOSS` |
 | `secperf.csv` | Required only when applicable | Required only when the user wants security-level differences to reach Fully Explained; portfolio-only audit does not need this file. Likely source: REP security-performance or attribution report preferred; a native performance IMEX object is not verified by the current evidence. | `PORTFOLIO_CODE`, `SECURITY_ID`, `FROM_DATE`, `THRU_DATE`, `SEC_RETURN` | None | `BEGIN_MV`, `END_MV`, `BEGIN_WEIGHT`, `INCOME`, `GAIN_LOSS`, `CONTRIBUTION` |
 | `transactions.csv` | Required | Dated, classified amounts are needed to explain changed external flows, income, fees, and security activity. Likely source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context. | `PORT`, `TRANSACTION_DATE`, `SEC`, `TRAN`, `AMOUNT` | `SEC_TYPE` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SRC_DEST_TYPE` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SRC_DEST_SYMBOL` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SPECIAL_SEC_TYPE` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SPECIAL_SEC_SYMBOL` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`CURRENCY` — Required for transaction amounts stated in a currency other than portfolio base currency.<br>`BASE_CURRENCY` — Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.<br>`BASE_AMOUNT` — Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction. | `SETTLE_DATE`, `QTY`, `PRICE`, `COMMISSION` |
+| `secref.csv` | Required only when applicable | Security reference values qualify Data Issues populations without changing performance calculations. Likely source: IMEX security-information export, a security-master report, or another reviewed security-reference extract. | `SECURITY_ID` | `SECURITY_TYPE` — Required when a Data Issues filter references security_reference.security_type.<br>`ASSET_CLASS_CODE` — Required when a Data Issues filter references security_reference.asset_class_code.<br>`ASSET_CLASS_NAME` — Required when a Data Issues filter references security_reference.asset_class_name.<br>`SECTOR_CODE` — Required when a Data Issues filter references security_reference.sector_code.<br>`COUNTRY_CODE` — Required when a Data Issues filter references security_reference.country_code.<br>`CURRENCY_CODE` — Required when a Data Issues filter references security_reference.currency. | None |
 | `fx_rates.csv` | Optional | Optional supporting evidence that can link a rate change to a counted base-currency value. Likely source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled rate source. | `PORT`, `FROM_CURRENCY`, `TO_CURRENCY`, `RATE_DATE`, `FX_RATE`, `LOCAL_EXPOSURE` | `RATE_SOURCE` — Required when pair and date do not uniquely identify one controlled rate series.<br>`RATE_TYPE` — Required when pair and date do not uniquely identify one controlled rate convention. | None |
 | `splits.csv` | Optional | Split factors add review context but do not directly enter the current Modified Dietz explanation formula. Likely source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent factors. | None | None | `SEC`, `SPLIT_DATE`, `SPLIT_FACTOR` |
 
@@ -151,6 +153,19 @@ These labels describe extraction needs. They are separate from PPAR's internal v
 | transactions | `AMOUNT` | Net amount, proceeds, or cash amount. | High | Medium / High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Core transaction amount is likely available, though report labels can vary. |
 | transactions | `BASE_AMOUNT` | Transaction amount translated to portfolio base currency. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 | transactions | `COMMISSION` | Commission. | Medium | Medium | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Supported in CI parameter evidence; report/profile availability should be validated. |
+
+
+### `secref.csv`
+
+| Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
+|---|---|---|---|---|---|---|---|
+| security master | `SECURITY_ID` | Exact-case security identifier used to enrich holdings or transaction rows. | High | High | Chapter_04_Security_Master.md and Research_04_Security_Master.md support security-information exports and security-level report labels, while the formal native key remains unknown. | Confirm the local identifier field, exact-case behavior, uniqueness, and relationship to security type. | Security symbol or identifier is central to reviewed security-information and report workflows. |
+| security master | `SECURITY_TYPE` | Product security-type code used to qualify Data Issues populations. | High | Medium | Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and mixed-case examples in integration workflows. | Confirm the local security-type field, value dictionary, case rules, and version applicability. | Security type is operationally paired with symbol in reviewed integration workflows, but the complete native dictionary is unknown. |
+| security master | `ASSET_CLASS_CODE` | Site security-master asset-class code used to qualify Data Issues populations. | Medium | High | Chapter_04_Security_Master.md, Chapter_11_Classifications.md, and their evidence ledgers support asset-class export labels and classification behavior. | Confirm the local asset-class code field, code dictionary, effective-date behavior, and reclassification policy. | Asset-class labels are supported in export/report workflows, but exact native field names and histories remain site dependent. |
+| security master | `ASSET_CLASS_NAME` | Display name associated with the site asset-class code. | Medium | High | Chapter_11_Classifications.md supports code/name classification concepts while exact source fields remain site specific. | Confirm the local display-name field and whether names are unique and historically effective. | A display label is plausible in classification-rich exports and reports but is not needed when the code alone controls the filter. |
+| security master | `SECTOR_CODE` | Site security-master sector code used to qualify Data Issues populations. | Medium | High | Chapter_04_Security_Master.md and Chapter_11_Classifications.md support sector lookup dependencies and reclassification cautions. | Confirm the local sector field, lookup source, code dictionary, and effective-date behavior. | Sector/grouping data is plausible and report-visible, but local lookup structures and historical treatment require validation. |
+| security master | `COUNTRY_CODE` | Site security-master country code used to qualify Data Issues populations. | Medium | High | Chapter_11_Classifications.md supports country as a classification concept without establishing one universal native field. | Confirm whether the code represents domicile, incorporation, risk country, listing country, or another site definition. | Country classification is plausible in security-master and report workflows, but exact source and definition are site dependent. |
+| security master | `CURRENCY_CODE` | Security-reference currency code used to qualify Data Issues populations. | Medium | High | Chapter_07_Cash.md, Chapter_10_Multi_Currency.md, and Chapter_11_Classifications.md support currency concepts while exact security-master fields remain unverified. | Confirm whether the field means trading, pricing, income, or another security currency and whether it is historically effective. | Security currency is plausible in security-master and report output, but it does not replace row-level or portfolio base-currency evidence. |
 
 
 ### `fx_rates.csv`
@@ -258,6 +273,19 @@ These names are candidate aliases for local discovery. They are not assertions t
 | transactions | `COMMISSION` | Commission, Commissions | Commission | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 
 
+### `secref.csv` Name Candidates
+
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
+|---|---|---|---|---|---|
+| security master | `SECURITY_ID` | SECURITY_ID, SEC, Security, Symbol, Security Symbol | Security, Symbol, Security ID | Inferred Alias | Candidate aliases only; confirm the exact local IMEX profile or REP field. |
+| security master | `SECURITY_TYPE` | SECURITY_TYPE, SEC_TYPE, Security Type, Sec Type Code, Type | Security Type, Sec Type, Type | Inferred Alias | Candidate aliases and labels are workflow evidence, not a complete native field dictionary. |
+| security master | `ASSET_CLASS_CODE` | ASSET_CLASS_CODE, ASSET_CLASS, Asset Class Code, Asset Class | Asset Class Code, Asset Class | Inferred Alias | The normalized demo name is plausible but must be mapped to the local export or report label. |
+| security master | `ASSET_CLASS_NAME` | ASSET_CLASS_NAME, ASSET_CLASS_DESC, Asset Class Name, Asset Class Description | Asset Class, Asset Class Name | Inferred Alias | Candidate labels only; use an explicit local mapping when the source differs. |
+| security master | `SECTOR_CODE` | SECTOR_CODE, Sector Code, Industry Group Code | Sector Code, Sector, Industry Group | Inferred Alias | Candidate labels are site- and report-dependent. |
+| security master | `COUNTRY_CODE` | COUNTRY_CODE, Country Code, Country | Country Code, Country | Inferred Alias | Candidate labels only; confirm both the field and its business definition. |
+| security master | `CURRENCY_CODE` | CURRENCY_CODE, CURRENCY, Currency Code, Currency | Currency Code, Currency | Inferred Alias | Candidate aliases only; confirm the local currency meaning before filtering. |
+
+
 ### `fx_rates.csv` Name Candidates
 
 | Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
@@ -363,6 +391,19 @@ This matrix translates availability confidence into implementation guidance abou
 | transactions | `AMOUNT` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `BASE_AMOUNT` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
 | transactions | `COMMISSION` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+
+
+### `secref.csv` Source Strategy
+
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| security master | `SECURITY_ID` | IMEX then REP cross-check | REP preferred | Preserve exact source case and reconcile the identifier to the holdings and transaction extracts before using reference qualifiers. |
+| security master | `SECURITY_TYPE` | IMEX then REP cross-check | REP preferred | Preserve the exact source value and validate the site-specific code dictionary before filtering. |
+| security master | `ASSET_CLASS_CODE` | IMEX then REP cross-check | REP preferred | Tie the code to the same snapshot as the source rows so later reclassification does not silently change an audit population. |
+| security master | `ASSET_CLASS_NAME` | IMEX or REP | Local discovery required | Prefer stable codes for policy filters and use names primarily for readability. |
+| security master | `SECTOR_CODE` | IMEX then REP cross-check | REP preferred | Validate classification timing before using sector membership to define an audit population. |
+| security master | `COUNTRY_CODE` | IMEX or REP | Local discovery required | Record the site's country definition alongside any policy filter that uses it. |
+| security master | `CURRENCY_CODE` | IMEX then REP cross-check | REP preferred | Use this field only as a qualifier; retain row currency and portfolio base currency as the authoritative monetary basis. |
 
 
 ### `fx_rates.csv` Source Strategy

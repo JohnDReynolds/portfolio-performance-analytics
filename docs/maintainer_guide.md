@@ -11,6 +11,20 @@ Start with the [documentation index](README.md) for document ownership, the
 [architecture map](architecture.md) for package, data-flow, configuration, and
 report boundaries. This guide begins where those orientation documents stop.
 
+Shared maintenance priorities belong here rather than in a separate portfolio
+roadmap:
+
+- keep `ppar setup`, the root README, setup-installed documentation, and both
+  product commands aligned around the same first-run path;
+- keep package contents, public commands, generated artifact names, and release
+  records synchronized with executable contracts and tests;
+- keep inexpensive financial, conservation, lineage, and explanation-
+  reconciliation invariants enabled in production;
+- run the maintained 500x scale check after major cross-cutting, reporting,
+  Audit, safety-net, or performance changes; and
+- validate the complete setup and report workflow on Windows before claiming
+  Windows support.
+
 ## Scripts
 
 The `scripts/` directory contains source-checkout maintenance helpers. Those

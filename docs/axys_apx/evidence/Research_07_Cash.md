@@ -83,7 +83,7 @@ superseded prose, examples, field drafts, and chapter outlines.
 | CSH-C062 | `by`/`sl`, `dv`/`in`/`ai`, `rc`/`pd`, and `ss`/`cs` can all affect cash while remaining investment/performance events rather than external capital flows. | High conceptually; mapping confidence varies | Preserve the economic family before assigning cash-flow treatment. |
 | CSH-C063 | Public mappings place `pd` in `$pty`/`$cash` context when principal-paydown evidence exists. | Medium-High | Cash receipt requires fixed-income/principal evidence; not an investor contribution. |
 | CSH-C064 | Public mapping uses `awus / none` for `ss` but `$pty / $cash` for `cs`. | Medium-High for mapping | Short proceeds may be restricted, collateral, margin, or site-specific; ordinary cash treatment is unsafe. |
-| CSH-C065 | Uppercase codes can be reversal/delete candidates in documented imports. | Medium-High | Detect cancellation before applying cash economics; universality remains Unknown. |
+| CSH-C065 | Reviewed integration tools can create uppercase cancellation Trade Blotter instructions from historical transaction codes. | Medium-High for staging/control | Require explicit source stage and keep the instruction out of posted cash economics; posted-export availability and universality remain Unknown. |
 
 ## Interface and Report Claims
 

@@ -35,6 +35,10 @@ ambiguous_external_flow_codes:
   - wd
 matching_rules:
   preserve_native_case: true
+  current_semantics_rule_case_behavior: case_insensitive_implementation_gap
+  required_semantics_rule_case_capability: exact_case_when_source_contract_requires
+  case_insensitive_matching_requires_versioned_site_contract: true
+  cancellation_requires_explicit_source_stage: true
   source_transaction_id: preferred_when_present_and_trustworthy
   strict_fallback_key:
     - portfolio
@@ -82,7 +86,7 @@ rows:
     rep_confidence: medium
     coverage_status: partial
     fixtures: [packaged_demo, site_variants/short_side_trades]
-    coverage_notes: "Packaged demo covers ss only in a disclosed synthetic TSLA short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown, and uppercase SS may be reversal/delete evidence."
+    coverage_notes: "Packaged demo covers lowercase ss only in a disclosed synthetic TSLA short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown. Uppercase SS is only bounded staging/control cancellation evidence and requires explicit source-stage handling."
   cs:
     observed_meaning: Cover short; ByAllAccounts APX mapping evidence maps BUY / COVER SHORT to cs.
     ppar_categories: [buy, unknown_pending_review]
@@ -93,7 +97,7 @@ rows:
     rep_confidence: medium
     coverage_status: partial
     fixtures: [packaged_demo, site_variants/short_side_trades]
-    coverage_notes: "Packaged demo covers cs only in a disclosed synthetic TSLA cover-short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown, and uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
+    coverage_notes: "Packaged demo covers lowercase cs only in a disclosed synthetic TSLA cover-short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown. Uppercase CS is only bounded staging/control cancellation evidence and requires explicit source-stage handling."
   dv:
     observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
     ppar_categories: [income]
