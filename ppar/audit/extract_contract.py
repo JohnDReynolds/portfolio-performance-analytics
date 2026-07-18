@@ -18,12 +18,15 @@ import yaml
 from ppar.errors import PpaError
 from ppar.audit import aliases
 from ppar.audit import schema as pc_cols
+from ppar.audit.transaction_policy import transaction_boundary_codes
 import ppar.utilities as util
 
 _CONTRACT_RESOURCE: Final[str] = "ppar.setup_templates"
 _CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axys_apx_audit"
 _CONTRACT_FILE_NAME: Final[str] = "demo_extract_availability.yaml"
-_AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = frozenset({"DP", "LI", "LO", "WD"})
+_AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = frozenset(
+    code.upper() for code in transaction_boundary_codes("ambiguous_context_required")
+)
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
 _PATH_KEY: Final[str] = "path"
 _ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY: Final[str] = "enforce_ambiguous_axys_flows"
@@ -212,10 +215,10 @@ def validate_transaction_extract_contract(
             required by the packaged Axys/APX availability contract.
 
     Notes:
-        Axys/APX ``dp``, ``li``, ``lo``, and ``wd`` rows cannot always be classified
-        from transaction code alone. Source/destination and special-security
-        context must be available before YAML transaction rules are allowed to
-        classify those rows.
+        Axys/APX ``dp``, ``li``, ``lo``, ``ti``, and ``wd`` rows cannot always be
+        classified from transaction code alone. Source/destination and
+        special-security context must be available before YAML transaction rules
+        are allowed to classify those rows.
     """
     settings = extract_contract_settings(
         specification_values,
@@ -242,7 +245,7 @@ def validate_transaction_extract_contract(
             f"Axys/APX transaction codes {', '.join(ambiguous_codes)} but is missing "
             f"required transaction semantics/context fields {missing_columns}. "
             "IMEX transaction code alone is not enough to classify external "
-            "flows for dp/li/lo/wd rows. Use an IMEX profile that exposes "
+            "flows for dp/li/lo/ti/wd rows. Use an IMEX profile that exposes "
             "source/destination and special-security context, or use a "
             "REP/report extract, custom report, or local discovery that "
             "supplies reviewed category/sign semantics before running "

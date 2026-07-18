@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from typing import Final
 
-FIXED_INCOME_SAFE_TRANSACTION_CODES: Final[frozenset[str]] = frozenset({"in"})
-FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES: Final[frozenset[str]] = frozenset(
-    {"pa", "sa"}
+from ppar.audit.transaction_policy import transaction_boundary_codes
+
+FIXED_INCOME_SAFE_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("fixed_income_safe")
 )
-FIXED_INCOME_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = frozenset(
-    {"ai", "pd"}
+FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("fixed_income_accrued_interest")
+)
+FIXED_INCOME_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("fixed_income_backlog")
 )
 FIXED_INCOME_FORMULA_INPUTS: Final[tuple[str, ...]] = (
     "ordinary interest transaction amounts",

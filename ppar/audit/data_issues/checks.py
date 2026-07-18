@@ -31,6 +31,7 @@ from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.security_reference import SecurityReferenceLoader
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import AuditSpecification
+from ppar.audit.transaction_policy import transaction_boundary_codes
 from ppar.audit.transactions import TransactionsLoader
 from ppar.audit.data_issues.vocabulary import DATA_ISSUE_REGISTRY, DataIssueType
 
@@ -94,9 +95,13 @@ DATA_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
 _DATA_ISSUES_CONFIG_KEY: Final[str] = DATA_ISSUES_CONFIG_KEY
 _SNAPSHOT_A_LABEL: Final[str] = "Snapshot A"
 _SNAPSHOT_B_LABEL: Final[str] = "Snapshot B"
-_BUY_CODES: Final[frozenset[str]] = frozenset({"by"})
-_DIVIDEND_CODES: Final[frozenset[str]] = frozenset({"dv"})
-_ACCRUAL_CODES: Final[frozenset[str]] = frozenset({"pa", "sa"})
+_BUY_CODES: Final[frozenset[str]] = transaction_boundary_codes("data_issue_buy")
+_DIVIDEND_CODES: Final[frozenset[str]] = transaction_boundary_codes(
+    "data_issue_dividend"
+)
+_ACCRUAL_CODES: Final[frozenset[str]] = transaction_boundary_codes(
+    "data_issue_accrual"
+)
 _DEFAULT_PERCENT_TOLERANCE: Final[float] = 0.0
 _DEFAULT_ABSOLUTE_TOLERANCE: Final[float] = 0.0
 _FILTER_FIELD_ALIASES: Final[dict[str, str]] = {

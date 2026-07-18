@@ -12,7 +12,7 @@ acceptance criteria, and slice status for the active phase.
 | Date | 2026-07-18 |
 | Governing product authority | [`product_constitution.md`](product_constitution.md) |
 | Active implementation plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Founder review of the implemented Slice 3D and Slice 3E Data Issues rules |
+| Next gate | Slice 5A exact-case transaction rule and context-condition capability |
 
 ## Roadmap Doctrine
 
@@ -111,15 +111,12 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## Immediate Priorities
 
-1. Review the implemented Slice 3D `holdings_stale_price` and Slice 3E
-   `large_price_variation` output.
-2. Implement the current-capability Axys/APX scenarios defined by the active MVP
-   plan.
-3. Implement the exact-case, normalized source-contract, and staging-control
-   work required by the active MVP plan.
-4. Re-run report parity, determinism, financial invariants, demo coverage, and
+1. Begin Slice 5A exact-case transaction rule and context-condition capability.
+2. Continue the normalized source-contract and staging-control work required by
+   the active MVP plan.
+3. Re-run report parity, determinism, financial invariants, demo coverage, and
    the 500x release-candidate scale check after the cross-cutting MVP changes.
-5. Only then decide whether the product is ready for validation-partner planning.
+4. Only then decide whether the product is ready for validation-partner planning.
 
 ## Material Open Questions
 

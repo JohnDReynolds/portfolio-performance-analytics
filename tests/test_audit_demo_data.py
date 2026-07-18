@@ -79,6 +79,7 @@ _PACKAGED_AXYS_DIRECTORY = (
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
 _DEMO_EXTRACT_AVAILABILITY_PATH = _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 _PACKAGED_DEMO_TRANSACTION_CODES = {
+    "ai",
     "by",
     "sl",
     "dv",
@@ -93,6 +94,7 @@ _PACKAGED_DEMO_TRANSACTION_CODES = {
     "ss",
     "cs",
     "wd",
+    "ti",
 }
 _TEST_ONLY_TRANSACTION_CODES: set[str] = set()
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
@@ -295,16 +297,17 @@ class TestAuditDemoData(unittest.TestCase):
         for expected_text in [
             "Current transaction coverage by home",
             "Packaged demo rows",
-            "`by`, `sl`, short-side `ss`/`cs`, `dv`, `in`",
+            "ordinary and reinvested `dv`",
+            "contextual margin-interest `ai`",
             "fixed-income accrued-interest `pa`/`sa`",
             "equity/security return-of-capital `rc`",
             "MBS principal-paydown `pd`",
             "external-cash `lo`, and external-cash `wd`",
             "YAML rules reserved for runtime guards",
             "Test-only fixtures",
-            "`dv` + `by` reinvestment guards",
+            "alternate `dp` plus `epus expense` context",
             "Evidence-blocked backlog",
-            "`ai`, uppercase reversal rows",
+            "Code-only `ai`/`ti`, standalone `epus`",
             "ordinary 91282Y2Y1\n  interest uses an `in` transaction row",
             "91282Y5Y1 `pa`/`sa` rows are packaged",
         ]:
@@ -321,12 +324,14 @@ class TestAuditDemoData(unittest.TestCase):
             "MSFT `sl` transaction",
             "inserted `li` row on `CASHUSD`",
             "inserted `lo` row on `CASHUSD`",
-            "JPM `dv` dividend amount",
+            "JPM `dv` gross-dividend amount",
+            "JPM `ti`\n    external-security deliver-in",
             "JPM `rc` return-of-capital",
             "fee-like `dp` transaction",
-            "classified from special-security context",
+            "negative `ai` margin-interest correction",
             "missed/late AAPL `dv` row",
             "real 2026-05-14 payable-date dividend",
+            "matched `dvwash` `by`",
             "91282Y2Y1 `in` interest",
             "36225MBS1 `pd` principal-paydown",
             "paired 91282Y5Y1 `by`/`pa` and",
@@ -631,7 +636,10 @@ class TestAuditDemoData(unittest.TestCase):
                 )
                 observed_codes = set(transactions["TRAN"].astype(str))
 
-                disallowed_backlog_codes = FIXED_INCOME_BACKLOG_TRANSACTION_CODES - {"pd"}
+                disallowed_backlog_codes = FIXED_INCOME_BACKLOG_TRANSACTION_CODES - {
+                    "ai",
+                    "pd",
+                }
                 self.assertTrue(observed_codes.isdisjoint(disallowed_backlog_codes))
                 if snapshot_key == "b":
                     self.assertIn("pa", observed_codes)
@@ -769,6 +777,104 @@ class TestAuditDemoData(unittest.TestCase):
             row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
             "yaml_rule",
         )
+
+    def test_packaged_demo_ai_uses_contextual_margin_rule(self) -> None:
+        """Packaged margin interest stays contextual and performance-impacting."""
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        frame = TransactionsLoader(specification).load("b")
+        assert frame is not None
+
+        row = _transaction_row(
+            frame,
+            portfolio="INCOME",
+            transaction_date="2026-01-22",
+            security="MARGIN_USD",
+            transaction_code="ai",
+        )
+
+        self.assertEqual(row[pc_cols.SECURITY_TYPE], "margin")
+        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_TYPE], "$pth")
+        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_SYMBOL], "margin")
+        self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], "fee_expense")
+        self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
+        self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+        self.assertEqual(row[pc_cols.TRANSACTION_SEMANTICS_SOURCE], "yaml_rule")
+
+    def test_packaged_demo_withholding_is_separate_contextual_expense(self) -> None:
+        """Gross dividend and withholding remain separate net-basis rows."""
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        frame = TransactionsLoader(specification).load("b")
+        assert frame is not None
+
+        dividend = _transaction_row(
+            frame,
+            portfolio="BALANCED",
+            transaction_date="2026-04-06",
+            security="JPM",
+            transaction_code="dv",
+        )
+        withholding = _transaction_row(
+            frame,
+            portfolio="BALANCED",
+            transaction_date="2026-04-06",
+            security="JPM",
+            transaction_code="dp",
+        )
+
+        self.assertGreater(cast(float, dividend[pc_cols.AMOUNT]), 0)
+        self.assertEqual(dividend[pc_cols.TRANSACTION_CATEGORY], "income")
+        self.assertLess(cast(float, withholding[pc_cols.AMOUNT]), 0)
+        self.assertEqual(withholding[pc_cols.SPECIAL_SECURITY_TYPE], "exus")
+        self.assertEqual(withholding[pc_cols.SPECIAL_SECURITY_SYMBOL], "withholding")
+        self.assertEqual(withholding[pc_cols.TRANSACTION_CATEGORY], "fee_expense")
+        self.assertEqual(withholding[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+
+    def test_packaged_demo_reinvestment_pair_is_matched_and_not_external(self) -> None:
+        """The corrected dividend and dvwash purchase form one matched pair."""
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        frame = TransactionsLoader(specification).load("b")
+        assert frame is not None
+
+        pair = frame.filter(
+            (pl.col(pc_cols.PORTFOLIO_ID) == "INCOME")
+            & (pl.col(pc_cols.TRANSACTION_DATE) == pl.date(2026, 5, 14))
+            & (pl.col(pc_cols.SECURITY_ID) == "AAPL")
+            & (pl.col(pc_cols.TRANSACTION_CODE).is_in(["dv", "by"]))
+        ).sort(pc_cols.TRANSACTION_CODE)
+
+        self.assertEqual(pair.height, 2)
+        self.assertAlmostEqual(float(pair[pc_cols.AMOUNT].sum()), 0.0)
+        self.assertEqual(set(pair[pc_cols.SOURCE_DESTINATION_SYMBOL]), {"dvwash"})
+        self.assertEqual(
+            set(pair[pc_cols.TRANSACTION_CATEGORY]),
+            {"buy", "income"},
+        )
+        self.assertNotIn("external_flow", set(pair[pc_cols.TRANSACTION_CATEGORY]))
+
+    def test_packaged_demo_ti_requires_external_security_context(self) -> None:
+        """The packaged ti deliver-in is external only through reviewed context."""
+        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        frame = TransactionsLoader(specification).load("b")
+        assert frame is not None
+
+        row = _transaction_row(
+            frame,
+            portfolio="BALANCED",
+            transaction_date="2026-03-20",
+            security="JPM",
+            transaction_code="ti",
+        )
+
+        self.assertEqual(row[pc_cols.SECURITY_TYPE], "csus")
+        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_TYPE], "$pty")
+        self.assertEqual(
+            row[pc_cols.SOURCE_DESTINATION_SYMBOL],
+            "external_delivery",
+        )
+        self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], "external_flow")
+        self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
+        self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
+        self.assertEqual(row[pc_cols.TRANSACTION_SEMANTICS_SOURCE], "yaml_rule")
 
     def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
         """Performance Difference Causes only contains approved demo fields."""
@@ -955,13 +1061,14 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertEqual(snapshots["snapshot_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["snapshot_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 21)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 25)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_scenarios_by_type"],
             {
-                "by": 2,
+                "ai": 1,
+                "by": 3,
                 "cs": 1,
-                "dp": 1,
+                "dp": 2,
                 "dv": 4,
                 "in": 1,
                 "li": 1,
@@ -972,16 +1079,18 @@ class TestAuditDemoData(unittest.TestCase):
                 "sa": 1,
                 "sl": 2,
                 "ss": 1,
+                "ti": 1,
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 42)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 56)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
-                "by": 6,
+                "ai": 1,
+                "by": 14,
                 "cs": 1,
-                "dp": 1,
+                "dp": 5,
                 "dv": 13,
                 "in": 3,
                 "li": 1,
@@ -992,6 +1101,7 @@ class TestAuditDemoData(unittest.TestCase):
                 "sa": 1,
                 "sl": 4,
                 "ss": 1,
+                "ti": 1,
                 "wd": 1,
             },
         )
@@ -1277,7 +1387,7 @@ class TestAuditDemoData(unittest.TestCase):
         alpha_may = density_by_period[("ALPHA", "2026-05-01", "2026-05-29")]
         self.assertEqual(balanced_may_mark["current_difference_rows"], 1)
         self.assertFalse(balanced_may_mark["needs_intra_month_split"])
-        self.assertEqual(balanced_march_mark["current_difference_rows"], 1)
+        self.assertEqual(balanced_march_mark["current_difference_rows"], 2)
         self.assertFalse(balanced_march_mark["needs_intra_month_split"])
         self.assertEqual(balanced_may_corrections["current_difference_rows"], 2)
         self.assertFalse(balanced_may_corrections["needs_intra_month_split"])
@@ -1289,7 +1399,7 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertFalse(income_february_sell["needs_intra_month_split"])
         self.assertEqual(income_may_mark["current_difference_rows"], 1)
         self.assertFalse(income_may_mark["needs_intra_month_split"])
-        self.assertEqual(income_may_dividend_payable["current_difference_rows"], 1)
+        self.assertEqual(income_may_dividend_payable["current_difference_rows"], 2)
         self.assertFalse(income_may_dividend_payable["needs_intra_month_split"])
         self.assertEqual(income_may_income["current_difference_rows"], 2)
         self.assertFalse(income_may_income["needs_intra_month_split"])
@@ -1403,7 +1513,7 @@ class TestAuditDemoData(unittest.TestCase):
             "review_guidance"
         ]:
             self.assertIn("input to Modified Dietz", guidance)
-        self.assertEqual(set(aapl_march["security_id"]), {"AAPL"})
+        self.assertEqual(set(aapl_march["security_id"]), {"AAPL", "JPM"})
 
     def test_generated_multicurrency_stories_match_calendar(self) -> None:
         """Generated multi-currency causes agree with their calendar securities."""
@@ -1456,10 +1566,10 @@ class TestAuditDemoData(unittest.TestCase):
         income_dividend_payable = matrix_by_period[("INCOME", "2026-05-09", "2026-05-14")]
         self.assertEqual(
             income_dividend_payable["scenario_families"],
-            ["missed_late_dividend"],
+            ["dividend_reinvestment", "missed_late_dividend"],
         )
         self.assertEqual(income_dividend_payable["primary_securities"], ["AAPL"])
-        self.assertEqual(income_dividend_payable["expected_difference_rows"], 1)
+        self.assertEqual(income_dividend_payable["expected_difference_rows"], 2)
         income_late_dividend = matrix_by_period[("INCOME", "2026-05-23", "2026-05-29")]
         self.assertEqual(
             income_late_dividend["scenario_families"],
@@ -1519,7 +1629,7 @@ class TestAuditDemoData(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 42)
+        self.assertEqual(len(adjustments), 56)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1555,6 +1665,38 @@ class TestAuditDemoData(unittest.TestCase):
             security="CASHUSD",
             holding_date="2026-01-30",
             deltas={"QTY": -50.0, "MKT_VAL": -50.0, "COST": -50.0},
+        )
+        self._assert_adjustment(
+            by_scenario[
+                "INCOME_AI_20260122 ai transaction changes cash balance."
+            ],
+            portfolio="INCOME",
+            security="CASHUSD",
+            holding_date="2026-01-30",
+            deltas={"QTY": -10.0, "MKT_VAL": -10.0, "COST": -10.0},
+        )
+        self._assert_adjustment(
+            by_scenario[
+                "BALANCED_TI_20260320 ti transaction changes ending holding."
+            ],
+            portfolio="BALANCED",
+            security="JPM",
+            holding_date="2026-03-31",
+            deltas={"QTY": 1.0, "MKT_VAL": 294.16, "COST": 294.16},
+        )
+        withholding_adjustment = next(
+            adjustment
+            for adjustment in adjustments
+            if adjustment.scenario
+            == "BALANCED_JPM_WHT dp transaction changes cash balance."
+            and adjustment.holding_date == "2026-04-10"
+        )
+        self._assert_adjustment(
+            withholding_adjustment,
+            portfolio="BALANCED",
+            security="CASHUSD",
+            holding_date="2026-04-10",
+            deltas={"QTY": -17.56, "MKT_VAL": -17.56, "COST": -17.56},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0304 pa transaction changes cash balance."],
@@ -1624,6 +1766,7 @@ class TestAuditDemoData(unittest.TestCase):
             holding_date="2026-05-29",
             deltas={"QTY": -220.97, "MKT_VAL": -220.97, "COST": -220.97},
         )
+
         income_bond = base_holdings.loc[
             base_holdings["PORT"].eq("INCOME")
             & base_holdings["SEC"].eq("91282Y5Y1")
@@ -1733,6 +1876,54 @@ class TestAuditDemoData(unittest.TestCase):
             holding_date="2026-02-27",
             deltas={"QTY": -2000.0, "MKT_VAL": -2000.0, "COST": -2000.0},
         )
+
+    def test_demo_transaction_effects_are_loaded_from_yaml_policy(self) -> None:
+        """Demo accounting effects and reconstruction roles are YAML-defined."""
+        rebuild_module = _load_rebuild_module()
+        policy = rebuild_module._demo_transaction_policy()
+
+        holding_effects = policy["holding_effects"]
+        reconstruction_roles = policy["reconstruction_roles"]
+        self.assertEqual(holding_effects["ai"]["effect"], "cash")
+        self.assertEqual(holding_effects["ti"]["effect"], "security_quantity")
+        self.assertIn("pd", reconstruction_roles["security_flow"])
+        self.assertIn("ai", reconstruction_roles["income"])
+
+    def test_demo_transaction_policy_rejects_unknown_effect_keys(self) -> None:
+        """Unknown demo transaction-policy keys fail before accounting runs."""
+        rebuild_module = _load_rebuild_module()
+        original_path = rebuild_module._DEFAULT_TRANSACTION_POLICY_PATH
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            policy_path = Path(temporary_directory) / "policy.yaml"
+            policy_path.write_text(
+                """
+schema_version: 1
+holding_effects:
+  by:
+    effect: security_trade_and_cash
+    unsupported: true
+reconstruction_roles:
+  security_flow: [by]
+  income: [dv]
+  portfolio_external_flow:
+    li:
+      when:
+        source_destination_type: $pty
+""".lstrip(),
+                encoding="utf-8",
+            )
+            setattr(rebuild_module, "_DEFAULT_TRANSACTION_POLICY_PATH", policy_path)
+            rebuild_module._demo_transaction_policy.cache_clear()
+            try:
+                with self.assertRaisesRegex(ValueError, "unsupported keys"):
+                    rebuild_module._demo_transaction_policy()
+            finally:
+                setattr(
+                    rebuild_module,
+                    "_DEFAULT_TRANSACTION_POLICY_PATH",
+                    original_path,
+                )
+                rebuild_module._demo_transaction_policy.cache_clear()
 
     def test_holding_scenario_file_requires_exact_columns(self) -> None:
         """Scenario CSV shape errors fail before any demo files are rebuilt."""

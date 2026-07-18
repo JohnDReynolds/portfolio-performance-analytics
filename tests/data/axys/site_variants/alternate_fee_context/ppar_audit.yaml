@@ -1,0 +1,25 @@
+comparison:
+  name: Axys site variant with alternate contextual fee rule
+
+snapshots:
+  a:
+    label: alternate_fee_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: alternate_fee_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  dp:
+    - when:
+        special_security_type: epus
+        special_security_symbol: expense
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance

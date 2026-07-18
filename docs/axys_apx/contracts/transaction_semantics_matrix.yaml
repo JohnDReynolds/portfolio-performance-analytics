@@ -22,6 +22,7 @@ required_matrix_codes:
   - rc
   - pd
   - li
+  - ti
   - lo
   - dp
   - wd
@@ -31,6 +32,7 @@ required_matrix_codes:
 ambiguous_external_flow_codes:
   - li
   - lo
+  - ti
   - dp
   - wd
 matching_rules:
@@ -129,8 +131,8 @@ rows:
     imex_confidence: medium
     rep_confidence: medium
     coverage_status: partial
-    fixtures: [site_variants/ai_margin_interest]
-    coverage_notes: Test-only site variant covers margin-style negative-interest treatment through explicit YAML rules. Code-only treatment remains unknown, and packaged-demo use still needs local mapping or REP/report evidence.
+    fixtures: [packaged_demo, site_variants/ai_margin_interest]
+    coverage_notes: Packaged demo and test-only site variant cover margin-style negative-interest treatment only through explicit contextual YAML rules. Code-only treatment remains unknown.
   sa:
     observed_meaning: Sale accrued interest or sell-side accrued interest.
     ppar_categories: [income, fee_expense]
@@ -186,6 +188,17 @@ rows:
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
     coverage_notes: Packaged demo covers a contextual external cash contribution; site-variant fixtures cover external-party inflow and internal-transfer cases.
+  ti:
+    observed_meaning: Deliver in in the cited Axys missing-cost report workflow; exact site semantics remain context-dependent.
+    ppar_categories: [external_flow, transfer]
+    cash_flow_signs: [positive, none]
+    performance_flow_signs: [external, neutral]
+    required_evidence: [source_workflow, source_destination_type, source_destination_symbol, security_type, quantity, amount, local_mapping]
+    imex_confidence: low_medium
+    rep_confidence: medium_high_for_cited_workflow
+    coverage_status: partial
+    fixtures: [packaged_demo]
+    coverage_notes: Packaged demo covers one site-scoped external-security deliver-in using explicit external-party and security context. Code-only ti remains unknown; internal-transfer treatment requires separate local evidence.
   lo:
     observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
     ppar_categories: [external_flow, transfer]
@@ -238,9 +251,9 @@ rows:
     required_evidence: [token_role, fee_symbol, local_mapping]
     imex_confidence: low_medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: Backlog pending evidence that epus appears as a standalone transaction code rather than a fee token, label, or special-security context.
+    coverage_status: covered_context_only
+    fixtures: [site_variants/alternate_fee_context]
+    coverage_notes: Site variant covers epus only as special-security context for a dp expense row. Evidence that epus is a universal standalone transaction code remains absent.
   exus:
     observed_meaning: Expense or fee-related token in conversion and special-security evidence.
     ppar_categories: [fee_expense]
@@ -281,5 +294,5 @@ pair_patterns:
   dv_by_reinvestment:
     codes: [dv, by]
     ppar_treatment: performance_pair_avoid_external_flow_double_count
-    coverage_status: partial
-    coverage_notes: Test-only reconstruction fixture proves dv/by rows do not become portfolio external flows and do not double-count security income; full pair matching still needs dividend-wash context, matched dates, security, and offsetting amounts.
+    coverage_status: covered_packaged_demo
+    coverage_notes: Packaged demo uses matched dv/by rows with dividend-wash context, aligned dates and security, offsetting amounts, no portfolio external flow, and one dividend-income amount.

@@ -30,6 +30,7 @@ from ppar.audit.portfolio_performance import (
     SnapshotKey,
 )
 from ppar.audit.specification import AuditSpecification
+from ppar.audit.transaction_policy import default_transaction_rules
 import ppar.utilities as util
 
 __all__ = [
@@ -162,26 +163,6 @@ _CATEGORY_NORMALIZATION: dict[str, str] = {
     "withdrawal": TRANSACTION_CATEGORY_EXTERNAL_FLOW,
 }
 
-_TRANSACTION_CODE_CATEGORIES: dict[str, str] = {
-    "BY": TRANSACTION_CATEGORY_BUY,
-    "BUY": TRANSACTION_CATEGORY_BUY,
-    "SL": TRANSACTION_CATEGORY_SELL,
-    "SELL": TRANSACTION_CATEGORY_SELL,
-    "DV": TRANSACTION_CATEGORY_INCOME,
-    "DIV": TRANSACTION_CATEGORY_INCOME,
-    "IN": TRANSACTION_CATEGORY_INCOME,
-    "INT": TRANSACTION_CATEGORY_INCOME,
-    "INCOME": TRANSACTION_CATEGORY_INCOME,
-    "FEE": TRANSACTION_CATEGORY_FEE_EXPENSE,
-    "EXP": TRANSACTION_CATEGORY_FEE_EXPENSE,
-    "DEP": TRANSACTION_CATEGORY_EXTERNAL_FLOW,
-    "XFER": TRANSACTION_CATEGORY_TRANSFER,
-    "TRANSFER": TRANSACTION_CATEGORY_TRANSFER,
-    "SPLIT": TRANSACTION_CATEGORY_CORPORATE_ACTION,
-    "MERGER": TRANSACTION_CATEGORY_CORPORATE_ACTION,
-    "SPIN": TRANSACTION_CATEGORY_CORPORATE_ACTION,
-}
-
 _CASH_FLOW_SIGN_NORMALIZATION: dict[str, str] = {
     "0": TRANSACTION_CASH_FLOW_SIGN_NONE,
     "cash_in": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
@@ -256,10 +237,8 @@ def transaction_category_from_code(value: object) -> str:
     normalized_value = str(value).strip().upper()
     if not normalized_value:
         return TRANSACTION_CATEGORY_UNKNOWN
-    return _TRANSACTION_CODE_CATEGORIES.get(
-        normalized_value,
-        normalize_transaction_category(normalized_value),
-    )
+    rule = default_transaction_rules().get(normalized_value, {})
+    return normalize_transaction_category(rule.get(pc_cols.TRANSACTION_CATEGORY))
 
 
 def normalize_transaction_cash_flow_sign(value: object) -> str:
@@ -508,7 +487,7 @@ def _with_transaction_rules(
     frame: pl.DataFrame,
     rules: dict[str, tuple[_TransactionRule, ...]],
 ) -> pl.DataFrame:
-    """Return transaction rows with missing semantics filled from YAML rules."""
+    """Return transaction rows with matching YAML semantics applied."""
     if pc_cols.CASH_FLOW_SIGN not in frame.columns:
         frame = frame.with_columns(
             pl.lit(TRANSACTION_CASH_FLOW_SIGN_UNKNOWN).alias(pc_cols.CASH_FLOW_SIGN)
@@ -598,7 +577,7 @@ def _row_with_transaction_rule(
     row: dict[str, object],
     rules: dict[str, tuple[_TransactionRule, ...]],
 ) -> dict[str, object]:
-    """Return one transaction row with YAML rule values filling unknown fields."""
+    """Return one transaction row with matching YAML rule values applied."""
     original_row = dict(row)
     raw_code = row.get(pc_cols.TRANSACTION_CODE)
     if raw_code is None:
@@ -609,29 +588,23 @@ def _row_with_transaction_rule(
 
     updated_row = dict(row)
     yaml_filled = False
-    if updated_row.get(pc_cols.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_UNKNOWN:
-        category = rule.values[pc_cols.TRANSACTION_CATEGORY]
+    category = rule.values[pc_cols.TRANSACTION_CATEGORY]
+    if category != TRANSACTION_CATEGORY_UNKNOWN:
         updated_row[pc_cols.TRANSACTION_CATEGORY] = category
-        yaml_filled = category != TRANSACTION_CATEGORY_UNKNOWN
-    if updated_row.get(pc_cols.CASH_FLOW_SIGN) == TRANSACTION_CASH_FLOW_SIGN_UNKNOWN:
-        cash_flow_sign = rule.values[pc_cols.CASH_FLOW_SIGN]
+        yaml_filled = True
+    cash_flow_sign = rule.values[pc_cols.CASH_FLOW_SIGN]
+    if cash_flow_sign != TRANSACTION_CASH_FLOW_SIGN_UNKNOWN:
         updated_row[pc_cols.CASH_FLOW_SIGN] = cash_flow_sign
-        yaml_filled = yaml_filled or (
-            cash_flow_sign != TRANSACTION_CASH_FLOW_SIGN_UNKNOWN
-        )
-    if (
-        updated_row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
-        == TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
-    ):
-        performance_flow_sign = rule.values[pc_cols.PERFORMANCE_FLOW_SIGN]
+        yaml_filled = True
+    performance_flow_sign = rule.values[pc_cols.PERFORMANCE_FLOW_SIGN]
+    if performance_flow_sign != TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN:
         updated_row[pc_cols.PERFORMANCE_FLOW_SIGN] = performance_flow_sign
-        yaml_filled = yaml_filled or (
-            performance_flow_sign != TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
-        )
+        yaml_filled = True
     return _row_with_transaction_semantics_source(
         updated_row,
         yaml_filled,
         original_row,
+        yaml_authoritative=_rule_supplies_complete_semantics(rule),
     )
 
 
@@ -639,6 +612,8 @@ def _row_with_transaction_semantics_source(
     row: dict[str, object],
     yaml_filled: bool,
     original_row: Mapping[str, object],
+    *,
+    yaml_authoritative: bool = False,
 ) -> dict[str, object]:
     """Return one row tagged with transaction semantics provenance."""
     # The provenance label is intentionally conservative: a row is only usable
@@ -648,13 +623,25 @@ def _row_with_transaction_semantics_source(
         return row
 
     source_supplied = _has_source_transaction_semantics(original_row)
-    if yaml_filled and source_supplied:
+    if yaml_authoritative:
+        row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+    elif yaml_filled and source_supplied:
         row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_MIXED
     elif yaml_filled:
         row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
     else:
         row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_SOURCE
     return row
+
+
+def _rule_supplies_complete_semantics(rule: _TransactionRule) -> bool:
+    """Return whether one YAML rule supplies every modeled semantic field."""
+    return (
+        rule.values[pc_cols.TRANSACTION_CATEGORY] != TRANSACTION_CATEGORY_UNKNOWN
+        and rule.values[pc_cols.CASH_FLOW_SIGN] != TRANSACTION_CASH_FLOW_SIGN_UNKNOWN
+        and rule.values[pc_cols.PERFORMANCE_FLOW_SIGN]
+        != TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
+    )
 
 
 def _has_source_transaction_semantics(row: Mapping[str, object]) -> bool:

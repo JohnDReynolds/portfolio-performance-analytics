@@ -227,15 +227,15 @@ Data used:
   a May 2026 5-for-1 split.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
-- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `pa`, `pd`,
-  `sa`, `rc`, `dp`, `li`, `lo`, `wd`, and `;`) to normalized categories such
+- YAML: maps source transaction codes (`by`, `sl`, `dv`, `ai`, `in`, `pa`, `pd`,
+  `sa`, `rc`, `dp`, `li`, `ti`, `lo`, `wd`, and `;`) to normalized categories such
   as `buy`, `sell`, `income`, `fee_expense`, `external_flow`, and
   `corporate_action`.
   Reviewer-facing explanations preserve the source code rather than uppercasing
   or replacing it with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
-  `by`, `sl`, `ss`, `cs`, `dv`, `in`, `pa`, `pd`, `sa`, `rc`, `dp`, `li`, `lo`, and
-  `wd`. The
+  `by`, `sl`, `ss`, `cs`, `dv`, `ai`, `in`, `pa`, `pd`, `sa`, `rc`, `dp`, `li`,
+  `ti`, `lo`, and `wd`. The
   packaged `pa` and `sa` rows appear only as fixed-income accrued-interest
   adjuncts paired with 91282Y5Y1 buy/sell rows. The packaged `rc` row appears only
   as an equity/security return-of-capital row with explicit return-of-capital
@@ -255,11 +255,11 @@ Data used:
 
   | Home | Transaction families |
   | --- | --- |
-  | Packaged demo rows | `by`, `sl`, short-side `ss`/`cs`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, equity/security return-of-capital `rc`, MBS principal-paydown `pd`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
+  | Packaged demo rows | `by`, `sl`, short-side `ss`/`cs`, ordinary and reinvested `dv`, contextual margin-interest `ai`, `in`, fixed-income accrued-interest `pa`/`sa`, equity/security return-of-capital `rc`, MBS principal-paydown `pd`, fee/withholding-like `dp`, external-security `ti`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
   | Packaged split-factor rows | CVNA `splits.csv` row in Snapshot B, used as context evidence for central split processing. |
   | YAML rules reserved for runtime guards | `;` locally materialized corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
-  | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, `pa`/`sa` local-override examples, and `dv` + `by` reinvestment guards. |
-  | Evidence-blocked backlog | `ai`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
+  | Test-only fixtures | Internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, the alternate `dp` plus `epus expense` context, and local-override examples for context-dependent codes. |
+  | Evidence-blocked backlog | Code-only `ai`/`ti`, standalone `epus`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary 91282Y2Y1
   interest uses an `in` transaction row, 36225MBS1 `pd` principal-paydown uses
@@ -270,7 +270,7 @@ Data used:
   alone.
 - Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
   sufficient only when transaction rows include source/destination and
-  special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,
+  special-security context for `dp`, `li`, `lo`, `ti`, and `wd`; otherwise use a REP,
   custom report, or reviewed source that supplies transaction category and
   cash/performance sign semantics.
 - YAML: includes explicit `portfolio_return_reconstruction` settings for
@@ -309,19 +309,25 @@ Expected workbook:
     an external cash deliver-out;
   - a fully explained BALANCED period with a changed MSFT `sl` transaction
     amount and related quantity, price, and commission support rows;
-  - a fully explained BALANCED period with a JPM `dv` dividend amount change;
+  - a fully explained BALANCED period with a JPM `dv` gross-dividend amount
+    change and a separate contextual `dp` withholding-expense change under the
+    demo's after-tax/net-performance assumption;
+  - a fully explained BALANCED period with a context-scoped JPM `ti`
+    external-security deliver-in whose quantity, value, and holding effect
+    agree without making `ti` a code-only rule;
   - a context-gated BALANCED period with a JPM `rc` return-of-capital row;
   - a fully explained BALANCED period with an inserted `li` row on `CASHUSD`
     for an external cash contribution;
   - a fully explained BALANCED period where Snapshot A missed the CVNA
     5-for-1 split quantity adjustment while both snapshots use split-adjusted
     ending prices, so Snapshot B corrects CVNA ending quantity and market value;
-  - a fully explained INCOME period with a larger fee-like `dp` transaction,
-    classified from special-security context, and matching lower `CASHUSD`
-    ending value;
+  - a fully explained INCOME period with a larger fee-like `dp` transaction and
+    a separate context-gated negative `ai` margin-interest correction,
+    classified from their source context with matching lower `CASHUSD` ending
+    value;
   - two isolated INCOME periods showing a missed/late AAPL `dv` row: Snapshot B
-    adds the real 2026-05-14 payable-date dividend and removes Snapshot A's
-    later 2026-05-23 version;
+    adds the real 2026-05-14 payable-date dividend with a matched `dvwash` `by`
+    reinvestment leg and removes Snapshot A's later 2026-05-23 version;
   - a partly explained BALANCED period where the same AAPL price correction and
     standalone MSFT holding market-value correction explain part of the
     reported portfolio and MSFT security return differences, leaving an
@@ -430,19 +436,21 @@ Current public YAML targets are intentionally narrow:
 
 - `extract_contract`: selects the packaged or site-specific extract contract
   used by runtime guards. The default packaged contract enforces context-field
-  presence before ambiguous Axys/APX `li`, `lo`, `dp`, or `wd` rows can be
+  presence before ambiguous Axys/APX `li`, `lo`, `ti`, `dp`, or `wd` rows can be
   classified by YAML rules. Use
   `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starter
   when a real site needs a local contract.
-- `transaction_rules`: classifies transaction codes for amount attribution.
-  Ambiguous Axys/APX-style `li`, `lo`, `dp`, and `wd` examples require matching
+- `transaction_rules`: authoritatively classifies matching transaction rows for
+  amount attribution. A complete matching rule overrides any recognized
+  category/sign labels carried by the source row; when no rule matches, usable
+  source semantics remain available.
+  Ambiguous Axys/APX-style `li`, `lo`, `ti`, `dp`, and `wd` examples require matching
   transaction-context fields before they are treated as external flows or
   fee/expense rows. Fixed-income `pa`/`sa` accrued-interest adjuncts require
   fixed-income context and paired-trade support in the packaged demo. The
   packaged `pd` row requires amortizing MBS context, principal-paydown context,
-  and portfolio-cash destination evidence. Remaining fixed-income backlog codes
-  such as `ai` require test-only fixture proof plus local mapping or REP/report
-  evidence before they should become user-facing demo transactions.
+  and portfolio-cash destination evidence. Code-only `ai` remains unknown even
+  though the packaged demo now has one context-gated margin-interest example.
 - `splits`: optional security-level split-factor evidence. The packaged CVNA
   row is intentionally not a transaction. It supports the review story that
   Snapshot B has central split-factor evidence and corrected holdings quantity,
@@ -454,3 +462,8 @@ Current public YAML targets are intentionally narrow:
   cross-checks for external-flow transactions.
 - suppression rules: remove known, intentionally ignored differences from the
   active review while retaining them in the source detail.
+
+The `Performance Difference Causes` worksheet retains its established columns.
+Every transaction-associated row starts `Explanation` with its native source
+transaction code and a colon, including the context-gated `ai` and `ti`
+scenarios.

@@ -29,6 +29,8 @@ Apply these conventions when modifying or creating code in this project.
   investigate the implementation first.
 - Obtain the user's explicit approval before intentionally changing an established
   gate or threshold. State the current value, proposed value, evidence, and tradeoff.
+- Never relax a tolerance specified in a test plan without first obtaining the
+  user's explicit approval.
 - Keep the 500x scale check in the core release-candidate workflow. Run it after major
   cross-cutting, reporting, audit, safety-net, or performance changes even when the
   complete release-candidate sequence is not otherwise required.
@@ -51,6 +53,10 @@ Apply these conventions when modifying or creating code in this project.
 - Use idiomatic Python conventions at public boundaries.
 - Normalize compatibility sentinels and legacy conventions at public boundaries.
 - Preserve public behavior unless an API change is explicitly requested.
+
+## Output Schema Stability
+
+- Never add new columns to output files.
 
 ## Comments And Financial Logic
 

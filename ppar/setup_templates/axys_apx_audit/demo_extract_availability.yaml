@@ -721,11 +721,11 @@ datasets:
       likely_source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context.
       required: [PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT]
       required_only_when_applicable:
-        SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
-        SRC_DEST_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
-        SRC_DEST_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
-        SPECIAL_SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
-        SPECIAL_SEC_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
+        SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        SRC_DEST_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        SRC_DEST_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        SPECIAL_SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        SPECIAL_SEC_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
         CURRENCY: Required for transaction amounts stated in a currency other than portfolio base currency.
         BASE_CURRENCY: Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.
         BASE_AMOUNT: Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction.

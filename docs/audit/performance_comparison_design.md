@@ -386,8 +386,10 @@ guessing them would make `transaction_activity` look more precise than it is.
 - `neutral`: No performance-flow effect.
 - `unknown`: Source value is blank, missing, or not recognized.
 
-When a source does not provide usable sign semantics, comparison YAML may define
-explicit transaction rules keyed by source transaction code:
+Comparison YAML may define explicit transaction rules keyed by source
+transaction code. A matching complete rule is the site-reviewed authority for
+the normalized category and both sign fields, even when the extract also
+contains recognized semantic labels:
 
 ```yaml
 transaction_rules:
@@ -592,18 +594,22 @@ The staged activation path for external-flow estimates is:
 5. Add any aggregate treatment only after linkage to portfolio-level flow
    deltas is explicitly modeled and tested.
 
-Source-supplied recognized category/sign semantics remain authoritative. YAML
-rules fill only missing or `unknown` category, `cash_flow_sign`, and
-`performance_flow_sign` values.
+When no YAML rule matches, recognized source category/sign semantics remain
+usable. A partial matching YAML rule overrides the fields it defines and leaves
+the other recognized source fields in place. Packaged code aliases provide only
+the longstanding compatibility category fallback; their membership is loaded
+from packaged YAML rather than defined in Python.
 
 Loaded transaction rows also carry `transaction_semantics_source` so reviewers
 can audit how the normalized category/sign/flow treatment was obtained:
 
-- `source`: Usable sign/flow semantics came from recognized source fields, with
-  any category supplied by source-data or transaction-code inference.
-- `yaml_rule`: Usable sign/flow semantics came entirely from `transaction_rules`.
-- `mixed`: Some recognized semantics came from the source, while YAML rules
-  filled other missing or `unknown` fields.
+- `source`: No matching YAML rule supplied semantics; usable sign/flow semantics
+  came from recognized source fields, with any category supplied by source-data
+  or the packaged compatibility fallback.
+- `yaml_rule`: A complete matching `transaction_rules` entry supplied the
+  normalized category and both sign fields.
+- `mixed`: A partial matching YAML rule supplied one or more fields while other
+  recognized semantic fields remained source-supplied.
 - `unknown`: The row still lacks usable sign/flow semantics.
 
 Transaction Activity and Impact Coverage summaries expose
@@ -1689,15 +1695,18 @@ with backing tables inside an Evidence Appendix.
 The XLSX workbook is the primary reviewer presentation over the same review
 tables used by the HTML/CSV bundle artifacts. Lower-level bundle calls generate
 it when requested with `include_workbook=True` or `--include-workbook`; the
-packaged demo writes it by default. The workbook starts with the `Performance
-Differences` sheet. In the portfolio demo, it has one row per changed portfolio
+packaged demo writes it by default. The workbook starts with `Executive
+Summary`, followed by `Performance Differences`. In the portfolio demo,
+Performance Differences has one row per changed portfolio
 period, showing the decimal return difference, explained difference, and any
 unexplained remainder. In the security demo, it shows security-level return
 differences when security-performance rows changed, and it adds explicit
 no-difference rows for changed portfolio periods with no security-level return
 difference. The
 `Performance Difference Causes` sheet lists input rows such as holdings,
-transactions, and FX rates; its `B - A Difference` values are raw input-value
+transactions, and FX rates. Every transaction-associated row starts its
+`Explanation` with the native transaction code and a colon. Its `B - A
+Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
 now requires every changed source-data field that ppar knows how to classify to

@@ -1602,7 +1602,7 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(finding[TRANSACTION_CATEGORY], "buy")
             self.assertEqual(finding[CASH_FLOW_SIGN], "negative")
             self.assertEqual(finding[PERFORMANCE_FLOW_SIGN], "performance")
-            self.assertEqual(finding[TRANSACTION_SEMANTICS_SOURCE], "mixed")
+            self.assertEqual(finding[TRANSACTION_SEMANTICS_SOURCE], "yaml_rule")
 
     def test_transaction_commission_changes_are_context_by_default(self) -> None:
         """Commission changes remain context without explicit YAML treatment."""

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from typing import Final
 
-CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = frozenset(
-    {"pd", "rc"}
+from ppar.audit.transaction_policy import transaction_boundary_codes
+
+CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("capital_return_backlog")
 )
-SHORT_SIDE_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = frozenset({"cs", "ss"})
+SHORT_SIDE_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("short_side_backlog")
+)
 CAPITAL_RETURN_POSSIBLE_ROLES: Final[tuple[str, ...]] = (
     "performance income",
     "corporate-action evidence",

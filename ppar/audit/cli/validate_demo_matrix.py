@@ -671,13 +671,13 @@ def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
     except PpaError as error:
         message = str(error)
         if (
-            "ambiguous Axys/APX transaction codes DP, LI, LO, WD" in message
+            "ambiguous Axys/APX transaction codes DP, LI, LO, TI, WD" in message
             and "IMEX transaction code alone is not enough" in message
         ):
             return _ScenarioCheck(
                 "Code-only failure guard",
                 True,
-                "code-only li/lo/dp/wd rows fail before broad YAML classification",
+                "code-only li/lo/dp/ti/wd rows fail before broad YAML classification",
             )
         return _ScenarioCheck(
             "Code-only failure guard",

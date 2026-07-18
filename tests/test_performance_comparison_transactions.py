@@ -341,6 +341,7 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(transaction_category_from_code("lo"), "unknown")
         self.assertEqual(transaction_category_from_code("dp"), "unknown")
         self.assertEqual(transaction_category_from_code("ai"), "unknown")
+        self.assertEqual(transaction_category_from_code("ti"), "unknown")
         self.assertEqual(transaction_category_from_code("pa"), "unknown")
         self.assertEqual(transaction_category_from_code("sa"), "unknown")
         self.assertEqual(transaction_category_from_code("pd"), "unknown")
@@ -574,8 +575,8 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertIn("unknown transaction codes or categories", message)
             self.assertIn("transaction_code=MYSTERY", message)
 
-    def test_yaml_transaction_rules_fill_missing_semantics(self) -> None:
-        """YAML transaction rules fill category and sign semantics by code."""
+    def test_yaml_transaction_rules_define_semantics(self) -> None:
+        """YAML transaction rules define category and sign semantics by code."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -614,12 +615,12 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
             self.assertEqual(
                 row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
-                TRANSACTION_SEMANTICS_SOURCE_MIXED,
+                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
             self.assertTrue(transaction_impact_semantics_available(row))
 
-    def test_yaml_transaction_rules_do_not_override_source_semantics(self) -> None:
-        """Recognized source semantics remain authoritative over YAML rules."""
+    def test_yaml_transaction_rules_override_source_semantics(self) -> None:
+        """Matching YAML semantics are authoritative over source labels."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -652,12 +653,15 @@ class TestTransactionsLoader(unittest.TestCase):
             assert frame is not None
             row = frame.row(0, named=True)
 
-            self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
-            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
-            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_CATEGORY],
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+            )
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
+            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
             self.assertEqual(
                 row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
-                TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
 
     def test_yaml_transaction_rules_mark_rule_only_semantics(self) -> None:
@@ -697,8 +701,8 @@ class TestTransactionsLoader(unittest.TestCase):
                 TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
 
-    def test_yaml_transaction_rules_mark_mixed_semantics(self) -> None:
-        """YAML-filled fields are tagged mixed when source fields are retained."""
+    def test_complete_yaml_transaction_rule_is_authoritative(self) -> None:
+        """A complete matching YAML rule is the sole semantic authority."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -732,6 +736,44 @@ class TestTransactionsLoader(unittest.TestCase):
 
             self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
             self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
+            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+            )
+
+    def test_partial_yaml_transaction_rule_overrides_only_defined_fields(self) -> None:
+        """A partial matching YAML rule combines with remaining source fields."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "BUY": {"cash_flow_sign": "positive"}
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["BUY"],
+                        "CASH_FLOW_SIGN": ["negative"],
+                        "PERFORMANCE_FLOW_SIGN": ["performance"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = AuditSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
             self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
             self.assertEqual(
                 row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
@@ -1059,6 +1101,45 @@ class TestTransactionsLoader(unittest.TestCase):
                         TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
                     ),
                 },
+            ],
+        )
+
+    def test_site_variant_epus_fee_context_uses_explicit_dp_rule(self) -> None:
+        """The observed ``epus expense`` tokens remain contextual to ``dp``."""
+        specification = AuditSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "alternate_fee_context"
+            / "ppar_audit.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(transaction_category_from_code("epus"), "unknown")
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.SPECIAL_SECURITY_TYPE,
+                pc_cols.SPECIAL_SECURITY_SYMBOL,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "dp",
+                    pc_cols.SPECIAL_SECURITY_TYPE: "epus",
+                    pc_cols.SPECIAL_SECURITY_SYMBOL: "expense",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                }
             ],
         )
 
@@ -1433,7 +1514,7 @@ class TestTransactionsLoader(unittest.TestCase):
             TransactionsLoader(specification).load("a")
 
         message = str(context.exception)
-        self.assertIn("ambiguous Axys/APX transaction codes DP, LI, LO, WD", message)
+        self.assertIn("ambiguous Axys/APX transaction codes DP, LI, LO, TI, WD", message)
         self.assertIn("IMEX transaction code alone is not enough", message)
         self.assertIn("REP/report extract", message)
 
@@ -1708,8 +1789,8 @@ class TestTransactionsLoader(unittest.TestCase):
                 TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
 
-    def test_context_rule_fills_only_missing_source_semantics(self) -> None:
-        """Recognized source fields and matching context rules combine as mixed."""
+    def test_context_rule_is_authoritative_over_source_semantics(self) -> None:
+        """A complete matching context rule is the semantic authority."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             _write_extract_contract(directory, ["SRC_DEST_TYPE"])
@@ -1760,7 +1841,7 @@ class TestTransactionsLoader(unittest.TestCase):
             )
             self.assertEqual(
                 row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
-                TRANSACTION_SEMANTICS_SOURCE_MIXED,
+                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
 
     def test_validate_config_rejects_extract_contract_without_transactions(self) -> None:

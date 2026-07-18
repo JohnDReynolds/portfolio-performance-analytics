@@ -299,13 +299,20 @@ transaction rows, cash movement, quantity-driven holding value/accrual rows,
 rebuild path keeps these rows outside portfolio external-flow weighting, and
 the YAML rules require fixed-income context before classifying them.
 
-The packaged demo still does not use `ai` rows, and it does not treat `pd` as a
-safe code-only default. Those codes need more than the Axys/APX short code
+The packaged demo uses `ai` only for one negative margin-interest row with
+explicit margin security and source context, and it does not treat `ai` or `pd`
+as safe code-only defaults. Those codes need more than the Axys/APX short code
 before ppar can classify them: margin or bond/principal context, cash movement,
-amount sign, and local mapping or REP/report evidence. Test-only candidate
-override profiles cover explicit Modified Dietz treatments for `ai`, `pa`,
-`sa`, and `pd`; the packaged demo promotes only context-gated `pa`/`sa` accrued
-interest and MBS `pd` principal paydown stories.
+amount sign, and local mapping or REP/report evidence. Candidate override
+profiles remain available for onboarding, while the packaged examples stay
+narrowly context-gated.
+
+The packaged demo also includes one matched `dv`/`by` reinvestment with
+`dvwash`, one gross dividend plus separate contextual withholding expense, and
+one site-scoped `ti` external-security deliver-in. The first two are net-basis
+performance examples. The `ti` example requires external-party, security-type,
+quantity, and value context; code-only `ti` remains unknown, and no original-
+cost completeness claim is made before Slice 5.
 
 The default runtime guard uses
 `ppar/setup_templates/axys_apx_audit/demo_extract_availability.yaml`. A site comparison YAML
@@ -348,7 +355,7 @@ For a real Axys/APX site, start by validating which extract shape is available:
 | Site extract shape | Contract/test expectation |
 | --- | --- |
 | IMEX transaction rows include source/destination and special-security context. | Keep ambiguous-flow enforcement on and classify `li`, `lo`, `dp`, and `wd` only with matching conditional YAML rules that inspect those fields. |
-| REP/report or custom-report rows include reviewed category and sign semantics. | Keep ambiguous-flow enforcement on and mark the reviewed semantic fields as the blocking context in the site contract; source semantics can mark ambiguous codes as external, neutral, or performance-affecting. |
+| REP/report or custom-report rows include reviewed category and sign semantics. | Keep ambiguous-flow enforcement on and mark the reviewed semantic fields as the blocking context in the site contract. Source semantics remain usable when no site YAML rule matches; a complete matching YAML rule is authoritative for normalized category and sign treatment. |
 | IMEX rows expose only transaction code, amount, date, portfolio, and security. | Treat the extract as insufficient for ambiguous external-flow classification; use REP/report/custom-report evidence before running comparison. |
 
 Use this onboarding sequence:

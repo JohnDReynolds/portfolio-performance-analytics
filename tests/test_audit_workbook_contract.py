@@ -175,6 +175,53 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 (),
             )
 
+    def test_fully_explained_rounding_boundary_reconciles_visible_values(self) -> None:
+        """Sub-precision residuals cannot make visible Fully Explained cells differ."""
+        period = {
+            "portfolio_id": "TEST",
+            "from_date": dt.date(2036, 2, 28),
+            "thru_date": dt.date(2036, 3, 31),
+        }
+        primary = pl.DataFrame(
+            [
+                {
+                    **period,
+                    "performance_change": 0.0015805693,
+                    "estimated_cause_total": 0.00158047626573,
+                    "review_status": "Fully Explained",
+                }
+            ]
+        )
+        causes = pl.DataFrame(
+            [{**period, "estimated_impact": 0.00158047626573}]
+        )
+
+        # pylint: disable=protected-access
+        _pc_workbook_tables._assert_portfolio_explanation_invariants(
+            primary,
+            causes,
+            (),
+        )
+        displayed_causes = (
+            _pc_workbook_tables._workbook_reconcile_displayed_explained_values(
+                primary,
+                causes,
+            )
+        )
+        displayed_primary = (
+            _pc_workbook_tables._workbook_reconcile_displayed_primary_values(primary)
+        )
+        _pc_workbook_tables._assert_displayed_portfolio_explanation_reconciliation(
+            displayed_primary,
+            displayed_causes,
+        )
+
+        self.assertEqual(
+            displayed_primary["estimated_cause_total"].item(),
+            0.001581,
+        )
+        self.assertEqual(displayed_causes["estimated_impact"].item(), 0.001581)
+
     def test_portfolio_explanation_invariant_rejects_missing_dietz_component(
         self,
     ) -> None:
@@ -216,6 +263,32 @@ class TestAuditWorkbookContract(unittest.TestCase):
         openpyxl: Any = importlib.import_module("openpyxl")
 
         findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        # Transaction metadata remains internal, but it must still make every
+        # transaction-associated reviewer explanation self-identifying.
+        cause_table = _pc_workbook_tables._workbook_underlying_causes_table(
+            findings,
+            comparison_path=_PORTFOLIO_COMPARISON_PATH,
+        )
+        transaction_rows = cause_table.filter(
+            pl.col("dataset") == "transactions"
+        ).select("transaction_code", "review_guidance")
+        self.assertFalse(transaction_rows.is_empty())
+        self.assertTrue(
+            all(
+                code not in (None, "")
+                for code in transaction_rows["transaction_code"]
+            )
+        )
+        transaction_codes = set(transaction_rows["transaction_code"])
+        self.assertTrue({"ai", "ti"}.issubset(transaction_codes))
+        self.assertTrue(
+            all(
+                str(row["review_guidance"]).startswith(
+                    f"{row['transaction_code']}:"
+                )
+                for row in transaction_rows.iter_rows(named=True)
+            )
+        )
         with tempfile.TemporaryDirectory() as directory:
             paths = write_audit_report_bundle(
                 findings,
@@ -258,6 +331,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
             self.assertNotIn("Browser review surface", html_report)
             self.assertNotIn("Transaction Match Diagnostics", html_report)
             self.assertNotIn("Match Confidence", html_report)
+            self.assertNotIn(">Transaction Code</th>", html_report)
+            self.assertNotIn(">Transaction Category</th>", html_report)
+            self.assertIn(">ai:", html_report)
+            self.assertIn(">ti:", html_report)
             self.assertNotIn("pc-value-explained-cause", html_report)
             self.assertNotIn("pc-value-explained-impact", html_report)
             self.assertIn("pc-fill-explained-cause", html_report)
@@ -294,7 +371,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Performance Difference Causes"])[:13],
+                    _header_values(workbook["Performance Difference Causes"]),
                     [
                         *_IDENTIFIABLE_LEFT_HEADERS,
                         "Snapshot A Value",
@@ -508,6 +585,24 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     "Row Type",
                     _header_values(workbook["Performance Difference Causes"]),
                 )
+                ai_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "MARGIN_USD"
+                    and str(row[3])[:10] == "2026-01-22"
+                )
+                self.assertTrue(str(ai_row[10]).startswith("ai:"))
+                ti_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "BALANCED"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "JPM"
+                    and str(row[3])[:10] == "2026-03-20"
+                )
+                self.assertTrue(str(ti_row[10]).startswith("ti:"))
                 jpm_dividend_row = next(
                     row
                     for row in underlying_rows

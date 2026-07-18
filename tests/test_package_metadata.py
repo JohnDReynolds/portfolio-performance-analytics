@@ -695,7 +695,10 @@ class TestPackageMetadata(unittest.TestCase):
             "`ppar.axys_apx`",
             "`ppar.audit`",
             "`ppar.setup_templates`",
-            "The Performance Comparison sub-feature does not try to rebuild a full accounting ledger.",
+            (
+                "The Performance Comparison sub-feature does not try to rebuild "
+                "a full accounting ledger."
+            ),
             "Setup Data Versus Maintainer Data",
             "The YAML files are the main configuration and onboarding surface.",
             "`Performance Differences`",
@@ -932,6 +935,15 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(profile_name, checklist)
                 self.assertIn(profile_name, fixture_readme)
 
+        epus = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["epus"]
+        self.assertEqual(epus["coverage_status"], "covered_context_only")
+        self.assertEqual(
+            _yaml_string_list(epus["fixtures"], label="rows.epus.fixtures"),
+            ["site_variants/alternate_fee_context"],
+        )
+        self.assertIn("alternate_fee_context", checklist)
+        self.assertIn("alternate_fee_context", fixture_readme)
+
     def test_transaction_matrix_has_one_current_human_view(self) -> None:
         """The human matrix is generated from the machine-readable authority."""
         matrix_yaml = _load_yaml(
@@ -1010,8 +1022,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Founder review of the implemented Slice 3D and Slice 3E Data "
-            "Issues rules",
+            "Slice 5A exact-case transaction rule and context-condition capability",
             audit_roadmap,
         )
         self.assertIn(
@@ -1019,7 +1030,7 @@ class TestPackageMetadata(unittest.TestCase):
             plan,
         )
         self.assertIn(
-            "Slice 3 — Additional Data Issues issue types — Active",
+            "Slice 3 — Additional Data Issues issue types — Complete",
             plan,
         )
         self.assertIn("same commit whenever the number or identity", audit_index)
@@ -1150,7 +1161,7 @@ class TestPackageMetadata(unittest.TestCase):
                     label="ambiguous_external_flow_codes",
                 )
             ),
-            {"li", "lo", "dp", "wd"},
+            {"li", "lo", "ti", "dp", "wd"},
         )
 
     def test_transaction_semantics_matrix_rows_have_coverage_rationale(self) -> None:
@@ -1225,6 +1236,7 @@ class TestPackageMetadata(unittest.TestCase):
             registered_groups,
             {
                 "packaged_formula",
+                "contextual_packaged",
                 "fixed_income_safe",
                 "fixed_income_accrued_interest",
                 "ambiguous_context_required",
@@ -1234,6 +1246,10 @@ class TestPackageMetadata(unittest.TestCase):
                 "capital_return_backlog",
                 "short_side_backlog",
                 "standalone_backlog",
+                "data_issue_buy",
+                "data_issue_dividend",
+                "data_issue_accrual",
+                "quantity_holding_neutral",
             },
         )
 
@@ -1310,15 +1326,17 @@ class TestPackageMetadata(unittest.TestCase):
             if "site_variants/review_only_actions" in fixtures:
                 self.assertIn(code, review_only_codes, code)
 
+        ambiguous_codes = set(
+            _yaml_string_list(
+                matrix_yaml["ambiguous_external_flow_codes"],
+                label="ambiguous_external_flow_codes",
+            )
+        )
         self.assertLessEqual(
-            set(
-                _yaml_string_list(
-                    matrix_yaml["ambiguous_external_flow_codes"],
-                    label="ambiguous_external_flow_codes",
-                )
-            ),
+            ambiguous_codes - {"ti"},
             imex_context_codes & rep_semantics_codes & code_only_codes,
         )
+        self.assertIn("ti", packaged_demo_codes)
 
     def test_packaged_demo_transaction_coverage_matches_current_contract(self) -> None:
         """Packaged transaction data agrees with current matrix coverage."""
@@ -1353,7 +1371,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         self.assertLessEqual(packaged_demo_data_codes, packaged_demo_rule_codes)
-        for code in ("li", "lo", "wd", "dp", "pa", "sa"):
+        for code in ("ai", "li", "lo", "ti", "wd", "dp", "pa", "sa"):
             with self.subTest(code=code):
                 self.assertIn(code, packaged_demo_data_codes)
                 fixtures = _yaml_string_list(
@@ -1650,6 +1668,7 @@ class TestPackageMetadata(unittest.TestCase):
             "README.md",
             "axys_apx_column_mappings.yaml",
             "axys_apx_audit.yaml",
+            "transaction_semantics_policy.yaml",
             "snapshot_a/portperf.csv",
             "snapshot_a/secref.csv",
             "snapshot_b/secref.csv",
@@ -1859,10 +1878,16 @@ class TestPackageMetadata(unittest.TestCase):
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("INCOME", "2026-01-20", "CASHUSD", "dp")
+        margin_interest_key = ("INCOME", "2026-01-22", "MARGIN_USD", "ai")
         cash_holding_key = ("INCOME", "CASHUSD", "2026-01-30")
         cash_performance_key = (
             "INCOME",
             "CASHUSD",
+            "2026-01-01",
+            "2026-01-30",
+        )
+        portfolio_performance_key = (
+            "INCOME",
             "2026-01-01",
             "2026-01-30",
         )
@@ -1885,16 +1910,31 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "secperf.csv",
             ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
         )
+        portperf_a = _csv_rows_by_key(
+            snapshot_a / "portperf.csv",
+            ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
+        )
+        portperf_b = _csv_rows_by_key(
+            snapshot_b / "portperf.csv",
+            ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
+        )
 
         amount_delta = _float_delta(
             transactions_a[transaction_key],
             transactions_b[transaction_key],
             "AMOUNT",
         )
+        margin_interest_delta = _float_delta(
+            transactions_a[margin_interest_key],
+            transactions_b[margin_interest_key],
+            "AMOUNT",
+        )
+        combined_expense_delta = amount_delta + margin_interest_delta
         self.assertLess(amount_delta, 0)
+        self.assertLess(margin_interest_delta, 0)
         self.assertAlmostEqual(
             _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),
-            amount_delta,
+            combined_expense_delta,
             places=2,
         )
         self.assertAlmostEqual(
@@ -1904,6 +1944,15 @@ class TestPackageMetadata(unittest.TestCase):
                 "INCOME",
             ),
             amount_delta,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            _float_delta(
+                portperf_a[portfolio_performance_key],
+                portperf_b[portfolio_performance_key],
+                "INCOME",
+            ),
+            combined_expense_delta,
             places=2,
         )
 

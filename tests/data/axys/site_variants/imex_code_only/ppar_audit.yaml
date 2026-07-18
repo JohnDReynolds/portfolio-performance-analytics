@@ -32,3 +32,7 @@ transaction_rules:
     transaction_category: external_flow
     cash_flow_sign: negative
     performance_flow_sign: external
+  ti:
+    transaction_category: external_flow
+    cash_flow_sign: positive
+    performance_flow_sign: external

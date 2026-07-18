@@ -20,3 +20,4 @@ NVDA,csus,EQ,Equity,IT,US,USD
 SAP.DE,cseu,EQ,Equity,IT,DE,EUR
 SHEL.L,csgb,EQ,Equity,EN,GB,GBP
 TSLA,csus,EQ,Equity,CD,US,USD
+MARGIN_USD,margin,CA,Cash and Financing,CA,US,USD

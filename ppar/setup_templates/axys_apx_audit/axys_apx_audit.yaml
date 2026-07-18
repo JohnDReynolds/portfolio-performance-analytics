@@ -147,8 +147,8 @@ files:
   # transactions:
   #   Required fields: PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT.
   #   Required only when applicable: SEC_TYPE, SRC_DEST_TYPE, SRC_DEST_SYMBOL,
-  #   SPECIAL_SEC_TYPE, and SPECIAL_SEC_SYMBOL when ambiguous DP, LI, LO, or WD
-  #   codes can appear; CURRENCY, BASE_CURRENCY, and BASE_AMOUNT for foreign
+  #   SPECIAL_SEC_TYPE, and SPECIAL_SEC_SYMBOL when ambiguous DP, LI, LO, TI, or
+  #   WD codes can appear; CURRENCY, BASE_CURRENCY, and BASE_AMOUNT for foreign
   #   amounts.
   #   Optional fields: SETTLE_DATE, QTY, PRICE, COMMISSION.
   #   Likely source: IMEX transaction export. Use REP/custom output or another
@@ -471,6 +471,8 @@ transaction_rules:
   #   requires explicit return-of-capital context. pd requires amortizing
   #   fixed-income/MBS/ABS principal-paydown context and is modeled as a
   #   security-level principal flow, not an investor external flow.
+  #   ai requires the packaged margin/security context. ti requires the cited
+  #   deliver-in workflow plus external-party and equity-security context.
   #   ss and cs are included only for the controlled synthetic short-side demo.
   #   The demo assumes lowercase ss/cs, real equity prices, no client external
   #   flow, and cash/proceeds treatment visible in the source rows. Production
@@ -514,6 +516,23 @@ transaction_rules:
     - when:
         special_security_type: exus
         special_security_symbol: custfee
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
+    - when:
+        special_security_type: exus
+        special_security_symbol: withholding
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
+  ai:
+    # Margin interest is performance expense only with the reviewed margin
+    # security and source context used by this site-scoped demo. Code-only ai
+    # remains unknown.
+    - when:
+        security_type: margin
+        source_destination_type: $pth
+        source_destination_symbol: margin
       transaction_category: fee_expense
       cash_flow_sign: negative
       performance_flow_sign: performance
@@ -581,6 +600,17 @@ transaction_rules:
       transaction_category: transfer
       cash_flow_sign: none
       performance_flow_sign: neutral
+  ti:
+    # This rule models one cited deliver-in workflow, not universal ti
+    # semantics. External treatment requires both external-party and equity
+    # security context; other ti rows remain unknown pending local review.
+    - when:
+        security_type: csus
+        source_destination_type: $pty
+        source_destination_symbol: external_delivery
+      transaction_category: external_flow
+      cash_flow_sign: positive
+      performance_flow_sign: external
   lo:
     # Long-out is external only with reviewed external-party context; internal
     # account movement remains neutral transfer.

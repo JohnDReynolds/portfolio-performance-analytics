@@ -2,49 +2,33 @@
 
 from __future__ import annotations
 
-from types import MappingProxyType
 from typing import Final
 
-from ppar.audit.performance_comparison.backlog_gates import (
-    CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
-    SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
-)
-from ppar.audit.fixed_income import (
-    FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES,
-    FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
-    FIXED_INCOME_SAFE_TRANSACTION_CODES,
+from ppar.audit.transaction_policy import (
+    transaction_boundary_codes,
+    transaction_boundary_registry,
 )
 
-PACKAGED_FORMULA_TRANSACTION_CODES: Final[frozenset[str]] = frozenset(
-    {"by", "dv", "in", "sl"}
+PACKAGED_FORMULA_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("packaged_formula")
 )
-AMBIGUOUS_CONTEXT_REQUIRED_TRANSACTION_CODES: Final[frozenset[str]] = frozenset(
-    {"dp", "li", "lo", "wd"}
+CONTEXTUAL_PACKAGED_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("contextual_packaged")
 )
-REVIEW_ONLY_TEST_TRANSACTION_CODES: Final[frozenset[str]] = frozenset({";"})
-CONTEXT_ONLY_TRANSACTION_CODES: Final[frozenset[str]] = frozenset({"exus"})
-STANDALONE_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = frozenset({"epus"})
+AMBIGUOUS_CONTEXT_REQUIRED_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("ambiguous_context_required")
+)
+REVIEW_ONLY_TEST_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("review_only_test")
+)
+CONTEXT_ONLY_TRANSACTION_CODES: Final[frozenset[str]] = transaction_boundary_codes(
+    "context_only"
+)
+STANDALONE_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = (
+    transaction_boundary_codes("standalone_backlog")
+)
 
-TRANSACTION_BOUNDARY_REGISTRY: Final[MappingProxyType[str, frozenset[str]]] = (
-    MappingProxyType(
-        {
-            "packaged_formula": PACKAGED_FORMULA_TRANSACTION_CODES,
-            "fixed_income_safe": FIXED_INCOME_SAFE_TRANSACTION_CODES,
-            "fixed_income_accrued_interest": (
-                FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES
-            ),
-            "ambiguous_context_required": (
-                AMBIGUOUS_CONTEXT_REQUIRED_TRANSACTION_CODES
-            ),
-            "review_only_test": REVIEW_ONLY_TEST_TRANSACTION_CODES,
-            "context_only": CONTEXT_ONLY_TRANSACTION_CODES,
-            "fixed_income_backlog": FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
-            "capital_return_backlog": CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
-            "short_side_backlog": SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
-            "standalone_backlog": STANDALONE_BACKLOG_TRANSACTION_CODES,
-        }
-    )
-)
+TRANSACTION_BOUNDARY_REGISTRY: Final = transaction_boundary_registry()
 
 
 def transaction_boundary_groups(code: object) -> tuple[str, ...]:

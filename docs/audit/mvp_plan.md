@@ -4,8 +4,8 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Slice 3E implemented; founder output review active |
-| Version | 1.4 |
+| Status | Active MVP implementation plan — Slice 4 implemented; pre-Slice 5 transaction-policy hardening complete |
+| Version | 1.5 |
 | Date | 2026-07-18 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Product roadmap | [`roadmap.md`](roadmap.md) |
@@ -647,7 +647,7 @@ Implemented as a bounded presentation change:
 
 The founder accepted the two-table quantity presentation on 2026-07-18.
 
-## Slice 3 — Additional Data Issues issue types — Active
+## Slice 3 — Additional Data Issues issue types — Complete
 
 - **Slice 3A — founder accepted:** implemented `holdings_nonpositive_price` end
   to end with strict opt-in policy, two-snapshot fixtures, category output, and
@@ -659,22 +659,37 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
 - **Slice 3C — founder accepted:** added the exact-case
   `transaction_security_type_mismatch` issue defined in Section 6.5 with an
   isolated case-only demo row in each snapshot.
-- **Slice 3D — implemented:** added the opt-in
+- **Slice 3D — founder accepted:** added the opt-in
   `holdings_stale_price` observed-date rule with a strict calendar-day threshold
   and an isolated two-snapshot GOOGL source-price anomaly.
-- **Slice 3E — implemented for founder review:** added split-normalized,
+- **Slice 3E — founder accepted:** added split-normalized,
   period-level `large_price_variation` with uniquely identified overlapping
   rules, scalar-or-list source filters, inclusive period days, strict decimal
   thresholds, deterministic evidence selection, and real AVGO demo findings.
 
-## Slice 4 — Required current-capability Axys/APX scenarios
+## Slice 4 — Required current-capability Axys/APX scenarios — Implemented for founder review
 
-- add the packaged `ai`, `dv` + `by`, `ti`/`si`, and withholding scenarios;
-- add the alternate contextual fee site-variant fixture;
-- update the canonical transaction-semantics contract and generated companion;
-- verify coherent holdings, cash, performance, reconstruction, and reviewer
-  output; and
-- run all affected demo, financial, and coverage gates.
+- added packaged context-gated `ai`, matched `dv` + `by`, site-scoped `ti`, and
+  gross-dividend-plus-withholding scenarios;
+- added the alternate contextual `dp` plus `epus expense` site fixture without
+  promoting `epus` to a standalone code meaning;
+- updated the canonical transaction-semantics contract and generated companion;
+- derived coherent holdings, cash, performance, and reviewer output through the
+  maintained scenario generator; and
+- preserved the SN-03 Fully Explained invariant across leap-year history copies
+  by reconciling only sub-precision six-decimal display residuals while retaining
+  raw cause lineage; and
+- retained code-only `ai`/`ti`, original-cost, exact-case, and cancellation
+  boundaries for their separately scoped work.
+
+Before Slice 5A, the transaction-policy boundary was tightened without adding a
+new transaction meaning: complete matching site YAML rules now override source
+semantic labels; compatibility categories, safety groups, Data Issues code
+groups, and demo accounting/reconstruction effects are loaded from executable
+YAML instead of Python transaction-code sets. `Performance Difference Causes`
+retains its established output schema; every transaction-associated row starts
+its `Explanation` with the native transaction code, including the existing `ai`
+and `ti` scenarios.
 
 ## Slice 5 — Exact case and required transaction source-contract work
 

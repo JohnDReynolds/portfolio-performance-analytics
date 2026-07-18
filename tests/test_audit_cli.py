@@ -1730,7 +1730,7 @@ class TestAuditCli(unittest.TestCase):
                 "checks require explicit enablement and issue-specific scope",
                 result.stdout,
             )
-        self.assertIn("Transaction rules configured: 15", result.stdout)
+        self.assertIn("Transaction rules configured: 17", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Extract contract: packaged:", result.stdout)
@@ -1744,8 +1744,8 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Report-bundle source context:", result.stdout)
         self.assertIn("transaction semantics summary", result.stdout)
         self.assertIn(
-            "Transaction codes observed: by, cs, dp, dv, in, li, lo, pa, pd, rc, "
-            "sa, sl, ss, wd",
+            "Transaction codes observed: ai, by, cs, dp, dv, in, li, lo, pa, pd, "
+            "rc, sa, sl, ss, ti, wd",
             result.stdout,
         )
         self.assertIn("Transaction codes without YAML rules: none", result.stdout)

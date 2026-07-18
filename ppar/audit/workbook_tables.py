@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -385,6 +386,10 @@ def audit_review_workbook_sheets(
         data_issues=_data_issues,
         finding_audit_trail=_finding_audit_trail,
     )
+    primary_sheet = replace(
+        primary_sheet,
+        table=_workbook_reconcile_displayed_primary_values(primary_sheet.table),
+    )
     data_issues_sheet = next(
         sheet
         for sheet in detail_sheets
@@ -689,9 +694,8 @@ def _workbook_reconcile_displayed_explained_values(
     if causes.is_empty():
         return causes
     target_by_key = {
-        _rows.primary_review_period_key(row, comparison_level): round(
-            _rows.number_or_none(row.get(_layout.ESTIMATED_CAUSE_TOTAL)) or 0.0,
-            6,
+        _rows.primary_review_period_key(row, comparison_level): (
+            _workbook_displayed_explained_target(row)
         )
         for row in primary_changes.iter_rows(named=True)
         if _workbook_is_real_primary_key(
@@ -732,6 +736,49 @@ def _workbook_reconcile_displayed_explained_values(
     return pl.DataFrame(rows, schema=causes.schema, infer_schema_length=None)
 
 
+def _workbook_reconcile_displayed_primary_values(
+    primary_changes: pl.DataFrame,
+) -> pl.DataFrame:
+    """Make Fully Explained summary values agree at workbook precision.
+
+    The raw explanation invariant permits a sub-half-micro residual. If the
+    performance and explanation values straddle a six-decimal rounding boundary,
+    use the authoritative performance value for the displayed explanation. The
+    cause table's presentation-only residual allocator independently reconciles
+    its visible rows to the same target; raw cause lineage remains unchanged.
+    """
+    required_columns = {
+        _layout.PERFORMANCE_CHANGE,
+        _layout.ESTIMATED_CAUSE_TOTAL,
+        _layout.REVIEW_STATUS,
+    }
+    if not required_columns.issubset(primary_changes.columns):
+        return primary_changes
+    performance = pl.col(_layout.PERFORMANCE_CHANGE)
+    explained = pl.col(_layout.ESTIMATED_CAUSE_TOTAL)
+    needs_reconciliation = (
+        (pl.col(_layout.REVIEW_STATUS) == _STATUS_FULLY_EXPLAINED)
+        & performance.is_not_null()
+        & explained.is_not_null()
+        & (performance.round(6) != explained.round(6))
+    )
+    return primary_changes.with_columns(
+        pl.when(needs_reconciliation)
+        .then(performance.round(6))
+        .otherwise(explained)
+        .alias(_layout.ESTIMATED_CAUSE_TOTAL)
+    )
+
+
+def _workbook_displayed_explained_target(row: Mapping[str, object]) -> float:
+    """Return the authoritative six-decimal explanation target for one row."""
+    explained = _rows.number_or_none(row.get(_layout.ESTIMATED_CAUSE_TOTAL)) or 0.0
+    performance = _rows.number_or_none(row.get(_layout.PERFORMANCE_CHANGE))
+    if row.get(_layout.REVIEW_STATUS) == _STATUS_FULLY_EXPLAINED and performance is not None:
+        return round(performance, 6)
+    return round(explained, 6)
+
+
 def _assert_displayed_portfolio_explanation_reconciliation(
     primary_changes: pl.DataFrame,
     causes: pl.DataFrame,
@@ -760,7 +807,7 @@ def _assert_displayed_explanation_reconciliation(
         key = _rows.primary_review_period_key(row, comparison_level)
         if not _workbook_is_real_primary_key(key, comparison_level):
             continue
-        explained = round(_rows.number_or_none(row.get(_layout.ESTIMATED_CAUSE_TOTAL)) or 0.0, 6)
+        explained = _workbook_displayed_explained_target(row)
         cause_total = cause_totals.get(key, 0.0)
         if cause_total != explained:
             raise PpaError(
@@ -2297,6 +2344,14 @@ def _workbook_changed_item_row(
     row_use = _workbook_row_use(row, row_kind)
     impact_status = _workbook_impact_status(row, estimated_impact, row_kind)
     input_role = _workbook_input_role(row, estimated_impact, row_kind)
+    review_guidance = _guidance.review_guidance(
+        row,
+        estimated_impact,
+        comparison_path=comparison_path,
+        impact_status=impact_status,
+        row_kind=row_kind,
+    )
+    review_guidance = _transaction_prefixed_review_guidance(row, review_guidance)
     return {
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
@@ -2321,13 +2376,7 @@ def _workbook_changed_item_row(
         _layout.INPUT_ROLE: input_role,
         _layout.IMPACT_STATUS: impact_status,
         _layout.REVIEW_NOTE: _guidance.review_note(row, estimated_impact, row_use, impact_status),
-        _layout.REVIEW_GUIDANCE: _guidance.review_guidance(
-            row,
-            estimated_impact,
-            comparison_path=comparison_path,
-            impact_status=impact_status,
-            row_kind=row_kind,
-        ),
+        _layout.REVIEW_GUIDANCE: review_guidance,
         _pc_findings.DATASET: row.get(_pc_findings.DATASET),
         _pc_findings.SOURCE_RECORD_LOCATOR: row.get(
             _pc_findings.SOURCE_RECORD_LOCATOR
@@ -2345,6 +2394,22 @@ def _workbook_changed_item_row(
         ),
         _layout.REVIEW_KEY: row.get(_layout.REVIEW_KEY),
     }
+
+
+def _transaction_prefixed_review_guidance(
+    row: Mapping[str, object],
+    review_guidance: str,
+) -> str:
+    """Prefix transaction-associated guidance with its native source code."""
+    transaction_code = _format_value(row.get(_pc_findings.TRANSACTION_CODE)).strip()
+    if not transaction_code:
+        return review_guidance
+    prefix = f"{transaction_code}:"
+    if review_guidance.startswith(prefix):
+        return review_guidance
+    if not review_guidance:
+        return prefix
+    return f"{prefix} {review_guidance}"
 
 
 def _workbook_row_type(

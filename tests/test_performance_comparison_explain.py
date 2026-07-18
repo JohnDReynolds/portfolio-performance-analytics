@@ -846,13 +846,13 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         coverage = portfolio_period_impact_coverage_summary(findings)
         coverage_row = coverage.row(0, named=True)
 
-        self.assertEqual(activity_row[TRANSACTION_SEMANTICS_SOURCES], "mixed: 3")
+        self.assertEqual(activity_row[TRANSACTION_SEMANTICS_SOURCES], "yaml_rule: 3")
         self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "")
         self.assertNotIn(
             "transaction sign and flow semantics",
             activity_row[IMPACT_MESSAGE],
         )
-        self.assertEqual(coverage_row[TRANSACTION_SEMANTICS_SOURCES], "mixed: 3")
+        self.assertEqual(coverage_row[TRANSACTION_SEMANTICS_SOURCES], "yaml_rule: 3")
         self.assertNotIn("return denominator", coverage_row[MISSING_IMPACT_INPUTS])
         self.assertNotIn(
             "transaction sign and flow semantics",

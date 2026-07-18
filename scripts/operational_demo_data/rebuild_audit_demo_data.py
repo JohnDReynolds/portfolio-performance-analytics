@@ -22,12 +22,14 @@ from __future__ import annotations
 # Python imports
 import argparse
 from dataclasses import asdict, dataclass
+from functools import cache
 import json
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Mapping
 
 # Third-party imports
 import pandas as pd
+import yaml
 
 # Project imports
 from ppar.audit import compare_snapshots
@@ -65,6 +67,9 @@ _DEFAULT_SCENARIO_INVENTORY_PATH: Final = (
 )
 _DEFAULT_PERIOD_SPLIT_PLAN_PATH: Final = (
     Path(__file__).resolve().parent / "audit_period_split_plan.csv"
+)
+_DEFAULT_TRANSACTION_POLICY_PATH: Final = (
+    Path(__file__).resolve().parent / "audit_demo_transaction_policy.yaml"
 )
 _SNAPSHOT_DIRECTORIES: Final = ("snapshot_a", "snapshot_b")
 _BASE_SNAPSHOT_DIRECTORY: Final = "snapshot_a"
@@ -353,37 +358,37 @@ _INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
     ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"): 0.002,
     ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30"): 0.004,
 }
-_SECURITY_FLOW_CODES: Final = {"by", "pd", "sl"}
-_ACCRUED_INTEREST_ADJUNCT_CODES: Final = {"pa", "sa"}
-_INCOME_CODES: Final = {"dv", "in", "dp", "rc", *_ACCRUED_INTEREST_ADJUNCT_CODES}
-_AMBIGUOUS_EXTERNAL_FLOW_CODES: Final = {"li", "lo", "wd"}
-_TRANSACTION_HOLDING_EFFECT_CODES: Final = {
-    ";",
-    "by",
-    "sl",
-    *_ACCRUED_INTEREST_ADJUNCT_CODES,
-    "li",
-    "lo",
-    "wd",
-    "dv",
-    "in",
-    "dp",
-    "pd",
-    "rc",
-    "ss",
-    "cs",
-}
 _CASH_SECURITY_IDS: Final = {
     "USD": "CASHUSD",
     "EUR": "CASHEUR",
     "GBP": "CASHGBP",
 }
+_DEMO_CONTEXT_COLUMNS: Final[Mapping[str, str]] = {
+    "security_id": "SEC",
+    "security_type": "SEC_TYPE",
+    "source_destination_type": "SRC_DEST_TYPE",
+    "source_destination_symbol": "SRC_DEST_SYMBOL",
+    "special_security_type": "SPECIAL_SEC_TYPE",
+    "special_security_symbol": "SPECIAL_SEC_SYMBOL",
+}
+_DEMO_HOLDING_EFFECTS: Final[frozenset[str]] = frozenset(
+    {
+        "cash",
+        "principal_and_cash",
+        "security_quantity",
+        "security_trade_and_cash",
+    }
+)
+_DEMO_COST_BASIS_METHODS: Final[frozenset[str]] = frozenset(
+    {"market_value", "proportional_existing"}
+)
 _CASH_SECURITY_ID: Final = _CASH_SECURITY_IDS["USD"]
 _EXPECTED_SCENARIO_COVERAGE: Final = {
     "snapshot_b": {
         "transaction_scenarios_by_type": {
-            "by": 2,
-            "dp": 1,
+            "ai": 1,
+            "by": 3,
+            "dp": 2,
             "dv": 4,
             "in": 1,
             "li": 1,
@@ -395,11 +400,13 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "sl": 2,
             "ss": 1,
             "cs": 1,
+            "ti": 1,
             "wd": 1,
         },
         "transaction_derived_holdings_by_type": {
-            "by": 6,
-            "dp": 1,
+            "ai": 1,
+            "by": 14,
+            "dp": 5,
             "dv": 13,
             "in": 3,
             "li": 1,
@@ -411,6 +418,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "sl": 4,
             "ss": 1,
             "cs": 1,
+            "ti": 1,
             "wd": 1,
         },
         "holding_scenarios_by_type": {
@@ -1649,6 +1657,63 @@ def _with_demo_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
             "BASE_AMOUNT": 129.6,
             "COMMISSION": 0.0,
         },
+        {
+            "PORT": "INCOME",
+            "TRANSACTION_DATE": "2026-01-22",
+            "SETTLE_DATE": "2026-01-22",
+            "SEC": "MARGIN_USD",
+            "TRAN": "ai",
+            "SEC_TYPE": "margin",
+            "SRC_DEST_TYPE": "$pth",
+            "SRC_DEST_SYMBOL": "margin",
+            "SPECIAL_SEC_TYPE": "caus",
+            "SPECIAL_SEC_SYMBOL": "margin",
+            "CURRENCY": "USD",
+            "BASE_CURRENCY": "USD",
+            "QTY": 0.0,
+            "PRICE": 0.0,
+            "AMOUNT": -18.75,
+            "BASE_AMOUNT": -18.75,
+            "COMMISSION": 0.0,
+        },
+        {
+            "PORT": "BALANCED",
+            "TRANSACTION_DATE": "2026-03-20",
+            "SETTLE_DATE": "2026-03-20",
+            "SEC": "JPM",
+            "TRAN": "ti",
+            "SEC_TYPE": "csus",
+            "SRC_DEST_TYPE": "$pty",
+            "SRC_DEST_SYMBOL": "external_delivery",
+            "SPECIAL_SEC_TYPE": "",
+            "SPECIAL_SEC_SYMBOL": "",
+            "CURRENCY": "USD",
+            "BASE_CURRENCY": "USD",
+            "QTY": 5.0,
+            "PRICE": 294.16,
+            "AMOUNT": 1_470.80,
+            "BASE_AMOUNT": 1_470.80,
+            "COMMISSION": 0.0,
+        },
+        {
+            "PORT": "BALANCED",
+            "TRANSACTION_DATE": "2026-04-06",
+            "SETTLE_DATE": "2026-04-30",
+            "SEC": "JPM",
+            "TRAN": "dp",
+            "SEC_TYPE": "csus",
+            "SRC_DEST_TYPE": "$income",
+            "SRC_DEST_SYMBOL": "$cash",
+            "SPECIAL_SEC_TYPE": "exus",
+            "SPECIAL_SEC_SYMBOL": "withholding",
+            "CURRENCY": "USD",
+            "BASE_CURRENCY": "USD",
+            "QTY": 0.0,
+            "PRICE": 0.0,
+            "AMOUNT": -70.48,
+            "BASE_AMOUNT": -70.48,
+            "COMMISSION": 0.0,
+        },
     ]
     keys = set(
         zip(
@@ -1827,7 +1892,7 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
 
     rows = transactions.copy()
     rows.insert(0, _TRANSACTION_ID_COLUMN, _derived_transaction_ids(rows))
-    multicurrency_ids = {
+    scenario_ids = {
         (
             _CONTRIBUTION_DEMO_PORTFOLIO,
             "2026-03-20",
@@ -1837,6 +1902,9 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
         ("BALANCED", "2026-01-12", "SAP.DE", "by"): "MC_BAL_EUR_BUY",
         ("BALANCED", "2026-02-16", "SHEL.L", "sl"): "MC_BAL_GBP_SELL",
         ("BALANCED", "2026-04-15", "SAP.DE", "dv"): "MC_BAL_EUR_DIV",
+        ("BALANCED", "2026-04-06", "JPM", "dp"): "BALANCED_JPM_WHT",
+        ("BALANCED", "2026-03-20", "JPM", "ti"): "BALANCED_TI_20260320",
+        ("INCOME", "2026-01-22", "MARGIN_USD", "ai"): "INCOME_AI_20260122",
     }
     transaction_keys = list(
         zip(
@@ -1848,7 +1916,7 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
         )
     )
     rows[_TRANSACTION_ID_COLUMN] = [
-        multicurrency_ids.get(key, identifier)
+        scenario_ids.get(key, identifier)
         for key, identifier in zip(
             transaction_keys,
             rows[_TRANSACTION_ID_COLUMN],
@@ -1968,6 +2036,184 @@ def _rounded_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
     return rounded
 
 
+@cache
+def _demo_transaction_policy() -> Mapping[str, object]:
+    """Return the validated executable policy for demo transaction effects."""
+    try:
+        values = yaml.safe_load(
+            _DEFAULT_TRANSACTION_POLICY_PATH.read_text(encoding="utf-8")
+        )
+    except (OSError, yaml.YAMLError) as error:
+        raise ValueError(
+            f"Unable to load {_DEFAULT_TRANSACTION_POLICY_PATH}: {error}"
+        ) from error
+    if not isinstance(values, dict):
+        raise ValueError(f"{_DEFAULT_TRANSACTION_POLICY_PATH}: root must be a mapping.")
+    if values.get("schema_version") != 1:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: schema_version must be 1."
+        )
+    unknown_root_keys = set(values) - {
+        "schema_version",
+        "holding_effects",
+        "reconstruction_roles",
+    }
+    if unknown_root_keys:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: unsupported root keys "
+            f"{sorted(unknown_root_keys)}."
+        )
+    holding_effects = values.get("holding_effects")
+    reconstruction_roles = values.get("reconstruction_roles")
+    if not isinstance(holding_effects, dict) or not holding_effects:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: holding_effects must be nonempty."
+        )
+    if not isinstance(reconstruction_roles, dict) or not reconstruction_roles:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: reconstruction_roles must be nonempty."
+        )
+    for transaction_code, raw_rule in holding_effects.items():
+        _validated_demo_rule(transaction_code, raw_rule, require_effect=True)
+    _validated_demo_reconstruction_roles(reconstruction_roles)
+    return values
+
+
+def _validated_demo_rule(
+    transaction_code: object,
+    raw_rule: object,
+    *,
+    require_effect: bool,
+) -> Mapping[str, object]:
+    """Return one validated demo-policy rule."""
+    if not isinstance(transaction_code, str) or not transaction_code:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: transaction codes must be strings."
+        )
+    if not isinstance(raw_rule, dict):
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: rule {transaction_code!r} "
+            "must be a mapping."
+        )
+    allowed_keys = (
+        {"when", "effect", "quantity_multiplier", "cost_basis"}
+        if require_effect
+        else {"when"}
+    )
+    unknown_keys = set(raw_rule) - allowed_keys
+    if unknown_keys:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: rule {transaction_code!r} "
+            f"has unsupported keys {sorted(unknown_keys)}."
+        )
+    when = raw_rule.get("when", {})
+    if not isinstance(when, dict) or any(
+        field not in _DEMO_CONTEXT_COLUMNS
+        or not isinstance(expected, str)
+        or not expected
+        for field, expected in when.items()
+    ):
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: rule {transaction_code!r} "
+            "has an invalid when mapping."
+        )
+    if require_effect:
+        effect = raw_rule.get("effect")
+        if effect not in _DEMO_HOLDING_EFFECTS:
+            raise ValueError(
+                f"{_DEFAULT_TRANSACTION_POLICY_PATH}: rule {transaction_code!r} "
+                f"effect must be one of {sorted(_DEMO_HOLDING_EFFECTS)}."
+            )
+        multiplier = raw_rule.get("quantity_multiplier", 1)
+        if not isinstance(multiplier, (int, float)) or isinstance(multiplier, bool):
+            raise ValueError(
+                f"{_DEFAULT_TRANSACTION_POLICY_PATH}: rule {transaction_code!r} "
+                "quantity_multiplier must be numeric."
+            )
+        cost_basis = raw_rule.get("cost_basis", "market_value")
+        if cost_basis not in _DEMO_COST_BASIS_METHODS:
+            raise ValueError(
+                f"{_DEFAULT_TRANSACTION_POLICY_PATH}: rule {transaction_code!r} "
+                f"cost_basis must be one of {sorted(_DEMO_COST_BASIS_METHODS)}."
+            )
+    return raw_rule
+
+
+def _validated_demo_reconstruction_roles(roles: Mapping[object, object]) -> None:
+    """Validate demo return-reconstruction role definitions."""
+    unknown_roles = set(roles) - {
+        "security_flow",
+        "income",
+        "portfolio_external_flow",
+    }
+    if unknown_roles:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: unsupported reconstruction "
+            f"roles {sorted(unknown_roles)}."
+        )
+    for role_name in ("security_flow", "income"):
+        codes = roles.get(role_name)
+        if not isinstance(codes, list) or any(
+            not isinstance(code, str) or not code for code in codes
+        ):
+            raise ValueError(
+                f"{_DEFAULT_TRANSACTION_POLICY_PATH}: {role_name} must be a "
+                "list of transaction codes."
+            )
+    external_rules = roles.get("portfolio_external_flow")
+    if not isinstance(external_rules, dict) or not external_rules:
+        raise ValueError(
+            f"{_DEFAULT_TRANSACTION_POLICY_PATH}: portfolio_external_flow "
+            "must be nonempty."
+        )
+    for transaction_code, raw_rule in external_rules.items():
+        _validated_demo_rule(transaction_code, raw_rule, require_effect=False)
+
+
+def _demo_holding_effect(row: object) -> tuple[str, float, str] | None:
+    """Return the configured generic holding effect for one raw transaction."""
+    effects = _demo_transaction_policy()["holding_effects"]
+    assert isinstance(effects, dict)
+    raw_rule = effects.get(_row_string(row, "TRAN").lower())
+    if not isinstance(raw_rule, dict) or not _demo_rule_matches(row, raw_rule):
+        return None
+    return (
+        str(raw_rule["effect"]),
+        float(raw_rule.get("quantity_multiplier", 1)),
+        str(raw_rule.get("cost_basis", "market_value")),
+    )
+
+
+def _demo_reconstruction_codes(role_name: str) -> frozenset[str]:
+    """Return configured transaction codes for one static reconstruction role."""
+    roles = _demo_transaction_policy()["reconstruction_roles"]
+    assert isinstance(roles, dict)
+    raw_codes = roles[role_name]
+    assert isinstance(raw_codes, list)
+    return frozenset(str(code).lower() for code in raw_codes)
+
+
+def _demo_external_flow_rule_matches(row: object) -> bool:
+    """Return whether the configured contextual external-flow rule matches."""
+    roles = _demo_transaction_policy()["reconstruction_roles"]
+    assert isinstance(roles, dict)
+    raw_rules = roles["portfolio_external_flow"]
+    assert isinstance(raw_rules, dict)
+    raw_rule = raw_rules.get(_row_string(row, "TRAN").lower())
+    return isinstance(raw_rule, dict) and _demo_rule_matches(row, raw_rule)
+
+
+def _demo_rule_matches(row: object, rule: Mapping[str, object]) -> bool:
+    """Return whether one generic demo-policy condition matches a raw row."""
+    when = rule.get("when", {})
+    assert isinstance(when, dict)
+    return all(
+        _row_string(row, _DEMO_CONTEXT_COLUMNS[field]).strip().casefold()
+        == str(expected).strip().casefold()
+        for field, expected in when.items()
+    )
+
+
 def _transaction_derived_holding_adjustments(
     snapshot_name: str,
     *,
@@ -1997,110 +2243,32 @@ def _transaction_derived_holding_adjustments(
     adjustments: list[HoldingScenarioAdjustment] = []
     for row in transaction_diffs.itertuples(index=False):
         transaction_code = str(row.TRAN)
-        if transaction_code not in _TRANSACTION_HOLDING_EFFECT_CODES:
+        configured_effect = _demo_holding_effect(row)
+        if configured_effect is None:
             continue
-        if transaction_code == "rc" and _row_string(row, "SPECIAL_SEC_TYPE") != (
-            "return_of_capital"
-        ):
-            continue
+        effect, quantity_multiplier, cost_basis_method = configured_effect
         holding_dates = _holding_dates_for_transaction_effect(
             periods,
             str(row.PORT),
             row.TRANSACTION_DATE,
         )
         for holding_date in holding_dates:
-            if transaction_code == "by":
+            if effect == "security_trade_and_cash":
                 adjustments.append(
                     _security_trade_adjustment(
                         snapshot_name,
                         holdings=holdings,
-                        transaction_code=transaction_code,
+                        cost_basis_method=cost_basis_method,
                         portfolio=str(row.PORT),
                         security=str(row.SEC),
                         holding_date=holding_date,
-                        quantity_delta=float(row.QTY_delta),
+                        quantity_delta=quantity_multiplier * float(row.QTY_delta),
                         scenario=(
-                            f"{row.TRANSACTION_ID} by transaction changes " "ending holding."
+                            f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                            "changes ending holding."
                         ),
                     )
                 )
-                adjustments.append(
-                    _cash_adjustment(
-                        snapshot_name,
-                        portfolio=str(row.PORT),
-                        holding_date=holding_date,
-                        cash_delta=float(row.AMOUNT_delta),
-                        base_cash_delta=float(row.BASE_AMOUNT_delta),
-                        cash_security=_cash_security_for_transaction(row),
-                        scenario=f"{row.TRANSACTION_ID} by transaction changes cash balance.",
-                    )
-                )
-            elif transaction_code == "ss":
-                adjustments.append(
-                    _cash_adjustment(
-                        snapshot_name,
-                        portfolio=str(row.PORT),
-                        holding_date=holding_date,
-                        cash_delta=float(row.AMOUNT_delta),
-                        base_cash_delta=float(row.BASE_AMOUNT_delta),
-                        cash_security=_cash_security_for_transaction(row),
-                        scenario=f"{row.TRANSACTION_ID} ss transaction changes cash balance.",
-                    )
-                )
-            elif transaction_code == "cs":
-                adjustments.append(
-                    _cash_adjustment(
-                        snapshot_name,
-                        portfolio=str(row.PORT),
-                        holding_date=holding_date,
-                        cash_delta=float(row.AMOUNT_delta),
-                        base_cash_delta=float(row.BASE_AMOUNT_delta),
-                        cash_security=_cash_security_for_transaction(row),
-                        scenario=f"{row.TRANSACTION_ID} cs transaction changes cash balance.",
-                    )
-                )
-            elif transaction_code == "sl":
-                adjustments.append(
-                    _security_trade_adjustment(
-                        snapshot_name,
-                        holdings=holdings,
-                        transaction_code=transaction_code,
-                        portfolio=str(row.PORT),
-                        security=str(row.SEC),
-                        holding_date=holding_date,
-                        quantity_delta=-float(row.QTY_delta),
-                        scenario=(
-                            f"{row.TRANSACTION_ID} sl transaction changes " "ending holding."
-                        ),
-                    )
-                )
-                adjustments.append(
-                    _cash_adjustment(
-                        snapshot_name,
-                        portfolio=str(row.PORT),
-                        holding_date=holding_date,
-                        cash_delta=float(row.AMOUNT_delta),
-                        base_cash_delta=float(row.BASE_AMOUNT_delta),
-                        cash_security=_cash_security_for_transaction(row),
-                        scenario=f"{row.TRANSACTION_ID} sl transaction changes cash balance.",
-                    )
-                )
-            elif transaction_code == ";":
-                adjustments.append(
-                    _security_trade_adjustment(
-                        snapshot_name,
-                        holdings=holdings,
-                        transaction_code=transaction_code,
-                        portfolio=str(row.PORT),
-                        security=str(row.SEC),
-                        holding_date=holding_date,
-                        quantity_delta=float(row.QTY_delta),
-                        scenario=(
-                            f"{row.TRANSACTION_ID} ; transaction changes " "ending holding."
-                        ),
-                    )
-                )
-            elif transaction_code in _ACCRUED_INTEREST_ADJUNCT_CODES:
                 adjustments.append(
                     _cash_adjustment(
                         snapshot_name,
@@ -2115,7 +2283,23 @@ def _transaction_derived_holding_adjustments(
                         ),
                     )
                 )
-            elif transaction_code == "pd":
+            elif effect == "security_quantity":
+                adjustments.append(
+                    _security_trade_adjustment(
+                        snapshot_name,
+                        holdings=holdings,
+                        cost_basis_method=cost_basis_method,
+                        portfolio=str(row.PORT),
+                        security=str(row.SEC),
+                        holding_date=holding_date,
+                        quantity_delta=quantity_multiplier * float(row.QTY_delta),
+                        scenario=(
+                            f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                            "changes ending holding."
+                        ),
+                    )
+                )
+            elif effect == "principal_and_cash":
                 principal_delta = -float(row.AMOUNT_delta)
                 adjustments.append(
                     _principal_paydown_adjustment(
@@ -2126,7 +2310,8 @@ def _transaction_derived_holding_adjustments(
                         holding_date=holding_date,
                         principal_delta=principal_delta,
                         scenario=(
-                            f"{row.TRANSACTION_ID} pd transaction changes " "ending holding."
+                            f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                            "changes ending holding."
                         ),
                     )
                 )
@@ -2138,10 +2323,13 @@ def _transaction_derived_holding_adjustments(
                         cash_delta=float(row.AMOUNT_delta),
                         base_cash_delta=float(row.BASE_AMOUNT_delta),
                         cash_security=_cash_security_for_transaction(row),
-                        scenario=f"{row.TRANSACTION_ID} pd transaction changes cash balance.",
+                        scenario=(
+                            f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                            "changes cash balance."
+                        ),
                     )
                 )
-            elif _is_cash_balance_transaction(row):
+            elif effect == "cash":
                 adjustments.append(
                     _cash_adjustment(
                         snapshot_name,
@@ -2351,7 +2539,7 @@ def _security_trade_adjustment(
     snapshot: str,
     *,
     holdings: pd.DataFrame,
-    transaction_code: str,
+    cost_basis_method: str,
     portfolio: str,
     security: str,
     holding_date: str,
@@ -2377,7 +2565,7 @@ def _security_trade_adjustment(
     accrued_per_share = accrued / quantity if quantity else 0.0
     market_value_delta = quantity_delta * price
     cost_delta = market_value_delta
-    if transaction_code == "sl":
+    if cost_basis_method == "proportional_existing":
         cost_delta = quantity_delta * cost_per_share
     accrued_delta = quantity_delta * accrued_per_share
     return HoldingScenarioAdjustment(
@@ -3353,9 +3541,12 @@ def _security_flows(
     thru_date: pd.Timestamp,
     reconstruction: SecurityReturnReconstruction,
 ) -> tuple[float, float]:
-    """Return net and weighted security-level flows for buy/sell rows."""
+    """Return net and weighted configured security-level flows."""
     rows = _period_transactions(transactions, portfolio_code, from_date, thru_date)
-    rows = rows[rows["SEC"].eq(security_id) & rows["TRAN"].isin(_SECURITY_FLOW_CODES)]
+    rows = rows[
+        rows["SEC"].eq(security_id)
+        & rows["TRAN"].isin(_demo_reconstruction_codes("security_flow"))
+    ]
     net_flow = 0.0
     weighted_flow = 0.0
     for row in rows.itertuples(index=False):
@@ -3378,7 +3569,10 @@ def _security_income(
     rows = _period_transactions(transactions, portfolio_code, from_date, thru_date)
     rows = rows[
         rows["SEC"].eq(security_id)
-        & rows["TRAN"].isin(set(reconstruction.income_categories) | _INCOME_CODES)
+        & rows["TRAN"].isin(
+            set(reconstruction.income_categories)
+            | _demo_reconstruction_codes("income")
+        )
     ]
     return float(rows["AMOUNT"].sum())
 
@@ -3413,7 +3607,12 @@ def _portfolio_income(
 ) -> float:
     """Return portfolio income/expense amount for one period."""
     rows = _period_transactions(transactions, portfolio_code, from_date, thru_date)
-    rows = rows[rows["TRAN"].isin(set(reconstruction.income_categories) | _INCOME_CODES)]
+    rows = rows[
+        rows["TRAN"].isin(
+            set(reconstruction.income_categories)
+            | _demo_reconstruction_codes("income")
+        )
+    ]
     return float(rows["AMOUNT"].sum())
 
 
@@ -3438,36 +3637,7 @@ def _is_portfolio_external_flow(
     transaction_code = _row_string(row, "TRAN").lower()
     if transaction_code in set(reconstruction.flow_categories):
         return True
-    if transaction_code not in _AMBIGUOUS_EXTERNAL_FLOW_CODES:
-        return False
-    if _row_string(row, "SRC_DEST_TYPE").lower() != "$pty":
-        return False
-    if transaction_code == "wd":
-        return (
-            _row_string(row, "SEC").upper() == _CASH_SECURITY_ID
-            and _row_string(row, "SRC_DEST_SYMBOL").lower() == "$cash"
-        )
-    return True
-
-
-def _is_cash_balance_transaction(row: object) -> bool:
-    """Return whether a changed transaction row should adjust demo cash holdings."""
-    transaction_code = _row_string(row, "TRAN").lower()
-    if transaction_code in {"dv", "in", "dp", "rc"}:
-        return True
-    if transaction_code in {"li", "lo"}:
-        return (
-            _row_string(row, "SEC").upper() == _CASH_SECURITY_ID
-            and _row_string(row, "SRC_DEST_TYPE").lower() == "$pty"
-            and _row_string(row, "SRC_DEST_SYMBOL").lower() == "$cash"
-        )
-    if transaction_code == "wd":
-        return (
-            _row_string(row, "SEC").upper() == _CASH_SECURITY_ID
-            and _row_string(row, "SRC_DEST_TYPE").lower() == "$pty"
-            and _row_string(row, "SRC_DEST_SYMBOL").lower() == "$cash"
-        )
-    return False
+    return _demo_external_flow_rule_matches(row)
 
 
 def _row_string(row: object, field: str) -> str:

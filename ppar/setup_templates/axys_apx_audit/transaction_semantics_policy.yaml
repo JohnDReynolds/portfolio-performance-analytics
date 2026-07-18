@@ -1,0 +1,61 @@
+# Executable transaction-semantics policy shared by runtime safety guards.
+#
+# Economic classifications that are site-specific belong in the comparison
+# YAML's transaction_rules section. The defaults below preserve only the
+# longstanding generic/code aliases that predate site-scoped transaction rules.
+# Python loads and validates this policy but does not define transaction-code
+# meanings or boundary membership.
+schema_version: 1
+
+default_transaction_rules:
+  BY:
+    transaction_category: buy
+  BUY:
+    transaction_category: buy
+  SL:
+    transaction_category: sell
+  SELL:
+    transaction_category: sell
+  DV:
+    transaction_category: income
+  DIV:
+    transaction_category: income
+  IN:
+    transaction_category: income
+  INT:
+    transaction_category: income
+  INCOME:
+    transaction_category: income
+  FEE:
+    transaction_category: fee_expense
+  EXP:
+    transaction_category: fee_expense
+  DEP:
+    transaction_category: external_flow
+  XFER:
+    transaction_category: transfer
+  TRANSFER:
+    transaction_category: transfer
+  SPLIT:
+    transaction_category: corporate_action
+  MERGER:
+    transaction_category: corporate_action
+  SPIN:
+    transaction_category: corporate_action
+
+boundary_groups:
+  packaged_formula: [by, dv, in, sl]
+  contextual_packaged: [ai, ti]
+  ambiguous_context_required: [dp, li, lo, ti, wd]
+  review_only_test: [";"]
+  context_only: [epus, exus]
+  fixed_income_safe: [in]
+  fixed_income_accrued_interest: [pa, sa]
+  fixed_income_backlog: [ai, pd]
+  capital_return_backlog: [pd, rc]
+  short_side_backlog: [cs, ss]
+  standalone_backlog: [epus]
+  data_issue_buy: [by]
+  data_issue_dividend: [dv]
+  data_issue_accrual: [pa, sa]
+  quantity_holding_neutral: [cs, ss]

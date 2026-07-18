@@ -23,6 +23,7 @@ from ppar.audit.transactions import (
     TRANSACTION_CATEGORY_INCOME,
     TRANSACTION_CATEGORY_SELL,
 )
+from ppar.audit.transaction_policy import transaction_boundary_codes
 
 IMPACT_STATUS_ESTIMATED = "Estimated"
 IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
@@ -585,7 +586,7 @@ def _transaction_quantity_holding_effect(row: Mapping[str, object]) -> str:
     if change_number is None:
         return ""
     transaction_code = format_value(row.get(findings.TRANSACTION_CODE)).lower()
-    if transaction_code in {"ss", "cs"}:
+    if transaction_code in transaction_boundary_codes("quantity_holding_neutral"):
         return ""
     transaction_category = row.get(findings.TRANSACTION_CATEGORY)
     if transaction_category == TRANSACTION_CATEGORY_BUY:
@@ -598,11 +599,12 @@ def _transaction_quantity_holding_effect(row: Mapping[str, object]) -> str:
 def _transaction_code_prefix(row: Mapping[str, object]) -> str:
     """Return a short transaction-code prefix for review guidance."""
     transaction_code = format_value(row.get(findings.TRANSACTION_CODE))
-    if not transaction_code:
-        transaction_code = _transaction_code_fallback(row)
-    if not transaction_code:
+    if transaction_code:
+        return f"{transaction_code}: "
+    fallback = _transaction_code_fallback(row)
+    if not fallback:
         return ""
-    return f"{transaction_code.replace('_', ' ')}: "
+    return f"{fallback.replace('_', ' ')}: "
 
 
 def _transaction_code_fallback(row: Mapping[str, object]) -> str:

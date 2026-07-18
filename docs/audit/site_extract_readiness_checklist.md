@@ -20,7 +20,7 @@ system.
 
 Use an IMEX-context contract when the transaction extract includes source fields
 that conditional `transaction_rules` can inspect. For ambiguous Axys/APX-style
-`li`, `lo`, `dp`, and `wd` rows, useful context usually includes:
+`li`, `lo`, `ti`, `dp`, and `wd` rows, useful context usually includes:
 
 - transaction security type;
 - source/destination type;
@@ -42,7 +42,7 @@ context. The fallback source should carry reviewed semantics directly, such as:
 - performance-flow sign;
 - return-basis treatment for fees or expenses when relevant.
 
-Do not weaken the `li`/`lo`/`dp`/`wd` guardrail only because IMEX is sparse.
+Do not weaken the `li`/`lo`/`ti`/`dp`/`wd` guardrail only because IMEX is sparse.
 Prefer a richer local extract that proves the Modified Dietz formula role.
 
 ## Tested Candidate Override Profiles
@@ -60,7 +60,8 @@ source.
 | Profile | Codes | Candidate Modified Dietz treatment | Required local evidence |
 | --- | --- | --- | --- |
 | `fixed_income_accruals` | `pa`, `sa` | Purchase accrued interest as fee/expense; sale accrued interest as income. The packaged demo includes one paired 91282Y5Y1 example, while this profile remains useful for local override/onboarding variants. | Bond or accrued-interest context, amount sign, settlement context, and local mapping or REP/report treatment. |
-| `ai_margin_interest` | `ai` | Margin or negative interest as fee/expense. | Margin or negative-interest context, amount sign, and local mapping or REP/report treatment. |
+| `ai_margin_interest` | `ai` | Margin or negative interest as fee/expense. The packaged demo includes one context-gated example; this profile remains a local onboarding example. | Margin or negative-interest context, amount sign, and local mapping or REP/report treatment. |
+| `alternate_fee_context` | `dp` with `epus expense` context | Fee or expense under an explicit local rule. `epus` is not treated as a standalone transaction code. | Token role, fee symbol, amount sign, and local mapping or REP/report treatment. |
 | `rc_return_of_capital` | `rc` | Return of capital as performance income. | Return-of-capital context, security identity, amount sign, and local mapping or REP/report treatment. |
 | `pd_principal_paydown` | `pd` | Principal paydown as performance income. | Bond/MBS/ABS principal-paydown context, cash movement, amount sign, and local mapping or REP/report treatment. |
 | `short_side_trades` | `ss`, `cs` | Short sale as performance sell; cover short as performance buy. | Short/security type, cash or margin context, amount/quantity signs, and local mapping or REP/report treatment. |
@@ -91,7 +92,7 @@ extract_contract:
 ```
 
 When this setting is false, conditional context-column guards do not protect
-`li`, `lo`, `dp`, and `wd` rows. The site's YAML rules and review process carry
+`li`, `lo`, `ti`, `dp`, and `wd` rows. The site's YAML rules and review process carry
 the classification risk.
 
 ## Handoff Evidence
