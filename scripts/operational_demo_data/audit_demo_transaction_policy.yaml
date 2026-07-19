@@ -25,6 +25,10 @@ holding_effects:
   sa:
     effect: cash
   pd:
+    when:
+      security_type: fius
+      source_destination_type: $pty
+      source_destination_symbol: $cash
     effect: principal_and_cash
   ti:
     effect: security_quantity
@@ -39,7 +43,9 @@ holding_effects:
     effect: cash
   rc:
     when:
-      special_security_type: return_of_capital
+      security_type: csus
+      source_destination_type: $pty
+      source_destination_symbol: $cash
     effect: cash
   li:
     when:

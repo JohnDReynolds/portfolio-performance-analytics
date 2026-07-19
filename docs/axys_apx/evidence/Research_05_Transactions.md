@@ -88,6 +88,8 @@ fixtures, and safety policy.
 | TRN-C117 | `exus` | Expense/fee token; associated with expense in conversion evidence and fee special-security use in integration evidence. | Medium but conflicting; TRN-S03, TRN-S07 | Role may be security type, symbol, label, or code; no standalone code rule. |
 | TRN-C118 | `dvwash` | Dividend-reinvestment wash symbol. | Medium; TRN-S03 | Pairing context only; not an external flow or ordinary holding. |
 | TRN-C119 | `caus margin` | Margin cash/security context used with margin interest. | Medium; TRN-S03 | Supports contextual `ai` classification only. |
+| TRN-C120 | Public Axys/APX translation tables describe a paired transaction Special Security Type / Symbol. Observed type values are `exus`, `epus`, and `caus`; observed symbols include `custfee`, `expense`, `with`, and `margin`. | Medium; TRN-S03-S04 | All observed special-security types are four-character Axys/APX type identifiers. Symbols are separate and may be longer. No reviewed public example establishes a non-four-character special-security type. |
+| TRN-C121 | The reviewed default translation rows for `rc` return of capital and bond-security `pd` use `$pty` / `$cash` source/destination context and do not populate the Special Security Type / Symbol columns. | Medium-High; TRN-S03-S04 | Do not place semantic labels such as `return_of_capital` or `principal_paydown` in a native-looking special-security-type field. Use the transaction code, real security type, cash-destination context, signs, holdings/principal effects, and local policy. |
 
 ## Translation and Context Claims
 
@@ -126,7 +128,7 @@ fixtures, and safety policy.
 
 | Claim | Observed evidence | Confidence | Boundary |
 |---|---|---:|---|
-| TRN-C180 | Translation guides expose transaction type, source/destination type and symbol, special-security type and symbol, broker, lot location, and comments. | Medium; TRN-S03-S06 | Observed integration fields, not official IMEX object definitions. |
+| TRN-C180 | Translation guides expose transaction type, source/destination type and symbol, a paired special-security type and symbol, broker, lot location, and comments. | Medium; TRN-S03-S06 | Observed integration fields, not official IMEX object definitions. Special-security type is an Axys/APX security-type identifier in the reviewed examples, not a free-form semantic label. |
 | TRN-C181 | Candidate Axys Trade Blotter settings/columns include transaction type, source/destination fields, special-security fields, commission, broker, lot, Perf/CW, and Mark to Market. | Medium; TRN-S04 | The full `topost.trn` layout and native meanings are Unknown. |
 | TRN-C182 | The visible Transaction Summary sample has Purchases, Sales, Dividends, Contributions, and Withdrawals sections. | Medium; TRN-S08 | A report presentation, not a native transaction schema. |
 | TRN-C183 | Visible Sales columns include Trade Date, Settle Date, Quantity, Symbol, Security, Unit Cost, Total Cost, Unit Price, Proceeds, and Gain/Loss. | Medium; TRN-S08 | Report fields may omit classification context required for audit. |
@@ -149,6 +151,7 @@ fixtures, and safety policy.
 | TRN-X007 | Translation tables prove observed defaults while simultaneously documenting site customization. | Treat defaults as provenance and require overrides/site evidence in production. |
 | TRN-X008 | IMEX, Trade Blotter, audit files, reports, and APX database access expose different lifecycle views. | Do not equate an interface artifact with canonical storage or complete audit history. |
 | TRN-X009 | Product pages establish broad capabilities but do not define transaction mechanics. | Use them only for capability claims. |
+| TRN-X010 | A normalized application may be tempted to put a readable event label into Special Security Type. | Keep native-looking type fields faithful to source domains. Express `rc`/`pd` meaning through code and corroborating context; do not invent `return_of_capital` or `principal_paydown` type values. |
 
 ## Evidence Required to Resolve Canonical Unknowns
 

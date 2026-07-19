@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.13 |
+| Version | 1.15 |
 | Date | 2026-07-19 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
@@ -16,6 +16,25 @@
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
 
 ## Change Log
+
+### Version 1.15 — 2026-07-19
+
+- Simplified the pre-MVP Audit output contract: the standard command creates
+  both available report levels and no longer exposes a report selector.
+- Made `source_detail.csv` a stable root-level reviewer artifact that is never
+  duplicated in `supporting_files/` or `audit_support.zip`.
+- Preserved lower-level one-view APIs and all finding, report-schema, and
+  financial semantics.
+
+### Version 1.14 — 2026-07-19
+
+- Made financially consequential Audit YAML choices explicit: comparison level,
+  comparison tolerances, extract-contract safety choices, applicable impact
+  policies, and both thresholds for every large-price-variation rule.
+- Migrated maintained configurations with their exact former effective values;
+  this changes omission behavior, not valid calculations or serialized findings.
+- Retained convenience defaults that do not silently select financial meaning,
+  including labels, suppressions, filters, and optional-file requiredness.
 
 ### Version 1.13 — 2026-07-19
 
@@ -38,7 +57,8 @@
   `large_price_variation` period-observation rule.
 - Recorded inclusive performance-period boundaries, trade-date inclusion,
   linked beginning holdings, split normalization, one maximum variation per
-  security/rule/period, decimal defaults, and independent overlapping rules.
+  security/rule/period, explicit decimal thresholds, and independent overlapping
+  rules.
 - Confirmed scalar-or-list exact-match filters, with source-qualified filters
   applying only to their holdings or transaction observation source.
 
@@ -435,9 +455,15 @@ Current report bundles can include:
 - complete `source_detail.csv` and `findings.csv` evidence;
 - primary and supporting CSV summaries and diagnostics;
 - `review_summary.json` handoff metadata;
-- `manifest.json` version 7;
+- `manifest.json` version 8;
 - cause lineage and typed semantic/display fingerprints; and
 - compact or expanded audit-support artifacts.
+
+The standard command writes both portfolio and security report bundles when
+their configured inputs are available and skips security only when the required
+security-performance input is unavailable. `source_detail.csv` remains at each
+report root in both compact and expanded modes; supporting archives and
+directories do not duplicate it.
 
 The normal review path begins with the Executive Summary, then exact performance
 differences and their supported causes, independent Data Issues findings, source

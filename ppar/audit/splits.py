@@ -60,13 +60,14 @@ class SplitsLoader:
         if cached is not None:
             return cached
 
-        frame = source_loader.read_mapped_csv(
+        frame = source_loader.read_schema_mapped_csv(
             path,
             pc_cols.SPLITS_COLUMNS,
             pc_cols.SPLITS,
             aliases.SPLITS_REQUIRED_ALIASES,
             aliases.SPLITS_OPTIONAL_ALIASES,
-            self._specification.path,
+            self._specification,
+            snapshot_key,
         ).with_columns(
             pl.col(pc_cols.SPLIT_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )

@@ -166,13 +166,14 @@ class FxRatesLoader:
         if cached is not None:
             return cached
 
-        frame = source_loader.read_mapped_csv(
+        frame = source_loader.read_schema_mapped_csv(
             path,
             pc_cols.FX_RATES_COLUMNS,
             pc_cols.FX_RATES,
             aliases.FX_RATES_REQUIRED_ALIASES,
             aliases.FX_RATES_OPTIONAL_ALIASES,
-            self._specification.path,
+            self._specification,
+            snapshot_key,
         ).with_columns(
             pl.col(pc_cols.RATE_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )

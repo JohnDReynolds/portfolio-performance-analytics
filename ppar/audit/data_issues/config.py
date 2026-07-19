@@ -373,6 +373,15 @@ def _validate_large_price_variation_rule(
         )
     if _ENABLED_KEY in raw_rule:
         _validate_boolean(raw_rule[_ENABLED_KEY], f"{path}.enabled")
+    missing_keys = [
+        key
+        for key in (_MINIMUM_CALENDAR_DAYS_KEY, _MINIMUM_TOLERANCE_KEY)
+        if key not in raw_rule
+    ]
+    if missing_keys:
+        raise ValueError(
+            f"{path} missing required keys: {', '.join(missing_keys)}."
+        )
     for filter_key in (_ONLY_KEY, _EXCLUDE_KEY):
         if filter_key in raw_rule:
             _validate_filter(raw_rule[filter_key], f"{path}.{filter_key}")
@@ -380,16 +389,14 @@ def _validate_large_price_variation_rule(
                 raw_rule[filter_key],
                 f"{path}.{filter_key}",
             )
-    if _MINIMUM_CALENDAR_DAYS_KEY in raw_rule:
-        _validate_positive_integer(
-            raw_rule[_MINIMUM_CALENDAR_DAYS_KEY],
-            f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY}",
-        )
-    if _MINIMUM_TOLERANCE_KEY in raw_rule:
-        _validate_tolerance(
-            raw_rule[_MINIMUM_TOLERANCE_KEY],
-            f"{path}.{_MINIMUM_TOLERANCE_KEY}",
-        )
+    _validate_positive_integer(
+        raw_rule[_MINIMUM_CALENDAR_DAYS_KEY],
+        f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY}",
+    )
+    _validate_tolerance(
+        raw_rule[_MINIMUM_TOLERANCE_KEY],
+        f"{path}.{_MINIMUM_TOLERANCE_KEY}",
+    )
 
 
 def _validate_large_price_filter_names(value: object, path: str) -> None:

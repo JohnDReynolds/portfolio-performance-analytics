@@ -109,6 +109,69 @@ _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
 )
 
 
+def _default_transaction_impact_methods() -> dict[str, object]:
+    """Return the transaction policies that were formerly internal defaults."""
+    return {
+        "external_flow": {"method": "evidence_only"},
+        "performance": {
+            "method": "transaction_amount_delta_over_return_denominator",
+            "denominator_source": "begin_market_value",
+        },
+        "quantity": {"method": "evidence_only"},
+        "price": {"method": "evidence_only"},
+        "commission": {"method": "evidence_only"},
+    }
+
+
+def _required_yaml_settings() -> dict[str, object]:
+    """Return explicit values that formerly had internal defaults."""
+    return {
+        "comparison": {"level": "portfolio"},
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
+        "transaction_impact_methods": _default_transaction_impact_methods(),
+        "holding_impact_methods": {
+            "market_value": {
+                "method": "market_value_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
+            },
+            "accrued": {
+                "method": "accrued_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
+            },
+            "quantity": {
+                "method": (
+                    "quantity_delta_times_snapshot_a_unit_market_value_over_"
+                    "return_denominator"
+                ),
+                "denominator_source": "begin_market_value",
+            },
+            "cost": {"method": "evidence_only"},
+        },
+        "price_impact_methods": {
+            "price": {
+                "method": "price_delta_over_snapshot_a_price_times_weight",
+                "weight_source": "snapshot_a_weight",
+            }
+        },
+        "fx_rate_impact_methods": {
+            "fx_rate": {"method": "evidence_only"},
+        },
+    }
+
+
 def _write_transaction_fallback_specification(directory: Path) -> Path:
     """Write a minimal transaction comparison fixture without transaction ids."""
     for snapshot_name, amount in (("snapshot_a", "100.00"), ("snapshot_b", "110.00")):
@@ -126,6 +189,7 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -163,6 +227,7 @@ def _write_no_id_transaction_date_move_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -179,6 +244,7 @@ def _write_no_id_transaction_date_move_specification(directory: Path) -> Path:
             },
         },
         "transaction_impact_methods": {
+            **_default_transaction_impact_methods(),
             "external_flow": {
                 "method": "modified_dietz",
                 "flow_timing": "trade_date",
@@ -212,6 +278,7 @@ def _write_duplicate_transaction_fallback_specification(directory: Path) -> Path
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -256,6 +323,7 @@ def _write_transaction_singleton_duplicate_specification(
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -298,6 +366,7 @@ def _write_transaction_case_sensitive_singleton_specification(
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -331,6 +400,7 @@ def _write_transaction_period_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -368,6 +438,7 @@ def _write_security_transaction_period_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "comparison": {
             "level": "security",
         },
@@ -380,6 +451,7 @@ def _write_security_transaction_period_specification(directory: Path) -> Path:
             "transactions": "transactions.csv",
         },
         "transaction_impact_methods": {
+            **_default_transaction_impact_methods(),
             "performance": {
                 "method": "transaction_amount_delta_over_return_denominator",
                 "denominator_source": "begin_market_value",
@@ -404,6 +476,7 @@ def _write_security_case_sensitive_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "comparison": {
             "level": "security",
         },
@@ -447,6 +520,7 @@ def _write_transaction_outside_period_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -500,6 +574,7 @@ def _write_transaction_changed_period_fallback_specification(
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -509,6 +584,7 @@ def _write_transaction_changed_period_fallback_specification(
             "transactions": "transactions.csv",
         },
         "transaction_impact_methods": {
+            **_default_transaction_impact_methods(),
             "performance": {
                 "method": "transaction_amount_delta_over_return_denominator",
                 "denominator_source": "begin_market_value",
@@ -540,6 +616,7 @@ def _write_holding_period_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -586,6 +663,7 @@ def _write_multi_portfolio_holding_price_specification(
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -625,6 +703,7 @@ def _write_duplicate_portfolio_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -649,6 +728,7 @@ def _write_blank_portfolio_key_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -678,6 +758,7 @@ def _write_blank_holding_key_specification(directory: Path) -> Path:
         )
 
     specification = {
+        **_required_yaml_settings(),
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -1134,11 +1215,11 @@ class TestPerformanceComparison(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_holding_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["holding_impact_methods"] = {
-                "market_value": {
-                    "method": "market_value_delta_over_return_denominator",
-                    "denominator_source": "begin_market_value",
-                },
+            holding_methods = configuration["holding_impact_methods"]
+            assert isinstance(holding_methods, dict)
+            holding_methods["market_value"] = {
+                "method": "market_value_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
             }
             specification_path.write_text(
                 yaml.safe_dump(configuration),
@@ -1190,11 +1271,11 @@ class TestPerformanceComparison(unittest.TestCase):
                     encoding="utf-8",
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["holding_impact_methods"] = {
-                "accrued": {
-                    "method": "accrued_delta_over_return_denominator",
-                    "denominator_source": "begin_market_value",
-                },
+            holding_methods = configuration["holding_impact_methods"]
+            assert isinstance(holding_methods, dict)
+            holding_methods["accrued"] = {
+                "method": "accrued_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
             }
             specification_path.write_text(
                 yaml.safe_dump(configuration),
@@ -1274,10 +1355,10 @@ class TestPerformanceComparison(unittest.TestCase):
                 encoding="utf-8",
             )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["holding_impact_methods"] = {
-                "quantity": {
-                    "method": "evidence_only",
-                },
+            holding_methods = configuration["holding_impact_methods"]
+            assert isinstance(holding_methods, dict)
+            holding_methods["quantity"] = {
+                "method": "evidence_only",
             }
             specification_path.write_text(
                 yaml.safe_dump(configuration),
@@ -1315,13 +1396,14 @@ class TestPerformanceComparison(unittest.TestCase):
                 encoding="utf-8",
             )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["holding_impact_methods"] = {
-                "quantity": {
-                    "method": (
-                        "quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator"
-                    ),
-                    "denominator_source": "begin_market_value",
-                },
+            holding_methods = configuration["holding_impact_methods"]
+            assert isinstance(holding_methods, dict)
+            holding_methods["quantity"] = {
+                "method": (
+                    "quantity_delta_times_snapshot_a_unit_market_value_over_"
+                    "return_denominator"
+                ),
+                "denominator_source": "begin_market_value",
             }
             specification_path.write_text(
                 yaml.safe_dump(configuration),
@@ -1381,6 +1463,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path.write_text(
                 yaml.safe_dump(
                     {
+                        **_required_yaml_settings(),
                         "snapshots": {
                             "a": {"path": "snapshot_a"},
                             "b": {"path": "snapshot_b"},
@@ -1388,11 +1471,6 @@ class TestPerformanceComparison(unittest.TestCase):
                         "files": {
                             "portfolio_performance": "portperf.csv",
                             "holdings": "holdings.csv",
-                        },
-                        "holding_impact_methods": {
-                            "cost": {
-                                "method": "evidence_only",
-                            },
                         },
                     }
                 ),
@@ -1655,6 +1733,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "commission": {
                     "method": "evidence_only",
                 },
@@ -1712,6 +1791,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {"method": "evidence_only"}
             }
             specification_path.write_text(
@@ -1760,6 +1840,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "performance": {
                     "method": "transaction_amount_delta_over_return_denominator",
                     "denominator_source": "begin_market_value",
@@ -2020,6 +2101,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {"method": "not_a_supported_method"}
             }
             specification_path.write_text(
@@ -2067,6 +2149,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     }
                     modified_dietz.update(overrides)
                     configuration["transaction_impact_methods"] = {
+                        **_default_transaction_impact_methods(),
                         "external_flow": modified_dietz
                     }
                     specification_path.write_text(
@@ -2093,6 +2176,7 @@ class TestPerformanceComparison(unittest.TestCase):
                         specification_path.read_text(encoding="utf-8")
                     )
                     configuration["transaction_impact_methods"] = {
+                        **_default_transaction_impact_methods(),
                         "external_flow": {"method": method}
                     }
                     specification_path.write_text(
@@ -2117,6 +2201,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {
                     "method": "modified_dietz",
                     "flow_timing": "trade_date",
@@ -2165,6 +2250,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {
                     "method": "modified_dietz",
                     "flow_timing": "settlement_date",
@@ -2219,6 +2305,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {
                     "method": "modified_dietz",
                     "flow_timing": "trade_date",
@@ -2263,6 +2350,7 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {
                     "method": "modified_dietz",
                     "flow_timing": "trade_date",
@@ -2300,6 +2388,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
                 "external_flow": {
                     "method": "modified_dietz",
                     "flow_timing": "trade_date",
@@ -2391,9 +2480,15 @@ class TestPerformanceComparison(unittest.TestCase):
                     configuration = yaml.safe_load(
                         specification_path.read_text(encoding="utf-8")
                     )
-                    configuration["transaction_impact_methods"] = (
-                        transaction_impact_methods
-                    )
+                    if isinstance(transaction_impact_methods, dict):
+                        configuration["transaction_impact_methods"] = {
+                            **_default_transaction_impact_methods(),
+                            **transaction_impact_methods,
+                        }
+                    else:
+                        configuration["transaction_impact_methods"] = (
+                            transaction_impact_methods
+                        )
                     specification_path.write_text(
                         yaml.safe_dump(configuration),
                         encoding="utf-8",
@@ -2405,6 +2500,31 @@ class TestPerformanceComparison(unittest.TestCase):
                         )
 
                     self.assertIn(expected_message, str(context.exception))
+
+    def test_configured_transaction_dataset_requires_complete_impact_policy(
+        self,
+    ) -> None:
+        """A configured transaction dataset cannot acquire implicit policies."""
+        for omitted_key in (None, "commission"):
+            with self.subTest(omitted_key=omitted_key):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    path = _write_transaction_period_specification(Path(temp_dir))
+                    configuration = yaml.safe_load(path.read_text(encoding="utf-8"))
+                    if omitted_key is None:
+                        del configuration["transaction_impact_methods"]
+                        expected_message = "transaction_impact_methods is required"
+                    else:
+                        methods = configuration["transaction_impact_methods"]
+                        assert isinstance(methods, dict)
+                        del methods[omitted_key]
+                        expected_message = (
+                            "transaction_impact_methods is missing required keys: "
+                            "commission"
+                        )
+                    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+
+                    with self.assertRaisesRegex(PpaError, expected_message):
+                        PerformanceComparison(AuditSpecification(path))
 
     def test_security_return_impact_methods_are_required_for_security_level(
         self,
@@ -2642,7 +2762,17 @@ class TestPerformanceComparison(unittest.TestCase):
                     configuration = yaml.safe_load(
                         specification_path.read_text(encoding="utf-8")
                     )
-                    configuration["holding_impact_methods"] = holding_impact_methods
+                    if isinstance(holding_impact_methods, dict):
+                        configured_methods = configuration["holding_impact_methods"]
+                        assert isinstance(configured_methods, dict)
+                        configuration["holding_impact_methods"] = {
+                            **configured_methods,
+                            **holding_impact_methods,
+                        }
+                    else:
+                        configuration["holding_impact_methods"] = (
+                            holding_impact_methods
+                        )
                     specification_path.write_text(
                         yaml.safe_dump(configuration),
                         encoding="utf-8",
@@ -2654,6 +2784,24 @@ class TestPerformanceComparison(unittest.TestCase):
                         )
 
                     self.assertIn(expected_message, str(context.exception))
+
+    def test_configured_holding_dataset_requires_explicit_impact_policies(
+        self,
+    ) -> None:
+        """Holding and price policies cannot be inherited from Python defaults."""
+        for omitted_section in ("holding_impact_methods", "price_impact_methods"):
+            with self.subTest(omitted_section=omitted_section):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    path = _write_holding_period_specification(Path(temp_dir))
+                    configuration = yaml.safe_load(path.read_text(encoding="utf-8"))
+                    del configuration[omitted_section]
+                    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+
+                    with self.assertRaisesRegex(
+                        PpaError,
+                        f"{omitted_section} is required",
+                    ):
+                        PerformanceComparison(AuditSpecification(path))
 
     def test_price_impact_methods_reject_malformed_yaml(self) -> None:
         """Price impact method YAML must use the supported contract."""
@@ -2753,6 +2901,30 @@ class TestPerformanceComparison(unittest.TestCase):
                         )
 
                     self.assertIn(expected_message, str(context.exception))
+
+    def test_configured_fx_dataset_requires_explicit_impact_policy(self) -> None:
+        """A configured FX dataset cannot acquire evidence-only treatment implicitly."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            path = _write_multi_portfolio_holding_price_specification(root)
+            configuration = yaml.safe_load(path.read_text(encoding="utf-8"))
+            files = configuration["files"]
+            assert isinstance(files, dict)
+            files["fx_rates"] = "fx_rates.csv"
+            del configuration["fx_rate_impact_methods"]
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (root / snapshot_name / "fx_rates.csv").write_text(
+                    "FROM_CURRENCY,TO_CURRENCY,RATE_DATE,FX_RATE\n"
+                    "EUR,USD,2025-05-31,1.10000000\n",
+                    encoding="utf-8",
+                )
+            path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "fx_rate_impact_methods is required",
+            ):
+                PerformanceComparison(AuditSpecification(path))
 
     def test_evidence_only_impact_methods_reject_malformed_yaml(self) -> None:
         """Evidence-only impact method YAML must use the supported contract."""

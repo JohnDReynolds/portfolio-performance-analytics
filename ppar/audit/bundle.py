@@ -81,7 +81,7 @@ _CSV_PRIMARY_REVIEW_ARTIFACTS = (
     _pc_review_model.DATA_ISSUES_ARTIFACT,
 )
 _REPORT_BUNDLE_TYPE = "audit_report"
-_REPORT_BUNDLE_MANIFEST_VERSION = 7
+_REPORT_BUNDLE_MANIFEST_VERSION = 8
 _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "bundle_type",
     "manifest_version",
@@ -241,17 +241,19 @@ def write_csv_artifact(table: pl.DataFrame, output_path: Path) -> Path:
 def compact_supporting_files(
     bundle_directory: Path,
     *,
-    promoted_file_names: Sequence[str] = (PROMOTED_SOURCE_DETAIL,),
+    promoted_file_names: Sequence[str] = (),
 ) -> dict[str, Path]:
     """Promote reviewer files and archive a validated supporting directory.
 
     Args:
         bundle_directory: Root of a fully written, expanded report bundle.
         promoted_file_names: Supporting filenames to copy to the bundle root
-            before archiving the complete supporting directory.
+            before archiving the supporting directory. Root-level
+            ``source_detail.csv`` is written before this function is called and
+            is never part of the supporting directory.
 
     Returns:
-        Paths to the promoted reviewer files and complete supporting ZIP archive.
+        Paths to any promoted reviewer files and the supporting ZIP archive.
 
     Raises:
         FileNotFoundError: If the expanded supporting directory or a requested
@@ -351,11 +353,6 @@ def write_report_bundle_readme(
             "`performance_difference_causes.csv` for the additive explanation."
         )
     review_unit = _readme_review_unit(comparison_level)
-    source_detail_path = (
-        PROMOTED_SOURCE_DETAIL
-        if csv_only_output or not expand_all_supporting_files
-        else f"{SUPPORTING_FILES_DIRECTORY}/source_detail.csv"
-    )
     causes_review_artifact = (
         "`performance_difference_causes.csv`"
         if csv_only_output
@@ -395,7 +392,7 @@ def write_report_bundle_readme(
         ),
         f"3. Use {data_issues_review_artifact} to review cross-reference "
         "consistency checks across the union of Snapshot A and Snapshot B.",
-        f"4. Use `{source_detail_path}` for audit and "
+        f"4. Use `{PROMOTED_SOURCE_DETAIL}` for audit and "
         "troubleshooting; it is the reviewer-friendly finding-level audit trail.",
     ]
     if expand_all_supporting_files:
@@ -416,13 +413,13 @@ def _archived_supporting_files_readme_lines(
 ) -> list[str]:
     """Return concise README guidance for the default compact bundle."""
     lines = [
-        "5. The complete machine-readable audit trail is preserved in "
+        "5. The machine-readable supporting evidence is preserved in "
         f"`{AUDIT_SUPPORT_ARCHIVE}`.",
         "",
         "## Supporting Audit Evidence",
         "",
         f"- `{PROMOTED_SOURCE_DETAIL}`: reviewer-friendly finding-level audit trail.",
-        f"- `{AUDIT_SUPPORT_ARCHIVE}`: complete validated supporting bundle, including "
+        f"- `{AUDIT_SUPPORT_ARCHIVE}`: validated supporting bundle, including "
         "findings, lineage, diagnostics, manifest, and review-handoff metadata.",
         "- Regenerate with `--expand-all-supporting-files` when individual supporting "
         "CSV and JSON files are needed.",
@@ -460,8 +457,7 @@ def _expanded_supporting_files_readme_lines(
         f"- `{SUPPORTING_FILES_DIRECTORY}/findings.csv`: complete finding-level "
         "comparison output, including suppressed rows and explicit safety "
         "dispositions.",
-        f"- `{SUPPORTING_FILES_DIRECTORY}/source_detail.csv`: reviewer-friendly "
-        "finding-level audit trail.",
+        f"- `{PROMOTED_SOURCE_DETAIL}`: reviewer-friendly finding-level audit trail.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/manifest.json`: machine-readable artifact "
         "map, source context, transaction semantics summary, and row-count metadata.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/review_summary.json`: compact reviewer "
@@ -914,6 +910,8 @@ def _promoted_csv_archive_issues(
 ) -> list[str]:
     """Return parity issues between promoted CSVs and their archived copies."""
     for promoted_path in sorted(bundle_path.glob("*.csv")):
+        if promoted_path.name == PROMOTED_SOURCE_DETAIL:
+            continue
         archived_path = (
             expanded_path / SUPPORTING_FILES_DIRECTORY / promoted_path.name
         )
@@ -1026,6 +1024,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         f"- `{SUPPORTING_FILES_DIRECTORY}/{name}.csv`: "
         f"{descriptions.get(name, 'report helper table')} ({table.height} row(s))."
         for name, table in sorted(tables.items())
+        if name != Path(PROMOTED_SOURCE_DETAIL).stem
     ]
 
 

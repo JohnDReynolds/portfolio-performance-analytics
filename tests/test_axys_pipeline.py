@@ -205,6 +205,50 @@ class TestAxysPipeline(unittest.TestCase):
             self.assertEqual(portfolio.portfolio_name, "P1 - Growth")
             self.assertEqual(portfolio.security_performance.height, 4)
 
+    def test_composite_security_id_joins_performance_and_security_master(self) -> None:
+        """Analytics shares type-first composite identity across its sources."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_axys_inputs(directory)
+            security_types = {"A": "csus", "B": "csus", "C": "caus", "UNUSED": "csus"}
+            for file_name in ("secperf.csv", "security_master.csv"):
+                path = directory / file_name
+                frame = pl.read_csv(path).rename({"SECURITY_ID": "Security Symbol"})
+                frame = frame.with_columns(
+                    pl.col("Security Symbol")
+                    .replace_strict(security_types)
+                    .alias("Security Type")
+                )
+                frame.write_csv(path)
+
+            specification = yaml.safe_load(
+                specification_path.read_text(encoding="utf-8")
+            )
+            assert isinstance(specification, dict)
+            specification["security_id"] = {
+                "components": ["Security Type", "Security Symbol"],
+                "separator": "_",
+            }
+            del specification["security_performance_columns"][cols.IDENTIFIER]
+            del specification["security_master_columns"]["identifier_column"]
+            specification_path.write_text(
+                yaml.safe_dump(specification),
+                encoding="utf-8",
+            )
+
+            data = AxysData(specification_path)
+            portfolio = data.get_portfolio("P1")
+            sources = data.get_classification_sources("Security", portfolio)
+
+            self.assertEqual(
+                portfolio.security_performance[cols.IDENTIFIER].unique().sort().to_list(),
+                ["csus_A", "csus_B"],
+            )
+            self.assertEqual(
+                sources.classification_data_source[cols.IDENTIFIER].sort().to_list(),
+                ["csus_A", "csus_B"],
+            )
+
     def test_explicit_performance_mapping_wins_over_aliases(self) -> None:
         """Configured performance columns avoid ambiguity from alias columns."""
         with tempfile.TemporaryDirectory() as temp_dir:

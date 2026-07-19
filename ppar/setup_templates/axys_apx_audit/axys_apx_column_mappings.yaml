@@ -1,117 +1,110 @@
-# =========================
-# PPAR Axys/APX Configuration
-# =========================
-# This file tells PPAR where to find your Axys/APX exports and how to interpret
-# the columns in those files.
+# PPAR mappings for the Axys/APX-style Audit starter extracts.
 #
-# General Rules:
-# - File paths may be absolute or relative to this file.
-# - In many cases, only the three file paths below are required.
-# - PPAR can infer common Axys/APX IMEX column names for performance and security
-#   master exports.
-# - Add optional column sections only when your export uses names PPAR cannot
-#   infer.
-# - Fields ending in "_column" contain Axys/APX export column names.
-# - Unknown fields are rejected so spelling mistakes fail loudly.
-# - In detailed holdings/transactions data, unqualified monetary fields
-#   use the row currency; BASE_ fields use portfolio base currency.
-# - Portfolio/security performance monetary fields are inherently in portfolio
-#   base currency and remain unprefixed.
-# - FX_RATE means TO_CURRENCY units per one FROM_CURRENCY unit.
-# - Do not create LOCAL_ duplicates; row currency is the detailed-data default.
+# Source headings intentionally resemble readable IMEX/REP report captions.
+# PPAR matches every configured heading exactly, including spaces and case.
 
+# Axys/APX security identity is the security-type/symbol pair. Human-facing
+# exports usually present Symbol before Type, but compact Axys tokens commonly
+# place Type before Symbol. PPAR follows that convention, so csus + AAPL becomes
+# csusAAPL. Axys/APX security types are typically four characters; PPAR retains
+# the source value without imposing a length restriction.
+security_id:
+  components:
+    - "Security Type"
+    - "Security Symbol"
+  # Optional. Omit for compact Axys/APX identifiers. A site may instead use:
+  # separator: "_"
 
-# =========================
-# Defaults
-# =========================
-# Optional defaults used when a caller does not pass these values to
-# AxysData.get_portfolio().
-defaults:
-  # Optional inclusive earliest reporting date to retain.
-  from_date: 2024-01-01
+portfolio_performance_columns:
+  portfolio_code: "Portfolio Code"
+  portfolio_name: "Portfolio Name"
+  from_date: "From Date"
+  thru_date: "Thru Date"
+  portfolio_return: "Portfolio Return"
+  begin_market_value: "Beginning Market Value"
+  end_market_value: "Ending Market Value"
+  flow: "Net Flow"
+  income: "Income"
+  gain_loss: "Gain/Loss"
+  base_currency: "Base Currency"
 
-  # Optional inclusive latest thru date to retain.
-  thru_date: 2024-12-31
+security_performance_columns:
+  portfolio_code: "Portfolio Code"
+  security_name: "Security Name"
+  from_date: "From Date"
+  thru_date: "Thru Date"
+  security_return: "Security Return"
+  weight: "Beginning Weight"
+  contribution: "Contribution"
+  begin_market_value: "Beginning Market Value"
+  end_market_value: "Ending Market Value"
+  income: "Income"
+  gain_loss: "Gain/Loss"
 
-# =========================
-# Portfolio Performance Export
-# =========================
-# Path to the Axys/APX portfolio-level performance export.
-portfolio_performance_path: snapshot_a/portperf.csv
+security_reference_columns:
+  security_name: "Security Name"
+  ticker: "Ticker"
+  cusip: "CUSIP"
+  isin: "ISIN"
+  security_type: "Security Type"
+  asset_class_code: "Asset Class Code"
+  asset_class_name: "Asset Class Name"
+  sector_code: "Sector Code"
+  sector: "Sector Name"
+  country_code: "Country Code"
+  country: "Country Name"
+  currency: "Currency Code"
 
-# Optional: Portfolio Performance Column Overrides
-# Usually this section can be omitted. Add it only if your Axys/APX export uses
-# column names PPAR cannot infer.
-#
-# portfolio_performance_columns:
-#   # First date in the portfolio performance period.
-#   from_date: FROM_DATE
-#
-#   # Last date in the portfolio performance period.
-#   thru_date: THRU_DATE
-#
-#   # Axys/APX account code.
-#   portfolio_code: PORTFOLIO_CODE
-#
-#   # Portfolio return for the period.
-#   portfolio_return: PORT_RETURN
-#
-#   # Authoritative portfolio reporting currency.
-#   base_currency: BASE_CURRENCY
+holdings_columns:
+  portfolio_code: "Portfolio Code"
+  holding_date: "Holding Date"
+  quantity: "Quantity"
+  price: "Price"
+  market_value: "Market Value"
+  base_market_value: "Base Market Value"
+  cost: "Cost"
+  accrued: "Accrued Income"
+  base_accrued: "Base Accrued Income"
+  currency: "Currency Code"
+  base_currency: "Base Currency"
 
+transactions_columns:
+  portfolio_code: "Portfolio Code"
+  transaction_id: "Transaction ID"
+  transaction_date: "Transaction Date"
+  settlement_date: "Settlement Date"
+  transaction_code: "Transaction Code"
+  original_cost_date: "Original Cost Date"
+  security_type: "Transaction Security Type"
+  source_destination_type: "Source/Destination Type"
+  source_destination_symbol: "Source/Destination Symbol"
+  special_security_type: "Special Security Type"
+  special_security_symbol: "Special Security Symbol"
+  transaction_category: "Transaction Category"
+  cash_flow_sign: "Cash Flow Sign"
+  performance_flow_sign: "Performance Flow Sign"
+  quantity: "Quantity"
+  price: "Price"
+  amount: "Amount"
+  base_amount: "Base Amount"
+  commission: "Commission"
+  currency: "Currency Code"
+  base_currency: "Base Currency"
+  broker: "Broker"
+  original_cost: "Original Cost"
 
-# =========================
-# Security Performance Export
-# =========================
-# Path to the Axys/APX security-level performance export.
-security_performance_path: snapshot_a/secperf.csv
+splits_columns:
+  security_name: "Security Name"
+  ticker: "Ticker"
+  split_date: "Split Date"
+  split_factor: "Split Factor"
 
-# Optional: Security Performance Column Overrides
-# Usually this section can be omitted. Add it only if your Axys/APX export uses
-# column names PPAR cannot infer.
-#
-# security_performance_columns:
-#   # First date in the security performance period.
-#   from_date: FROM_DATE
-#
-#   # Last date in the security performance period.
-#   thru_date: THRU_DATE
-#
-#   # Security identifier used in the security performance rows.
-#   identifier: SECURITY_ID
-#
-#   # Axys/APX account code.
-#   portfolio_code: PORTFOLIO_CODE
-#
-#   # Security return for the period.
-#   return: SEC_RETURN
-#
-#   # Security weight used for return/contribution analysis.
-#   weight: BEGIN_WEIGHT
-#
-#   # Security contribution for the period.
-#   contribution: CONTRIBUTION
-
-
-# =========================
-# Security Reference Export
-# =========================
-# Optional: Security Reference Column Overrides
-# Add this section only if your secref.csv uses source column names that PPAR
-# cannot infer. SECURITY_ID is the exact-case join key. Other fields are loaded
-# only as qualifiers for Data Issues filters and do not affect performance math.
-#
-# security_reference_columns:
-#   identifier: SECURITY_ID
-#   security_name: SECURITY_NAME
-#   ticker: TICKER
-#   cusip: CUSIP
-#   isin: ISIN
-#   security_type: SECURITY_TYPE
-#   asset_class_code: ASSET_CLASS_CODE
-#   asset_class_name: ASSET_CLASS_NAME
-#   sector_code: SECTOR_CODE
-#   sector: SECTOR_DESC
-#   country_code: COUNTRY_CODE
-#   country: COUNTRY_DESC
-#   currency: CURRENCY_CODE
+fx_rates_columns:
+  portfolio_code: "Portfolio Code"
+  from_currency: "From Currency"
+  to_currency: "To Currency"
+  rate_date: "Rate Date"
+  fx_rate: "FX Rate"
+  local_exposure: "Local Exposure"
+  rate_source: "Rate Source"
+  rate_type: "Rate Type"

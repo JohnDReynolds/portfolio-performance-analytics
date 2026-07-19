@@ -22,6 +22,27 @@ _AXYS_APX_STARTER = Path(
 )
 
 
+def _required_yaml_settings() -> dict[str, object]:
+    """Return explicit settings unrelated to the cash-contract defect."""
+    return {
+        "comparison": {"level": "portfolio"},
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
+    }
+
+
 class TestCashRepresentationContract(unittest.TestCase):
     """Verify cash balances have exactly one normalized dataset representation."""
 
@@ -46,6 +67,7 @@ class TestCashRepresentationContract(unittest.TestCase):
                     encoding="utf-8",
                 )
             configuration = {
+                **_required_yaml_settings(),
                 "snapshots": {
                     "a": {"path": "snapshot_a"},
                     "b": {"path": "snapshot_b"},
@@ -81,6 +103,7 @@ class TestCashRepresentationContract(unittest.TestCase):
                     encoding="utf-8",
                 )
             configuration = {
+                **_required_yaml_settings(),
                 "snapshots": {
                     "a": {"path": "snapshot_a"},
                     "b": {"path": "snapshot_b"},

@@ -11,11 +11,11 @@ snapshot_b,insert,BALANCED0603,BALANCED,2026-05-15,2026-05-15,TSLA,ss,csus,awus,
 snapshot_b,insert,BALANCED0604,BALANCED,2026-05-29,2026-05-29,TSLA,cs,csus,$pty,$cash,,,50.0,435.79,-21789.5,0.0,0.0,0.0,0.0,0.0,TSLA cover short uses real 2026-05-29 close price in a synthetic short-side demo.
 snapshot_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
 snapshot_b,adjust,BALANCED_JPM_WHT,,,,,,,,,,,,,,,0.0,0.0,-17.56,0.0,JPM withholding correction increases separate tax expense.
-snapshot_b,insert,BALANCED0503,BALANCED,2026-04-18,2026-04-18,JPM,rc,csus,$pty,$cash,return_of_capital,JPM,0.0,0.0,240.0,0.0,0.0,0.0,0.0,0.0,JPM return-of-capital row adds security-level cash income.
-snapshot_b,insert,BALANCED0605,BALANCED,2026-05-12,2026-05-12,JPM,rc,csus,$pty,$cash,,,0.0,0.0,200.0,0.0,0.0,0.0,0.0,0.0,JPM code-only return-of-capital row remains neutral possible-cause evidence.
+snapshot_b,insert,BALANCED0503,BALANCED,2026-04-18,2026-04-18,JPM,rc,csus,$pty,$cash,,,0.0,0.0,240.0,0.0,0.0,0.0,0.0,0.0,JPM return-of-capital row adds security-level cash income.
+snapshot_b,insert,BALANCED0605,BALANCED,2026-05-12,2026-05-12,JPM,rc,csus,,,,,0.0,0.0,200.0,0.0,0.0,0.0,0.0,0.0,JPM code-only return-of-capital row remains neutral possible-cause evidence.
 snapshot_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
 snapshot_b,adjust,INCOME0603,,,,,,,,,,,,,,,0.0,0.0,80.0,0.0,91282Y2Y1 interest correction increases cash income.
-snapshot_b,insert,INCOME0605,INCOME,2026-05-18,2026-05-18,36225MBS1,pd,mbus,$pty,$cash,principal_paydown,36225MBS1,0.0,0.0,320.0,0.0,0.0,0.0,0.0,0.0,36225MBS1 principal paydown returns mortgage principal to cash.
+snapshot_b,insert,INCOME0605,INCOME,2026-05-18,2026-05-18,36225MBS1,pd,fius,$pty,$cash,,,0.0,0.0,320.0,0.0,0.0,0.0,0.0,0.0,36225MBS1 principal paydown returns mortgage principal to cash.
 snapshot_b,insert,INCOME0303,INCOME,2026-02-10,2026-02-10,91282Y5Y1,by,fius,$cash,CASHUSD,,,5.0,119.64,-598.2,0.0,0.0,0.0,0.0,0.0,91282Y5Y1 purchase leg paired with purchase accrued interest.
 snapshot_b,insert,INCOME0304,INCOME,2026-02-10,2026-02-10,91282Y5Y1,pa,fius,$income,$cash,,,0.0,0.0,-42.5,0.0,0.0,0.0,0.0,0.0,91282Y5Y1 purchase accrued interest settlement.
 snapshot_b,insert,INCOME0305,INCOME,2026-02-20,2026-02-20,91282Y5Y1,sl,fius,$cash,CASHUSD,,,3.0,120.02,360.06,0.0,0.0,0.0,0.0,0.0,91282Y5Y1 sale leg paired with sale accrued interest.

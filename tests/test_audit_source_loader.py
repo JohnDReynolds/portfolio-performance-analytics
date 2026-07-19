@@ -12,6 +12,10 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
+from ppar.axys_apx.security_identity import (
+    SecurityIdConstruction,
+    with_constructed_security_id,
+)
 from ppar.audit import aliases
 from ppar.audit import schema as pc_cols
 from ppar.audit import source_loader
@@ -201,6 +205,88 @@ class TestSourceLoader(unittest.TestCase):
                 ("CUSTOM_RETURN",),
             )
 
+    def test_schema_constructs_security_id_from_spaced_source_headers(self) -> None:
+        """Audit constructs a type-first key from exact source column names."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_source_loader_specification(directory)
+            schema_path = directory / "axys_column_mappings.yaml"
+            schema_path.write_text(
+                yaml.safe_dump(
+                    {
+                        "security_id": {
+                            "components": ["Security Type", "Security Symbol"],
+                        },
+                        "security_performance_columns": {
+                            "portfolio_code": "Portfolio Code",
+                            "from_date": "From Date",
+                            "thru_date": "Thru Date",
+                            "return": "Security Return",
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            specification_values = yaml.safe_load(
+                specification_path.read_text(encoding="utf-8")
+            )
+            assert isinstance(specification_values, dict)
+            specification_values["snapshots"]["a"]["schema"] = str(schema_path)
+            specification_path.write_text(
+                yaml.safe_dump(specification_values),
+                encoding="utf-8",
+            )
+            source_path = directory / "snapshot_a" / "secperf.csv"
+            pl.DataFrame(
+                {
+                    "Portfolio Code": ["PORT_A", "PORT_A"],
+                    "Security Symbol": ["AAPL", "AAPL"],
+                    "Security Type": ["csus", "amus"],
+                    "From Date": ["2025-05-01", "2025-05-01"],
+                    "Thru Date": ["2025-05-31", "2025-05-31"],
+                    "Security Return": [0.01, 0.02],
+                }
+            ).write_csv(source_path)
+            specification = AuditSpecification(specification_path)
+
+            frame = source_loader.read_schema_mapped_csv(
+                source_path,
+                pc_cols.SECURITY_PERFORMANCE_COLUMNS,
+                pc_cols.SECURITY_PERFORMANCE,
+                aliases.SECURITY_PERFORMANCE_REQUIRED_ALIASES,
+                aliases.SECURITY_PERFORMANCE_OPTIONAL_ALIASES,
+                specification,
+                "a",
+            )
+
+            self.assertEqual(
+                frame.get_column(pc_cols.SECURITY_ID).to_list(),
+                ["csusAAPL", "amusAAPL"],
+            )
+
+    def test_compact_security_id_rejects_ambiguous_component_pairs(self) -> None:
+        """Separator-free keys stop when distinct source pairs would collide."""
+        frame = pl.DataFrame(
+            {
+                "Security Type": ["ab", "a"],
+                "Security Symbol": ["c", "bc"],
+            }
+        )
+        construction = SecurityIdConstruction(
+            components=("Security Type", "Security Symbol"),
+            separator="",
+        )
+
+        with self.assertRaisesRegex(PpaError, "ambiguous identifier 'abc'"):
+            with_constructed_security_id(
+                frame,
+                construction,
+                output_column="security_id",
+                dataset_name="security_reference",
+                source_path="secref.csv",
+                error_message=lambda message: message,
+            )
+
     def test_read_mapped_csv_raises_error_502_for_missing_required_column(self) -> None:
         """Missing required aliases fail with a clear source resolution error."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -318,6 +404,7 @@ def _write_source_loader_specification(directory: Path) -> Path:
         )
 
     specification = {
+        "comparison": {"level": "portfolio"},
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
@@ -325,6 +412,23 @@ def _write_source_loader_specification(directory: Path) -> Path:
         "files": {
             "portfolio_performance": "portperf.csv",
             "fx_rates": "fx_rates.csv",
+        },
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "fx_rate_impact_methods": {
+            "fx_rate": {"method": "evidence_only"},
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
         },
     }
     specification_path = directory / "ppar_audit.yaml"

@@ -1,14 +1,11 @@
-# Machine-readable extraction-confidence contract for the packaged Axys/APX demo
-# CSV fields. Keep this aligned with docs/axys_apx/
-# contracts/demo_extract_availability.md.
 version: 1
 scope:
   snapshots:
-    - snapshot_a
-    - snapshot_b
-  purpose: >
-    Every packaged comparison demo CSV column must have an explicit
-    IMEX/REP availability confidence decision.
+  - snapshot_a
+  - snapshot_b
+  purpose: 'Every packaged comparison demo CSV column must have an explicit IMEX/REP availability confidence decision.
+
+    '
 confidence_labels:
   high: Strongly likely to be obtainable from a typical Axys/APX environment.
   medium_high: Between medium and high; likely available, but still report/profile dependent.
@@ -17,15 +14,18 @@ confidence_labels:
   low_medium: Between low and medium; possible and plausible, but not proven as a standard field.
   low: Possible through customization or site-specific configuration, but not enough to rely on.
   unknown: Not established by the local Axys/APX reference corpus.
-normalized_multicurrency_defaults: &normalized_multicurrency_defaults
+normalized_multicurrency_defaults:
   imex_confidence: unknown
   rep_confidence: low_medium
   comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
-  basis: The research supports multi-currency concepts but does not prove this exact export field or normalized layout.
-  open_questions:
+  basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+    layout.
+  open_questions: &id001
   - Confirm the local source, field label, currency basis, and date semantics.
-  candidate_axys_names: [Currency-related local field]
-  candidate_report_labels: [Currency-related report field]
+  candidate_axys_names:
+  - Currency-related local field
+  candidate_report_labels:
+  - Currency-related report field
   name_confidence: inferred_alias
   name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
   preferred_source: local_discovery_required
@@ -37,22 +37,33 @@ datasets:
   holdings.csv:
     extraction_requirements:
       dataset: required
-      reason: Beginning and ending base-currency values provide the Modified Dietz valuation inputs used to explain a changed return.
+      reason: Beginning and ending base-currency values provide the Modified Dietz valuation inputs used to explain
+        a changed return.
       likely_source: IMEX positions/holdings export or a REP appraisal report.
-      required: [PORT, SEC, HOLDING_DATE, MKT_VAL]
+      required:
+      - Portfolio Code
+      - Security Symbol
+      - Security Type
+      - Holding Date
+      - Market Value
       required_only_when_applicable:
-        CURRENCY: Required for holdings whose local currency differs from the portfolio base currency.
-        BASE_CURRENCY: Required for multi-currency portfolios unless a validated portfolio-level source supplies it.
-        BASE_MKT_VAL: Required when MKT_VAL is local-currency rather than portfolio-base value.
-        ACCRUED: Required when accrued income is stated separately from MKT_VAL and affects beginning or ending value.
-      optional: [QTY, PRICE]
+        Currency Code: Required for holdings whose local currency differs from the portfolio base currency.
+        Base Currency: Required for multi-currency portfolios unless a validated portfolio-level source supplies
+          it.
+        Base Market Value: Required when MKT_VAL is local-currency rather than portfolio-base value.
+        Accrued Income: Required when accrued income is stated separately from MKT_VAL and affects beginning or
+          ending value.
+      optional:
+      - Quantity
+      - Price
     columns:
-      PORT:
+      Portfolio Code:
         normalized_meaning: Portfolio/account identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Core portfolio/client identifier in position and appraisal workflows.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and
+          axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -64,19 +75,21 @@ datasets:
         - Portfolio
         - Account
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
-          REP extract.
-      SEC:
+        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or
+          an appraisal-style REP extract.
+      Security Symbol:
         normalized_meaning: Security identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Security identifiers are supported by CI/security-resolution and report evidence.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and
+          axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -89,19 +102,48 @@ datasets:
         - Symbol
         - Security ID
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
-          REP extract.
-      HOLDING_DATE:
+        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or
+          an appraisal-style REP extract.
+      Security Type:
+        normalized_meaning: Security-type component paired with Security Symbol to construct PPAR security_id.
+        imex_confidence: high
+        rep_confidence: medium
+        comments: Symbol alone is not unique; the reviewed type/symbol pair defines source security identity.
+        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and
+          mixed-case examples in integration workflows.
+        open_questions:
+        - Confirm the local security-type field, value dictionary, case rules, and version applicability.
+        candidate_axys_names:
+        - SECURITY_TYPE
+        - SEC_TYPE
+        - Security Type
+        - Sec Type Code
+        - Type
+        candidate_report_labels:
+        - Security Type
+        - Sec Type
+        - Type
+        name_confidence: inferred_alias
+        name_notes: Candidate aliases and labels are workflow evidence, not a complete native field dictionary.
+        preferred_source: imex_then_rep_cross_check
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Preserve the exact source value and validate the site-specific code dictionary before
+          filtering.
+      Holding Date:
         normalized_meaning: As-of date for holdings.
         imex_confidence: high
         rep_confidence: high
         comments: Position exports and appraisal reports are inherently as-of-date based.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and
+          axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -117,24 +159,57 @@ datasets:
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
-          REP extract.
-      CURRENCY:
-        <<: *normalized_multicurrency_defaults
+        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or
+          an appraisal-style REP extract.
+      Currency Code:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Currency
+        - Local Currency
+        candidate_report_labels:
+        - Currency
+        - Local Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Local currency of the holding row.
-        candidate_axys_names: [Currency, Local Currency]
-        candidate_report_labels: [Currency, Local Currency]
-      BASE_CURRENCY:
-        <<: *normalized_multicurrency_defaults
+      Base Currency:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Base Currency
+        - Portfolio Currency
+        candidate_report_labels:
+        - Base Currency
+        - Reporting Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Portfolio reporting currency used for the holding row.
-        candidate_axys_names: [Base Currency, Portfolio Currency]
-        candidate_report_labels: [Base Currency, Reporting Currency]
-      QTY:
+      Quantity:
         normalized_meaning: Quantity, shares, or units.
         imex_confidence: high
         rep_confidence: high
         comments: Quantity is directly supported by transaction and appraisal report evidence.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and
+          axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -147,19 +222,21 @@ datasets:
         - Shares
         - Units
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
-          REP extract.
-      PRICE:
+        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or
+          an appraisal-style REP extract.
+      Price:
         normalized_meaning: Market price used for valuation.
         imex_confidence: high
         rep_confidence: high
         comments: Price import/export evidence and appraisal/report labels support availability.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and
+          axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -170,19 +247,21 @@ datasets:
         - Price
         - Market Price
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
-          REP extract.
-      MKT_VAL:
+        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or
+          an appraisal-style REP extract.
+      Market Value:
         normalized_meaning: Market value.
         imex_confidence: high
         rep_confidence: high
         comments: Market value appears in report evidence and is a core position/appraisal value.
-        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_apx_common_core_export.md.
+        basis: Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and
+          axys_apx_common_core_export.md.
         open_questions:
         - Confirm exact local IMEX profile and field name.
         candidate_axys_names:
@@ -192,25 +271,42 @@ datasets:
         candidate_report_labels:
         - Market Value
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
-          REP extract.
-      BASE_MKT_VAL:
-        <<: *normalized_multicurrency_defaults
+        source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or
+          an appraisal-style REP extract.
+      Base Market Value:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Base Market Value
+        - Reporting Market Value
+        candidate_report_labels:
+        - Base Market Value
+        - Reporting Market Value
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Holding market value translated to portfolio base currency.
-        candidate_axys_names: [Base Market Value, Reporting Market Value]
-        candidate_report_labels: [Base Market Value, Reporting Market Value]
-      ACCRUED:
+      Accrued Income:
         normalized_meaning: Accrued income or accrued interest.
         imex_confidence: medium
         rep_confidence: medium
         comments: Common for fixed-income holdings, but exact export/report field requires validation.
-        basis: Fixed-income/accrual handling is documented as performance-sensitive; common-core holdings reference treats
-          accrued income as plausible.
+        basis: Fixed-income/accrual handling is documented as performance-sensitive; common-core holdings reference
+          treats accrued income as plausible.
         open_questions:
         - Confirm accrued-income field, date basis, and fixed-income treatment.
         candidate_axys_names:
@@ -226,25 +322,35 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Accrued income can affect performance reconciliation, so validate the field before running
-          accrual-sensitive comparisons.
+        source_strategy_notes: Accrued income can affect performance reconciliation, so validate the field before
+          running accrual-sensitive comparisons.
   portperf.csv:
     extraction_requirements:
       dataset: required
       reason: The portfolio, period, and reported return define the performance difference PPAR must explain.
-      likely_source: REP performance report preferred; a native performance IMEX object is not verified by the current evidence.
-      required: [PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN]
+      likely_source: REP performance report preferred; a native performance IMEX object is not verified by the current
+        evidence.
+      required:
+      - Portfolio Code
+      - From Date
+      - Thru Date
+      - Portfolio Return
       required_only_when_applicable:
-        BASE_CURRENCY: Required when the portfolio contains holdings or transactions outside its reporting currency.
-      optional: [BEGIN_MV, END_MV, FLOW, INCOME, GAIN_LOSS]
+        Base Currency: Required when the portfolio contains holdings or transactions outside its reporting currency.
+      optional:
+      - Beginning Market Value
+      - Ending Market Value
+      - Net Flow
+      - Income
+      - Gain/Loss
     columns:
-      END_MV:
+      Ending Market Value:
         normalized_meaning: Ending market value.
         imex_confidence: medium
         rep_confidence: high
         comments: Likely available through performance/appraisal reports; exact IMEX object remains unknown.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether a local IMEX performance object exists or use REP output.
         candidate_axys_names:
@@ -259,15 +365,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      FLOW:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Net Flow:
         normalized_meaning: Period external flow.
         imex_confidence: low_medium
         rep_confidence: medium
         comments: More likely through reports when displayed or calculated; IMEX object/field is unproven.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -284,15 +390,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      INCOME:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Income:
         normalized_meaning: Period income component.
         imex_confidence: low_medium
         rep_confidence: medium
         comments: Likely reportable, but basis and inclusion rules require validation.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -305,15 +411,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      GAIN_LOSS:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Gain/Loss:
         normalized_meaning: Period gain/loss component.
         imex_confidence: low_medium
         rep_confidence: medium
         comments: Report evidence supports gain/loss labels; exact performance component is report-dependent.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -328,15 +434,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      PORTFOLIO_CODE:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Portfolio Code:
         normalized_meaning: Portfolio/account identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Core identifier.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether a local IMEX performance object exists or use REP output.
         candidate_axys_names:
@@ -348,19 +454,20 @@ datasets:
         - Portfolio
         - Account
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
         source_strategy_notes: Portfolio identifier must be present regardless of the extract source.
-      FROM_DATE:
+      From Date:
         normalized_meaning: Period start date.
         imex_confidence: medium
         rep_confidence: high
         comments: Report parameters reliably provide the period; structured export field names require validation.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether a local IMEX performance object exists or use REP output.
         candidate_axys_names:
@@ -375,15 +482,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      THRU_DATE:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Thru Date:
         normalized_meaning: Period end date.
         imex_confidence: medium
         rep_confidence: high
         comments: Report parameters reliably provide the period; structured export field names require validation.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether a local IMEX performance object exists or use REP output.
         candidate_axys_names:
@@ -399,15 +506,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      BEGIN_MV:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Beginning Market Value:
         normalized_meaning: Beginning market value.
         imex_confidence: medium
         rep_confidence: high
         comments: Likely reportable; exact IMEX object/field remains unproven.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether a local IMEX performance object exists or use REP output.
         candidate_axys_names:
@@ -422,15 +529,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      PORT_RETURN:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Portfolio Return:
         normalized_meaning: Portfolio return.
         imex_confidence: medium_unknown
         rep_confidence: high
         comments: Performance-history IMEX fields are not established; REP is preferred for report-tie values.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -445,29 +552,59 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      BASE_CURRENCY:
-        <<: *normalized_multicurrency_defaults
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Base Currency:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Base Currency
+        - Portfolio Currency
+        candidate_report_labels:
+        - Base Currency
+        - Reporting Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Authoritative portfolio reporting currency for the performance row.
-        candidate_axys_names: [Base Currency, Portfolio Currency]
-        candidate_report_labels: [Base Currency, Reporting Currency]
   secperf.csv:
     extraction_requirements:
       dataset: required_only_when_applicable
-      reason: Required only when the user wants security-level differences to reach Fully Explained; portfolio-only audit does not need this file.
-      likely_source: REP security-performance or attribution report preferred; a native performance IMEX object is not verified by the current evidence.
-      required: [PORTFOLIO_CODE, SECURITY_ID, FROM_DATE, THRU_DATE, SEC_RETURN]
+      reason: Required only when the user wants security-level differences to reach Fully Explained; portfolio-only
+        audit does not need this file.
+      likely_source: REP security-performance or attribution report preferred; a native performance IMEX object
+        is not verified by the current evidence.
+      required:
+      - Portfolio Code
+      - Security Symbol
+      - Security Type
+      - From Date
+      - Thru Date
+      - Security Return
       required_only_when_applicable: {}
-      optional: [BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, CONTRIBUTION]
+      optional:
+      - Beginning Market Value
+      - Ending Market Value
+      - Beginning Weight
+      - Income
+      - Gain/Loss
+      - Contribution
     columns:
-      END_MV:
+      Ending Market Value:
         normalized_meaning: Ending market value for security row.
         imex_confidence: medium
         rep_confidence: high
         comments: Likely available through security performance or appraisal-style reports.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether values come from security performance, appraisal, or custom REP output.
         candidate_axys_names:
@@ -482,15 +619,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      INCOME:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Income:
         normalized_meaning: Security-period income.
         imex_confidence: low_medium
         rep_confidence: medium
         comments: Reportable in some layouts; methodology and inclusion rules require validation.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, contribution basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -503,15 +640,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      GAIN_LOSS:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Gain/Loss:
         normalized_meaning: Security-period gain/loss.
         imex_confidence: low_medium
         rep_confidence: medium
         comments: Plausible as report output, but exact component semantics are report-dependent.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, contribution basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -526,15 +663,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      PORTFOLIO_CODE:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Portfolio Code:
         normalized_meaning: Portfolio/account identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Core identifier.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether values come from security performance, appraisal, or custom REP output.
         candidate_axys_names:
@@ -546,19 +683,20 @@ datasets:
         - Portfolio
         - Account
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
         source_strategy_notes: Portfolio and security identifiers must be present regardless of the extract source.
-      SECURITY_ID:
+      Security Symbol:
         normalized_meaning: Security identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Core security-row identifier.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether values come from security performance, appraisal, or custom REP output.
         candidate_axys_names:
@@ -571,19 +709,47 @@ datasets:
         - Symbol
         - Security ID
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_or_rep
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
         source_strategy_notes: Portfolio and security identifiers must be present regardless of the extract source.
-      FROM_DATE:
+      Security Type:
+        normalized_meaning: Security-type component paired with Security Symbol to construct PPAR security_id.
+        imex_confidence: high
+        rep_confidence: medium
+        comments: Symbol alone is not unique; the reviewed type/symbol pair defines source security identity.
+        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and
+          mixed-case examples in integration workflows.
+        open_questions:
+        - Confirm the local security-type field, value dictionary, case rules, and version applicability.
+        candidate_axys_names:
+        - SECURITY_TYPE
+        - SEC_TYPE
+        - Security Type
+        - Sec Type Code
+        - Type
+        candidate_report_labels:
+        - Security Type
+        - Sec Type
+        - Type
+        name_confidence: inferred_alias
+        name_notes: Candidate aliases and labels are workflow evidence, not a complete native field dictionary.
+        preferred_source: imex_then_rep_cross_check
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Preserve the exact source value and validate the site-specific code dictionary before
+          filtering.
+      From Date:
         normalized_meaning: Period start date.
         imex_confidence: medium
         rep_confidence: high
         comments: Report parameter/output availability is likely; structured export names require validation.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether values come from security performance, appraisal, or custom REP output.
         candidate_axys_names:
@@ -598,15 +764,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      THRU_DATE:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Thru Date:
         normalized_meaning: Period end date.
         imex_confidence: medium
         rep_confidence: high
         comments: Report parameter/output availability is likely; structured export names require validation.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether values come from security performance, appraisal, or custom REP output.
         candidate_axys_names:
@@ -622,15 +788,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      BEGIN_WEIGHT:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Beginning Weight:
         normalized_meaning: Beginning portfolio weight.
         imex_confidence: low_medium
         rep_confidence: medium
         comments: Likely reportable in performance/attribution reports, but not proven as an IMEX field.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, contribution basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -646,13 +812,13 @@ datasets:
         requires_context_for_semantics: false
         blocking_if_missing: false
         source_strategy_notes: Attribution-style values are report-sensitive; do not assume IMEX availability.
-      BEGIN_MV:
+      Beginning Market Value:
         normalized_meaning: Beginning market value for security row.
         imex_confidence: medium
         rep_confidence: high
         comments: Likely reportable; exact IMEX field remains unproven.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
+        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP
+          for report-tie values.
         open_questions:
         - Confirm whether values come from security performance, appraisal, or custom REP output.
         candidate_axys_names:
@@ -667,15 +833,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      SEC_RETURN:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Security Return:
         normalized_meaning: Security return.
         imex_confidence: medium_unknown
         rep_confidence: high
         comments: Performance-history IMEX fields are not established; REP is preferred for report-tie values.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, contribution basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -690,15 +856,15 @@ datasets:
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
-          names or calculation basis.
-      CONTRIBUTION:
+        source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX
+          object names or calculation basis.
+      Contribution:
         normalized_meaning: Security contribution to return.
         imex_confidence: low_medium
         rep_confidence: medium_high
         comments: Contribution reports are supported, but exact Axys/APX security-contribution export requires validation.
-        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
-          performance object/field.
+        basis: Performance chapter and report evidence support the concept, but the local corpus does not prove
+          a native IMEX performance object/field.
         open_questions:
         - Confirm methodology, contribution basis, and stored-vs-report-calculated behavior.
         candidate_axys_names:
@@ -717,26 +883,43 @@ datasets:
   transactions.csv:
     extraction_requirements:
       dataset: required
-      reason: Dated, classified amounts are needed to explain changed external flows, income, fees, and security activity.
-      likely_source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context.
-      required: [PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT]
+      reason: Dated, classified amounts are needed to explain changed external flows, income, fees, and security
+        activity.
+      likely_source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits
+        transaction-semantics context.
+      required:
+      - Portfolio Code
+      - Transaction Date
+      - Security Symbol
+      - Security Type
+      - Transaction Code
+      - Amount
       required_only_when_applicable:
-        SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
-        SRC_DEST_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
-        SRC_DEST_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
-        SPECIAL_SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
-        SPECIAL_SEC_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
-        CURRENCY: Required for transaction amounts stated in a currency other than portfolio base currency.
-        BASE_CURRENCY: Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.
-        BASE_AMOUNT: Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction.
-      optional: [SETTLE_DATE, QTY, PRICE, COMMISSION]
+        Transaction Security Type: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can
+          appear.
+        Source/Destination Type: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        Source/Destination Symbol: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can
+          appear.
+        Special Security Type: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        Special Security Symbol: Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.
+        Currency Code: Required for transaction amounts stated in a currency other than portfolio base currency.
+        Base Currency: Required for multi-currency portfolios unless the authoritative portfolio-performance row
+          supplies it.
+        Base Amount: Required when AMOUNT is local-currency rather than the portfolio-base amount used by return
+          reconstruction.
+      optional:
+      - Settlement Date
+      - Quantity
+      - Price
+      - Commission
     columns:
-      PORT:
+      Portfolio Code:
         normalized_meaning: Portfolio/account identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Core transaction/account field.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -747,19 +930,21 @@ datasets:
         - Portfolio
         - Account
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      TRANSACTION_DATE:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Transaction Date:
         normalized_meaning: Trade or economic date.
         imex_confidence: high
         rep_confidence: high
         comments: Trade date appears in report evidence and transaction import workflows.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -769,19 +954,21 @@ datasets:
         - Trade Date
         - Transaction Date
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      SETTLE_DATE:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Settlement Date:
         normalized_meaning: Settlement or pay date.
         imex_confidence: medium
         rep_confidence: high
         comments: Settle date appears in report-output evidence; IMEX availability is profile-dependent.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -797,14 +984,15 @@ datasets:
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: false
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      SEC:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Security Symbol:
         normalized_meaning: Security identifier.
         imex_confidence: high
         rep_confidence: high
         comments: Core transaction/security field.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -817,19 +1005,49 @@ datasets:
         - Symbol
         - Security ID
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      TRAN:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Security Type:
+        normalized_meaning: Security-type component paired with Security Symbol to construct PPAR security_id.
+        imex_confidence: high
+        rep_confidence: medium
+        comments: Symbol alone is not unique; the reviewed type/symbol pair defines source security identity.
+        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and
+          mixed-case examples in integration workflows.
+        open_questions:
+        - Confirm the local security-type field, value dictionary, case rules, and version applicability.
+        candidate_axys_names:
+        - SECURITY_TYPE
+        - SEC_TYPE
+        - Security Type
+        - Sec Type Code
+        - Type
+        candidate_report_labels:
+        - Security Type
+        - Sec Type
+        - Type
+        name_confidence: inferred_alias
+        name_notes: Candidate aliases and labels are workflow evidence, not a complete native field dictionary.
+        preferred_source: imex_then_rep_cross_check
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Preserve the exact source value and validate the site-specific code dictionary before
+          filtering.
+      Transaction Code:
         normalized_meaning: Transaction code or type.
         imex_confidence: medium
         rep_confidence: medium
-        comments: Transaction type/code is supported in translation/import evidence; report exposure depends on layout.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        comments: Transaction type/code is supported in translation/import evidence; report exposure depends on
+          layout.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -840,20 +1058,22 @@ datasets:
         - Transaction Code
         - Transaction Type
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      SEC_TYPE:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Transaction Security Type:
         normalized_meaning: Security type for transaction security.
         imex_confidence: medium
         rep_confidence: low_medium
-        comments: Central to Axys/APX security resolution; transaction-row availability depends on export/report design.
-        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
-          for ambiguous external-flow handling.
+        comments: Central to Axys/APX security resolution; transaction-row availability depends on export/report
+          design.
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md;
+          required for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
         - Use REP, a custom report, or another source if IMEX cannot expose it.
@@ -868,15 +1088,15 @@ datasets:
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
-          use REP, a custom report, or another local source.
-      SRC_DEST_TYPE:
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context,
+          stop and use REP, a custom report, or another local source.
+      Source/Destination Type:
         normalized_meaning: Source/destination type for ambiguous flows.
         imex_confidence: medium
         rep_confidence: low_medium
         comments: Observed transaction translation/integration field, not guaranteed in every posted export.
-        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
-          for ambiguous external-flow handling.
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md;
+          required for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
         - Use REP, a custom report, or another source if IMEX cannot expose it.
@@ -886,21 +1106,21 @@ datasets:
         candidate_report_labels:
         - Source/Destination Type
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
-          corpus.
+        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established
+          by the local corpus.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
-          use REP, a custom report, or another local source.
-      SRC_DEST_SYMBOL:
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context,
+          stop and use REP, a custom report, or another local source.
+      Source/Destination Symbol:
         normalized_meaning: Source/destination symbol for ambiguous flows.
         imex_confidence: medium
         rep_confidence: low_medium
         comments: Observed transaction translation/integration field, not guaranteed in every posted export.
-        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
-          for ambiguous external-flow handling.
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md;
+          required for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
         - Use REP, a custom report, or another source if IMEX cannot expose it.
@@ -910,45 +1130,47 @@ datasets:
         candidate_report_labels:
         - Source/Destination Symbol
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
-          corpus.
+        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established
+          by the local corpus.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
-          use REP, a custom report, or another local source.
-      SPECIAL_SEC_TYPE:
-        normalized_meaning: Special security type for fee or special handling.
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context,
+          stop and use REP, a custom report, or another local source.
+      Special Security Type:
+        normalized_meaning: Axys/APX security-type half of a special type/symbol transaction pair.
         imex_confidence: medium
         rep_confidence: low
         comments: Supported in integration evidence; standard report exposure is uncertain.
-        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
-          for ambiguous external-flow handling.
+        basis: Observed CI/Axys/APX examples use four-character types such as `exus`, `epus`, and `caus`;
+          reviewed `rc`/`pd` rows leave the pair blank.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
         - Use REP, a custom report, or another source if IMEX cannot expose it.
+        - Do not substitute free-form event labels for native type identifiers.
         candidate_axys_names:
         - Special Security Type
         - Special Sec Type
         candidate_report_labels:
         - Special Security Type
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
-          corpus.
+        name_notes: Normalized demo header retained for ppar consistency. Reviewed translation tables establish
+          the paired concept but not this exact extract heading; values must remain source-faithful security-type
+          identifiers.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
-          use REP, a custom report, or another local source.
-      SPECIAL_SEC_SYMBOL:
-        normalized_meaning: Special security symbol for fee or special handling.
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context,
+          stop and use REP, a custom report, or another local source.
+      Special Security Symbol:
+        normalized_meaning: Axys/APX symbol half of a special type/symbol transaction pair.
         imex_confidence: medium
         rep_confidence: low
         comments: Supported in integration evidence; standard report exposure is uncertain.
-        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
-          for ambiguous external-flow handling.
+        basis: Observed CI/Axys/APX examples use symbols such as `custfee`, `expense`, `with`, and `margin` paired
+          with four-character special security types.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
         - Use REP, a custom report, or another source if IMEX cannot expose it.
@@ -958,30 +1180,63 @@ datasets:
         candidate_report_labels:
         - Special Security Symbol
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
-          corpus.
+        name_notes: Normalized demo header retained for ppar consistency. Reviewed symbols are distinct from the
+          type and may be descriptive; the exact native extract heading remains unverified.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
-          use REP, a custom report, or another local source.
-      CURRENCY:
-        <<: *normalized_multicurrency_defaults
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context,
+          stop and use REP, a custom report, or another local source.
+      Currency Code:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Currency
+        - Transaction Currency
+        candidate_report_labels:
+        - Currency
+        - Transaction Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Local currency of the transaction amount.
-        candidate_axys_names: [Currency, Transaction Currency]
-        candidate_report_labels: [Currency, Transaction Currency]
-      BASE_CURRENCY:
-        <<: *normalized_multicurrency_defaults
+      Base Currency:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Base Currency
+        - Portfolio Currency
+        candidate_report_labels:
+        - Base Currency
+        - Reporting Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Portfolio reporting currency for the transaction.
-        candidate_axys_names: [Base Currency, Portfolio Currency]
-        candidate_report_labels: [Base Currency, Reporting Currency]
-      QTY:
+      Quantity:
         normalized_meaning: Transaction quantity.
         imex_confidence: high
         rep_confidence: high
         comments: Quantity appears in transaction and report evidence.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -994,19 +1249,21 @@ datasets:
         - Shares
         - Units
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      PRICE:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Price:
         normalized_meaning: Transaction price.
         imex_confidence: high
         rep_confidence: high
         comments: Price appears in transaction and report evidence.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -1015,19 +1272,21 @@ datasets:
         candidate_report_labels:
         - Price
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      AMOUNT:
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Amount:
         normalized_meaning: Net amount, proceeds, or cash amount.
         imex_confidence: high
         rep_confidence: medium_high
         comments: Core transaction amount is likely available, though report labels can vary.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -1039,24 +1298,42 @@ datasets:
         - Net Amount
         - Cash Amount
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
-      BASE_AMOUNT:
-        <<: *normalized_multicurrency_defaults
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
+      Base Amount:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Base Amount
+        - Reporting Amount
+        candidate_report_labels:
+        - Base Amount
+        - Reporting Amount
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Transaction amount translated to portfolio base currency.
-        candidate_axys_names: [Base Amount, Reporting Amount]
-        candidate_report_labels: [Base Amount, Reporting Amount]
-      COMMISSION:
+      Commission:
         normalized_meaning: Commission.
         imex_confidence: medium
         rep_confidence: medium
         comments: Supported in CI parameter evidence; report/profile availability should be validated.
-        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md.
+        basis: Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md,
+          and Chapter_13_Rep.md.
         open_questions:
         - Confirm exact posted-transaction export fields and sign convention.
         candidate_axys_names:
@@ -1065,142 +1342,318 @@ datasets:
         candidate_report_labels:
         - Commission
         name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary.
+        name_notes: Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field
+          dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: false
-        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
-          sign-convention validation.
+        source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
+          and sign-convention validation.
   secref.csv:
     extraction_requirements:
       dataset: required_only_when_applicable
       reason: Security reference values qualify Data Issues populations without changing performance calculations.
-      likely_source: IMEX security-information export, a security-master report, or another reviewed security-reference extract.
-      required: [SECURITY_ID]
+      likely_source: IMEX security-information export, a security-master report, or another reviewed security-reference
+        extract.
+      required:
+      - Security Symbol
+      - Security Type
       required_only_when_applicable:
-        SECURITY_TYPE: Required when a Data Issues filter references security_reference.security_type.
-        ASSET_CLASS_CODE: Required when a Data Issues filter references security_reference.asset_class_code.
+        Asset Class Code: Required when a Data Issues filter references security_reference.asset_class_code.
       optional: []
     columns:
-      SECURITY_ID:
+      Security Symbol:
         normalized_meaning: Exact-case security identifier used to enrich holdings or transaction rows.
         imex_confidence: high
         rep_confidence: high
         comments: Security symbol or identifier is central to reviewed security-information and report workflows.
-        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md support security-information exports and security-level report labels, while the formal native key remains unknown.
+        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md support security-information exports
+          and security-level report labels, while the formal native key remains unknown.
         open_questions:
         - Confirm the local identifier field, exact-case behavior, uniqueness, and relationship to security type.
-        candidate_axys_names: [SECURITY_ID, SEC, Security, Symbol, Security Symbol]
-        candidate_report_labels: [Security, Symbol, Security ID]
+        candidate_axys_names:
+        - SECURITY_ID
+        - SEC
+        - Security
+        - Symbol
+        - Security Symbol
+        candidate_report_labels:
+        - Security
+        - Symbol
+        - Security ID
         name_confidence: inferred_alias
         name_notes: Candidate aliases only; confirm the exact local IMEX profile or REP field.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Preserve exact source case and reconcile the identifier to the holdings and transaction extracts before using reference qualifiers.
-      SECURITY_TYPE:
+        source_strategy_notes: Preserve exact source case and reconcile the identifier to the holdings and transaction
+          extracts before using reference qualifiers.
+      Security Type:
         normalized_meaning: Product security-type code used to qualify Data Issues populations.
         imex_confidence: high
         rep_confidence: medium
-        comments: Security type is operationally paired with symbol in reviewed integration workflows, but the complete native dictionary is unknown.
-        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and mixed-case examples in integration workflows.
+        comments: Security type is operationally paired with symbol in reviewed integration workflows, but the complete
+          native dictionary is unknown.
+        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and
+          mixed-case examples in integration workflows.
         open_questions:
         - Confirm the local security-type field, value dictionary, case rules, and version applicability.
-        candidate_axys_names: [SECURITY_TYPE, SEC_TYPE, Security Type, Sec Type Code, Type]
-        candidate_report_labels: [Security Type, Sec Type, Type]
+        candidate_axys_names:
+        - SECURITY_TYPE
+        - SEC_TYPE
+        - Security Type
+        - Sec Type Code
+        - Type
+        candidate_report_labels:
+        - Security Type
+        - Sec Type
+        - Type
         name_confidence: inferred_alias
         name_notes: Candidate aliases and labels are workflow evidence, not a complete native field dictionary.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Preserve the exact source value and validate the site-specific code dictionary before filtering.
-      ASSET_CLASS_CODE:
+        source_strategy_notes: Preserve the exact source value and validate the site-specific code dictionary before
+          filtering.
+      Asset Class Code:
         normalized_meaning: Site security-master asset-class code used to qualify Data Issues populations.
         imex_confidence: medium
         rep_confidence: high
-        comments: Asset-class labels are supported in export/report workflows, but exact native field names and histories remain site dependent.
-        basis: Chapter_04_Security_Master.md, Chapter_11_Classifications.md, and their evidence ledgers support asset-class export labels and classification behavior.
+        comments: Asset-class labels are supported in export/report workflows, but exact native field names and
+          histories remain site dependent.
+        basis: Chapter_04_Security_Master.md, Chapter_11_Classifications.md, and their evidence ledgers support
+          asset-class export labels and classification behavior.
         open_questions:
-        - Confirm the local asset-class code field, code dictionary, effective-date behavior, and reclassification policy.
-        candidate_axys_names: [ASSET_CLASS_CODE, ASSET_CLASS, Asset Class Code, Asset Class]
-        candidate_report_labels: [Asset Class Code, Asset Class]
+        - Confirm the local asset-class code field, code dictionary, effective-date behavior, and reclassification
+          policy.
+        candidate_axys_names:
+        - ASSET_CLASS_CODE
+        - ASSET_CLASS
+        - Asset Class Code
+        - Asset Class
+        candidate_report_labels:
+        - Asset Class Code
+        - Asset Class
         name_confidence: inferred_alias
         name_notes: The normalized demo name is plausible but must be mapped to the local export or report label.
         preferred_source: imex_then_rep_cross_check
         fallback_source: rep_preferred
         requires_context_for_semantics: false
         blocking_if_missing: true
-        source_strategy_notes: Tie the code to the same snapshot as the source rows so later reclassification does not silently change an audit population.
+        source_strategy_notes: Tie the code to the same snapshot as the source rows so later reclassification does
+          not silently change an audit population.
   fx_rates.csv:
     extraction_requirements:
       dataset: optional
       reason: Optional supporting evidence that can link a rate change to a counted base-currency value.
-      likely_source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled rate source.
-      required: [PORT, FROM_CURRENCY, TO_CURRENCY, RATE_DATE, FX_RATE, LOCAL_EXPOSURE]
+      likely_source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled
+        rate source.
+      required:
+      - Portfolio Code
+      - From Currency
+      - To Currency
+      - Rate Date
+      - FX Rate
+      - Local Exposure
       required_only_when_applicable:
-        RATE_SOURCE: Required when pair and date do not uniquely identify one controlled rate series.
-        RATE_TYPE: Required when pair and date do not uniquely identify one controlled rate convention.
+        Rate Source: Required when pair and date do not uniquely identify one controlled rate series.
+        Rate Type: Required when pair and date do not uniquely identify one controlled rate convention.
       optional: []
     columns:
-      PORT:
-        <<: *normalized_multicurrency_defaults
+      Portfolio Code:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Portfolio
+        - Account
+        candidate_report_labels:
+        - Portfolio
+        - Account
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Portfolio/account identifier for exposure linkage.
-        candidate_axys_names: [Portfolio, Account]
-        candidate_report_labels: [Portfolio, Account]
-      FROM_CURRENCY:
-        <<: *normalized_multicurrency_defaults
+      From Currency:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - From Currency
+        - Local Currency
+        candidate_report_labels:
+        - From Currency
+        - Local Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Local currency converted by the rate.
-        candidate_axys_names: [From Currency, Local Currency]
-        candidate_report_labels: [From Currency, Local Currency]
-      TO_CURRENCY:
-        <<: *normalized_multicurrency_defaults
+      To Currency:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - To Currency
+        - Base Currency
+        candidate_report_labels:
+        - To Currency
+        - Base Currency
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Portfolio base currency produced by the rate.
-        candidate_axys_names: [To Currency, Base Currency]
-        candidate_report_labels: [To Currency, Base Currency]
-      RATE_DATE:
-        <<: *normalized_multicurrency_defaults
+      Rate Date:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Rate Date
+        - Price Date
+        candidate_report_labels:
+        - Rate Date
+        - As Of Date
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Effective date of the FX rate.
-        candidate_axys_names: [Rate Date, Price Date]
-        candidate_report_labels: [Rate Date, As Of Date]
-      FX_RATE:
-        <<: *normalized_multicurrency_defaults
+      FX Rate:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - FX Rate
+        - Exchange Rate
+        candidate_report_labels:
+        - FX Rate
+        - Exchange Rate
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Units of base currency per unit of local currency.
-        candidate_axys_names: [FX Rate, Exchange Rate]
-        candidate_report_labels: [FX Rate, Exchange Rate]
-      RATE_SOURCE:
-        <<: *normalized_multicurrency_defaults
+      Rate Source:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Rate Source
+        - Price Source
+        candidate_report_labels:
+        - Rate Source
+        - Price Source
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Provenance label for the normalized FX rate.
-        candidate_axys_names: [Rate Source, Price Source]
-        candidate_report_labels: [Rate Source, Price Source]
-      RATE_TYPE:
-        <<: *normalized_multicurrency_defaults
+      Rate Type:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Rate Type
+        - Price Type
+        candidate_report_labels:
+        - Rate Type
+        - Price Type
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Rate convention such as closing or average.
-        candidate_axys_names: [Rate Type, Price Type]
-        candidate_report_labels: [Rate Type, Price Type]
-      LOCAL_EXPOSURE:
-        <<: *normalized_multicurrency_defaults
+      Local Exposure:
+        imex_confidence: unknown
+        rep_confidence: low_medium
+        comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+        basis: The research supports multi-currency concepts but does not prove this exact export field or normalized
+          layout.
+        open_questions: *id001
+        candidate_axys_names:
+        - Local Exposure
+        - Local Market Value
+        candidate_report_labels:
+        - Local Exposure
+        - Local Market Value
+        name_confidence: inferred_alias
+        name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+        preferred_source: local_discovery_required
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
         normalized_meaning: Local-currency exposure explicitly linked to the portfolio and rate.
-        candidate_axys_names: [Local Exposure, Local Market Value]
-        candidate_report_labels: [Local Exposure, Local Market Value]
   splits.csv:
     extraction_requirements:
       dataset: optional
-      reason: Split factors add review context but do not directly enter the current Modified Dietz explanation formula.
-      likely_source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent factors.
-      required: []
+      reason: Split factors add review context but do not directly enter the current Modified Dietz explanation
+        formula.
+      likely_source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent
+        factors.
+      required:
+      - Security Symbol
+      - Security Type
       required_only_when_applicable: {}
-      optional: [SEC, SPLIT_DATE, SPLIT_FACTOR]
+      optional:
+      - Split Date
+      - Split Factor
     columns:
-      SEC:
+      Security Symbol:
         normalized_meaning: Security identifier for the split-factor row.
         imex_confidence: medium_high
         rep_confidence: medium
-        comments: Axys split-file research supports security-level split records; exact local export field names must be validated.
-        basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md identify Axys `split.inf` as securities
-          splits data and cite consultant date/symbol/factor merge evidence.
+        comments: Axys split-file research supports security-level split records; exact local export field names
+          must be validated.
+        basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md identify Axys `split.inf` as
+          securities splits data and cite consultant date/symbol/factor merge evidence.
         open_questions:
         - Confirm whether the local site can export split.inf or an equivalent split-factor report.
         candidate_axys_names:
@@ -1213,14 +1666,41 @@ datasets:
         - Symbol
         - Split Symbol
         name_confidence: inferred_alias
-        name_notes: "`SplitSymbol` is consultant-derived logical evidence, not a verified official Axys header."
+        name_notes: '`SplitSymbol` is consultant-derived logical evidence, not a verified official Axys header.'
         preferred_source: imex_or_rep
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: false
-        source_strategy_notes: Prefer a direct split.inf/exported split-factor source; use REP/custom reports only if they expose
-          security-level split factors.
-      SPLIT_DATE:
+        source_strategy_notes: Prefer a direct split.inf/exported split-factor source; use REP/custom reports only
+          if they expose security-level split factors.
+      Security Type:
+        normalized_meaning: Security-type component paired with Security Symbol to construct PPAR security_id.
+        imex_confidence: high
+        rep_confidence: medium
+        comments: Symbol alone is not unique; the reviewed type/symbol pair defines source security identity.
+        basis: Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and
+          mixed-case examples in integration workflows.
+        open_questions:
+        - Confirm the local security-type field, value dictionary, case rules, and version applicability.
+        candidate_axys_names:
+        - SECURITY_TYPE
+        - SEC_TYPE
+        - Security Type
+        - Sec Type Code
+        - Type
+        candidate_report_labels:
+        - Security Type
+        - Sec Type
+        - Type
+        name_confidence: inferred_alias
+        name_notes: Candidate aliases and labels are workflow evidence, not a complete native field dictionary.
+        preferred_source: imex_then_rep_cross_check
+        fallback_source: rep_preferred
+        requires_context_for_semantics: false
+        blocking_if_missing: true
+        source_strategy_notes: Preserve the exact source value and validate the site-specific code dictionary before
+          filtering.
+      Split Date:
         normalized_meaning: Effective date for the split factor.
         imex_confidence: medium_high
         rep_confidence: medium
@@ -1228,7 +1708,8 @@ datasets:
         basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md cite AdventGuru/Kevin Shea logical
           `SplitDate` evidence from exported split.inf files.
         open_questions:
-        - Confirm local date field name and whether the date is effective, ex-date, or another local split date basis.
+        - Confirm local date field name and whether the date is effective, ex-date, or another local split date
+          basis.
         candidate_axys_names:
         - SPLIT_DATE
         - SplitDate
@@ -1237,17 +1718,18 @@ datasets:
         - Split Date
         - Effective Date
         name_confidence: inferred_alias
-        name_notes: "`SplitDate` is consultant-derived logical evidence, not a verified official Axys header."
+        name_notes: '`SplitDate` is consultant-derived logical evidence, not a verified official Axys header.'
         preferred_source: imex_or_rep
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: false
         source_strategy_notes: Validate the local date basis before comparing split factors to holdings and prices.
-      SPLIT_FACTOR:
+      Split Factor:
         normalized_meaning: Share multiplier or split factor.
         imex_confidence: medium_high
         rep_confidence: medium
-        comments: Consultant split-file merge evidence uses a factor field for exported split records; exact reverse-split convention is unknown.
+        comments: Consultant split-file merge evidence uses a factor field for exported split records; exact reverse-split
+          convention is unknown.
         basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md cite AdventGuru/Kevin Shea logical
           `SplitFactor` evidence from exported split.inf files.
         open_questions:
@@ -1260,15 +1742,16 @@ datasets:
         - Split Factor
         - Factor
         name_confidence: inferred_alias
-        name_notes: "`SplitFactor` is consultant-derived logical evidence, not a verified official Axys header."
+        name_notes: '`SplitFactor` is consultant-derived logical evidence, not a verified official Axys header.'
         preferred_source: imex_or_rep
         fallback_source: local_discovery_required
         requires_context_for_semantics: false
         blocking_if_missing: false
-        source_strategy_notes: Treat split factors as context evidence explaining holdings changes, not as cash-flow transactions.
+        source_strategy_notes: Treat split factors as context evidence explaining holdings changes, not as cash-flow
+          transactions.
 name_confidence_labels:
-  inferred_alias: Likely field/report aliases for the underlying value, but not proven as official native Axys/APX names by the
-    local corpus.
+  inferred_alias: Likely field/report aliases for the underlying value, but not proven as official native Axys/APX
+    names by the local corpus.
   report_label_inferred: Likely report labels or report-style aliases; structured IMEX names still need local confirmation.
   normalized_demo_only: A normalized demo-system name. Do not treat it as a native Axys/APX or REP label.
 source_strategy_labels:

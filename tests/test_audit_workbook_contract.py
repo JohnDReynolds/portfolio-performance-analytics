@@ -307,7 +307,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("supporting_files/source_detail.csv", readme)
+            self.assertIn("source_detail.csv", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("Open `portfolio_audit.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
@@ -468,7 +468,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 balanced_may = partly_explained_rows[0]
                 balanced_may_review_note = str(balanced_may[7])
                 self.assertIn(
-                    "Possible cause: JPM transactions.amount increased "
+                    "Possible cause: csusJPM transactions.amount increased "
                     "by 200.00 on 2026-05-12. Add YAML configuration to count "
                     "it as explained.",
                     balanced_may_review_note,
@@ -488,7 +488,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 )
                 self.assertNotIn("holdings.cost", income_april_review_note)
                 self.assertNotIn(
-                    "Review `supporting_files/source_detail.csv`",
+                    "Review `source_detail.csv`",
                     income_april_review_note,
                 )
                 self.assertTrue(
@@ -530,9 +530,9 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     any(
                         row[4] == "holdings.market_value"
-                        and row[5] == "CASHUSD"
+                        and row[5] == "causCASHUSD"
                         and row[10]
-                        == ("CASHUSD ending holdings.market_value decreased by " "2,008.00.")
+                        == ("causCASHUSD ending holdings.market_value decreased by " "2,008.00.")
                         for row in alpha_february_rows
                     )
                 )
@@ -590,7 +590,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "MARGIN_USD"
+                    and row[5] == "causMARGIN_USD"
                     and str(row[3])[:10] == "2026-01-22"
                 )
                 self.assertTrue(str(ai_row[10]).startswith("ai:"))
@@ -599,7 +599,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "BALANCED"
                     and row[4] == "transactions.amount"
-                    and row[5] == "JPM"
+                    and row[5] == "csusJPM"
                     and str(row[3])[:10] == "2026-03-20"
                 )
                 self.assertTrue(str(ti_row[10]).startswith("ti:"))
@@ -608,7 +608,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "BALANCED"
                     and row[4] == "transactions.amount"
-                    and row[5] == "JPM"
+                    and row[5] == "csusJPM"
                     and str(row[1])[:10] == "2026-04-01"
                     and str(row[2])[:10] == "2026-04-10"
                     and str(row[10]).startswith("dv:")
@@ -626,7 +626,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "CASHUSD"
+                    and row[5] == "causCASHUSD"
                     and str(row[1])[:10] == "2026-01-01"
                     and str(row[2])[:10] == "2026-01-30"
                 )
@@ -642,7 +642,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "ALPHA"
                     and row[4] == "transactions.amount"
-                    and row[5] == "CASHUSD"
+                    and row[5] == "causCASHUSD"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-27"
                 )
@@ -706,7 +706,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.quantity"
-                    and row[5] == "91282Y5Y1"
+                    and row[5] == "fius91282Y5Y1"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-13"
                 }
@@ -715,21 +715,21 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.quantity"
-                    and row[5] == "91282Y5Y1"
+                    and row[5] == "fius91282Y5Y1"
                     and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertIn(
                     (
-                        "by: Caused 91282Y5Y1 transactions.amount to increase "
-                        "and 91282Y5Y1 holdings.quantity to increase."
+                        "by: Caused fius91282Y5Y1 transactions.amount to increase "
+                        "and fius91282Y5Y1 holdings.quantity to increase."
                     ),
                     income_tnote_buy_quantity_guidance,
                 )
                 self.assertIn(
                     (
-                        "sl: Caused 91282Y5Y1 transactions.amount to increase "
-                        "and 91282Y5Y1 holdings.quantity to decrease."
+                        "sl: Caused fius91282Y5Y1 transactions.amount to increase "
+                        "and fius91282Y5Y1 holdings.quantity to decrease."
                     ),
                     income_tnote_sell_quantity_guidance,
                 )
@@ -738,7 +738,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "91282Y5Y1"
+                    and row[5] == "fius91282Y5Y1"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-13"
                 }
@@ -747,7 +747,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "91282Y5Y1"
+                    and row[5] == "fius91282Y5Y1"
                     and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
@@ -770,7 +770,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "holdings.accrued"
-                    and row[5] == "91282Y5Y1"
+                    and row[5] == "fius91282Y5Y1"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-13"
                 }
@@ -779,24 +779,24 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "holdings.accrued"
-                    and row[5] == "91282Y5Y1"
+                    and row[5] == "fius91282Y5Y1"
                     and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertEqual(
                     income_tnote_buy_accrued_guidance,
-                    {"91282Y5Y1 ending holdings.accrued increased by 0.06."},
+                    {"fius91282Y5Y1 ending holdings.accrued increased by 0.06."},
                 )
                 self.assertEqual(
                     income_tnote_sell_accrued_guidance,
                     {
                         (
                             "Inherited beginning-value difference from the preceding "
-                            "period: 91282Y5Y1 beginning holdings.accrued increased by "
+                            "period: fius91282Y5Y1 beginning holdings.accrued increased by "
                             "0.06. This value is retained because it is an input to "
                             "Modified Dietz."
                         ),
-                        "91282Y5Y1 ending holdings.accrued increased by 0.02.",
+                        "fius91282Y5Y1 ending holdings.accrued increased by 0.02.",
                     },
                 )
                 self.assertFalse(
@@ -829,7 +829,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         and _workbook_date_text(row[1]) == "2026-05-09"
                         and _workbook_date_text(row[2]) == "2026-05-14"
                         and row[4] == "transactions.amount"
-                        and row[5] == "JPM"
+                        and row[5] == "csusJPM"
                         and row[9]
                         == (
                             "rc: Caused cash-balance ending holdings.market_value "
@@ -899,17 +899,17 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     {row[3] for row in security_rows},
                     {
-                        "AAPL",
-                        "CASHUSD",
-                        "CVNA",
-                        "JPM",
-                        "MSFT",
-                        "91282Y2Y1",
-                        "91282Y5Y1",
-                        "SAP.DE",
-                        "SHEL.L",
-                        "CASHEUR",
-                        "36225MBS1",
+                        "csusAAPL",
+                        "causCASHUSD",
+                        "csusCVNA",
+                        "csusJPM",
+                        "csusMSFT",
+                        "fius91282Y2Y1",
+                        "fius91282Y5Y1",
+                        "cseuSAP.DE",
+                        "csgbSHEL.L",
+                        "causCASHEUR",
+                        "fius36225MBS1",
                     },
                 )
                 self.assertEqual(
@@ -927,7 +927,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         for row in security_rows
                         if row[7] == "Partly Explained"
                     },
-                    {("BALANCED", "MSFT", "2026-05-09", "2026-05-14")},
+                    {("BALANCED", "csusMSFT", "2026-05-09", "2026-05-14")},
                 )
                 self.assertEqual(
                     {
@@ -941,20 +941,20 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         if row[7] == "Unexplained"
                     },
                     {
-                        ("BALANCED", "JPM", "2026-05-09", "2026-05-14"),
-                        ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30"),
+                        ("BALANCED", "csusJPM", "2026-05-09", "2026-05-14"),
+                        ("INCOME", "fius91282Y5Y1", "2026-04-01", "2026-04-30"),
                     },
                 )
                 jpm_possible_cause_row = next(
                     row
                     for row in security_rows
                     if row[0] == "BALANCED"
-                    and row[3] == "JPM"
+                    and row[3] == "csusJPM"
                     and _workbook_date_text(row[1]) == "2026-05-09"
                     and _workbook_date_text(row[2]) == "2026-05-14"
                 )
                 self.assertIn(
-                    "Possible cause: JPM transactions.amount increased "
+                    "Possible cause: csusJPM transactions.amount increased "
                     "by 200.00 on 2026-05-12. Add YAML configuration to count "
                     "it as explained.",
                     str(jpm_possible_cause_row[8]),
@@ -977,7 +977,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     if row[0] == "ALPHA"
                     and str(row[1])[:10] == "2026-02-28"
                     and str(row[2])[:10] == "2026-03-31"
-                    and row[3] == "AAPL"
+                    and row[3] == "csusAAPL"
                 )
                 self.assertEqual(aapl_trade_row[7], "Fully Explained")
                 self.assertAlmostEqual(
@@ -1000,14 +1000,14 @@ class TestAuditWorkbookContract(unittest.TestCase):
                                 _workbook_date_text(row[2]),
                             )
                             for row in security_rows
-                            if row[3] == "AAPL"
+                            if row[3] == "csusAAPL"
                         }
                     )
                 )
                 aapl_price_rows = [
                     row
                     for row in security_rows
-                    if row[3] == "AAPL"
+                    if row[3] == "csusAAPL"
                     and (row[0], _workbook_date_text(row[1]), _workbook_date_text(row[2]))
                     in aapl_price_periods
                 ]
@@ -1019,7 +1019,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         places=6,
                     )
                     self.assertIsNone(row[6])
-                tnote_row = next(row for row in security_rows if row[3] == "91282Y2Y1")
+                tnote_row = next(row for row in security_rows if row[3] == "fius91282Y2Y1")
                 self.assertEqual(tnote_row[7], "Fully Explained")
                 self.assertAlmostEqual(
                     _numeric_value(tnote_row[4]),
@@ -1066,22 +1066,22 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(underlying_sort_keys, sorted(underlying_sort_keys))
                 self.assertTrue(
                     {
-                        ("transactions.amount", "91282Y2Y1"),
-                        ("holdings.market_value", "AAPL"),
-                        ("transactions.amount", "AAPL"),
+                        ("transactions.amount", "fius91282Y2Y1"),
+                        ("holdings.market_value", "csusAAPL"),
+                        ("transactions.amount", "csusAAPL"),
                     }.issubset({(row[4], row[5]) for row in underlying_rows})
                 )
                 self.assertTrue(
                     {
-                        ("holdings.market_value", "91282Y2Y1"),
-                        ("holdings.quantity", "91282Y2Y1"),
+                        ("holdings.market_value", "fius91282Y2Y1"),
+                        ("holdings.quantity", "fius91282Y2Y1"),
                     }.issubset({(row[4], row[5]) for row in underlying_rows})
                 )
                 tnote_interest_row = next(
                     row
                     for row in underlying_rows
                     if row[4] == "transactions.amount"
-                    and row[5] == "91282Y2Y1"
+                    and row[5] == "fius91282Y2Y1"
                     and str(row[1])[:10] == "2026-05-15"
                     and str(row[2])[:10] == "2026-05-15"
                     and str(row[3])[:10] == "2026-05-15"
@@ -1089,35 +1089,35 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
                 self.assertEqual(
                     tnote_interest_row[10],
-                    "in: The income for 91282Y2Y1 changed by 80.00.",
+                    "in: The income for fius91282Y2Y1 changed by 80.00.",
                 )
                 cash_fee_row = next(
                     row
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "CASHUSD"
+                    and row[5] == "causCASHUSD"
                     and str(row[1])[:10] == "2026-01-01"
                     and str(row[2])[:10] == "2026-01-30"
                     and str(row[3])[:10] == "2026-01-20"
                 )
                 self.assertEqual(
                     cash_fee_row[10],
-                    "dp: The fee/expense for CASHUSD changed by 50.00.",
+                    "dp: The fee/expense for causCASHUSD changed by 50.00.",
                 )
                 jpm_dividend_row = next(
                     row
                     for row in underlying_rows
                     if row[0] == "BALANCED"
                     and row[4] == "transactions.amount"
-                    and row[5] == "JPM"
+                    and row[5] == "csusJPM"
                     and str(row[1])[:10] == "2026-04-01"
                     and str(row[2])[:10] == "2026-04-10"
                     and str(row[10]).startswith("dv:")
                 )
                 self.assertEqual(
                     jpm_dividend_row[10],
-                    "dv: The income for JPM changed by 117.07.",
+                    "dv: The income for csusJPM changed by 117.07.",
                 )
             finally:
                 workbook.close()

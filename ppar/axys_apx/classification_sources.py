@@ -12,6 +12,11 @@ import polars as pl
 # Project imports
 from ppar.axys_apx.specification import AxysSpecification, ErrorMessage, SourceType
 from ppar.axys_apx.column_aliases import resolve_column
+from ppar.axys_apx.security_identity import (
+    SecurityIdConstruction,
+    security_id_construction,
+    with_constructed_security_id,
+)
 import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
@@ -54,6 +59,8 @@ _SECURITY_MASTER_PATH_KEY: Final[str] = "security_master_path"
 _SECURITY_CLASSIFICATION_NAME: Final[str] = "Security"
 _FILTER_TO_SECURITY_IDS: Final[str] = "_filter_to_security_ids"
 _SOURCE_FILE_PATH: Final[str] = "_source_file_path"
+_SECURITY_ID_CONSTRUCTION: Final[str] = "_security_id_construction"
+_CONSTRUCTED_SECURITY_ID_COLUMN: Final[str] = "__ppar_constructed_security_id"
 _NORMALIZED_SOURCE_COLUMNS: Final[tuple[str, str]] = (cols.IDENTIFIER, cols.NAME)
 
 
@@ -132,7 +139,26 @@ class AxysClassificationSourceLoader:
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
-        lazy_frame = pl.scan_csv(file_path)
+        construction = cast(
+            SecurityIdConstruction | None,
+            effective_source.get(_SECURITY_ID_CONSTRUCTION),
+        )
+        if construction is None:
+            lazy_frame = pl.scan_csv(file_path)
+        else:
+            source_frame = pl.read_csv(
+                file_path,
+                schema_overrides=construction.schema_overrides,
+            )
+            source_frame = with_constructed_security_id(
+                source_frame,
+                construction,
+                output_column=_CONSTRUCTED_SECURITY_ID_COLUMN,
+                dataset_name="security_reference",
+                source_path=file_path,
+                error_message=self._error_message,
+            )
+            lazy_frame = source_frame.lazy()
         self._validate_csv_columns(source_type, source_name, effective_source, lazy_frame)
 
         if effective_source.get(_FILTER_TO_SECURITY_IDS, False):
@@ -448,6 +474,7 @@ class AxysClassificationSourceLoader:
                 "identifier_column": security_master["identifier_column"],
                 "name_column": data_source["classification_column"],
                 _FILTER_TO_SECURITY_IDS: True,
+                **self._security_id_construction_fields(security_master),
             }
 
         if data_source.get("is_security_master", False):
@@ -457,13 +484,19 @@ class AxysClassificationSourceLoader:
                     data_source,
                     security_master,
                 ),
-                "identifier_column": data_source.get(
-                    "identifier_column", security_master["identifier_column"]
+                "identifier_column": (
+                    security_master["identifier_column"]
+                    if _SECURITY_ID_CONSTRUCTION in security_master
+                    else data_source.get(
+                        "identifier_column",
+                        security_master["identifier_column"],
+                    )
                 ),
                 "name_column": data_source.get(
                     "name_column", security_master["name_column"]
                 ),
                 _FILTER_TO_SECURITY_IDS: True,
+                **self._security_id_construction_fields(security_master),
             }
 
         if "file_path" in data_source:
@@ -515,23 +548,34 @@ class AxysClassificationSourceLoader:
                 504,
             )
         configured_columns = cast(dict[str, Any], configured_columns_value)
+        construction = security_id_construction(
+            self._specification.values,
+            "security_reference",
+            self._error_message,
+        )
 
         security_master_columns = self._resolve_security_master_columns(
             source_name,
             security_master_path,
             configured_columns,
+            composite_identifier=construction is not None,
         )
-        return {
+        definition: dict[str, Any] = {
             _SOURCE_FILE_PATH: security_master_path,
             "identifier_column": security_master_columns["identifier_column"],
             "name_column": security_master_columns["name_column"],
         }
+        if construction is not None:
+            definition[_SECURITY_ID_CONSTRUCTION] = construction
+        return definition
 
     def _resolve_security_master_columns(
         self,
         source_name: str,
         security_master_path: util.PathLike,
         configured_columns: dict[str, Any],
+        *,
+        composite_identifier: bool,
     ) -> dict[str, str]:
         """Return explicit or inferred security master column names.
 
@@ -540,6 +584,8 @@ class AxysClassificationSourceLoader:
                 validation context.
             security_master_path: Configured security master source path.
             configured_columns: Explicit YAML security master column mappings.
+            composite_identifier: Whether ``security_id`` construction replaces
+                a single identifier source column.
 
         Returns:
             Mapping for ``identifier_column`` and ``name_column``.
@@ -555,7 +601,11 @@ class AxysClassificationSourceLoader:
         available_columns = set(pl.read_csv(path, n_rows=0).columns)
         resolved_columns: dict[str, str] = {}
         missing_fields: list[str] = []
-        for field_name in _SECURITY_MASTER_FIELDS_REQUIRED:
+        required_fields = set(_SECURITY_MASTER_FIELDS_REQUIRED)
+        if composite_identifier:
+            required_fields.remove("identifier_column")
+            resolved_columns["identifier_column"] = _CONSTRUCTED_SECURITY_ID_COLUMN
+        for field_name in required_fields:
             source_column = resolve_column(
                 field_name,
                 _SECURITY_MASTER_COLUMN_ALIASES[field_name],
@@ -592,6 +642,16 @@ class AxysClassificationSourceLoader:
                 504,
             )
         return resolved_columns
+
+    @staticmethod
+    def _security_id_construction_fields(
+        security_master: dict[str, Any],
+    ) -> dict[str, SecurityIdConstruction]:
+        """Return internal composite-ID settings inherited from the master."""
+        construction = security_master.get(_SECURITY_ID_CONSTRUCTION)
+        if construction is None:
+            return {}
+        return {_SECURITY_ID_CONSTRUCTION: cast(SecurityIdConstruction, construction)}
 
     @staticmethod
     def _explicit_or_security_master_path(

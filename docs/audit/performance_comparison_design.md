@@ -928,6 +928,14 @@ shared, source-agnostic sections for files, tolerances, materiality, and
 suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
+Financially meaningful execution choices are explicit rather than inherited
+from Python. Every Audit YAML must name `comparison.level`, both extract-contract
+safety choices, and all eight comparison tolerances. When `transactions`,
+`holdings`, or `fx_rates` is configured, the corresponding transaction,
+holding/price, or FX impact-policy block must be complete. The packaged starter
+shows the former effective values, so migrating an existing configuration by
+copying those values preserves its calculations and serialized findings.
+
 See [Axys/APX Common-Core Export Reference](../axys_apx/axys_apx_common_core_export.md) for an
 operational Axys/APX export template and starter field-reference tables. Those
 tables are guidance only; explicit local schema mappings remain authoritative.
@@ -970,6 +978,7 @@ Example:
 ```yaml
 comparison:
   name: May restatement review
+  level: portfolio
 
 snapshots:
   a:
@@ -993,12 +1002,53 @@ files:
     required: true
   holdings: holdings.csv
 
+extract_contract:
+  enforce_ambiguous_axys_flows: true
+  transaction_semantics_case: legacy_case_insensitive
+
+transaction_impact_methods:
+  external_flow:
+    method: evidence_only
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+    denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
+
+holding_impact_methods:
+  market_value:
+    method: market_value_delta_over_return_denominator
+    denominator_source: begin_market_value
+  accrued:
+    method: accrued_delta_over_return_denominator
+    denominator_source: begin_market_value
+  quantity:
+    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
+    denominator_source: begin_market_value
+  cost:
+    method: evidence_only
+
+price_impact_methods:
+  price:
+    method: price_delta_over_snapshot_a_price_times_weight
+    weight_source: snapshot_a_weight
+
+fx_rate_impact_methods:
+  fx_rate:
+    method: evidence_only
+
 tolerances:
   return: 0.000001
   contribution: 0.000001
   weight: 0.000001
   market_value: 0.01
+  quantity: 0.000001
   price: 0.000001
+  split_factor: 0.00000001
   fx_rate: 0.00000001
 
 materiality:
@@ -1673,9 +1723,10 @@ section. The CSV artifacts remain in the bundle because they make handoffs,
 automation, validation, and troubleshooting reproducible; they are not meant to
 replace the first-stop workbook/report review flow.
 
-User-facing commands package those artifacts in `audit_support.zip` by default
-and promote `source_detail.csv` to the report root. The
-`--expand-all-supporting-files` option retains the equivalent individual files
+User-facing commands always write `source_detail.csv` at the report root and
+never duplicate it in `supporting_files/` or `audit_support.zip`. Remaining
+supporting artifacts are packaged in `audit_support.zip` by default. The
+`--expand-all-supporting-files` option retains those remaining individual files
 under `supporting_files/` for integrations and detailed troubleshooting.
 
 The `ppar.audit.cli.report_bundle` package CLI module
@@ -1684,7 +1735,7 @@ Existing bundles can be checked with
 `ppar.audit.cli.validate_bundle`, which verifies required
 artifacts, manifest metadata, typed CSV content, canonical HTML/XLSX review
 content, empty-table headers, and whichever HTML/XLSX primary artifacts the
-manifest includes. Manifest version 4 records the selected output modes and
+manifest includes. Manifest version 8 records the selected output modes and
 excludes only its generation timestamp and
 XLSX creation/package timestamps from normalized repeatability; statuses,
 financial values, labels, causes, evidence rows, and ordering remain covered.

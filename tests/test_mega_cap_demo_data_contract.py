@@ -181,12 +181,16 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         _assert_same_performance(
             self,
             axys_portfolio.security_performance.to_pandas(),
-            _canonical_security_performance(_PORTFOLIO_PATH),
+            _with_axys_apx_security_ids(
+                _canonical_security_performance(_PORTFOLIO_PATH)
+            ),
         )
         _assert_same_performance(
             self,
             axys_benchmark.security_performance.to_pandas(),
-            _canonical_security_performance(_BENCHMARK_PATH),
+            _with_axys_apx_security_ids(
+                _canonical_security_performance(_BENCHMARK_PATH)
+            ),
         )
 
         analytics = axys_portfolio.to_analytics(
@@ -204,22 +208,23 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertEqual(
             secperf_columns,
             [
-                "FROM_DATE",
-                "THRU_DATE",
-                "PORTFOLIO_CODE",
-                "SECURITY_ID",
-                "BEGIN_WEIGHT",
-                "SEC_RETURN",
-                "CONTRIBUTION",
+                "From Date",
+                "Thru Date",
+                "Portfolio Code",
+                "Security Symbol",
+                "Security Type",
+                "Beginning Weight",
+                "Security Return",
+                "Contribution",
             ],
         )
 
-        reference = pd.read_csv(_AXYS_ANALYTICS_SECREF).set_index("SECURITY_ID")
+        reference = pd.read_csv(_AXYS_ANALYTICS_SECREF).set_index("Security Symbol")
         self.assertTrue(reference.index.is_unique)
-        self.assertEqual(reference.loc["AMZN", "SECURITY_NAME"], "Amazon.Com Inc")
-        self.assertEqual(reference.loc["CRM", "SECURITY_NAME"], "Salesforce Inc")
-        self.assertEqual(reference.loc["GE", "SECURITY_NAME"], "Ge Aerospace")
-        self.assertEqual(reference.loc["RTX", "SECURITY_NAME"], "Rtx Corp")
+        self.assertEqual(reference.loc["AMZN", "Security Name"], "Amazon.Com Inc")
+        self.assertEqual(reference.loc["CRM", "Security Name"], "Salesforce Inc")
+        self.assertEqual(reference.loc["GE", "Security Name"], "Ge Aerospace")
+        self.assertEqual(reference.loc["RTX", "Security Name"], "Rtx Corp")
 
     def test_standard_entrypoints_write_equivalent_semantic_artifacts(self) -> None:
         """CLI and Python runner write complete reports using reference names."""
@@ -283,6 +288,16 @@ def _canonical_security_performance(path: str) -> pd.DataFrame:
     return _read_performance(path)[
         ["from_date", "thru_date", "identifier", "return", "weight"]
     ]
+
+
+def _with_axys_apx_security_ids(performance: pd.DataFrame) -> pd.DataFrame:
+    """Return canonical rows with the starter's type-first security keys."""
+    result = performance.copy()
+    security_types = result["identifier"].map(
+        lambda identifier: "caus" if identifier == "CASHUSD" else "csus"
+    )
+    result["identifier"] = security_types + result["identifier"]
+    return result
 
 
 def _assert_same_performance(

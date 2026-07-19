@@ -93,6 +93,63 @@ _MARKET_PROXY_BY_IDENTIFIER: Final = {
     "91282Y5Y1": "IEI",
     "36225MBS1": "MBB",
 }
+_COMMON_AXYS_HEADERS: Final = {
+    "DATE": "Date",
+    "END_MV": "Ending Market Value",
+    "FLOW": "Net Flow",
+    "INCOME": "Income",
+    "GAIN_LOSS": "Gain/Loss",
+    "PORTFOLIO_CODE": "Portfolio Code",
+    "PORTFOLIO_NAME": "Portfolio Name",
+    "SECURITY_ID": "Security Symbol",
+    "SECURITY_NAME": "Security Name",
+    "ASSET_CLASS": "Asset Class",
+    "ASSET_CLASS_CODE": "Asset Class Code",
+    "ASSET_CLASS_DESC": "Asset Class Name",
+    "SECTOR": "Sector Name",
+    "SECTOR_CODE": "Sector Code",
+    "SECTOR_DESC": "Sector Name",
+    "COUNTRY": "Country Name",
+    "COUNTRY_CODE": "Country Code",
+    "COUNTRY_DESC": "Country Name",
+    "CURRENCY_CODE": "Currency Code",
+    "CURRENCY_DESC": "Currency Name",
+    "INDUSTRY_CODE": "Industry Code",
+    "INDUSTRY_DESC": "Industry Name",
+    "CALENDAR_MONTH": "Calendar Month",
+    "FROM_DATE": "From Date",
+    "THRU_DATE": "Thru Date",
+    "PERIOD_TYPE": "Period Type",
+    "PERIOD_SEQ_IN_MONTH": "Period Sequence in Month",
+    "PERIODS_IN_MONTH": "Periods in Month",
+    "BEGIN_WEIGHT": "Beginning Weight",
+    "BEGIN_MV": "Beginning Market Value",
+    "SEC_RETURN": "Security Return",
+    "PORT_RETURN": "Portfolio Return",
+    "CONTRIBUTION": "Contribution",
+    "SEC_SUM_WT_X_RET": "Security Sum Weight × Return",
+    "DIFFERENCE": "Difference",
+    "MATCH_TYPE": "Match Type",
+    "TRANSACTION_ID": "Transaction ID",
+    "PORT": "Portfolio Code",
+    "TRANSACTION_DATE": "Transaction Date",
+    "SETTLE_DATE": "Settlement Date",
+    "SEC": "Security Symbol",
+    "TRAN": "Transaction Code",
+    "SEC_TYPE": "Transaction Security Type",
+    "SRC_DEST_TYPE": "Source/Destination Type",
+    "SRC_DEST_SYMBOL": "Source/Destination Symbol",
+    "SPECIAL_SEC_TYPE": "Special Security Type",
+    "SPECIAL_SEC_SYMBOL": "Special Security Symbol",
+    "HOLDING_DATE": "Holding Date",
+    "QTY": "Quantity",
+    "PRICE": "Price",
+    "MKT_VAL": "Market Value",
+    "COST": "Cost",
+    "ACCRUED": "Accrued Income",
+    "AMOUNT": "Amount",
+    "COMMISSION": "Commission",
+}
 
 
 def main() -> None:
@@ -661,12 +718,38 @@ def write_outputs(
         snapshot_directory.mkdir(parents=True, exist_ok=True)
         for name, frame in frames.items():
             path = snapshot_directory / f"{name}.csv"
-            frame.to_csv(path, index=False)
+            _with_common_axys_headers(name, frame).to_csv(path, index=False)
             paths[f"{snapshot_name}_{name}"] = str(path)
     comparison_yaml_path = output_directory / "axys_apx_audit.yaml"
     comparison_yaml_path.write_text(_comparison_yaml(), encoding="utf-8")
     paths["comparison_yaml"] = str(comparison_yaml_path)
     return paths
+
+
+def _with_common_axys_headers(name: str, frame: pd.DataFrame) -> pd.DataFrame:
+    """Return an export frame with readable Axys/APX-style column captions.
+
+    Args:
+        name: Logical source dataset name.
+        frame: Internal generator frame using compact implementation headings.
+
+    Returns:
+        A copy with common human-facing headings. Security-bearing datasets
+        include the identity ``Security Type`` immediately after
+        ``Security Symbol``. Transaction row type remains separately available
+        as ``Transaction Security Type``.
+    """
+    exported = frame.rename(columns=_COMMON_AXYS_HEADERS).copy()
+    if "Security Symbol" not in exported.columns:
+        return exported
+
+    symbols = exported["Security Symbol"].astype(str)
+    security_types = symbols.map(_security_type_for_transaction)
+    symbol_position = exported.columns.get_loc("Security Symbol")
+    exported.insert(symbol_position + 1, "Security Type", security_types)
+    if name == "transactions" and "Transaction Security Type" not in exported.columns:
+        raise ValueError("Transactions must preserve Transaction Security Type.")
+    return exported
 
 
 def summarize_outputs(
@@ -1459,9 +1542,10 @@ def _apply_reported_portfolio_return_delta(
 
 def _comparison_yaml() -> str:
     """Return generated performance-comparison YAML text."""
-    return f"""# Generated operational performance-comparison prototype.
+    return """# Generated operational performance-comparison prototype.
 comparison:
   name: Mega-Cap operational performance comparison prototype
+  level: portfolio
 snapshots:
   a:
     label: operational_axys_a
@@ -1481,6 +1565,10 @@ files:
   holdings: holdings.csv
   transactions: transactions.csv
 
+extract_contract:
+  enforce_ambiguous_axys_flows: true
+  transaction_semantics_case: legacy_case_insensitive
+
 transaction_rules:
   by:
     transaction_category: buy
@@ -1498,11 +1586,46 @@ security_return_impact_methods:
     day_count: actual_days
     inclusion_rule: beginning_of_day
 
+transaction_impact_methods:
+  external_flow:
+    method: evidence_only
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+    denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
+
+holding_impact_methods:
+  market_value:
+    method: market_value_delta_over_return_denominator
+    denominator_source: begin_market_value
+  accrued:
+    method: accrued_delta_over_return_denominator
+    denominator_source: begin_market_value
+  quantity:
+    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
+    denominator_source: begin_market_value
+  cost:
+    method: evidence_only
+
+price_impact_methods:
+  price:
+    method: price_delta_over_snapshot_a_price_times_weight
+    weight_source: snapshot_a_weight
+
 tolerances:
   return: 0.000001
   contribution: 0.000001
   weight: 0.000001
   market_value: 0.01
+  quantity: 0.000001
+  price: 0.000001
+  split_factor: 0.00000001
+  fx_rate: 0.00000001
 """
 
 

@@ -133,11 +133,36 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
             }
         ).write_csv(snapshot_path / "portperf.csv")
     return {
+        "comparison": {"level": "portfolio"},
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
         },
         "files": {"portfolio_performance": "portperf.csv"},
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
+        "transaction_impact_methods": {
+            "external_flow": {"method": "evidence_only"},
+            "performance": {
+                "method": "transaction_amount_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
+            },
+            "quantity": {"method": "evidence_only"},
+            "price": {"method": "evidence_only"},
+            "commission": {"method": "evidence_only"},
+        },
     }
 
 
@@ -1154,6 +1179,10 @@ class TestTransactionsLoader(unittest.TestCase):
             frame.select(
                 pc_cols.TRANSACTION_CODE,
                 pc_cols.SECURITY_TYPE,
+                pc_cols.SOURCE_DESTINATION_TYPE,
+                pc_cols.SOURCE_DESTINATION_SYMBOL,
+                pc_cols.SPECIAL_SECURITY_TYPE,
+                pc_cols.SPECIAL_SECURITY_SYMBOL,
                 pc_cols.TRANSACTION_CATEGORY,
                 pc_cols.CASH_FLOW_SIGN,
                 pc_cols.PERFORMANCE_FLOW_SIGN,
@@ -1162,7 +1191,11 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "ai",
-                    pc_cols.SECURITY_TYPE: "margin",
+                    pc_cols.SECURITY_TYPE: "caus",
+                    pc_cols.SOURCE_DESTINATION_TYPE: "$pth",
+                    pc_cols.SOURCE_DESTINATION_SYMBOL: "$cash",
+                    pc_cols.SPECIAL_SECURITY_TYPE: "caus",
+                    pc_cols.SPECIAL_SECURITY_SYMBOL: "margin",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1230,7 +1263,8 @@ class TestTransactionsLoader(unittest.TestCase):
             frame.select(
                 pc_cols.TRANSACTION_CODE,
                 pc_cols.SECURITY_TYPE,
-                pc_cols.SPECIAL_SECURITY_TYPE,
+                pc_cols.SOURCE_DESTINATION_TYPE,
+                pc_cols.SOURCE_DESTINATION_SYMBOL,
                 pc_cols.TRANSACTION_CATEGORY,
                 pc_cols.CASH_FLOW_SIGN,
                 pc_cols.PERFORMANCE_FLOW_SIGN,
@@ -1239,8 +1273,9 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "rc",
-                    pc_cols.SECURITY_TYPE: "equity",
-                    pc_cols.SPECIAL_SECURITY_TYPE: "return_of_capital",
+                    pc_cols.SECURITY_TYPE: "csus",
+                    pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
+                    pc_cols.SOURCE_DESTINATION_SYMBOL: "$cash",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1269,7 +1304,8 @@ class TestTransactionsLoader(unittest.TestCase):
             frame.select(
                 pc_cols.TRANSACTION_CODE,
                 pc_cols.SECURITY_TYPE,
-                pc_cols.SPECIAL_SECURITY_TYPE,
+                pc_cols.SOURCE_DESTINATION_TYPE,
+                pc_cols.SOURCE_DESTINATION_SYMBOL,
                 pc_cols.TRANSACTION_CATEGORY,
                 pc_cols.CASH_FLOW_SIGN,
                 pc_cols.PERFORMANCE_FLOW_SIGN,
@@ -1278,8 +1314,9 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "pd",
-                    pc_cols.SECURITY_TYPE: "bond",
-                    pc_cols.SPECIAL_SECURITY_TYPE: "principal_paydown",
+                    pc_cols.SECURITY_TYPE: "fius",
+                    pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
+                    pc_cols.SOURCE_DESTINATION_SYMBOL: "$cash",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1489,6 +1526,7 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
             }
             rows = {
                 "PORT": ["P1", "P1", "P1", "P1"],
@@ -1727,6 +1765,7 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "dp": [
@@ -1826,6 +1865,7 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "wd": {
@@ -1873,6 +1913,7 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "li": {
@@ -1968,6 +2009,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
                 "transaction_semantics_case": "exact",
             }
             configuration["transaction_rules"] = {
@@ -2027,6 +2069,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
                 "transaction_semantics_case": "exact",
             }
             configuration["transaction_rules"] = {
@@ -2068,6 +2111,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
                 "transaction_semantics_case": "exact",
             }
             configuration["transaction_rules"] = {
@@ -2101,6 +2145,7 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration = _minimal_specification(directory)
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
                 "transaction_semantics_case": "exact",
             }
             path = _write_yaml(directory, configuration)
@@ -2117,6 +2162,7 @@ class TestTransactionsLoader(unittest.TestCase):
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
             configuration["extract_contract"] = {
+                "enforce_ambiguous_axys_flows": True,
                 "transaction_semantics_case": "sometimes",
             }
             path = _write_yaml(directory, configuration)
@@ -2133,7 +2179,11 @@ class TestTransactionsLoader(unittest.TestCase):
             directory = Path(temp_dir)
             _write_raw_extract_contract(directory, {"datasets": {}})
             configuration = _minimal_specification(directory)
-            configuration["extract_contract"] = {"path": "site_extract_contract.yaml"}
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
+            }
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
@@ -2147,7 +2197,11 @@ class TestTransactionsLoader(unittest.TestCase):
             directory = Path(temp_dir)
             _write_extract_contract(directory, ["NOT_AN_AXYS_FIELD"])
             configuration = _minimal_specification(directory)
-            configuration["extract_contract"] = {"path": "site_extract_contract.yaml"}
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
+            }
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
@@ -2178,7 +2232,11 @@ class TestTransactionsLoader(unittest.TestCase):
                 },
             )
             configuration = _minimal_specification(directory)
-            configuration["extract_contract"] = {"path": "site_extract_contract.yaml"}
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
+            }
             path = _write_yaml(directory, configuration)
 
             with self.assertRaises(PpaError) as context:
@@ -2200,6 +2258,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["extract_contract"] = {
                 "enforce_ambiguous_axys_flows": False,
+                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "wd": {

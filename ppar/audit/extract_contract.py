@@ -137,26 +137,18 @@ def extract_contract_settings(
             paths and report validation errors.
 
     Returns:
-        Resolved extract-contract settings. When the YAML omits
-        ``extract_contract``, the packaged Axys/APX demo contract is used with
-        ambiguous-flow enforcement enabled.
+        Resolved extract-contract settings. The safety and case-matching choices
+        must be explicit; omitting ``path`` selects the packaged contract.
 
     Raises:
-        PpaError: If the optional ``extract_contract`` setting has an invalid
-            shape or references a missing/unreadable contract file.
+        PpaError: If ``extract_contract`` has an invalid shape, omits a required
+            safety choice, or references a missing/unreadable contract file.
     """
     raw_settings = values.get(_EXTRACT_CONTRACT_KEY)
     if raw_settings is None:
-        contract = _load_packaged_extract_contract()
-        validate_extract_contract(
-            contract,
-            contract_label=_packaged_contract_label(),
-        )
-        return ExtractContractSettings(
-            path=_packaged_contract_label(),
-            enforce_ambiguous_axys_flows=True,
-            transaction_semantics_case=_TRANSACTION_SEMANTICS_CASE_LEGACY,
-            contract=contract,
+        raise PpaError(
+            f"{specification_path}: extract_contract must be a mapping.",
+            504,
         )
     if not isinstance(raw_settings, dict):
         raise PpaError(
@@ -164,7 +156,7 @@ def extract_contract_settings(
             504,
         )
 
-    enforce_value = raw_settings.get(_ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY, True)
+    enforce_value = raw_settings.get(_ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY)
     if not isinstance(enforce_value, bool):
         raise PpaError(
             (
@@ -176,7 +168,6 @@ def extract_contract_settings(
 
     case_value = raw_settings.get(
         _TRANSACTION_SEMANTICS_CASE_KEY,
-        _TRANSACTION_SEMANTICS_CASE_LEGACY,
     )
     if (
         not isinstance(case_value, str)
@@ -250,9 +241,8 @@ def transaction_semantics_exact_case(
             the selected extract contract.
 
     Returns:
-        ``True`` only when the versioned extract-contract configuration opts
-        into exact-case transaction semantics. Omitted settings retain legacy
-        case-insensitive behavior for backward compatibility.
+        ``True`` only when the versioned extract-contract configuration selects
+        exact-case transaction semantics. The setting is required.
     """
     settings = extract_contract_settings(
         values,
@@ -492,6 +482,30 @@ def _resolve_contract_path(
 
 def _normalized_transaction_column(demo_column: str) -> str:
     """Return the normalized transaction column represented by a demo header."""
+    common_axys_apx_columns = {
+        "Portfolio Code": pc_cols.PORTFOLIO_ID,
+        "Transaction Date": pc_cols.TRANSACTION_DATE,
+        "Settlement Date": pc_cols.SETTLEMENT_DATE,
+        "Security Symbol": pc_cols.SECURITY_ID,
+        # Security Type is the second component of security_id; it is distinct
+        # from the transaction row's auditable Transaction Security Type.
+        "Security Type": pc_cols.SECURITY_ID,
+        "Transaction Code": pc_cols.TRANSACTION_CODE,
+        "Transaction Security Type": pc_cols.SECURITY_TYPE,
+        "Source/Destination Type": pc_cols.SOURCE_DESTINATION_TYPE,
+        "Source/Destination Symbol": pc_cols.SOURCE_DESTINATION_SYMBOL,
+        "Special Security Type": pc_cols.SPECIAL_SECURITY_TYPE,
+        "Special Security Symbol": pc_cols.SPECIAL_SECURITY_SYMBOL,
+        "Currency Code": pc_cols.CURRENCY,
+        "Base Currency": pc_cols.BASE_CURRENCY,
+        "Quantity": pc_cols.QUANTITY,
+        "Price": pc_cols.PRICE,
+        "Amount": pc_cols.AMOUNT,
+        "Base Amount": pc_cols.BASE_AMOUNT,
+        "Commission": pc_cols.COMMISSION,
+    }
+    if demo_column in common_axys_apx_columns:
+        return common_axys_apx_columns[demo_column]
     aliases_by_column = (
         aliases.TRANSACTIONS_REQUIRED_ALIASES | aliases.TRANSACTIONS_OPTIONAL_ALIASES
     )

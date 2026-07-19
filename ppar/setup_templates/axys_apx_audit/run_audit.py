@@ -64,15 +64,6 @@ def main(argv: list[str] | None = None) -> int:
     # Data Issues checks remain in ppar.yaml where they are reviewable and
     # reproducible. CLI-style options control only this particular run.
     settings = script_run_settings(SITE_DIRECTORY, argv)
-    selected_reports = (
-        REPORTS
-        if settings.report == "both"
-        else tuple(
-            report
-            for report in REPORTS
-            if report.comparison_level == settings.report
-        )
-    )
 
     # ---------------------------------------------------------------------
     # 2. Compare the two configured source-data snapshots
@@ -82,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     # returns one normalized findings table for the selected review level.
     review_paths: list[Path] = []
     security_skipped = False
-    for report in selected_reports:
+    for report in REPORTS:
         try:
             findings: Any = compare_snapshots(
                 SPECIFICATIONS_PATH,
@@ -127,8 +118,11 @@ def main(argv: list[str] | None = None) -> int:
                 if review_path is not None:
                     review_paths.append(review_path)
         except PpaError as error:
-            # The default "both" run remains useful for portfolio-only sites.
-            if settings.report == "both" and is_missing_security_data(error):
+            # The standard run remains useful for portfolio-only sites.
+            if (
+                report.comparison_level == SECURITY_COMPARISON_LEVEL
+                and is_missing_security_data(error)
+            ):
                 security_skipped = True
                 continue
             print(f"Report failed: {error}", file=sys.stderr)

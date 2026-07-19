@@ -504,12 +504,13 @@ def write_audit_report_bundle(
             ``Reconstruction Summary``, ``Return Reconstruction Checks``, and
             ``Security Return Checks`` workbook/report sections plus matching
             CSV artifacts.
-        expand_all_supporting_files: Whether to retain every supporting CSV and
-            JSON file in ``supporting_files``. When false, source detail is
-            promoted and the complete validated directory is stored in
-            ``audit_support.zip``. The public Python API retains its expanded
-            default for compatibility; user-facing commands default to compact
-            output.
+        expand_all_supporting_files: Whether to retain the remaining supporting
+            CSV and JSON files in ``supporting_files``. ``source_detail.csv`` is
+            always written at the report root and is never duplicated in the
+            supporting directory or archive. When false, the validated supporting
+            directory is stored in ``audit_support.zip``. The public Python API
+            retains its expanded default for compatibility; user-facing commands
+            default to compact output.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
@@ -612,15 +613,17 @@ def write_audit_report_bundle(
         supporting_files_directory / "findings.csv",
     )
     for name, table in tables.items():
+        artifact_path = (
+            bundle_directory / _pc_bundle.PROMOTED_SOURCE_DETAIL
+            if name == Path(_pc_bundle.PROMOTED_SOURCE_DETAIL).stem
+            else supporting_files_directory / f"{name}.csv"
+        )
         paths[name] = _pc_bundle.write_csv_artifact(
             table,
-            supporting_files_directory / f"{name}.csv",
+            artifact_path,
         )
     if csv_only_output:
-        for artifact_name in (
-            *_pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS,
-            "source_detail",
-        ):
+        for artifact_name in _pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS:
             promoted_path = bundle_directory / f"{artifact_name}.csv"
             shutil.copy2(paths[artifact_name], promoted_path)
             paths[artifact_name] = promoted_path
@@ -676,12 +679,9 @@ def write_audit_report_bundle(
         )
     if not expand_all_supporting_files:
         promoted_file_names = (
-            (
-                *(f"{name}.csv" for name in _pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS),
-                _pc_bundle.PROMOTED_SOURCE_DETAIL,
-            )
+            tuple(f"{name}.csv" for name in _pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS)
             if csv_only_output
-            else (_pc_bundle.PROMOTED_SOURCE_DETAIL,)
+            else ()
         )
         compact_paths = _pc_bundle.compact_supporting_files(
             bundle_directory,

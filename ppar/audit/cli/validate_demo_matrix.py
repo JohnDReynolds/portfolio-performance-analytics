@@ -758,11 +758,11 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
         for code in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES
     }
     expected["rc"] = (
-        "Packaged demo covers rc only with explicit",
+        "Packaged demo covers rc only with an equity security type",
         "Code-only treatment remains unknown",
     )
     expected["pd"] = (
-        "Packaged demo covers pd only with MBS/amortizing-security",
+        "Packaged demo covers pd only with a fixed-income security type",
         "Code-only treatment remains unknown",
     )
     expected.update(

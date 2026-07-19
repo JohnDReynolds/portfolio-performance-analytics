@@ -1831,13 +1831,13 @@ def _workbook_missing_underlying_cause_row(
         _layout.ESTIMATED_IMPACT: None,
         _layout.IMPACT_STATUS: _guidance.IMPACT_STATUS_REVIEW_ONLY,
         _layout.REVIEW_NOTE: (
-            "Review `supporting_files/source_detail.csv`. The difference may be due to "
+            "Review `source_detail.csv`. The difference may be due to "
             "missing source-data, source-file timing differences, or vendor "
             "methodology that does not match the YAML specifications."
         ),
         _layout.REVIEW_GUIDANCE: (
             "No identifiable cause was found. Review "
-            "`supporting_files/source_detail.csv`. "
+            "`source_detail.csv`. "
             "The difference may be due to missing source-data, source-file timing "
             "differences, or vendor methodology that does not match the YAML "
             "specifications."

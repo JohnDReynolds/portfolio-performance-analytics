@@ -33,6 +33,7 @@ def _write_suppression_specification(
 ) -> Path:
     """Write a comparison specification with configurable suppressions."""
     configuration = {
+        "comparison": {"level": "portfolio"},
         "snapshots": {
             "a": {"path": str(_AXYS_DATA_PATH / "axys_a")},
             "b": {"path": str(_AXYS_DATA_PATH / "axys_b_restatement")},
@@ -40,6 +41,20 @@ def _write_suppression_specification(
         "files": {
             "portfolio_performance": "portperf.csv",
             "security_performance": "secperf.csv",
+        },
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
         },
         "suppressions": suppressions,
     }

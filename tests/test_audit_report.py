@@ -15,6 +15,7 @@ import zipfile
 
 # Third-party imports
 import polars as pl
+import yaml
 
 # Project imports
 from ppar.errors import PpaError
@@ -70,6 +71,71 @@ _SUPPRESSED_COMPARISON_PATH = Path(
 _original_import = __import__
 
 
+def _required_yaml_settings() -> dict[str, object]:
+    """Return explicit settings that formerly had internal defaults."""
+    return {
+        "comparison": {"level": "portfolio"},
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
+    }
+
+
+def _standard_transaction_impact_methods() -> dict[str, object]:
+    """Return explicit transaction policies formerly supplied by Python."""
+    return {
+        "external_flow": {"method": "evidence_only"},
+        "performance": {
+            "method": "transaction_amount_delta_over_return_denominator",
+            "denominator_source": "begin_market_value",
+        },
+        "quantity": {"method": "evidence_only"},
+        "price": {"method": "evidence_only"},
+        "commission": {"method": "evidence_only"},
+    }
+
+
+def _standard_holding_impact_methods(
+    *,
+    quantity_evidence_only: bool = False,
+) -> dict[str, object]:
+    """Return explicit holding policies formerly supplied by Python."""
+    quantity_policy: dict[str, object]
+    if quantity_evidence_only:
+        quantity_policy = {"method": "evidence_only"}
+    else:
+        quantity_policy = {
+            "method": (
+                "quantity_delta_times_snapshot_a_unit_market_value_over_"
+                "return_denominator"
+            ),
+            "denominator_source": "begin_market_value",
+        }
+    return {
+        "market_value": {
+            "method": "market_value_delta_over_return_denominator",
+            "denominator_source": "begin_market_value",
+        },
+        "accrued": {
+            "method": "accrued_delta_over_return_denominator",
+            "denominator_source": "begin_market_value",
+        },
+        "quantity": quantity_policy,
+        "cost": {"method": "evidence_only"},
+    }
+
+
 def _write_transaction_estimate_specification(directory: Path) -> Path:
     """Write a minimal source-loaded fixture with transaction impact semantics."""
     for snapshot_name, portfolio_return, amount in (
@@ -93,22 +159,21 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
 
     specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(
-        "\n".join(
-            [
-                "snapshots:",
-                "  a:",
-                "    path: snapshot_a",
-                "  b:",
-                "    path: snapshot_b",
-                "files:",
-                "  portfolio_performance: portperf.csv",
-                "  transactions: transactions.csv",
-                "transaction_impact_methods:",
-                "  performance:",
-                "    method: transaction_amount_delta_over_return_denominator",
-                "    denominator_source: begin_market_value",
-                "",
-            ]
+        yaml.safe_dump(
+            {
+                **_required_yaml_settings(),
+                "snapshots": {
+                    "a": {"path": "snapshot_a"},
+                    "b": {"path": "snapshot_b"},
+                },
+                "files": {
+                    "portfolio_performance": "portperf.csv",
+                    "transactions": "transactions.csv",
+                },
+                "transaction_impact_methods": (
+                    _standard_transaction_impact_methods()
+                ),
+            }
         ),
         encoding="utf-8",
     )
@@ -138,21 +203,21 @@ def _write_transaction_commission_review_specification(directory: Path) -> Path:
 
     specification_path = directory / "ppar_audit.yaml"
     specification_path.write_text(
-        "\n".join(
-            [
-                "snapshots:",
-                "  a:",
-                "    path: snapshot_a",
-                "  b:",
-                "    path: snapshot_b",
-                "files:",
-                "  portfolio_performance: portperf.csv",
-                "  transactions: transactions.csv",
-                "transaction_impact_methods:",
-                "  commission:",
-                "    method: evidence_only",
-                "",
-            ]
+        yaml.safe_dump(
+            {
+                **_required_yaml_settings(),
+                "snapshots": {
+                    "a": {"path": "snapshot_a"},
+                    "b": {"path": "snapshot_b"},
+                },
+                "files": {
+                    "portfolio_performance": "portperf.csv",
+                    "transactions": "transactions.csv",
+                },
+                "transaction_impact_methods": (
+                    _standard_transaction_impact_methods()
+                ),
+            }
         ),
         encoding="utf-8",
     )
@@ -162,8 +227,7 @@ def _write_transaction_commission_review_specification(directory: Path) -> Path:
 def _write_holding_estimate_specification(
     directory: Path,
     *,
-    include_holding_impact_methods: bool,
-    include_accrued_impact_methods: bool = False,
+    quantity_evidence_only: bool = False,
 ) -> Path:
     """Write a minimal source-loaded fixture with holding market value changes."""
     for snapshot_name, portfolio_return, market_value, accrued in (
@@ -183,38 +247,34 @@ def _write_holding_estimate_specification(
             encoding="utf-8",
         )
 
-    lines = [
-        "snapshots:",
-        "  a:",
-        "    path: snapshot_a",
-        "  b:",
-        "    path: snapshot_b",
-        "files:",
-        "  portfolio_performance: portperf.csv",
-        "  holdings: holdings.csv",
-    ]
-    if include_holding_impact_methods:
-        lines.extend(
-            [
-                "holding_impact_methods:",
-                "  market_value:",
-                "    method: market_value_delta_over_return_denominator",
-                "    denominator_source: begin_market_value",
-            ]
-        )
-    if include_accrued_impact_methods:
-        if not include_holding_impact_methods:
-            lines.append("holding_impact_methods:")
-        lines.extend(
-            [
-                "  accrued:",
-                "    method: accrued_delta_over_return_denominator",
-                "    denominator_source: begin_market_value",
-            ]
-        )
-
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    specification_path.write_text(
+        yaml.safe_dump(
+            {
+                **_required_yaml_settings(),
+                "snapshots": {
+                    "a": {"path": "snapshot_a"},
+                    "b": {"path": "snapshot_b"},
+                },
+                "files": {
+                    "portfolio_performance": "portperf.csv",
+                    "holdings": "holdings.csv",
+                },
+                "holding_impact_methods": _standard_holding_impact_methods(
+                    quantity_evidence_only=quantity_evidence_only,
+                ),
+                "price_impact_methods": {
+                    "price": {
+                        "method": (
+                            "price_delta_over_snapshot_a_price_times_weight"
+                        ),
+                        "weight_source": "snapshot_a_weight",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
     return specification_path
 
 
@@ -479,8 +539,8 @@ class TestAuditReport(unittest.TestCase):
 
         self.assertIn("CVNA", context_evidence[pc_cols.SECURITY_ID].to_list())
 
-    def test_compact_report_bundle_promotes_detail_and_archives_full_support(self) -> None:
-        """Compact output remains complete, validated, and reviewer friendly."""
+    def test_compact_report_bundle_keeps_detail_root_only(self) -> None:
+        """Compact output keeps source detail accessible without duplicating it."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
@@ -500,19 +560,19 @@ class TestAuditReport(unittest.TestCase):
             with zipfile.ZipFile(paths["audit_support"]) as archive:
                 self.assertIn("supporting_files/manifest.json", archive.namelist())
                 self.assertIn("supporting_files/cause_lineage.csv", archive.namelist())
-                archived_source_detail = archive.read(
-                    "supporting_files/source_detail.csv"
+                self.assertNotIn(
+                    "supporting_files/source_detail.csv",
+                    archive.namelist(),
                 )
-            self.assertEqual(paths["source_detail"].read_bytes(), archived_source_detail)
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("`source_detail.csv`", readme)
             self.assertIn("`audit_support.zip`", readme)
             self.assertIn("`--expand-all-supporting-files`", readme)
 
             paths["source_detail"].write_text("changed\n", encoding="utf-8")
-            self.assertEqual(
+            self.assertIn(
+                "table 'source_detail' ordered columns do not match manifest",
                 report_bundle_validation_issues(output_directory),
-                ["promoted source_detail.csv does not match audit_support.zip"],
             )
 
     def test_generation_defers_deep_reparse_to_standalone_validation(self) -> None:
@@ -565,7 +625,7 @@ class TestAuditReport(unittest.TestCase):
                     "expanded_directory": "supporting_files",
                     "expand_option": "--expand-all-supporting-files",
                 },
-                "manifest_version": 7,
+                "manifest_version": 8,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -740,7 +800,7 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn("then use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn(
-                "`supporting_files/source_detail.csv` for audit and troubleshooting",
+                "`source_detail.csv` for audit and troubleshooting",
                 readme,
             )
             self.assertIn("source-data differences", readme)
@@ -1421,102 +1481,54 @@ class TestAuditReport(unittest.TestCase):
         self.assertEqual(set(placeholders["review_note"].to_list()), {"None"})
 
     def test_holding_impact_method_explains_market_value_row(self) -> None:
-        """Holding market value uses the default performance-input impact."""
+        """Explicit holding market-value policy explains the changed row."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_holding_estimate_specification(
-                Path(temp_dir) / "plain",
-                include_holding_impact_methods=False,
-            )
-            configured_path = _write_holding_estimate_specification(
-                Path(temp_dir) / "configured",
-                include_holding_impact_methods=True,
+            path = _write_holding_estimate_specification(Path(temp_dir))
+            causes = _workbook_underlying_causes_table(
+                compare_snapshots(path),
+                comparison_path=path,
             )
 
-            plain_causes = _workbook_underlying_causes_table(
-                compare_snapshots(plain_path),
-                comparison_path=plain_path,
-            )
-            configured_causes = _workbook_underlying_causes_table(
-                compare_snapshots(configured_path),
-                comparison_path=configured_path,
-            )
-
-        plain_holding = plain_causes.filter(
-            (pl.col("dataset") == "holdings")
-            & (pl.col("source_column") == "market_value")
-        )
-        configured_holding = configured_causes.filter(
+        holding = causes.filter(
             (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "market_value")
         )
 
-        self.assertEqual(plain_holding.height, 1)
-        self.assertAlmostEqual(plain_holding["estimated_impact"][0], 0.01)
+        self.assertEqual(holding.height, 1)
+        self.assertAlmostEqual(holding["estimated_impact"][0], 0.01)
         self.assertEqual(
-            plain_holding["review_guidance"][0],
-            "AAPL ending holdings.market_value increased by 10.00.",
-        )
-        self.assertEqual(configured_holding.height, 1)
-        self.assertAlmostEqual(configured_holding["estimated_impact"][0], 0.01)
-        self.assertEqual(
-            configured_holding["review_guidance"][0],
+            holding["review_guidance"][0],
             "AAPL ending holdings.market_value increased by 10.00.",
         )
 
     def test_holding_accrued_impact_method_explains_accrued_row(self) -> None:
-        """Holding accrued uses the default performance-input impact."""
+        """Explicit holding-accrued policy explains the changed row."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_holding_estimate_specification(
-                Path(temp_dir) / "plain",
-                include_holding_impact_methods=False,
-            )
-            configured_path = _write_holding_estimate_specification(
-                Path(temp_dir) / "configured",
-                include_holding_impact_methods=False,
-                include_accrued_impact_methods=True,
+            path = _write_holding_estimate_specification(Path(temp_dir))
+            causes = _workbook_underlying_causes_table(
+                compare_snapshots(path),
+                comparison_path=path,
             )
 
-            plain_causes = _workbook_underlying_causes_table(
-                compare_snapshots(plain_path),
-                comparison_path=plain_path,
-            )
-            configured_causes = _workbook_underlying_causes_table(
-                compare_snapshots(configured_path),
-                comparison_path=configured_path,
-            )
-
-        plain_accrued = plain_causes.filter(
-            (pl.col("dataset") == "holdings")
-            & (pl.col("source_column") == "accrued")
-        )
-        configured_accrued = configured_causes.filter(
+        accrued = causes.filter(
             (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "accrued")
         )
 
-        self.assertEqual(plain_accrued.height, 1)
-        self.assertAlmostEqual(plain_accrued["estimated_impact"][0], 0.005)
+        self.assertEqual(accrued.height, 1)
+        self.assertAlmostEqual(accrued["estimated_impact"][0], 0.005)
         self.assertEqual(
-            plain_accrued["review_guidance"][0],
-            "AAPL ending holdings.accrued increased by 5.00.",
-        )
-        self.assertEqual(configured_accrued.height, 1)
-        self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(
-            configured_accrued["review_guidance"][0],
+            accrued["review_guidance"][0],
             "AAPL ending holdings.accrued increased by 5.00.",
         )
 
     def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
         """Evidence-only YAML removes missing-method guidance for known fields."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_holding_estimate_specification(
-                Path(temp_dir) / "plain",
-                include_holding_impact_methods=False,
-            )
+            plain_path = _write_holding_estimate_specification(Path(temp_dir) / "plain")
             configured_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "configured",
-                include_holding_impact_methods=False,
+                quantity_evidence_only=True,
             )
             for comparison_path in (plain_path, configured_path):
                 holding_path = comparison_path.parent / "snapshot_b" / "holdings.csv"
@@ -1527,15 +1539,6 @@ class TestAuditReport(unittest.TestCase):
                     ),
                     encoding="utf-8",
                 )
-            configured_path.write_text(
-                configured_path.read_text(encoding="utf-8")
-                + "\n"
-                + "holding_impact_methods:\n"
-                + "  quantity:\n"
-                + "    method: evidence_only\n",
-                encoding="utf-8",
-            )
-
             plain_causes = _workbook_underlying_causes_table(
                 compare_snapshots(plain_path),
                 comparison_path=plain_path,
@@ -1646,7 +1649,7 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn("explain each performance period", readme)
             self.assertIn("additively explain each performance period", readme)
             self.assertIn(
-                "`supporting_files/source_detail.csv` for audit and troubleshooting",
+                "`source_detail.csv` for audit and troubleshooting",
                 readme,
             )
 
@@ -2043,12 +2046,15 @@ class TestAuditReport(unittest.TestCase):
                     "performance_differences",
                     "performance_difference_causes",
                     "data_issues",
-                    "source_detail",
                 ):
                     self.assertEqual(
                         paths[artifact_name].read_bytes(),
                         archive.read(f"supporting_files/{artifact_name}.csv"),
                     )
+                self.assertNotIn(
+                    "supporting_files/source_detail.csv",
+                    archive.namelist(),
+                )
             self.assertFalse(manifest["options"]["include_workbook"])
             self.assertFalse(manifest["options"]["include_html_output"])
             self.assertEqual(
@@ -2112,7 +2118,6 @@ class TestAuditReport(unittest.TestCase):
                 "performance_differences",
                 "performance_difference_causes",
                 "data_issues",
-                "source_detail",
             ):
                 with self.subTest(artifact_name=artifact_name):
                     self.assertEqual(paths[artifact_name].parent, output_directory)
@@ -2123,6 +2128,14 @@ class TestAuditReport(unittest.TestCase):
                             / f"{artifact_name}.csv"
                         ).is_file()
                     )
+            self.assertEqual(paths["source_detail"].parent, output_directory)
+            self.assertFalse(
+                (
+                    output_directory
+                    / "supporting_files"
+                    / "source_detail.csv"
+                ).exists()
+            )
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
     def test_write_review_workbook_reports_missing_openpyxl(self) -> None:

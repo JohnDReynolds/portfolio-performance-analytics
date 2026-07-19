@@ -321,14 +321,22 @@ def _transaction_impact_policies(
 
     Returns:
         Transaction impact policies keyed by normalized performance-flow
-        treatment. Missing configuration returns an empty mapping.
+        treatment.
 
     Raises:
         PpaError: If transaction impact method configuration is malformed or
             names an unsupported method.
     """
-    methods_value = specification.values.get(_TRANSACTION_IMPACT_METHODS_KEY, {})
+    methods_value = specification.values.get(_TRANSACTION_IMPACT_METHODS_KEY)
     if methods_value is None:
+        if pc_cols.TRANSACTIONS in specification.files:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_TRANSACTION_IMPACT_METHODS_KEY} "
+                    "is required when files.transactions is configured."
+                ),
+                504,
+            )
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
@@ -336,13 +344,14 @@ def _transaction_impact_policies(
             504,
         )
 
-    unsupported_keys = set(methods_value) - {
+    supported_keys = {
         _EXTERNAL_FLOW_KEY,
         _PERFORMANCE_KEY,
         _TRANSACTION_QUANTITY_KEY,
         _TRANSACTION_PRICE_KEY,
         _TRANSACTION_COMMISSION_KEY,
     }
+    unsupported_keys = set(methods_value) - supported_keys
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
@@ -353,38 +362,20 @@ def _transaction_impact_policies(
             504,
         )
 
-    policies: dict[str, _TransactionImpactPolicy] = {
-        _EXTERNAL_FLOW_KEY: _TransactionImpactPolicy(
-            method=_EVIDENCE_ONLY_METHOD,
-            finding_label=TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
-        ),
-        _PERFORMANCE_KEY: _TransactionImpactPolicy(
-            method=_TRANSACTION_AMOUNT_DELTA_METHOD,
-            finding_label=TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
-            denominator_source="begin_market_value",
-        ),
-        _TRANSACTION_QUANTITY_KEY: _TransactionImpactPolicy(
-            method=_EVIDENCE_ONLY_METHOD,
-            finding_label=_evidence_only_impact_policy_label(
-                pc_cols.TRANSACTIONS,
-                _TRANSACTION_QUANTITY_KEY,
-            ),
-        ),
-        _TRANSACTION_PRICE_KEY: _TransactionImpactPolicy(
-            method=_EVIDENCE_ONLY_METHOD,
-            finding_label=_evidence_only_impact_policy_label(
-                pc_cols.TRANSACTIONS,
-                _TRANSACTION_PRICE_KEY,
-            ),
-        ),
-        _TRANSACTION_COMMISSION_KEY: _TransactionImpactPolicy(
-            method=_EVIDENCE_ONLY_METHOD,
-            finding_label=_evidence_only_impact_policy_label(
-                pc_cols.TRANSACTIONS,
-                _TRANSACTION_COMMISSION_KEY,
-            ),
-        ),
-    }
+    if pc_cols.TRANSACTIONS in specification.files:
+        missing_keys = sorted(supported_keys - set(methods_value))
+        if missing_keys:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_TRANSACTION_IMPACT_METHODS_KEY} "
+                    "is missing required keys: "
+                    + ", ".join(missing_keys)
+                    + "."
+                ),
+                504,
+            )
+
+    policies: dict[str, _TransactionImpactPolicy] = {}
     external_flow_value = methods_value.get(_EXTERNAL_FLOW_KEY)
     if external_flow_value is not None and not isinstance(external_flow_value, dict):
         raise PpaError(
@@ -593,15 +584,22 @@ def _holding_impact_policies(
         specification: Parsed comparison specification.
 
     Returns:
-        Policy labels keyed by holding source column. Missing configuration
-        returns an empty mapping, which leaves holding rows as evidence-only.
+        Policy labels keyed by holding source column.
 
     Raises:
         PpaError: If holding impact method configuration is malformed or
             names an unsupported method.
     """
-    methods_value = specification.values.get(_HOLDING_IMPACT_METHODS_KEY, {})
+    methods_value = specification.values.get(_HOLDING_IMPACT_METHODS_KEY)
     if methods_value is None:
+        if pc_cols.HOLDINGS in specification.files:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_HOLDING_IMPACT_METHODS_KEY} "
+                    "is required when files.holdings is configured."
+                ),
+                504,
+            )
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
@@ -609,12 +607,13 @@ def _holding_impact_policies(
             504,
         )
 
-    unsupported_keys = set(methods_value) - {
+    supported_keys = {
         _MARKET_VALUE_KEY,
         pc_cols.ACCRUED,
         pc_cols.QUANTITY,
         pc_cols.COST,
     }
+    unsupported_keys = set(methods_value) - supported_keys
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
@@ -625,16 +624,20 @@ def _holding_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {
-        pc_cols.MARKET_VALUE: IMPACT_POLICY_HOLDING_MARKET_VALUE,
-        pc_cols.BASE_MARKET_VALUE: IMPACT_POLICY_HOLDING_MARKET_VALUE,
-        pc_cols.ACCRUED: IMPACT_POLICY_HOLDING_ACCRUED,
-        pc_cols.QUANTITY: IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
-        pc_cols.COST: _evidence_only_impact_policy_label(
-            pc_cols.HOLDINGS,
-            pc_cols.COST,
-        ),
-    }
+    if pc_cols.HOLDINGS in specification.files:
+        missing_keys = sorted(supported_keys - set(methods_value))
+        if missing_keys:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_HOLDING_IMPACT_METHODS_KEY} "
+                    "is missing required keys: "
+                    + ", ".join(missing_keys)
+                    + "."
+                ),
+                504,
+            )
+
+    policies: dict[str, str] = {}
     market_value = methods_value.get(_MARKET_VALUE_KEY)
     if market_value is not None:
         policy = _require_policy_mapping(
@@ -665,6 +668,7 @@ def _holding_impact_policies(
             _HOLDING_MARKET_VALUE_ALLOWED_VALUES,
         )
         policies[pc_cols.MARKET_VALUE] = IMPACT_POLICY_HOLDING_MARKET_VALUE
+        policies[pc_cols.BASE_MARKET_VALUE] = IMPACT_POLICY_HOLDING_MARKET_VALUE
     accrued = methods_value.get(pc_cols.ACCRUED)
     if accrued is not None:
         policy = _require_policy_mapping(
@@ -809,15 +813,22 @@ def _price_impact_policies(
         specification: Parsed comparison specification.
 
     Returns:
-        Policy labels keyed by price source column. Missing configuration
-        returns an empty mapping, which leaves price rows as evidence-only.
+        Policy labels keyed by price source column.
 
     Raises:
         PpaError: If price impact method configuration is malformed or names
             an unsupported method.
     """
-    methods_value = specification.values.get(_PRICE_IMPACT_METHODS_KEY, {})
+    methods_value = specification.values.get(_PRICE_IMPACT_METHODS_KEY)
     if methods_value is None:
+        if pc_cols.HOLDINGS in specification.files:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_PRICE_IMPACT_METHODS_KEY} "
+                    "is required when files.holdings is configured."
+                ),
+                504,
+            )
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
@@ -836,7 +847,16 @@ def _price_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {pc_cols.PRICE: IMPACT_POLICY_PRICE_WEIGHTED}
+    if pc_cols.HOLDINGS in specification.files and pc_cols.PRICE not in methods_value:
+        raise PpaError(
+            (
+                f"{specification.path}: {_PRICE_IMPACT_METHODS_KEY}."
+                f"{pc_cols.PRICE} is required when files.holdings is configured."
+            ),
+            504,
+        )
+
+    policies: dict[str, str] = {}
     price_value = methods_value.get(pc_cols.PRICE)
     if price_value is not None:
         policy = _require_policy_mapping(
@@ -879,16 +899,22 @@ def _fx_rate_impact_policies(
         specification: Parsed comparison specification.
 
     Returns:
-        Policy labels keyed by FX rate source column. Missing configuration
-        returns an empty mapping, which leaves FX rows as ordinary review
-        evidence.
+        Policy labels keyed by FX rate source column.
 
     Raises:
         PpaError: If FX rate impact method configuration is malformed or names
             an unsupported method.
     """
-    methods_value = specification.values.get(_FX_RATE_IMPACT_METHODS_KEY, {})
+    methods_value = specification.values.get(_FX_RATE_IMPACT_METHODS_KEY)
     if methods_value is None:
+        if pc_cols.FX_RATES in specification.files:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY} "
+                    "is required when files.fx_rates is configured."
+                ),
+                504,
+            )
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
@@ -909,12 +935,15 @@ def _fx_rate_impact_policies(
 
     fx_rate_value = methods_value.get(pc_cols.FX_RATE)
     if fx_rate_value is None:
-        return {
-            pc_cols.FX_RATE: _evidence_only_impact_policy_label(
-                pc_cols.FX_RATES,
-                pc_cols.FX_RATE,
+        if pc_cols.FX_RATES in specification.files:
+            raise PpaError(
+                (
+                    f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY}."
+                    f"{pc_cols.FX_RATE} is required when files.fx_rates is configured."
+                ),
+                504,
             )
-        }
+        return {}
     policy = _require_policy_mapping(
         specification,
         _FX_RATE_IMPACT_METHODS_KEY,

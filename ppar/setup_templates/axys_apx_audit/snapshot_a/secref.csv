@@ -1,4 +1,4 @@
-SECURITY_ID,SECURITY_TYPE,ASSET_CLASS_CODE
+Security Symbol,Security Type,Asset Class Code
 36225MBS1,fius,FI
 912797AA1,fius,FI
 91282Y2Y1,fius,FI
@@ -20,4 +20,4 @@ NVDA,csus,EQ
 SAP.DE,cseu,EQ
 SHEL.L,csgb,EQ
 TSLA,csus,EQ
-MARGIN_USD,margin,CA
+MARGIN_USD,caus,CA

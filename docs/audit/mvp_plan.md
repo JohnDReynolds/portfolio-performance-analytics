@@ -4,8 +4,8 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Workstream D material scope implemented; Slice 6 release audit next |
-| Version | 1.6 |
+| Status | Active MVP implementation plan — pre-release output simplification complete; Slice 6 release audit next |
+| Version | 1.8 |
 | Date | 2026-07-19 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Product roadmap | [`roadmap.md`](roadmap.md) |
@@ -129,6 +129,15 @@ checks.
 
 YAML also controls transaction semantics, impact methods, evidence-only fields,
 tolerances, and suppressions.
+
+Financially consequential configuration no longer falls back to internal values.
+Every Audit YAML explicitly names the comparison level, all eight comparison
+tolerances, and both extract-contract safety choices. A configured transaction,
+holding, or FX dataset also requires its complete applicable transaction,
+holding/price, or FX impact-policy block. The maintained configurations spell out
+their former effective values, preserving executable behavior while making those
+choices reviewable. Each `large_price_variation` rule likewise explicitly names
+`minimum_calendar_days` and `minimum_tolerance`.
 
 Data Issues configuration is now a strict, enumerated, fail-closed product
 contract. Malformed sections/checks/filters, unknown issue types or fields,
@@ -720,9 +729,10 @@ and `ti` scenarios.
 
 - **Slice 5A — complete:** added a versioned
   `extract_contract.transaction_semantics_case: exact` capability for exact
-  transaction-rule keys and native context-condition values. Omitted settings
-  retain the established case-insensitive behavior of existing valid
-  configurations. Exact mode disables code-only compatibility inference, keeps
+  transaction-rule keys and native context-condition values. Maintained
+  configurations preserve the established behavior explicitly with
+  `legacy_case_insensitive`; omission now fails closed. Exact mode disables
+  code-only compatibility inference, keeps
   lowercase and uppercase rules distinct, and leaves an unmatched uppercase
   posted-transaction code unknown rather than treating it as a cancellation.
   A focused site fixture gives `by` and `BY` separate explicit economic meanings;
@@ -746,6 +756,24 @@ and `ti` scenarios.
   uppercase transaction cannot inherit lowercase semantics or become a posted-
   transaction performance cause. APX Mark-to-Market and a Trade Blotter
   source-stage product contract are deferred under Section 7.4.
+
+After Slice 5, the founder approved a bounded configuration-hardening pass before
+the release audit. It removed internal fallbacks for the consequential settings
+listed in Section 2.4, migrated every maintained YAML file with the exact former
+effective values, and added fail-closed omission/malformed-value regressions. It
+did not add fields, report columns, calculations, issue types, or transaction
+meanings. Presentation-only labels, suppressions, optional-file requiredness, and
+other non-financial conveniences retain their established defaults.
+
+The founder then approved a bounded output-contract simplification before the
+release audit. The standard `ppar audit` command now always creates portfolio
+and security reports when their configured inputs are available, skips security
+only when `files.security_performance` is unavailable, and no longer exposes a
+`--report` selector. `source_detail.csv` now always resides at each report root
+and is never duplicated in `supporting_files/` or `audit_support.zip`, including
+expanded-support runs. Lower-level comparison-level APIs remain available, and
+this packaging change does not alter report columns, calculations, findings, or
+financial semantics.
 
 ## Slice 6 — MVP release audit
 

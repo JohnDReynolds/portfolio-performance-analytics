@@ -21,8 +21,8 @@
 #    site.
 # 2. Keep the starter filenames if you can. If names differ, edit the path
 #    settings below.
-# 3. Keep the starter headers if you can. If headers differ, uncomment and edit
-#    the column override examples below.
+# 3. Keep the starter headers if you can. If headers differ, edit the exact
+#    column mappings below.
 # 4. Change analytics.portfolio and analytics.benchmark to real portfolio codes.
 # 5. Run ppar analytics again and review the output folder.
 
@@ -72,53 +72,61 @@ defaults:
 #   IMEX portfolio-performance export containing returns for the portfolio and
 #   benchmark. Required columns are the portfolio/account code, from date, thru
 #   date, and portfolio return.
-#   Starter headers: FROM_DATE, THRU_DATE, PORTFOLIO_CODE, PORTFOLIO_NAME,
-#   PORT_RETURN.
+#   Starter headers: From Date, Thru Date, Portfolio Code, Portfolio Name,
+#   Portfolio Return.
 #
 # security_performance_path:
 #   Security-level performance CSV. For Axys/APX onboarding, start with an IMEX
 #   security-performance export containing security returns, weights, and
 #   contribution. Required columns are portfolio or
-#   account code, security code, from date, thru date, security return, weight,
-#   and contribution.
-#   Starter core headers: FROM_DATE, THRU_DATE, PORTFOLIO_CODE, SECURITY_ID,
-#   BEGIN_WEIGHT, SEC_RETURN, CONTRIBUTION.
+#   account code, Security Symbol, Security Type, from date, thru date, security
+#   return, weight, and contribution. PPAR constructs its security_id from the
+#   two security identity columns below.
+#   Starter core headers: From Date, Thru Date, Portfolio Code, Security Symbol,
+#   Security Type, Beginning Weight, Security Return, Contribution.
 #
 # security_master_path:
 #   Security display/classification lookup. The starter uses secref.csv so
 #   descriptive reference data is stored once instead of being repeated for
-#   every security-performance period. Required starter headers are SECURITY_ID,
-#   SECURITY_NAME, ASSET_CLASS_CODE, ASSET_CLASS_DESC, SECTOR_CODE, SECTOR_DESC,
-#   COUNTRY_CODE, COUNTRY_DESC, CURRENCY_CODE, and CURRENCY_DESC.
+#   every security-performance period. Required starter headers are Security
+#   Symbol, Security Type, Security Name, Asset Class Code, Asset Class Name,
+#   Sector Code, Sector Name, Country Code, Country Name, Currency Code, and
+#   Currency Name.
 portfolio_performance_path: portperf.csv
 security_performance_path: secperf.csv
 security_master_path: secref.csv
 
-# Optional portfolio-performance column overrides.
-# Leave this commented out when your CSV uses the starter headers or another
-# common Axys/APX IMEX spelling PPAR can infer. Uncomment only the rows your
-# local export names differently.
-#
-# portfolio_performance_columns:
-#   from_date: FROM_DATE
-#   thru_date: THRU_DATE
-#   portfolio_code: PORTFOLIO_CODE
-#   portfolio_name: PORTFOLIO_NAME
-#   portfolio_return: PORT_RETURN
+# Axys/APX security identity is the security-type/symbol pair. Source reports
+# commonly present Symbol before Type; the constructed PPAR key follows the
+# compact Axys type-first convention, such as csusAAPL. Axys/APX security types
+# are typically four characters; PPAR retains the source value without imposing
+# a length restriction.
+security_id:
+  components:
+    - "Security Type"
+    - "Security Symbol"
+  # Optional. Omit for compact Axys/APX identifiers. A site may instead use:
+  # separator: "_"
 
-# Optional security-performance column overrides.
-# Leave this commented out when your CSV uses the starter headers or another
-# common Axys/APX IMEX spelling PPAR can infer. Uncomment only the rows your
-# local export names differently.
-#
-# security_performance_columns:
-#   from_date: FROM_DATE
-#   thru_date: THRU_DATE
-#   identifier: SECURITY_ID
-#   portfolio_code: PORTFOLIO_CODE
-#   return: SEC_RETURN
-#   weight: BEGIN_WEIGHT
-#   contribution: CONTRIBUTION
+# Optional portfolio-performance column overrides, active for the starter CSV.
+portfolio_performance_columns:
+  from_date: "From Date"
+  thru_date: "Thru Date"
+  portfolio_code: "Portfolio Code"
+  portfolio_name: "Portfolio Name"
+  portfolio_return: "Portfolio Return"
+
+# Optional security-performance column overrides, active for the starter CSV.
+security_performance_columns:
+  from_date: "From Date"
+  thru_date: "Thru Date"
+  portfolio_code: "Portfolio Code"
+  return: "Security Return"
+  weight: "Beginning Weight"
+  contribution: "Contribution"
+
+security_master_columns:
+  name_column: "Security Name"
 
 mappings:
   # Each mapping names source columns in secref.csv that classify a security.
@@ -133,17 +141,17 @@ mappings:
   # The value before the colon is the user-facing classification name. If you
   # change defaults.classification above, the new value must exist here.
   Economic Sector:
-    classification_column: SECTOR_CODE
-    display_name_column: SECTOR_DESC
+    classification_column: "Sector Code"
+    display_name_column: "Sector Name"
 
   Asset Class:
-    classification_column: ASSET_CLASS_CODE
-    display_name_column: ASSET_CLASS_DESC
+    classification_column: "Asset Class Code"
+    display_name_column: "Asset Class Name"
 
   Country:
-    classification_column: COUNTRY_CODE
-    display_name_column: COUNTRY_DESC
+    classification_column: "Country Code"
+    display_name_column: "Country Name"
 
   Currency:
-    classification_column: CURRENCY_CODE
-    display_name_column: CURRENCY_DESC
+    classification_column: "Currency Code"
+    display_name_column: "Currency Name"

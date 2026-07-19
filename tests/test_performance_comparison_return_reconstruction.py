@@ -52,10 +52,64 @@ _INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS = {
     ("INCOME", "2026-04-01", "2026-04-30"),
 }
 _INTENTIONAL_SECURITY_DIFFERENT_KEYS = {
-    ("BALANCED", "JPM", "2026-05-09", "2026-05-14"),
-    ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"),
-    ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30"),
+    ("BALANCED", "csusJPM", "2026-05-09", "2026-05-14"),
+    ("BALANCED", "csusMSFT", "2026-05-09", "2026-05-14"),
+    ("INCOME", "fius91282Y5Y1", "2026-04-01", "2026-04-30"),
 }
+
+
+def _required_yaml_settings() -> dict[str, object]:
+    """Return explicit settings that formerly had internal defaults."""
+    return {
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
+        "transaction_impact_methods": {
+            "external_flow": {"method": "evidence_only"},
+            "performance": {
+                "method": "transaction_amount_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
+            },
+            "quantity": {"method": "evidence_only"},
+            "price": {"method": "evidence_only"},
+            "commission": {"method": "evidence_only"},
+        },
+        "holding_impact_methods": {
+            "market_value": {
+                "method": "market_value_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
+            },
+            "accrued": {
+                "method": "accrued_delta_over_return_denominator",
+                "denominator_source": "begin_market_value",
+            },
+            "quantity": {
+                "method": (
+                    "quantity_delta_times_snapshot_a_unit_market_value_over_"
+                    "return_denominator"
+                ),
+                "denominator_source": "begin_market_value",
+            },
+            "cost": {"method": "evidence_only"},
+        },
+        "price_impact_methods": {
+            "price": {
+                "method": "price_delta_over_snapshot_a_price_times_weight",
+                "weight_source": "snapshot_a_weight",
+            }
+        },
+    }
 
 
 def _write_reinvestment_pair_fixture(directory: Path) -> Path:
@@ -144,7 +198,11 @@ def _write_reinvestment_pair_fixture(directory: Path) -> Path:
     ).write_csv(directory / "snapshot_b" / "transactions.csv")
 
     configuration = {
-        "comparison": {"name": "Reinvestment pair fixture"},
+        **_required_yaml_settings(),
+        "comparison": {
+            "name": "Reinvestment pair fixture",
+            "level": "portfolio",
+        },
         "snapshots": {
             "a": {"label": "a", "path": "snapshot_a", "vendor": "axys"},
             "b": {"label": "b", "path": "snapshot_b", "vendor": "axys"},
@@ -272,7 +330,11 @@ def _write_accrued_value_fixture(
     out_of_period_transactions.write_csv(directory / "snapshot_b" / "transactions.csv")
 
     configuration = {
-        "comparison": {"name": "Accrued valuation fixture"},
+        **_required_yaml_settings(),
+        "comparison": {
+            "name": "Accrued valuation fixture",
+            "level": "portfolio",
+        },
         "snapshots": {
             "a": {"label": "a", "path": "snapshot_a", "vendor": "axys"},
             "b": {"label": "b", "path": "snapshot_b", "vendor": "axys"},
@@ -476,7 +538,7 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
 
         alpha_aapl = checks.filter(
             (pl.col("portfolio_id") == "ALPHA")
-            & (pl.col("security_id") == "AAPL")
+            & (pl.col("security_id") == "csusAAPL")
             & (pl.col("from_date") == pl.date(2026, 2, 28))
             & (pl.col("thru_date") == pl.date(2026, 3, 31))
         ).row(0, named=True)
@@ -490,7 +552,12 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
 
     def test_security_reconstruction_checks_can_scope_active_keys(self) -> None:
         """Security reconstruction can limit work to requested review keys."""
-        active_key = ("ALPHA", "AAPL", dt.date(2026, 2, 28), dt.date(2026, 3, 31))
+        active_key = (
+            "ALPHA",
+            "csusAAPL",
+            dt.date(2026, 2, 28),
+            dt.date(2026, 3, 31),
+        )
         full_checks = security_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
         scoped_checks = security_return_reconstruction_checks(
             _PORTFOLIO_COMPARISON_PATH,
@@ -501,7 +568,7 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         self.assertEqual(scoped_checks.height, 1)
         scoped_row = scoped_checks.row(0, named=True)
         self.assertEqual(scoped_row["portfolio_id"], "ALPHA")
-        self.assertEqual(scoped_row["security_id"], "AAPL")
+        self.assertEqual(scoped_row["security_id"], "csusAAPL")
         self.assertEqual(scoped_row["from_date"].isoformat(), "2026-02-28")
         self.assertEqual(scoped_row["thru_date"].isoformat(), "2026-03-31")
 
@@ -623,7 +690,7 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
 
         alpha_aapl = checks.filter(
             (pl.col("portfolio_id") == "ALPHA")
-            & (pl.col("security_id") == "AAPL")
+            & (pl.col("security_id") == "csusAAPL")
             & (pl.col("from_date") == pl.date(2026, 2, 28))
             & (pl.col("thru_date") == pl.date(2026, 3, 31))
         ).row(0, named=True)
@@ -638,12 +705,14 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "comparison.yaml"
             path.write_text(
-                "\n".join(
-                    [
-                        "portfolio_return_reconstruction:",
-                        "  method: modified_dietz",
-                        "",
-                    ]
+                yaml.safe_dump(
+                    {
+                        **_required_yaml_settings(),
+                        "comparison": {"level": "portfolio"},
+                        "portfolio_return_reconstruction": {
+                            "method": "modified_dietz",
+                        },
+                    }
                 ),
                 encoding="utf-8",
             )

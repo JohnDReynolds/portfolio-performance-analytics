@@ -1,5 +1,6 @@
 comparison:
   name: Axys site variant with IMEX context fields
+  level: portfolio
 
 snapshots:
   a:
@@ -18,6 +19,30 @@ files:
 extract_contract:
   path: site_extract_contract.yaml
   enforce_ambiguous_axys_flows: true
+  transaction_semantics_case: legacy_case_insensitive
+
+tolerances:
+  return: 0.000001
+  contribution: 0.000001
+  weight: 0.000001
+  market_value: 0.01
+  quantity: 0.000001
+  price: 0.000001
+  split_factor: 0.00000001
+  fx_rate: 0.00000001
+
+transaction_impact_methods:
+  external_flow:
+    method: evidence_only
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+    denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
 
 transaction_rules:
   li:

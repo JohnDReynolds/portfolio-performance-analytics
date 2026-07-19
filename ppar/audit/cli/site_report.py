@@ -31,11 +31,6 @@ from ppar.audit.specification import (
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _OUTPUT_DIR: Final[str] = "output"
 _DEFAULT_SITE_DIRECTORY: Final[str] = "audit"
-_REPORT_CHOICES: Final[tuple[str, ...]] = (
-    PORTFOLIO_COMPARISON_LEVEL,
-    SECURITY_COMPARISON_LEVEL,
-    "both",
-)
 _CSV_REVIEW_ARTIFACTS: Final[tuple[str, ...]] = (
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
@@ -47,7 +42,6 @@ _CSV_REVIEW_ARTIFACTS: Final[tuple[str, ...]] = (
 class AuditRunSettings:
     """Resolved presentation and validation settings for one audit run."""
 
-    report: str
     output_directory: Path
     title: str | None
     exclude_suppressed: bool
@@ -70,14 +64,13 @@ def main(
         argv: Optional command-line arguments excluding the executable name.
 
     Returns:
-        Process exit code. ``0`` indicates that requested report bundles were
+        Process exit code. ``0`` indicates that available report bundles were
         written.
     """
     args = _argument_parser(prog=prog).parse_args(argv)
     try:
         result = run_report(
             _default_site_directory(args.site_directory),
-            report=args.report,
             output_directory=args.output,
             title=args.title,
             exclude_suppressed=args.exclude_suppressed,
@@ -100,7 +93,6 @@ def main(
 def run_report(
     site_directory: Path | str,
     *,
-    report: str = "both",
     output_directory: Path | None = None,
     title: str | None = None,
     top_evidence_limit: int = 10,
@@ -117,8 +109,6 @@ def run_report(
     Args:
         site_directory: Folder containing ``ppar.yaml``. Accepts a ``Path`` or
             string path.
-        report: Report family to generate: ``"portfolio"``, ``"security"``,
-            or ``"both"``. Defaults to ``"both"``.
         output_directory: Optional base output directory override.
         title: Optional report-title override.
         top_evidence_limit: Maximum top-evidence rows per performance period.
@@ -140,15 +130,9 @@ def run_report(
         Paths for the site folder, config file, and generated review artifacts.
 
     Raises:
-        PpaError: If the site folder/config file is missing, the report family
-            is invalid, or report generation fails.
+        PpaError: If the site folder/config file is missing or report generation
+            fails.
     """
-    if report not in _REPORT_CHOICES:
-        raise PpaError(
-            f"report must be one of: {', '.join(_REPORT_CHOICES)}.",
-            504,
-        )
-
     site_path = Path(site_directory).expanduser()
     if not site_path.is_dir():
         raise PpaError(f"{site_path} is not a directory.", 802)
@@ -176,12 +160,29 @@ def run_report(
     reconstruction_cache = _pc_workbook_reconstruction.WorkbookReconstructionCache(
         config_path
     )
-    if report in ("both", PORTFOLIO_COMPARISON_LEVEL):
-        result["portfolio_report_paths"] = _write_report_bundle(
+    result["portfolio_report_paths"] = _write_report_bundle(
+        config_path,
+        comparison_views.findings(PORTFOLIO_COMPARISON_LEVEL),
+        output_root / PORTFOLIO_COMPARISON_LEVEL,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+        title=title,
+        top_evidence_limit=top_evidence_limit,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        require_causal_attribution=require_causal_attribution,
+        allow_incomplete_yaml=allow_incomplete_yaml,
+        _data_issues=data_issues,
+        include_workbook=include_workbook,
+        include_html_output=include_html_output,
+        expand_all_supporting_files=expand_all_supporting_files,
+        _reconstruction_cache=reconstruction_cache,
+    )
+    result["review_paths"].extend(result["portfolio_report_paths"])
+    try:
+        result["security_report_paths"] = _write_report_bundle(
             config_path,
-            comparison_views.findings(PORTFOLIO_COMPARISON_LEVEL),
-            output_root / PORTFOLIO_COMPARISON_LEVEL,
-            comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+            comparison_views.findings(SECURITY_COMPARISON_LEVEL),
+            output_root / SECURITY_COMPARISON_LEVEL,
+            comparison_level=SECURITY_COMPARISON_LEVEL,
             title=title,
             top_evidence_limit=top_evidence_limit,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
@@ -193,32 +194,13 @@ def run_report(
             expand_all_supporting_files=expand_all_supporting_files,
             _reconstruction_cache=reconstruction_cache,
         )
-        result["review_paths"].extend(result["portfolio_report_paths"])
-    if report in ("both", SECURITY_COMPARISON_LEVEL):
-        try:
-            result["security_report_paths"] = _write_report_bundle(
-                config_path,
-                comparison_views.findings(SECURITY_COMPARISON_LEVEL),
-                output_root / SECURITY_COMPARISON_LEVEL,
-                comparison_level=SECURITY_COMPARISON_LEVEL,
-                title=title,
-                top_evidence_limit=top_evidence_limit,
-                include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-                require_causal_attribution=require_causal_attribution,
-                allow_incomplete_yaml=allow_incomplete_yaml,
-                _data_issues=data_issues,
-                include_workbook=include_workbook,
-                include_html_output=include_html_output,
-                expand_all_supporting_files=expand_all_supporting_files,
-                _reconstruction_cache=reconstruction_cache,
-            )
-            result["review_paths"].extend(result["security_report_paths"])
-        except PpaError as error:
-            if report == SECURITY_COMPARISON_LEVEL or not _is_missing_security_data(error):
-                raise
-            result["security_status"] = (
-                "skipped because files.security_performance is not available"
-            )
+        result["review_paths"].extend(result["security_report_paths"])
+    except PpaError as error:
+        if not _is_missing_security_data(error):
+            raise
+        result["security_status"] = (
+            "skipped because files.security_performance is not available"
+        )
     return result
 
 
@@ -234,14 +216,12 @@ def _argument_parser(
         epilog=(
             (
                 "Examples:\n"
-                "  ppar audit ./my_ppar_data/audit\n"
-                "  ppar audit --report portfolio"
+                "  ppar audit ./my_ppar_data/audit"
             )
             if include_site_directory
             else (
                 "Examples:\n"
-                "  python run_audit.py\n"
-                "  python run_audit.py --report portfolio"
+                "  python run_audit.py"
             )
         ),
         formatter_class=argparse.RawTextHelpFormatter,
@@ -253,12 +233,6 @@ def _argument_parser(
             type=Path,
             help="Folder containing ppar.yaml. Defaults to the current folder.",
         )
-    parser.add_argument(
-        "--report",
-        choices=_REPORT_CHOICES,
-        default="both",
-        help="Report family to generate. Defaults to both.",
-    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -307,8 +281,9 @@ def _argument_parser(
         "--expand-all-supporting-files",
         action="store_true",
         help=(
-            "Write every supporting CSV and JSON file under supporting_files "
-            "instead of the default audit_support.zip archive."
+            "Write the remaining supporting CSV and JSON files under "
+            "supporting_files instead of the default audit_support.zip archive. "
+            "source_detail.csv always remains at the report root."
         ),
     )
     parser.add_argument(
@@ -350,7 +325,6 @@ def script_run_settings(
         include_site_directory=False,
     ).parse_args(argv)
     return AuditRunSettings(
-        report=arguments.report,
         output_directory=arguments.output or site_directory / _OUTPUT_DIR,
         title=arguments.title,
         exclude_suppressed=arguments.exclude_suppressed,

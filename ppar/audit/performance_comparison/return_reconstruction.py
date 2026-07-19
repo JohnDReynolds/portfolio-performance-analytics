@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 import datetime as dt
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final, cast
 
 # Third-party imports
 import polars as pl
@@ -568,12 +568,8 @@ class _PortfolioReturnReconstructionEngine:
 
     def _tolerance(self) -> float:
         """Return the configured return tolerance for reconstruction checks."""
-        tolerances = self._specification.values.get("tolerances")
-        if isinstance(tolerances, dict):
-            tolerance = _float_or_none(tolerances.get("return"))
-            if tolerance is not None:
-                return tolerance
-        return 1e-6
+        tolerances = cast(dict[str, Any], self._specification.values["tolerances"])
+        return float(tolerances["return"])
 
 
 class _SecurityReturnReconstructionEngine:
@@ -798,12 +794,8 @@ class _SecurityReturnReconstructionEngine:
 
     def _tolerance(self) -> float:
         """Return the configured return tolerance for reconstruction checks."""
-        tolerances = self._specification.values.get("tolerances")
-        if isinstance(tolerances, dict):
-            tolerance = _float_or_none(tolerances.get("return"))
-            if tolerance is not None:
-                return tolerance
-        return 1e-6
+        tolerances = cast(dict[str, Any], self._specification.values["tolerances"])
+        return float(tolerances["return"])
 
 
 def _portfolio_period_keys(

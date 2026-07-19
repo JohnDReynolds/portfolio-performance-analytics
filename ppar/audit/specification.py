@@ -4,8 +4,9 @@ from __future__ import annotations
 
 # Python imports
 from dataclasses import dataclass
+import math
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, cast
 
 # Third-party imports
 import yaml
@@ -39,6 +40,29 @@ _SCHEMA_KEY: Final[str] = "schema"
 _REQUIRED_KEY: Final[str] = "required"
 _COMPARISON_KEY: Final[str] = "comparison"
 _LEVEL_KEY: Final[str] = "level"
+_TOLERANCES_KEY: Final[str] = "tolerances"
+_REQUIRED_TOLERANCE_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "return",
+        "contribution",
+        "weight",
+        "market_value",
+        "quantity",
+        "price",
+        "split_factor",
+        "fx_rate",
+    }
+)
+_EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
+_EXTRACT_CONTRACT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "enforce_ambiguous_axys_flows",
+        "transaction_semantics_case",
+    }
+)
+_EXTRACT_CONTRACT_SUPPORTED_KEYS: Final[frozenset[str]] = frozenset(
+    {*_EXTRACT_CONTRACT_REQUIRED_KEYS, "path"}
+)
 _PORTFOLIO_RETURN_RECONSTRUCTION_KEY: Final[str] = "portfolio_return_reconstruction"
 _SECURITY_RETURN_RECONSTRUCTION_KEY: Final[str] = "security_return_reconstruction"
 _PORTFOLIO_PERFORMANCE_KEY: Final[str] = "portfolio_performance"
@@ -202,8 +226,9 @@ class AuditSpecification:
         snapshot_b: Resolved snapshot B settings.
         files: Resolved file settings keyed by normalized dataset name.
         comparison_level: Primary performance-result level to compare. The
-            default is ``"portfolio"``; ``"security"`` uses
-            ``security_performance`` as the target performance-result dataset.
+            YAML must explicitly select ``"portfolio"`` or ``"security"``;
+            ``"security"`` uses ``security_performance`` as the target
+            performance-result dataset.
 
     Notes:
         The primary performance-result file is always required. Other files are
@@ -238,6 +263,9 @@ class AuditSpecification:
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
+        self._validate_comparison_configuration()
+        self._validate_tolerances_configuration()
+        self._validate_extract_contract_configuration()
         self._validate_removed_cash_configuration()
         self._validate_data_issues_configuration()
         self.comparison_level = self._comparison_level(comparison_level)
@@ -279,6 +307,92 @@ class AuditSpecification:
             ),
             504,
         )
+
+    def _validate_comparison_configuration(self) -> None:
+        """Require an explicit primary comparison level."""
+        comparison = self.values.get(_COMPARISON_KEY)
+        if not isinstance(comparison, dict):
+            raise PpaError(
+                self._error_message("comparison must be a mapping."),
+                504,
+            )
+        if _LEVEL_KEY not in comparison:
+            raise PpaError(
+                self._error_message("comparison.level is required."),
+                504,
+            )
+
+    def _validate_tolerances_configuration(self) -> None:
+        """Require every comparison tolerance as an explicit finite value."""
+        tolerances = self.values.get(_TOLERANCES_KEY)
+        if not isinstance(tolerances, dict):
+            raise PpaError(
+                self._error_message("tolerances must be a mapping."),
+                504,
+            )
+        unsupported = sorted(
+            str(key) for key in tolerances if key not in _REQUIRED_TOLERANCE_KEYS
+        )
+        if unsupported:
+            raise PpaError(
+                self._error_message(
+                    "tolerances has unsupported keys: " + ", ".join(unsupported) + "."
+                ),
+                504,
+            )
+        missing = sorted(_REQUIRED_TOLERANCE_KEYS - set(tolerances))
+        if missing:
+            raise PpaError(
+                self._error_message(
+                    "tolerances is missing required keys: " + ", ".join(missing) + "."
+                ),
+                504,
+            )
+        for key in sorted(_REQUIRED_TOLERANCE_KEYS):
+            value = tolerances[key]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or float(value) < 0.0
+            ):
+                raise PpaError(
+                    self._error_message(
+                        f"tolerances.{key} must be a finite nonnegative number."
+                    ),
+                    504,
+                )
+
+    def _validate_extract_contract_configuration(self) -> None:
+        """Require explicit source-semantics safety choices."""
+        contract = self.values.get(_EXTRACT_CONTRACT_KEY)
+        if not isinstance(contract, dict):
+            raise PpaError(
+                self._error_message("extract_contract must be a mapping."),
+                504,
+            )
+        unsupported = sorted(
+            str(key) for key in contract if key not in _EXTRACT_CONTRACT_SUPPORTED_KEYS
+        )
+        if unsupported:
+            raise PpaError(
+                self._error_message(
+                    "extract_contract has unsupported keys: "
+                    + ", ".join(unsupported)
+                    + "."
+                ),
+                504,
+            )
+        missing = sorted(_EXTRACT_CONTRACT_REQUIRED_KEYS - set(contract))
+        if missing:
+            raise PpaError(
+                self._error_message(
+                    "extract_contract is missing required keys: "
+                    + ", ".join(missing)
+                    + "."
+                ),
+                504,
+            )
 
     def resolve_path(self, file_path: util.PathLike) -> Path:
         """Return an absolute or comparison-YAML-relative path.
@@ -641,16 +755,8 @@ class AuditSpecification:
 
     def _comparison_level(self, override: str | None = None) -> str:
         """Return the primary comparison level from YAML settings."""
-        comparison_value = self.values.get(_COMPARISON_KEY, {})
-        if comparison_value is None:
-            comparison_value = {}
-        if not isinstance(comparison_value, dict):
-            raise PpaError(self._error_message("comparison must be a mapping."), 504)
-        level_value = (
-            override
-            if override is not None
-            else comparison_value.get(_LEVEL_KEY, PORTFOLIO_COMPARISON_LEVEL)
-        )
+        comparison_value = cast(dict[str, Any], self.values[_COMPARISON_KEY])
+        level_value = override if override is not None else comparison_value[_LEVEL_KEY]
         if not isinstance(level_value, str) or level_value not in COMPARISON_LEVELS:
             allowed_values = ", ".join(sorted(COMPARISON_LEVELS))
             raise PpaError(

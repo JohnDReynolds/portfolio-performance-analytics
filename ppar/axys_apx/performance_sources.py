@@ -13,6 +13,10 @@ import polars as pl
 from ppar.axys_apx.specification import AxysSpecification, ErrorMessage
 from ppar.axys_apx.column_aliases import resolve_column
 from ppar.axys_apx.date_ranges import AxysDateRange
+from ppar.axys_apx.security_identity import (
+    security_id_construction,
+    with_constructed_security_id,
+)
 import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
@@ -145,16 +149,39 @@ class AxysPerformanceSourceLoader:
             if column_name_mappings_name == "portfolio_performance_columns"
             else _SECURITY_PERFORMANCE_REQUIRED_COLUMNS
         )
+        dataset_name = (
+            "security_performance"
+            if column_name_mappings_name == "security_performance_columns"
+            else "portfolio_performance"
+        )
+        construction = security_id_construction(
+            self._specification.values,
+            dataset_name,
+            self._error_message,
+        )
+        mapped_required_columns = set(required_columns)
+        if construction is not None:
+            mapped_required_columns.remove(cols.IDENTIFIER)
         csv_to_internal_mappings = self._csv_to_internal_mappings(
             path,
             column_name_mappings_name,
-            required_columns,
+            mapped_required_columns,
         )
 
+        selected_columns = set(mapped_required_columns)
+        if construction is not None:
+            selected_columns.update(construction.components)
         lazy_frame = (
-            pl.scan_csv(path)
+            pl.scan_csv(
+                path,
+                schema_overrides=(
+                    construction.schema_overrides
+                    if construction is not None
+                    else None
+                ),
+            )
             .rename(csv_to_internal_mappings)
-            .select(required_columns)
+            .select(selected_columns)
             .with_columns(
                 pl.col(cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
                 pl.col(cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
@@ -166,7 +193,17 @@ class AxysPerformanceSourceLoader:
             lazy_frame = lazy_frame.filter(
                 pl.col(cols.PORTFOLIO_CODE).is_in(portfolio_code)
             )
-        return self._date_range.filter_performance(lazy_frame).collect()
+        frame = self._date_range.filter_performance(lazy_frame).collect()
+        if construction is not None:
+            frame = with_constructed_security_id(
+                frame,
+                construction,
+                output_column=cols.IDENTIFIER,
+                dataset_name=dataset_name,
+                source_path=path,
+                error_message=self._error_message,
+            )
+        return frame.select(required_columns)
 
     def _csv_to_internal_mappings(
         self,

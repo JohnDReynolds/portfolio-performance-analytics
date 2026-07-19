@@ -84,9 +84,15 @@ per-check keys, malformed filters, non-Boolean enablement, invalid tolerances, a
 an enabled conservative check without its required `only` population stop with the
 exact YAML path. Mandatory portfolio/security market-value continuity remains active
 when optional Data Issues checks are disabled.
+Audit YAML also requires `comparison.level`, both extract-contract safety choices,
+and all eight comparison tolerances. Configuring `transactions`, `holdings`, or
+`fx_rates` requires the complete corresponding transaction, holding/price, or FX
+impact-policy block. The starter file spells out the former internal values, so
+those choices are reviewable without changing established calculations.
 The opt-in `large_price_variation` check instead uses a strict nonempty list of
 uniquely identified rules. Each rule can use scalar-or-list exact-match filters,
-an inclusive-period calendar-day minimum, and a decimal minimum variation. It
+an explicitly configured inclusive-period calendar-day minimum, and an explicitly
+configured decimal minimum variation. It
 combines linked boundary holdings with inclusive trade-date transaction prices
 and uses optional `splits.csv` factors to put prices on the period-ending share
 basis. The packaged AVGO rule uses real dated observations without injecting a
@@ -102,10 +108,16 @@ cover the enabled check end to end.
 Optional `secref.csv` fields can qualify Data Issues populations through
 `security_reference.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
-change performance calculations. The starter includes only `SECURITY_ID`,
-`SECURITY_TYPE`, and `ASSET_CLASS_CODE`, because those are the only reference
-fields used by its active rules. Site extracts may add other supported reference
-qualifiers when the YAML explicitly uses them.
+change performance calculations. The starter includes only `Security Symbol`,
+`Security Type`, and `Asset Class Code`, because those are the only reference
+fields used by its active rules. PPAR constructs compact normalized identifiers
+such as `csusAAPL` from type followed by symbol. The YAML defaults to no
+separator, matching common Axys/APX usage, while an optional `separator: "_"`
+setting supports site-preferred values such as `csus_AAPL`. Axys/APX security
+types are typically four characters; PPAR preserves the configured source value
+and rejects any observed component pairs that would construct the same key. Site
+extracts may add other supported reference qualifiers when the YAML explicitly
+uses them.
 The same validation is available through
 `ppar.audit.cli.validate_config` when maintainers need to
 check a YAML file without writing reports; its success summary lists effective optional
@@ -115,33 +127,29 @@ checks and mandatory continuity policy.
 | --- | --- |
 | Workbook demos | `axys_apx_audit.yaml` |
 
-## Optional: Create One Workbook
+## Standard Audit Output
 
-Run only the portfolio workbook:
+Run the audit once:
 
 ```bash
-ppar audit ./my_ppar_data/audit --report portfolio
+ppar audit ./my_ppar_data/audit
 ```
 
-Output:
+When the configured security-performance files are available, the command
+creates both report bundles:
 
 - `my_ppar_data/audit/output/portfolio/portfolio_audit.xlsx`
 - `my_ppar_data/audit/output/portfolio/portfolio_audit.html`
 - `my_ppar_data/audit/output/portfolio/source_detail.csv`
 - `my_ppar_data/audit/output/portfolio/audit_support.zip`
-
-Run only the security workbook:
-
-```bash
-ppar audit ./my_ppar_data/audit --report security
-```
-
-Output:
-
 - `my_ppar_data/audit/output/security/security_audit.xlsx`
 - `my_ppar_data/audit/output/security/security_audit.html`
 - `my_ppar_data/audit/output/security/source_detail.csv`
 - `my_ppar_data/audit/output/security/audit_support.zip`
+
+If `files.security_performance` is unavailable, the portfolio bundle is still
+created and the command reports that security output was skipped. Other
+security-generation failures remain fatal.
 
 Generate HTML without XLSX:
 
@@ -152,10 +160,12 @@ ppar audit ./my_ppar_data/audit --no-xlsx-output
 Generate XLSX without HTML with `--no-html-output`. Supplying both options
 creates a CSV-only audit with `performance_differences.csv`,
 `performance_difference_causes.csv`, `data_issues.csv`, and
-`source_detail.csv` promoted to each report directory.
+`source_detail.csv` at each report root.
 
-Use `--expand-all-supporting-files` to expand every supporting CSV and JSON file
-when needed:
+`source_detail.csv` always stays at the report root. It is never duplicated in
+`supporting_files/` or `audit_support.zip`. Use
+`--expand-all-supporting-files` to retain the remaining supporting CSV and JSON
+files individually when needed:
 
 ```bash
 ppar audit ./my_ppar_data/audit --expand-all-supporting-files
@@ -201,7 +211,8 @@ differences from identifiable input differences and other evidence:
 - `source_detail.csv`: reviewer-friendly finding rows used to build the reports.
   Transaction match status appears here for audit and troubleshooting; the
   separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
-  support rather than a main review sheet.
+  support rather than a main review sheet. Source detail always remains at the
+  report root and is not stored in `audit_support.zip`.
 - `audit_support.zip` contains `supporting_files/cause_lineage.csv`, the
   machine-readable trace from every
   report cause back to its source finding fingerprint. This is primarily for
@@ -249,9 +260,12 @@ Data used:
   `ti`, `lo`, and `wd`. The
   packaged `pa` and `sa` rows appear only as fixed-income accrued-interest
   adjuncts paired with 91282Y5Y1 buy/sell rows. The packaged `rc` row appears only
-  as an equity/security return-of-capital row with explicit return-of-capital
-  context and portfolio-cash destination context. The packaged `pd` row appears
-  only as an MBS principal-paydown row with portfolio-cash destination context.
+  as an equity/security return-of-capital row with portfolio-cash destination
+  context. The packaged `pd` row appears only as an MBS principal-paydown row
+  with fixed-income and portfolio-cash destination context. The public mapping
+  rows leave Special Security Type / Symbol blank for both codes; the demo does
+  the same rather than inserting readable event labels into native-looking
+  fields.
   The packaged `li` row is a plain external cash contribution with
   external-party context, and the packaged `lo` row is an external cash
   deliver-out with the same context standard. More ambiguous `li`/`lo` transfer
@@ -446,15 +460,18 @@ performance rows.
 Current public YAML targets are intentionally narrow:
 
 - `extract_contract`: selects the packaged or site-specific extract contract
-  used by runtime guards. The default packaged contract enforces context-field
-  presence before ambiguous Axys/APX `li`, `lo`, `ti`, `dp`, or `wd` rows can be
-  classified by YAML rules. Use
+  used by runtime guards. YAML must explicitly set
+  `enforce_ambiguous_axys_flows` and `transaction_semantics_case`; omitting only
+  `path` selects the packaged contract. That packaged contract can enforce
+  context-field presence before ambiguous Axys/APX `li`, `lo`, `ti`, `dp`, or
+  `wd` rows can be classified by YAML rules. Use
   `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starter
   when a real site needs a local contract. A versioned contract can set
   `transaction_semantics_case: exact` so transaction-rule keys and native
   context values match by exact case. In exact mode, unmatched uppercase codes
-  remain unknown and do not acquire cancellation meaning. Existing YAML that
-  omits the setting retains legacy case-insensitive rule matching.
+  remain unknown and do not acquire cancellation meaning. Existing behavior is
+  preserved explicitly with
+  `transaction_semantics_case: legacy_case_insensitive`.
 - `transaction_rules`: authoritatively classifies matching transaction rows for
   amount attribution. A complete matching rule overrides any recognized
   category/sign labels carried by the source row; when no rule matches, usable
@@ -463,16 +480,17 @@ Current public YAML targets are intentionally narrow:
   transaction-context fields before they are treated as external flows or
   fee/expense rows. Fixed-income `pa`/`sa` accrued-interest adjuncts require
   fixed-income context and paired-trade support in the packaged demo. The
-  packaged `pd` row requires amortizing MBS context, principal-paydown context,
-  and portfolio-cash destination evidence. Code-only `ai` remains unknown even
+  packaged `pd` row requires amortizing MBS effects and portfolio-cash
+  destination evidence. The `rc` and `pd` rules do not rely on fabricated
+  special-security values. Code-only `ai` remains unknown even
   though the packaged demo now has one context-gated margin-interest example.
 - `splits`: optional security-level split-factor evidence. The packaged CVNA
   row is intentionally not a transaction. It supports the review story that
   Snapshot B has central split-factor evidence and corrected holdings quantity,
   while Snapshot A is missing that factor.
-- `transaction_amount_delta_over_return_denominator`: default amount-impact
+- `transaction_amount_delta_over_return_denominator`: explicit amount-impact
   method used after `transaction_rules` mark a transaction code as
-  performance-affecting.
+  performance-affecting. It is no longer supplied by an internal default.
 - `transaction_impact_methods.external_flow`: optional `modified_dietz`
   cross-checks for external-flow transactions.
 - suppression rules: remove known, intentionally ignored differences from the

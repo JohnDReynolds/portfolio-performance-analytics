@@ -166,11 +166,42 @@ def _csv_rows_by_key(
     key_columns: tuple[str, ...],
 ) -> dict[tuple[str, ...], dict[str, str]]:
     """Return CSV rows keyed by one or more columns."""
+    internal_by_common = {
+        "Portfolio Code": "PORTFOLIO_CODE",
+        "Security Symbol": "SECURITY_ID",
+        "Holding Date": "HOLDING_DATE",
+        "From Date": "FROM_DATE",
+        "Thru Date": "THRU_DATE",
+        "Transaction Date": "TRANSACTION_DATE",
+        "Transaction Code": "TRAN",
+        "Quantity": "QTY",
+        "Price": "PRICE",
+        "Beginning Market Value": "BEGIN_MV",
+        "Ending Market Value": "END_MV",
+        "Beginning Weight": "BEGIN_WEIGHT",
+        "Security Return": "SEC_RETURN",
+        "Contribution": "CONTRIBUTION",
+        "Market Value": "MKT_VAL",
+        "Base Market Value": "BASE_MKT_VAL",
+        "Amount": "AMOUNT",
+        "Commission": "COMMISSION",
+        "Net Flow": "FLOW",
+        "Income": "INCOME",
+        "Portfolio Return": "PORT_RETURN",
+    }
     with path.open(encoding=util.ENCODING, newline="") as file:
-        return {
-            tuple(row[column] for column in key_columns): row
-            for row in csv.DictReader(file)
-        }
+        rows: dict[tuple[str, ...], dict[str, str]] = {}
+        for source_row in csv.DictReader(file):
+            row = dict(source_row)
+            for common_column, internal_column in internal_by_common.items():
+                if common_column in source_row:
+                    row[internal_column] = source_row[common_column]
+            if "Portfolio Code" in source_row:
+                row["PORT"] = source_row["Portfolio Code"]
+            if "Security Symbol" in source_row:
+                row["SEC"] = source_row["Security Symbol"]
+            rows[tuple(row[column] for column in key_columns)] = row
+        return rows
 
 
 def _load_yaml(path: Path) -> dict[str, object]:
@@ -230,11 +261,13 @@ def _package_data_patterns(pyproject: dict[str, object]) -> list[str]:
 def _transaction_codes_in_csv(path: Path) -> set[str]:
     """Return lowercase transaction codes from a fixture CSV."""
     with path.open(encoding=util.ENCODING, newline="") as file:
-        return {
-            row["TRAN"].strip().lower()
-            for row in csv.DictReader(file)
-            if row["TRAN"].strip()
-        }
+        rows = list(csv.DictReader(file))
+    code_column = "Transaction Code" if rows and "Transaction Code" in rows[0] else "TRAN"
+    return {
+        row[code_column].strip().lower()
+        for row in rows
+        if row[code_column].strip()
+    }
 
 
 def _demo_transactions_by_natural_key(
@@ -484,7 +517,7 @@ class TestPackageMetadata(unittest.TestCase):
             "Axys/APX IMEX portfolio-performance",
             "Replace the starter CSV files with your own IMEX CSVs",
             "First site setup",
-            "column override examples",
+            "column mappings",
             "IMEX portfolio-performance export",
             "security-performance export",
             "secref.csv",
@@ -505,9 +538,8 @@ class TestPackageMetadata(unittest.TestCase):
                 "axys_apx_column_mappings.yaml"
             )
         )
-        defaults = _yaml_mapping(schema["defaults"], label="defaults")
-
-        self.assertNotIn("classification", defaults)
+        self.assertNotIn("defaults", schema)
+        self.assertNotIn("classification", schema)
         self.assertNotIn("mappings", schema)
 
     def test_user_facing_setup_docs_avoid_retired_command_language(self) -> None:
@@ -1765,9 +1797,9 @@ class TestPackageMetadata(unittest.TestCase):
         portperf_path = Path(str(axys_demo_data / "snapshot_a" / "portperf.csv"))
 
         with portperf_path.open(encoding=util.ENCODING, newline="") as file:
-            portfolio_codes = {row["PORTFOLIO_CODE"] for row in csv.DictReader(file)}
+            portfolio_codes = {row["Portfolio Code"] for row in csv.DictReader(file)}
         with holdings_path.open(encoding=util.ENCODING, newline="") as file:
-            holding_ids = {row["SEC"] for row in csv.DictReader(file)}
+            holding_ids = {row["Security Symbol"] for row in csv.DictReader(file)}
 
         self.assertEqual(
             portfolio_codes,
@@ -1804,9 +1836,9 @@ class TestPackageMetadata(unittest.TestCase):
                 newline="",
             ) as file:
                 equity_ids = {
-                    row["SECURITY_ID"]
+                    row["Security Symbol"]
                     for row in csv.DictReader(file)
-                    if row["ASSET_CLASS_CODE"] == "EQ"
+                    if row["Asset Class Code"] == "EQ"
                 }
             with (snapshot / "holdings.csv").open(
                 encoding=util.ENCODING,
@@ -1816,11 +1848,11 @@ class TestPackageMetadata(unittest.TestCase):
 
             prices_by_holding: dict[tuple[str, str], list[tuple[date, float]]] = {}
             for row in holding_rows:
-                if row["SEC"] not in equity_ids:
+                if row["Security Symbol"] not in equity_ids:
                     continue
-                key = (row["PORT"], row["SEC"])
+                key = (row["Portfolio Code"], row["Security Symbol"])
                 prices_by_holding.setdefault(key, []).append(
-                    (date.fromisoformat(row["HOLDING_DATE"]), float(row["PRICE"]))
+                    (date.fromisoformat(row["Holding Date"]), float(row["Price"]))
                 )
             failures: list[tuple[str, str, date, date]] = []
             for (portfolio, security), observations in prices_by_holding.items():
@@ -1914,15 +1946,15 @@ class TestPackageMetadata(unittest.TestCase):
                     newline="",
                 ) as file:
                     for row in csv.DictReader(file):
-                        if row["TRAN"] != "by":
+                        if row["Transaction Code"] != "by":
                             continue
                         expected_amount = -round(
-                            float(row["QTY"]) * float(row["PRICE"])
-                            + float(row["COMMISSION"]),
+                            float(row["Quantity"]) * float(row["Price"])
+                            + float(row["Commission"]),
                             2,
                         )
                         self.assertAlmostEqual(
-                            float(row["AMOUNT"]),
+                            float(row["Amount"]),
                             expected_amount,
                             places=2,
                         )
@@ -2187,9 +2219,9 @@ class TestPackageMetadata(unittest.TestCase):
                 ) as file:
                     for row in csv.DictReader(file):
                         key = (
-                            row["PORTFOLIO_CODE"],
-                            row["FROM_DATE"],
-                            row["THRU_DATE"],
+                            row["Portfolio Code"],
+                            row["From Date"],
+                            row["Thru Date"],
                         )
                         security_rows.setdefault(key, []).append(row)
 
@@ -2199,12 +2231,12 @@ class TestPackageMetadata(unittest.TestCase):
                     with self.subTest(snapshot=snapshot_name, key=key):
                         rows = security_rows[key]
                         self.assertAlmostEqual(
-                            sum(float(row["BEGIN_MV"]) for row in rows),
+                            sum(float(row["Beginning Market Value"]) for row in rows),
                             float(portfolio_row["BEGIN_MV"]),
                             places=2,
                         )
                         self.assertAlmostEqual(
-                            sum(float(row["END_MV"]) for row in rows),
+                            sum(float(row["Ending Market Value"]) for row in rows),
                             float(portfolio_row["END_MV"]),
                             places=2,
                         )
@@ -2270,6 +2302,7 @@ class TestPackageMetadata(unittest.TestCase):
         for portfolio, (from_date, thru_date, holding_date) in aapl_periods.items():
             with self.subTest(portfolio=portfolio, security="AAPL"):
                 key = (portfolio, "AAPL", from_date, thru_date)
+                check_key = (portfolio, "csusAAPL", from_date, thru_date)
                 holding_key = (portfolio, "AAPL", holding_date)
                 price_delta = _float_delta(
                     holdings_a[holding_key],
@@ -2279,15 +2312,19 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertGreater(price_delta, 0.0)
                 self.assertAlmostEqual(
                     _float_delta(secperf_a[key], secperf_b[key], "SEC_RETURN"),
-                    _reconstruction_float(checks[key], DERIVED_RETURN_DIFFERENCE),
+                    _reconstruction_float(
+                        checks[check_key],
+                        DERIVED_RETURN_DIFFERENCE,
+                    ),
                     places=9,
                 )
                 self.assertEqual(
-                    checks[key][RECONSTRUCTION_STATUS],
+                    checks[check_key][RECONSTRUCTION_STATUS],
                     RECONSTRUCTION_STATUS_ALIGNED,
                 )
 
         tnote_key = ("INCOME", "91282Y2Y1", "2026-05-15", "2026-05-15")
+        tnote_check_key = ("INCOME", "fius91282Y2Y1", "2026-05-15", "2026-05-15")
         tnote_holding_key = ("INCOME", "91282Y2Y1", "2026-05-15")
         self.assertNotEqual(
             _float_delta(
@@ -2299,11 +2336,14 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertAlmostEqual(
             _float_delta(secperf_a[tnote_key], secperf_b[tnote_key], "SEC_RETURN"),
-            _reconstruction_float(checks[tnote_key], DERIVED_RETURN_DIFFERENCE),
+            _reconstruction_float(
+                checks[tnote_check_key],
+                DERIVED_RETURN_DIFFERENCE,
+            ),
             places=9,
         )
         self.assertEqual(
-            checks[tnote_key][RECONSTRUCTION_STATUS],
+            checks[tnote_check_key][RECONSTRUCTION_STATUS],
             RECONSTRUCTION_STATUS_ALIGNED,
         )
 

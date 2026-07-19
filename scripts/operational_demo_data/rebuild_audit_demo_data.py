@@ -73,6 +73,64 @@ _DEFAULT_TRANSACTION_POLICY_PATH: Final = (
 )
 _SNAPSHOT_DIRECTORIES: Final = ("snapshot_a", "snapshot_b")
 _BASE_SNAPSHOT_DIRECTORY: Final = "snapshot_a"
+_COMMON_AXYS_HEADERS_TO_INTERNAL: Final[dict[str, dict[str, str]]] = {
+    "holdings": {
+        "Portfolio Code": "PORT",
+        "Security Symbol": "SEC",
+        "Holding Date": "HOLDING_DATE",
+        "Currency Code": "CURRENCY",
+        "Base Currency": "BASE_CURRENCY",
+        "Quantity": "QTY",
+        "Price": "PRICE",
+        "Market Value": "MKT_VAL",
+        "Base Market Value": "BASE_MKT_VAL",
+        "Accrued Income": "ACCRUED",
+    },
+    "portfolio_performance": {
+        "Ending Market Value": "END_MV",
+        "Net Flow": "FLOW",
+        "Income": "INCOME",
+        "Gain/Loss": "GAIN_LOSS",
+        "Portfolio Code": "PORTFOLIO_CODE",
+        "From Date": "FROM_DATE",
+        "Thru Date": "THRU_DATE",
+        "Beginning Market Value": "BEGIN_MV",
+        "Portfolio Return": "PORT_RETURN",
+        "Base Currency": "BASE_CURRENCY",
+    },
+    "security_performance": {
+        "Ending Market Value": "END_MV",
+        "Income": "INCOME",
+        "Gain/Loss": "GAIN_LOSS",
+        "Portfolio Code": "PORTFOLIO_CODE",
+        "Security Symbol": "SECURITY_ID",
+        "From Date": "FROM_DATE",
+        "Thru Date": "THRU_DATE",
+        "Beginning Weight": "BEGIN_WEIGHT",
+        "Beginning Market Value": "BEGIN_MV",
+        "Security Return": "SEC_RETURN",
+        "Contribution": "CONTRIBUTION",
+    },
+    "transactions": {
+        "Portfolio Code": "PORT",
+        "Transaction Date": "TRANSACTION_DATE",
+        "Settlement Date": "SETTLE_DATE",
+        "Security Symbol": "SEC",
+        "Transaction Code": "TRAN",
+        "Transaction Security Type": "SEC_TYPE",
+        "Source/Destination Type": "SRC_DEST_TYPE",
+        "Source/Destination Symbol": "SRC_DEST_SYMBOL",
+        "Special Security Type": "SPECIAL_SEC_TYPE",
+        "Special Security Symbol": "SPECIAL_SEC_SYMBOL",
+        "Currency Code": "CURRENCY",
+        "Base Currency": "BASE_CURRENCY",
+        "Quantity": "QTY",
+        "Price": "PRICE",
+        "Amount": "AMOUNT",
+        "Base Amount": "BASE_AMOUNT",
+        "Commission": "COMMISSION",
+    },
+}
 _PERIOD_KEY: Final = ["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"]
 _SECURITY_PERIOD_KEY: Final = [*_PERIOD_KEY, "SECURITY_ID"]
 _PORTPERF_COLUMNS: Final = [
@@ -932,7 +990,10 @@ def _portfolio_period_containing_date(
     date_value = pd.Timestamp(input_date)
     matches: set[tuple[str, str, str]] = set()
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
-        portperf = pd.read_csv(axys_directory / snapshot_name / "portperf.csv")
+        portperf = _read_packaged_axys_frame(
+            axys_directory / snapshot_name / "portperf.csv",
+            "portfolio_performance",
+        )
         portfolio_rows = portperf[portperf["PORTFOLIO_CODE"].astype(str).eq(portfolio)]
         for row in portfolio_rows.itertuples(index=False):
             if (
@@ -1023,7 +1084,8 @@ def _audit_scenario_report_contract(
                 issue
                 for issue in data_issues_rows
                 if str(issue.get("portfolio_id") or "") == str(row.portfolio)
-                and str(issue.get("security_id") or "") == str(row.primary_security)
+                and _security_symbol_from_ppar_id(issue.get("security_id"))
+                == str(row.primary_security)
                 and str(issue.get("issue_type") or "") == expected_issue_type
                 and _date_is_within(
                     issue.get("as_of_date"),
@@ -1095,7 +1157,7 @@ def _report_row_matches_scenario(
             str(scenario_row.story_from_date),
             str(scenario_row.story_thru_date),
         )
-        and str(report_row.get("security_id") or "")
+        and _security_symbol_from_ppar_id(report_row.get("security_id"))
         == str(scenario_row.primary_security)
         and (
             report_row.get(date_field) is None
@@ -1115,6 +1177,17 @@ def _report_row_period_key(report_row: dict[str, object]) -> tuple[str, str, str
         str(report_row.get("from_date") or ""),
         str(report_row.get("thru_date") or ""),
     )
+
+
+def _security_symbol_from_ppar_id(value: object) -> str:
+    """Return the source symbol from a type-first PPAR security identifier."""
+    security_id = str(value or "")
+    demo_security_types = {"caus", "cseu", "csgb", "csus", "fius"}
+    security_type = security_id[:4]
+    if security_type not in demo_security_types:
+        return security_id
+    symbol = security_id[4:]
+    return symbol[1:] if symbol.startswith("_") else symbol
 
 
 def _date_is_within(value: object, from_date: str, thru_date: str) -> bool:
@@ -1164,7 +1237,7 @@ def _audit_generated_causal_story_coverage(
     story_securities: dict[tuple[str, str, str], set[str]] = {}
     explained_cash: dict[tuple[str, str, str], set[str]] = {}
     for row in causes.iter_rows(named=True):
-        security = str(row.get("security_id") or "")
+        security = _security_symbol_from_ppar_id(row.get("security_id"))
         if not security:
             continue
         period_key = (
@@ -1238,7 +1311,12 @@ def rebuild_demo_performance_files(
     snapshots: list[dict[str, object]] = []
     base_snapshot_directory = axys_directory / _BASE_SNAPSHOT_DIRECTORY
     base_holdings = _with_internal_cost(
-        _with_multicurrency_holdings(pd.read_csv(base_snapshot_directory / "holdings.csv"))
+        _with_multicurrency_holdings(
+            _read_packaged_axys_frame(
+                base_snapshot_directory / "holdings.csv",
+                "holdings",
+            )
+        )
     )
     base_transactions = _read_packaged_transactions(base_snapshot_directory / "transactions.csv")
     holding_scenarios = _load_holding_scenarios(holding_scenarios_path)
@@ -1246,15 +1324,26 @@ def rebuild_demo_performance_files(
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
         snapshot_directory = axys_directory / snapshot_name
         current_secperf = _with_multicurrency_performance_rows(
-            pd.read_csv(snapshot_directory / "secperf.csv"),
+            _read_packaged_axys_frame(
+                snapshot_directory / "secperf.csv",
+                "security_performance",
+            ),
             security_level=True,
         )
         current_portperf = _with_multicurrency_performance_rows(
-            pd.read_csv(snapshot_directory / "portperf.csv"),
+            _read_packaged_axys_frame(
+                snapshot_directory / "portperf.csv",
+                "portfolio_performance",
+            ),
             security_level=False,
         )
         holdings = _with_internal_cost(
-            _with_multicurrency_holdings(pd.read_csv(snapshot_directory / "holdings.csv"))
+            _with_multicurrency_holdings(
+                _read_packaged_axys_frame(
+                    snapshot_directory / "holdings.csv",
+                    "holdings",
+                )
+            )
         )
         current_transactions = _read_packaged_transactions(snapshot_directory / "transactions.csv")
         rebuilt_transactions = _rebuild_transactions(
@@ -1330,15 +1419,21 @@ def rebuild_demo_performance_files(
                 rebuilt_transactions,
                 snapshot_directory / "transactions.csv",
             )
-            _packaged_holdings(rebuilt_holdings).to_csv(
+            _write_packaged_axys_frame(
+                _packaged_holdings(rebuilt_holdings),
                 snapshot_directory / "holdings.csv",
-                index=False,
+                "holdings",
             )
-            rebuilt_secperf[_SECPERF_COLUMNS].to_csv(
+            _write_packaged_axys_frame(
+                rebuilt_secperf[_SECPERF_COLUMNS],
                 snapshot_directory / "secperf.csv",
-                index=False,
+                "security_performance",
             )
-            rebuilt_portperf.to_csv(snapshot_directory / "portperf.csv", index=False)
+            _write_packaged_axys_frame(
+                rebuilt_portperf,
+                snapshot_directory / "portperf.csv",
+                "portfolio_performance",
+            )
 
         snapshots.append(
             {
@@ -1475,6 +1570,58 @@ def _transaction_scenario_type_counts(
     return dict(sorted(counts.items()))
 
 
+def _read_packaged_axys_frame(path: Path, dataset_name: str) -> pd.DataFrame:
+    """Read one common-caption Axys/APX fixture into rebuild-internal columns."""
+    frame = pd.read_csv(path)
+    if "Security Type" in frame.columns:
+        frame = frame.drop(columns="Security Type")
+    return frame.rename(columns=_COMMON_AXYS_HEADERS_TO_INTERNAL[dataset_name])
+
+
+def _security_types_for_symbols(path: Path, symbols: pd.Series) -> pd.Series:
+    """Return reviewed security-master types for source security symbols."""
+    reference = pd.read_csv(path.parent / "secref.csv", dtype=str)
+    type_by_symbol = dict(
+        zip(
+            reference["Security Symbol"],
+            reference["Security Type"],
+            strict=True,
+        )
+    )
+    security_types = symbols.astype(str).map(type_by_symbol)
+    if security_types.isna().any():
+        missing_symbols = sorted(symbols.loc[security_types.isna()].astype(str).unique())
+        raise ValueError(f"Security reference is missing types for: {missing_symbols}")
+    return security_types
+
+
+def _write_packaged_axys_frame(
+    frame: pd.DataFrame,
+    path: Path,
+    dataset_name: str,
+) -> None:
+    """Write one rebuild-internal frame with common Axys/APX captions."""
+    output = frame.rename(
+        columns={
+            internal: common
+            for common, internal in _COMMON_AXYS_HEADERS_TO_INTERNAL[dataset_name].items()
+        }
+    )
+    symbol_column = (
+        "Security Symbol"
+        if dataset_name in {"holdings", "security_performance", "transactions"}
+        else None
+    )
+    if symbol_column is not None:
+        security_types = _security_types_for_symbols(path, output[symbol_column])
+        output.insert(
+            output.columns.get_loc(symbol_column) + 1,
+            "Security Type",
+            security_types,
+        )
+    output.to_csv(path, index=False)
+
+
 def _read_packaged_transactions(path: Path) -> pd.DataFrame:
     """Return packaged transactions with internal scenario IDs restored.
 
@@ -1483,7 +1630,9 @@ def _read_packaged_transactions(path: Path) -> pd.DataFrame:
     The rebuild scenario CSV still uses deterministic IDs as internal fixture
     handles so the demo derivation remains auditable.
     """
-    return _with_internal_transaction_ids(_with_demo_transactions(pd.read_csv(path)))
+    return _with_internal_transaction_ids(
+        _with_demo_transactions(_read_packaged_axys_frame(path, "transactions"))
+    )
 
 
 def _with_multicurrency_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
@@ -1662,9 +1811,9 @@ def _with_demo_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
             "SETTLE_DATE": "2026-01-22",
             "SEC": "MARGIN_USD",
             "TRAN": "ai",
-            "SEC_TYPE": "margin",
+            "SEC_TYPE": "caus",
             "SRC_DEST_TYPE": "$pth",
-            "SRC_DEST_SYMBOL": "margin",
+            "SRC_DEST_SYMBOL": "$cash",
             "SPECIAL_SEC_TYPE": "caus",
             "SPECIAL_SEC_SYMBOL": "margin",
             "CURRENCY": "USD",
@@ -1701,10 +1850,10 @@ def _with_demo_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
             "SEC": "JPM",
             "TRAN": "dp",
             "SEC_TYPE": "csus",
-            "SRC_DEST_TYPE": "$income",
+            "SRC_DEST_TYPE": "$pty",
             "SRC_DEST_SYMBOL": "$cash",
-            "SPECIAL_SEC_TYPE": "exus",
-            "SPECIAL_SEC_SYMBOL": "withholding",
+            "SPECIAL_SEC_TYPE": "epus",
+            "SPECIAL_SEC_SYMBOL": "with",
             "CURRENCY": "USD",
             "BASE_CURRENCY": "USD",
             "QTY": 0.0,
@@ -1872,7 +2021,11 @@ def _packaged_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
 
 def _write_packaged_transactions(transactions: pd.DataFrame, path: Path) -> None:
     """Write user-facing transactions without internal scenario IDs."""
-    transactions[_PACKAGED_TRANSACTION_COLUMNS].to_csv(path, index=False)
+    _write_packaged_axys_frame(
+        transactions[_PACKAGED_TRANSACTION_COLUMNS],
+        path,
+        "transactions",
+    )
 
 
 def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
@@ -3717,7 +3870,7 @@ def _audit_visible_security_residuals(comparison_path: Path) -> list[AuditIssue]
             continue
         key = (
             str(row["portfolio_id"]),
-            str(row["security_id"]),
+            _security_symbol_from_ppar_id(row["security_id"]),
             row["from_date"].isoformat(),
             row["thru_date"].isoformat(),
             status,
@@ -4165,7 +4318,10 @@ def _demo_portfolio_period_keys(axys_directory: Path) -> set[tuple[str, str, str
     """Return all portfolio-period keys present in packaged demo portperf files."""
     period_keys: set[tuple[str, str, str]] = set()
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
-        portperf = pd.read_csv(axys_directory / snapshot_name / "portperf.csv")
+        portperf = _read_packaged_axys_frame(
+            axys_directory / snapshot_name / "portperf.csv",
+            "portfolio_performance",
+        )
         for row in portperf.itertuples(index=False):
             period_keys.add(
                 (

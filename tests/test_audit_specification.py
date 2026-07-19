@@ -39,16 +39,89 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
         (snapshot_path / "portperf.csv").write_text("header\n", encoding="utf-8")
 
     return {
+        "comparison": {"level": "portfolio"},
         "snapshots": {
             "a": {"path": "snapshot_a", "schema": "schema.yaml"},
             "b": {"path": "snapshot_b", "schema": "schema.yaml"},
         },
         "files": {"portfolio_performance": "portperf.csv"},
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
     }
 
 
 class TestAuditSpecification(unittest.TestCase):
     """Verify comparison specification parsing and file preflight behavior."""
+
+    def test_financially_material_root_settings_are_required(self) -> None:
+        """Omitted comparison, tolerance, and source-safety choices fail closed."""
+        scenarios = (
+            (("comparison",), "comparison must be a mapping"),
+            (("comparison", "level"), "comparison.level is required"),
+            (("tolerances",), "tolerances must be a mapping"),
+            (
+                ("tolerances", "return"),
+                "tolerances is missing required keys: return",
+            ),
+            (("extract_contract",), "extract_contract must be a mapping"),
+            (
+                ("extract_contract", "enforce_ambiguous_axys_flows"),
+                "extract_contract is missing required keys: "
+                "enforce_ambiguous_axys_flows",
+            ),
+            (
+                ("extract_contract", "transaction_semantics_case"),
+                "extract_contract is missing required keys: "
+                "transaction_semantics_case",
+            ),
+        )
+        for key_path, expected_message in scenarios:
+            with self.subTest(key_path=key_path):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    directory = Path(temp_dir)
+                    configuration = _minimal_specification(directory)
+                    if len(key_path) == 1:
+                        del configuration[key_path[0]]
+                    else:
+                        section = configuration[key_path[0]]
+                        assert isinstance(section, dict)
+                        del section[key_path[1]]
+                    path = _write_yaml(directory, configuration)
+
+                    with self.assertRaises(PpaError) as context:
+                        AuditSpecification(path)
+
+                self.assertIn(expected_message, str(context.exception))
+
+    def test_comparison_tolerances_require_finite_nonnegative_numbers(self) -> None:
+        """Invalid explicit comparison tolerances never acquire a fallback."""
+        for invalid_value in (True, "0.01", -0.01, float("inf"), float("nan")):
+            with self.subTest(invalid_value=invalid_value):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    directory = Path(temp_dir)
+                    configuration = _minimal_specification(directory)
+                    tolerances = configuration["tolerances"]
+                    assert isinstance(tolerances, dict)
+                    tolerances["return"] = invalid_value
+                    path = _write_yaml(directory, configuration)
+
+                    with self.assertRaisesRegex(
+                        PpaError,
+                        "tolerances.return must be a finite nonnegative number",
+                    ):
+                        AuditSpecification(path)
 
     def test_fixture_comparison_paths_are_resolved(self) -> None:
         """Committed baseline fixture resolves snapshots, schemas, and files."""
@@ -639,8 +712,46 @@ transaction_impact_methods:
                     "large_price_variation": {
                         "enabled": True,
                         "rules": [
-                            {"rule_id": "common_stock"},
-                            {"rule_id": "common_stock"},
+                            {
+                                "rule_id": "common_stock",
+                                "minimum_tolerance": 0.20,
+                            }
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0] missing required "
+                "keys: minimum_calendar_days",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {
+                                "rule_id": "common_stock",
+                                "minimum_calendar_days": 1,
+                            }
+                        ],
+                    }
+                },
+                "data_issues.large_price_variation.rules[0] missing required "
+                "keys: minimum_tolerance",
+            ),
+            (
+                {
+                    "large_price_variation": {
+                        "enabled": True,
+                        "rules": [
+                            {
+                                "rule_id": "common_stock",
+                                "minimum_calendar_days": 1,
+                                "minimum_tolerance": 0.20,
+                            },
+                            {
+                                "rule_id": "common_stock",
+                                "minimum_calendar_days": 1,
+                                "minimum_tolerance": 0.20,
+                            },
                         ],
                     }
                 },
@@ -655,6 +766,7 @@ transaction_impact_methods:
                             {
                                 "rule_id": "common_stock",
                                 "minimum_calendar_days": 0,
+                                "minimum_tolerance": 0.20,
                             }
                         ],
                     }
@@ -669,6 +781,7 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
+                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": True,
                             }
                         ],
@@ -684,6 +797,8 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
+                                "minimum_calendar_days": 1,
+                                "minimum_tolerance": 0.20,
                                 "only": {"portfolio_performance.portfolio_id": "P1"},
                             }
                         ],
@@ -699,6 +814,8 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
+                                "minimum_calendar_days": 1,
+                                "minimum_tolerance": 0.20,
                                 "percent_tolerance": 20,
                             }
                         ],

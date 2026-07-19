@@ -41,17 +41,16 @@
 #   accounting role. A suppression rule cannot silently classify that field.
 
 comparison:
-  # Human-readable name stored in generated report metadata.
+  # Optional human-readable configuration label. The current MVP accepts this
+  # label but does not surface it in generated report metadata.
   name: PPAR Audit
 
   # Primary review level for lower-level bundle tooling.
   # Allowed values: portfolio, security.
-  # Most users should leave this as portfolio. The production command normally
-  # chooses report output with --report and writes both reports by default when
-  # portfolio and security source files are available:
-  #   ppar audit ./my_ppar_data/audit --report portfolio
-  #   ppar audit ./my_ppar_data/audit --report security
-  #   ppar audit ./my_ppar_data/audit --report both
+  # Most users should leave this as portfolio. The production `ppar audit`
+  # command writes both portfolio and security reports when the configured
+  # security-performance files are available; this setting remains for
+  # lower-level one-view APIs and bundle tooling.
   level: portfolio
 
 snapshots:
@@ -127,16 +126,18 @@ files:
   #
   # security_performance:
   #   Required only when applicable: the file is needed for security-level
-  #   comparison, with PORTFOLIO_CODE, SECURITY_ID, FROM_DATE, THRU_DATE, and
-  #   SEC_RETURN. It is not needed for portfolio-only audit.
+  #   comparison, with Portfolio Code, Security Symbol, Security Type, From
+  #   Date, Thru Date, and Security Return. It is not needed for portfolio-only
+  #   audit. PPAR constructs security_id as type + "_" + symbol.
   #   Optional fields: BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, and
   #   CONTRIBUTION. They are compared when present.
   #   Likely source: REP security-performance or attribution report. The
   #   current evidence does not verify a native performance IMEX object.
   #
   # holdings:
-  #   Required fields: PORT, SEC, HOLDING_DATE, MKT_VAL, with rows for the
-  #   beginning and ending dates of every comparison period.
+  #   Required fields: Portfolio Code, Security Symbol, Security Type, Holding
+  #   Date, and Market Value, with rows for the beginning and ending dates of
+  #   every comparison period.
   #   Required only when applicable: CURRENCY, BASE_CURRENCY, and BASE_MKT_VAL
   #   for multi-currency holdings; ACCRUED when it is stated separately from
   #   MKT_VAL and affects valuation; BASE_ACCRUED when a nonzero foreign
@@ -145,20 +146,22 @@ files:
   #   Likely source: IMEX positions/holdings export or REP appraisal report.
   #
   # transactions:
-  #   Required fields: PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT.
-  #   Required only when applicable: SEC_TYPE, SRC_DEST_TYPE, SRC_DEST_SYMBOL,
-  #   SPECIAL_SEC_TYPE, and SPECIAL_SEC_SYMBOL when ambiguous DP, LI, LO, TI, or
-  #   WD codes can appear; CURRENCY, BASE_CURRENCY, and BASE_AMOUNT for foreign
-  #   amounts.
+  #   Required fields: Portfolio Code, Transaction Date, Security Symbol,
+  #   Security Type, Transaction Code, and Amount.
+  #   Required only when applicable: Transaction Security Type,
+  #   Source/Destination Type, Source/Destination Symbol, Special Security Type,
+  #   and Special Security Symbol when ambiguous DP, LI, LO, TI, or WD codes can
+  #   appear; Currency Code, Base Currency, and Base Amount for foreign amounts.
   #   Optional fields: SETTLE_DATE, QTY, PRICE, COMMISSION.
   #   Likely source: IMEX transaction export. Use REP/custom output or another
   #   reviewed source if IMEX omits the context needed for ambiguous codes.
   #
   # security_reference:
   #   Required only when applicable: configure this file when a Data Issues
-  #   only/exclude filter uses a security_reference.* qualifier. SECURITY_ID is
-  #   required and must be unique with exact source case. Classification fields
-  #   such as SECURITY_TYPE and ASSET_CLASS_CODE are optional until referenced.
+  #   only/exclude filter uses a security_reference.* qualifier. Security Symbol
+  #   and Security Type are required; their constructed security_id must be
+  #   unique with exact source case. Classification fields such as Asset Class
+  #   Code are optional until referenced.
   #   Likely source: IMEX security-information export, a security-master report,
   #   or another reviewed security-reference extract.
   #
@@ -171,9 +174,9 @@ files:
   #   FX/price source, or other controlled rate source.
   #
   # splits:
-  #   Optional fields: SEC, SPLIT_DATE, SPLIT_FACTOR. Split factors can explain
-  #   a quantity change, but they do not directly enter the current Modified
-  #   Dietz explanation formula.
+  #   Optional fields: Security Symbol, Security Type, Split Date, and Split
+  #   Factor. Split factors can explain a quantity change, but they do not
+  #   directly enter the current Modified Dietz explanation formula.
   #   Likely source: split.inf or a local split-factor export; REP/custom output
   #   only if it exposes equivalent factors.
   portfolio_performance: portperf.csv
@@ -189,6 +192,7 @@ files:
 # site configurations that omit this setting retain legacy case-insensitive
 # semantics until their source contract is reviewed and versioned.
 extract_contract:
+  enforce_ambiguous_axys_flows: true
   transaction_semantics_case: exact
 
 data_issues:
@@ -224,7 +228,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - MSFT
+        - csusMSFT
       security_reference.asset_class_code: EQ
 
   holdings_price_range:
@@ -234,7 +238,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - AAPL
+        - csusAAPL
     absolute_tolerance: 0.01
     percent_tolerance: 0.05
 
@@ -247,7 +251,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - GOOGL
+        - csusGOOGL
       security_reference.security_type: csus
     minimum_calendar_days: 28
 
@@ -264,7 +268,7 @@ data_issues:
       - rule_id: common_stock_20_percent
         only:
           security_id:
-            - AVGO
+            - csusAVGO
           transactions.transaction_code:
             - by
             - sl
@@ -279,7 +283,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - AAPL
+        - csusAAPL
       transactions.transaction_code:
         - by
     absolute_tolerance: 0.01
@@ -295,7 +299,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - KO
+        - csusKO
       transactions.transaction_code:
         - by
       security_reference.security_type: csus
@@ -309,7 +313,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - KO
+        - csusKO
       security_reference.security_type: csus
 
   deliver_in_original_cost_incomplete:
@@ -333,7 +337,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - KO
+        - csusKO
 
   dividend_rate:
     # Checks same-day same-security dividend amount per share across
@@ -342,7 +346,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - JPM
+        - csusJPM
     absolute_tolerance: 0.01
     percent_tolerance: 0.5
 
@@ -356,7 +360,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - AAPL
+        - csusAAPL
 
   pa_sa_rate:
     # Checks same-day same-security purchase-accrued/sale-accrued rates across
@@ -365,7 +369,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - 91282Y5Y1
+        - fius91282Y5Y1
       security_reference.asset_class_code: FI
     absolute_tolerance: 0.000001
     percent_tolerance: 0.5
@@ -376,7 +380,7 @@ data_issues:
     enabled: true
     only:
       security_id:
-        - 91282Y5Y1
+        - fius91282Y5Y1
       security_reference.asset_class_code: FI
     absolute_tolerance: 0.00001
     percent_tolerance: 0.5
@@ -540,8 +544,8 @@ transaction_rules:
       cash_flow_sign: negative
       performance_flow_sign: performance
     - when:
-        special_security_type: exus
-        special_security_symbol: withholding
+        special_security_type: epus
+        special_security_symbol: with
       transaction_category: fee_expense
       cash_flow_sign: negative
       performance_flow_sign: performance
@@ -550,9 +554,11 @@ transaction_rules:
     # security and source context used by this site-scoped demo. Code-only ai
     # remains unknown.
     - when:
-        security_type: margin
+        security_type: caus
         source_destination_type: $pth
-        source_destination_symbol: margin
+        source_destination_symbol: $cash
+        special_security_type: caus
+        special_security_symbol: margin
       transaction_category: fee_expense
       cash_flow_sign: negative
       performance_flow_sign: performance
@@ -561,12 +567,14 @@ transaction_rules:
     cash_flow_sign: positive
     performance_flow_sign: performance
   rc:
-    # Return of capital is included only with explicit equity/security context
-    # and a return-of-capital marker. Do not promote code-only rc rows; native
-    # cost-basis handling remains best-efforts context outside Modified Dietz.
+    # Return of capital is included only with an equity security type and the
+    # documented portfolio-cash destination context. The public translation
+    # row leaves Special Security Type / Symbol blank. Do not promote code-only
+    # rc rows; native cost-basis handling remains outside Modified Dietz.
     - when:
         security_type: csus
-        special_security_type: return_of_capital
+        source_destination_type: $pty
+        source_destination_symbol: $cash
       transaction_category: income
       cash_flow_sign: positive
       performance_flow_sign: performance
@@ -577,15 +585,15 @@ transaction_rules:
       performance_flow_sign: neutral
   pd:
     # Principal paydown is included only with amortizing security context and
-    # portfolio cash destination evidence. The existing security-level
+    # portfolio cash destination evidence. The public translation row leaves
+    # Special Security Type / Symbol blank. The existing security-level
     # reconstruction engine treats this as a sell-like principal flow because
     # principal leaves the security and cash returns to the portfolio. Do not
     # promote code-only pd rows; quantity may be zero or unchanged.
     - when:
-        security_type: mbus
+        security_type: fius
         source_destination_type: $pty
         source_destination_symbol: $cash
-        special_security_type: principal_paydown
       transaction_category: sell
       cash_flow_sign: positive
       performance_flow_sign: performance
@@ -656,7 +664,7 @@ transaction_rules:
     # Withdrawal is external only for a cash row with reviewed external-party
     # context; sweep-like rows remain neutral transfer.
     - when:
-        security_id: CASHUSD
+        security_id: causCASHUSD
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: external_flow
@@ -694,6 +702,12 @@ transaction_impact_methods:
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
 
 security_return_impact_methods:
   # Purpose:
@@ -705,6 +719,29 @@ security_return_impact_methods:
     flow_timing: transaction_date
     day_count: actual_days
     inclusion_rule: beginning_of_day
+
+holding_impact_methods:
+  # Explicit policies replace formerly implicit calculation defaults.
+  market_value:
+    method: market_value_delta_over_return_denominator
+    denominator_source: begin_market_value
+  accrued:
+    method: accrued_delta_over_return_denominator
+    denominator_source: begin_market_value
+  quantity:
+    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
+    denominator_source: begin_market_value
+  cost:
+    method: evidence_only
+
+price_impact_methods:
+  price:
+    method: price_delta_over_snapshot_a_price_times_weight
+    weight_source: snapshot_a_weight
+
+fx_rate_impact_methods:
+  fx_rate:
+    method: evidence_only
 
 evidence_only_impact_methods:
   # Purpose:
@@ -733,3 +770,7 @@ tolerances:
   contribution: 0.000001
   weight: 0.000001
   market_value: 0.01
+  quantity: 0.000001
+  price: 0.000001
+  split_factor: 0.00000001
+  fx_rate: 0.00000001

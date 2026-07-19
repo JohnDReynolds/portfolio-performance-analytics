@@ -149,6 +149,27 @@ meaning. Interpretation may depend on:
 | Custodian or interface translation | Integration-specific mappings may alter native codes. | Medium |
 | Reversal/cancellation context | Explicit Trade Blotter source stage plus uppercase instruction may identify deletion/cancellation in the observed workflow. | Medium |
 
+#### Special Security Type / Symbol Boundary
+
+The reviewed ByAllAccounts Axys and APX translation tables describe Special
+Security Type and Special Security Symbol as a pair. The type remains an
+Axys/APX security-type identifier in every public example reviewed; observed
+values are `exus`, `epus`, and `caus`. The paired symbol carries the more
+descriptive value, including `custfee`, `expense`, `with`, or `margin`. No
+reviewed public example establishes a non-four-character Special Security Type.
+
+The same public tables leave the special-security pair blank for `rc` return of
+capital and bond-security `pd`. Those rows instead use the real security or bond
+context plus `$pty` / `$cash`. Consequently, readable event labels such as
+`return_of_capital` and `principal_paydown` are not defensible as native-looking
+Special Security Type values. A normalized implementation should use the code,
+real security type, source/destination context, signs, and corroborating
+holdings, principal, or local-policy evidence.
+
+This evidence establishes an integration translation field, not the name or
+availability of a column in every ordinary IMEX, REP, SQL, or posted-transaction
+extract.
+
 ### 1.4 Transaction Matching Boundary
 
 Transaction matching for audit and performance-comparison work should be
@@ -342,8 +363,8 @@ generation.
 | APX Transaction Type | Transaction code/type used in APX translation table. | Unknown | Observed | Unknown | Unknown | Medium |
 | APX Transaction Src/Dest Type | Source/destination security or cash type. | Unknown | Observed | Unknown | Unknown | Medium |
 | APX Transaction Src/Dest Symbol | Source/destination symbol, e.g. cash-like symbols. | Unknown | Observed | Unknown | Unknown | Medium |
-| APX Transaction Special Security Type | Special security type used in fee/expense examples. | Unknown | Observed | Unknown | Unknown | Medium |
-| APX Transaction Special Security Symbol | Special security symbol used in fee/expense examples. | Unknown | Observed | Unknown | Unknown | Medium |
+| APX Transaction Special Security Type | Axys/APX security-type identifier used as the type half of a special type/symbol pair; public examples include `exus`, `epus`, and `caus`. | Unknown | Observed | Unknown | Unknown | Medium |
+| APX Transaction Special Security Symbol | Symbol half of the special type/symbol pair; public examples include `custfee`, `expense`, `with`, and `margin`. | Unknown | Observed | Unknown | Unknown | Medium |
 | Broker Representative Field | Field that can receive `$brok` in AIA workflow. | Unknown | Observed | Unknown | Unknown | Medium |
 | Lot Location | Axys-era/APX workflow concept integrated into lot accounting. | Observed as Axys-era concept | Observed | Unknown | Unknown | Medium |
 | Comment | Transaction import comment or standalone comment. | Unknown | Observed | Unknown | Unknown | Medium |
@@ -771,7 +792,7 @@ for ambiguous transaction families.
 | `dv` / `by` | Real security | Real symbol or `dvwash` | `$ity` or equivalent | `$income` or wash symbol | Dividend reinvestment | No | Link income and buy legs to avoid double counting. |
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
 | `pa` / `sa` | Bond or fixed-income security | Real symbol | Client-specific | Client-specific | Buy-side or sell-side accrued interest | No | Validate accrued interest, day count, and settlement economics; do not classify as external flow. |
-| `rc` / `pd` | Real security or bond/MBS | Real symbol | Usually `$pty` in ByAllAccounts mapping evidence | Usually `$cash` in ByAllAccounts mapping evidence | Return of capital or principal paydown | No | Confirm context before classification. The packaged demo uses narrow context-gated examples only. |
+| `rc` / `pd` | Real security or bond/MBS | Real symbol | Usually `$pty` in ByAllAccounts mapping evidence | Usually `$cash` in ByAllAccounts mapping evidence | Return of capital or principal paydown | No | The reviewed public rows leave Special Security Type / Symbol blank. Confirm code, real security type, cash context, signs, and holdings/principal effects before classification. |
 | `ss` / `cs` | Shortable security or short-side account context | Real symbol | `ss` mapping evidence uses `awus`; `cs` mapping evidence uses `$pty` | `ss` mapping evidence uses no symbol; `cs` mapping evidence uses `$cash` | Short sale or cover short | No | Require exact lowercase code, short-position context, quantity, amount, and site cash/proceeds treatment. Uppercase `SS`/`CS` are separate staging/control evidence only when source stage proves that role. |
 
 ### 8.6 Observed Public Mapping Examples
@@ -1046,7 +1067,7 @@ patterns, not verified native Axys/APX field rules.
 
 | Pattern | Meaning | Audit implication |
 |---|---|---|
-| Separate expense line such as `dp` with `exus` or withholding symbol | Gross dividend plus separate tax/fee | Link income and tax lines for gross/net review. |
+| Separate expense line such as documented `dp` plus `epus` / `with`, or another locally verified tax pair | Gross dividend plus separate tax/fee | Link income and tax lines for gross/net review. |
 | Negative `dv` or negative `in` | Tax or adjustment reduces income directly | Easier net cash view, but gross income can be obscured. |
 | Withholding-tax field on income transaction | Single income record carries tax detail | Prefer this when preserved because it keeps gross/net detail together. |
 

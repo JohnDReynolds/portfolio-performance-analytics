@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import TypeAlias
+from typing import TypeAlias, cast
 
 # Third-party imports
 import polars as pl
@@ -18,6 +18,10 @@ from ppar.audit import schema as pc_cols
 from ppar.audit.specification import (
     ComparisonSnapshot,
     AuditSpecification,
+)
+from ppar.axys_apx.security_identity import (
+    security_id_construction,
+    with_constructed_security_id,
 )
 from ppar.errors import PpaError
 import ppar.utilities as util
@@ -44,6 +48,10 @@ _SCHEMA_COLUMN_SECTIONS = {
     pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance_columns",
     pc_cols.SECURITY_PERFORMANCE: "security_performance_columns",
     pc_cols.SECURITY_REFERENCE: "security_reference_columns",
+    pc_cols.HOLDINGS: "holdings_columns",
+    pc_cols.TRANSACTIONS: "transactions_columns",
+    pc_cols.SPLITS: "splits_columns",
+    pc_cols.FX_RATES: "fx_rates_columns",
 }
 _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
     pc_cols.PORTFOLIO_PERFORMANCE: {
@@ -53,6 +61,14 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "from_date": pc_cols.FROM_DATE,
         "thru_date": pc_cols.THRU_DATE,
         "portfolio_return": pc_cols.PORTFOLIO_RETURN,
+        "begin_market_value": pc_cols.BEGIN_MARKET_VALUE,
+        "end_market_value": pc_cols.END_MARKET_VALUE,
+        "flow": pc_cols.FLOW,
+        "income": pc_cols.INCOME,
+        "gain_loss": pc_cols.GAIN_LOSS,
+        "period_id": pc_cols.PERIOD_ID,
+        "currency": pc_cols.CURRENCY,
+        "base_currency": pc_cols.BASE_CURRENCY,
     },
     pc_cols.SECURITY_PERFORMANCE: {
         "portfolio_code": pc_cols.PORTFOLIO_ID,
@@ -66,6 +82,13 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "security_return": pc_cols.SECURITY_RETURN,
         "weight": pc_cols.WEIGHT,
         "contribution": pc_cols.CONTRIBUTION,
+        "begin_market_value": pc_cols.BEGIN_MARKET_VALUE,
+        "end_market_value": pc_cols.END_MARKET_VALUE,
+        "income": pc_cols.INCOME,
+        "gain_loss": pc_cols.GAIN_LOSS,
+        "period_id": pc_cols.PERIOD_ID,
+        "currency": pc_cols.CURRENCY,
+        "base_currency": pc_cols.BASE_CURRENCY,
     },
     pc_cols.SECURITY_REFERENCE: {
         "identifier": pc_cols.SECURITY_ID,
@@ -83,7 +106,72 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "country": pc_cols.COUNTRY,
         "currency": pc_cols.CURRENCY,
     },
+    pc_cols.HOLDINGS: {
+        "portfolio_code": pc_cols.PORTFOLIO_ID,
+        "portfolio_id": pc_cols.PORTFOLIO_ID,
+        "identifier": pc_cols.SECURITY_ID,
+        "security_id": pc_cols.SECURITY_ID,
+        "holding_date": pc_cols.HOLDING_DATE,
+        "quantity": pc_cols.QUANTITY,
+        "price": pc_cols.PRICE,
+        "market_value": pc_cols.MARKET_VALUE,
+        "base_market_value": pc_cols.BASE_MARKET_VALUE,
+        "cost": pc_cols.COST,
+        "accrued": pc_cols.ACCRUED,
+        "base_accrued": pc_cols.BASE_ACCRUED,
+        "currency": pc_cols.CURRENCY,
+        "base_currency": pc_cols.BASE_CURRENCY,
+    },
+    pc_cols.TRANSACTIONS: {
+        "portfolio_code": pc_cols.PORTFOLIO_ID,
+        "portfolio_id": pc_cols.PORTFOLIO_ID,
+        "identifier": pc_cols.SECURITY_ID,
+        "security_id": pc_cols.SECURITY_ID,
+        "transaction_id": pc_cols.TRANSACTION_ID,
+        "transaction_date": pc_cols.TRANSACTION_DATE,
+        "settlement_date": pc_cols.SETTLEMENT_DATE,
+        "transaction_code": pc_cols.TRANSACTION_CODE,
+        "original_cost_date": pc_cols.ORIGINAL_COST_DATE,
+        "security_type": pc_cols.SECURITY_TYPE,
+        "source_destination_type": pc_cols.SOURCE_DESTINATION_TYPE,
+        "source_destination_symbol": pc_cols.SOURCE_DESTINATION_SYMBOL,
+        "special_security_type": pc_cols.SPECIAL_SECURITY_TYPE,
+        "special_security_symbol": pc_cols.SPECIAL_SECURITY_SYMBOL,
+        "transaction_category": pc_cols.TRANSACTION_CATEGORY,
+        "cash_flow_sign": pc_cols.CASH_FLOW_SIGN,
+        "performance_flow_sign": pc_cols.PERFORMANCE_FLOW_SIGN,
+        "quantity": pc_cols.QUANTITY,
+        "price": pc_cols.PRICE,
+        "amount": pc_cols.AMOUNT,
+        "base_amount": pc_cols.BASE_AMOUNT,
+        "commission": pc_cols.COMMISSION,
+        "currency": pc_cols.CURRENCY,
+        "base_currency": pc_cols.BASE_CURRENCY,
+        "broker": pc_cols.BROKER,
+        "original_cost": pc_cols.ORIGINAL_COST,
+    },
+    pc_cols.SPLITS: {
+        "identifier": pc_cols.SECURITY_ID,
+        "security_id": pc_cols.SECURITY_ID,
+        "security_name": pc_cols.SECURITY_NAME,
+        "ticker": pc_cols.TICKER,
+        "split_date": pc_cols.SPLIT_DATE,
+        "split_factor": pc_cols.SPLIT_FACTOR,
+    },
+    pc_cols.FX_RATES: {
+        "portfolio_code": pc_cols.PORTFOLIO_ID,
+        "portfolio_id": pc_cols.PORTFOLIO_ID,
+        "from_currency": pc_cols.FROM_CURRENCY,
+        "to_currency": pc_cols.TO_CURRENCY,
+        "rate_date": pc_cols.RATE_DATE,
+        "fx_rate": pc_cols.FX_RATE,
+        "local_exposure": pc_cols.LOCAL_EXPOSURE,
+        "rate_source": pc_cols.RATE_SOURCE,
+        "rate_type": pc_cols.RATE_TYPE,
+    },
 }
+
+_CONSTRUCTED_SECURITY_ID_COLUMN = "__ppar_constructed_security_id"
 
 
 @contextmanager
@@ -207,14 +295,21 @@ def cache_financial_validation(specification_path: util.PathLike) -> None:
         cache.add(Path(specification_path).expanduser().resolve())
 
 
-def _read_source_csv(path: util.PathLike) -> pl.DataFrame:
+def _read_source_csv(
+    path: util.PathLike,
+    *,
+    schema_overrides: dict[str, type[pl.DataType]] | None = None,
+) -> pl.DataFrame:
     """Read a raw CSV once in the active source-frame cache scope."""
     resolved_path = Path(path).expanduser().resolve()
     cache = _SOURCE_FRAME_CACHE.get()
     if cache is None:
-        return pl.read_csv(resolved_path)
+        return pl.read_csv(resolved_path, schema_overrides=schema_overrides)
     if resolved_path not in cache:
-        cache[resolved_path] = pl.read_csv(resolved_path)
+        cache[resolved_path] = pl.read_csv(
+            resolved_path,
+            schema_overrides=schema_overrides,
+        )
     return cache[resolved_path]
 
 
@@ -328,6 +423,27 @@ def read_mapped_csv(
         PpaError: If column mappings cannot be resolved unambiguously.
     """
     source_frame = _read_source_csv(path)
+    return _read_mapped_frame(
+        source_frame,
+        path,
+        columns,
+        dataset_name,
+        required_aliases,
+        optional_aliases,
+        specification_path,
+    )
+
+
+def _read_mapped_frame(
+    source_frame: pl.DataFrame,
+    path: util.PathLike,
+    columns: tuple[str, ...],
+    dataset_name: str,
+    required_aliases: ColumnAliases,
+    optional_aliases: ColumnAliases,
+    specification_path: util.PathLike,
+) -> pl.DataFrame:
+    """Return normalized columns selected from an already loaded frame."""
     mappings = _mappings_from_available_columns(
         path,
         dataset_name,
@@ -368,22 +484,50 @@ def read_schema_mapped_csv(
         DataFrame with source columns renamed to normalized internal names.
     """
     snapshot = snapshot_by_key(specification, snapshot_key)
-    return read_mapped_csv(
+    required_aliases = aliases_with_schema_overrides(
+        dataset_name,
+        default_required_aliases,
+        snapshot,
+        specification.path,
+    )
+    optional_aliases = aliases_with_schema_overrides(
+        dataset_name,
+        default_optional_aliases,
+        snapshot,
+        specification.path,
+    )
+    construction = None
+    if snapshot.schema_path is not None:
+        schema_values = _read_schema_yaml(snapshot.schema_path, specification.path)
+        construction = security_id_construction(
+            schema_values,
+            dataset_name,
+            lambda message: _error_message(message, specification.path),
+        )
+    source_frame = _read_source_csv(
+        path,
+        schema_overrides=(
+            construction.schema_overrides if construction is not None else None
+        ),
+    )
+    if construction is not None:
+        source_frame = with_constructed_security_id(
+            source_frame,
+            construction,
+            output_column=_CONSTRUCTED_SECURITY_ID_COLUMN,
+            dataset_name=dataset_name,
+            source_path=path,
+            error_message=lambda message: _error_message(message, specification.path),
+        )
+        required_aliases = dict(required_aliases)
+        required_aliases[pc_cols.SECURITY_ID] = (_CONSTRUCTED_SECURITY_ID_COLUMN,)
+    return _read_mapped_frame(
+        source_frame,
         path,
         columns,
         dataset_name,
-        aliases_with_schema_overrides(
-            dataset_name,
-            default_required_aliases,
-            snapshot,
-            specification.path,
-        ),
-        aliases_with_schema_overrides(
-            dataset_name,
-            default_optional_aliases,
-            snapshot,
-            specification.path,
-        ),
+        required_aliases,
+        optional_aliases,
         specification.path,
     )
 
@@ -504,7 +648,8 @@ def aliases_with_schema_overrides(
 
     merged_aliases = dict(default_aliases)
     for internal_column, schema_column_aliases in schema_aliases.items():
-        merged_aliases[internal_column] = schema_column_aliases
+        if internal_column in merged_aliases:
+            merged_aliases[internal_column] = schema_column_aliases
     return merged_aliases
 
 
@@ -572,7 +717,7 @@ def _schema_aliases(
 def _read_schema_yaml(
     schema_path: Path,
     specification_path: util.PathLike,
-) -> dict[object, object]:
+) -> dict[str, object]:
     """Read a referenced schema YAML as a mapping."""
     with open(schema_path, "r", encoding=util.ENCODING) as file:
         try:
@@ -589,7 +734,7 @@ def _read_schema_yaml(
             _error_message("Referenced schema YAML must be a mapping.", specification_path),
             504,
         )
-    return values
+    return cast(dict[str, object], values)
 
 
 def _error_message(message: str, specification_path: util.PathLike) -> str:

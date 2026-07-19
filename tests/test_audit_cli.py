@@ -130,7 +130,7 @@ class TestAuditCli(unittest.TestCase):
                     self.assertIn("usage: ppar analytics", result.stdout)
                     self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
                 if module_name == _SITE_REPORT_MODULE:
-                    self.assertIn("--report", result.stdout)
+                    self.assertNotIn("--report", result.stdout)
                     self.assertIn("usage: ppar audit", result.stdout)
                     self.assertIn(
                         "ppar audit ./my_ppar_data/audit",
@@ -658,8 +658,6 @@ class TestAuditCli(unittest.TestCase):
             cli_advanced = root / "cli_advanced"
             script_advanced = root / "script_advanced"
             shared_options = [
-                "--report",
-                "portfolio",
                 "--title",
                 "Custom Audit",
                 "--exclude_suppressed",
@@ -723,7 +721,6 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             ).stdout
             for option in (
-                "--report",
                 "--output",
                 "--title",
                 "--no-xlsx-output",
@@ -734,6 +731,7 @@ class TestAuditCli(unittest.TestCase):
                 "--allow-incomplete-yaml",
             ):
                 self.assertIn(option, audit_help)
+            self.assertNotIn("--report", audit_help)
 
     def test_setup_analytics_script_matches_default_cli_workflow(self) -> None:
         """The visible Python example stays equivalent to ``ppar analytics``."""
@@ -904,8 +902,8 @@ class TestAuditCli(unittest.TestCase):
             ):
                 self.assertIn(yaml_setting, analytics_help)
 
-    def test_setup_audit_script_supports_cli_report_option(self) -> None:
-        """The Python audit example supports the CLI report selection option."""
+    def test_audit_commands_reject_removed_report_option(self) -> None:
+        """The production command and Python example reject report selection."""
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory) / "site"
             subprocess.run(
@@ -915,21 +913,34 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             )
             audit_directory = site / "audit"
-            result = subprocess.run(
+            commands = (
+                _module_command(
+                    _PPAR_MODULE,
+                    "audit",
+                    str(audit_directory),
+                    "--report",
+                    "portfolio",
+                ),
                 [
                     sys.executable,
                     str(audit_directory / "run_audit.py"),
                     "--report",
                     "portfolio",
                 ],
-                check=True,
-                capture_output=True,
-                text=True,
             )
-            self.assertIn("output/portfolio/portfolio_audit.xlsx", result.stdout)
-            self.assertNotIn("output/security/security_audit.xlsx", result.stdout)
-            self.assertTrue((audit_directory / "output" / "portfolio").is_dir())
-            self.assertFalse((audit_directory / "output" / "security").exists())
+            for command in commands:
+                with self.subTest(command=command):
+                    result = subprocess.run(
+                        command,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn(
+                        "unrecognized arguments: --report portfolio",
+                        result.stderr,
+                    )
 
             audit_help = subprocess.run(
                 [sys.executable, str(audit_directory / "run_audit.py"), "--help"],
@@ -937,7 +948,7 @@ class TestAuditCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout
-            self.assertIn("--report", audit_help)
+            self.assertNotIn("--report", audit_help)
             self.assertIn("--no-xlsx-output", audit_help)
             self.assertIn("--no-html-output", audit_help)
             self.assertIn(
@@ -948,7 +959,7 @@ class TestAuditCli(unittest.TestCase):
                 "Use this to focus review output on findings that still require attention.",
                 audit_help,
             )
-            self.assertIn("{portfolio,security,both}", audit_help)
+            self.assertNotIn("{portfolio,security,both}", audit_help)
 
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:
         """Programmatic entrypoints accept string paths as well as ``Path`` values."""
@@ -1045,8 +1056,6 @@ class TestAuditCli(unittest.TestCase):
                 _module_command(
                     _SITE_REPORT_MODULE,
                     str(audit_directory),
-                    "--report",
-                    "portfolio",
                     "--no-html-output",
                 ),
                 check=True,
@@ -1057,6 +1066,9 @@ class TestAuditCli(unittest.TestCase):
             output_directory = audit_directory / "output" / "portfolio"
             self.assertTrue((output_directory / "portfolio_audit.xlsx").exists())
             self.assertFalse((output_directory / "portfolio_audit.html").exists())
+            security_output = audit_directory / "output" / "security"
+            self.assertTrue((security_output / "security_audit.xlsx").exists())
+            self.assertFalse((security_output / "security_audit.html").exists())
 
     def test_site_report_can_write_csv_only_output(self) -> None:
         """Disabling XLSX and HTML promotes the canonical CSV review files."""
@@ -1074,8 +1086,6 @@ class TestAuditCli(unittest.TestCase):
                 _module_command(
                     _SITE_REPORT_MODULE,
                     str(audit_directory),
-                    "--report",
-                    "portfolio",
                     "--no-xlsx-output",
                     "--no-html-output",
                 ),
@@ -1084,18 +1094,26 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             )
 
-            output_directory = audit_directory / "output" / "portfolio"
-            self.assertFalse((output_directory / "portfolio_audit.xlsx").exists())
-            self.assertFalse((output_directory / "portfolio_audit.html").exists())
-            for file_name in (
-                "performance_differences.csv",
-                "performance_difference_causes.csv",
-                "data_issues.csv",
-                "source_detail.csv",
-            ):
-                with self.subTest(file_name=file_name):
-                    self.assertTrue((output_directory / file_name).is_file())
-            self.assertTrue((output_directory / "audit_support.zip").is_file())
+            for report_level in ("portfolio", "security"):
+                output_directory = audit_directory / "output" / report_level
+                self.assertFalse(
+                    (output_directory / f"{report_level}_audit.xlsx").exists()
+                )
+                self.assertFalse(
+                    (output_directory / f"{report_level}_audit.html").exists()
+                )
+                for file_name in (
+                    "performance_differences.csv",
+                    "performance_difference_causes.csv",
+                    "data_issues.csv",
+                    "source_detail.csv",
+                ):
+                    with self.subTest(
+                        report_level=report_level,
+                        file_name=file_name,
+                    ):
+                        self.assertTrue((output_directory / file_name).is_file())
+                self.assertTrue((output_directory / "audit_support.zip").is_file())
             self.assertIn("performance_differences.csv", result.stdout)
             self.assertIn("performance_difference_causes.csv", result.stdout)
             self.assertIn("data_issues.csv", result.stdout)
@@ -1141,8 +1159,38 @@ class TestAuditCli(unittest.TestCase):
         ]
         self.assertIs(portfolio_cache, security_cache)
 
-    def test_portfolio_reports_skip_unavailable_security_performance(self) -> None:
-        """Portfolio reports run without secperf; default output skips security."""
+    def test_site_report_fails_closed_for_other_security_errors(self) -> None:
+        """Only unavailable security-performance input permits a security skip."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            (site_directory / "ppar.yaml").touch()
+            comparison_views = mock.Mock()
+            comparison_views.findings.side_effect = (
+                mock.sentinel.portfolio_findings,
+                PpaError("malformed security data", None),
+            )
+            with (
+                mock.patch.object(
+                    _site_report,
+                    "AuditComparisonViews",
+                    return_value=comparison_views,
+                ),
+                mock.patch.object(
+                    _site_report._data_issue_checks,
+                    "data_issues_table",
+                    return_value=mock.sentinel.data_issues,
+                ),
+                mock.patch.object(
+                    _site_report,
+                    "_write_report_bundle",
+                    return_value=[site_directory / "portfolio_audit.xlsx"],
+                ),
+            ):
+                with self.assertRaisesRegex(PpaError, "malformed security data"):
+                    _site_report.run_report(site_directory)
+
+    def test_audit_skips_unavailable_security_performance(self) -> None:
+        """The standard run writes portfolio output and skips unavailable security."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_data"
             setup_result = subprocess.run(
@@ -1155,40 +1203,14 @@ class TestAuditCli(unittest.TestCase):
             (audit_directory / "snapshot_a" / "secperf.csv").unlink()
             (audit_directory / "snapshot_b" / "secperf.csv").unlink()
 
-            portfolio_result = subprocess.run(
-                _module_command(
-                    _SITE_REPORT_MODULE,
-                    str(audit_directory),
-                    "--report",
-                    "portfolio",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
             default_result = subprocess.run(
                 _module_command(_SITE_REPORT_MODULE, str(audit_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            security_result = subprocess.run(
-                _module_command(
-                    _SITE_REPORT_MODULE,
-                    str(audit_directory),
-                    "--report",
-                    "security",
-                ),
-                check=False,
-                capture_output=True,
-                text=True,
-            )
 
             self.assertIn("PPAR setup complete:", setup_result.stdout)
-            self.assertIn(
-                "output/portfolio/portfolio_audit.xlsx",
-                portfolio_result.stdout,
-            )
             self.assertTrue(
                 (
                     audit_directory
@@ -1213,11 +1235,10 @@ class TestAuditCli(unittest.TestCase):
                 "Security output skipped because files.security_performance is not available.",
                 default_result.stdout,
             )
-            self.assertEqual(security_result.returncode, 1)
-            self.assertIn("security_performance", security_result.stderr)
+            self.assertFalse((audit_directory / "output" / "security").exists())
 
-    def test_site_report_writes_security_report_when_requested(self) -> None:
-        """The production report command supports security as an opt-in report."""
+    def test_site_report_writes_both_available_reports(self) -> None:
+        """The production report command writes portfolio and security output."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_data"
             subprocess.run(
@@ -1229,12 +1250,7 @@ class TestAuditCli(unittest.TestCase):
             audit_directory = site_directory / "audit"
 
             result = subprocess.run(
-                _module_command(
-                    _SITE_REPORT_MODULE,
-                    str(audit_directory),
-                    "--report",
-                    "security",
-                ),
+                _module_command(_SITE_REPORT_MODULE, str(audit_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -1262,7 +1278,22 @@ class TestAuditCli(unittest.TestCase):
                     / "security_audit.html"
                 ).exists()
             )
-            self.assertFalse((audit_directory / "output" / "portfolio").exists())
+            self.assertTrue(
+                (
+                    audit_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.xlsx"
+                ).exists()
+            )
+            self.assertTrue(
+                (
+                    audit_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.html"
+                ).exists()
+            )
 
     def test_analytics_cli_writes_site_outputs(self) -> None:
         """The production analytics command writes output from setup data."""
@@ -1347,12 +1378,7 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             )
             comparison_result = subprocess.run(
-                _module_command(
-                    _PPAR_MODULE,
-                    "audit",
-                    "--report",
-                    "portfolio",
-                ),
+                _module_command(_PPAR_MODULE, "audit"),
                 cwd=site_directory,
                 capture_output=True,
                 text=True,
@@ -1394,12 +1420,7 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             )
             comparison_result = subprocess.run(
-                _module_command(
-                    _PPAR_MODULE,
-                    "audit",
-                    "--report",
-                    "portfolio",
-                ),
+                _module_command(_PPAR_MODULE, "audit"),
                 cwd=audit_directory,
                 check=True,
                 capture_output=True,
@@ -1715,7 +1736,7 @@ class TestAuditCli(unittest.TestCase):
         )
         self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn("Contribution impact methods: none", result.stdout)
-        self.assertIn("FX rate impact methods: none", result.stdout)
+        self.assertIn("FX rate impact methods: fx_rate", result.stdout)
         self.assertIn("Evidence-only impact methods: fx_rates, splits", result.stdout)
         self.assertIn("Data Issues optional checks enabled:", result.stdout)
         self.assertIn("duplicate_transactions", result.stdout)
@@ -1731,7 +1752,11 @@ class TestAuditCli(unittest.TestCase):
                 result.stdout,
             )
         self.assertIn("Transaction rules configured: 17", result.stdout)
-        self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
+        self.assertIn(
+            "Transaction impact methods: commission, external_flow, performance, "
+            "price, quantity",
+            result.stdout,
+        )
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Extract contract: packaged:", result.stdout)
         self.assertIn("Enforce ambiguous Axys/APX flows: True", result.stdout)
@@ -1794,11 +1819,11 @@ class TestAuditCli(unittest.TestCase):
         """The CLI config validator exits nonzero for malformed YAML contracts."""
         with tempfile.TemporaryDirectory() as directory:
             configuration = _absolute_restatement_configuration()
-            configuration["transaction_impact_methods"] = {
-                "performance": {
-                    "method": "unsupported",
-                    "denominator_source": "begin_market_value",
-                },
+            transaction_methods = configuration["transaction_impact_methods"]
+            assert isinstance(transaction_methods, dict)
+            transaction_methods["performance"] = {
+                "method": "unsupported",
+                "denominator_source": "begin_market_value",
             }
             comparison_path = Path(directory) / "comparison.yaml"
             comparison_path.write_text(

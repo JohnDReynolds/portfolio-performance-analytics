@@ -179,10 +179,13 @@ change performance findings, or create source-detail explanations.
 
 The normalized `security_id` is the join key and must be unique within each
 reference snapshot. This is a PPAR input contract, not a claim that symbol alone
-is the native Axys/APX key. If a site can distinguish securities only with a
-symbol-plus-type or another composite identity, its extract must first supply a
-stable, unambiguous normalized `security_id`; PPAR must not guess between
-duplicate symbols.
+is the native Axys/APX key. Axys/APX YAML can declare exact source components;
+the starter uses `Security Type` followed by `Security Symbol` and constructs
+compact values such as `csusAAPL`. Sites may configure an optional separator
+such as `_`. PPAR rejects blank or whitespace-padded components and ambiguous
+constructed values rather than guessing between duplicate symbols. Axys/APX
+types are typically four characters, but PPAR preserves the source value instead
+of enforcing an unverified fixed length.
 
 Twelve row-level optional checks support `enabled`, `only`, and `exclude`. Numeric
 range/rate checks additionally support both tolerance keys. Duplicate,

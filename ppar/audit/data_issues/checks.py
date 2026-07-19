@@ -1312,8 +1312,8 @@ def _large_price_variation_rules(
     rules: list[_LargePriceVariationRule] = []
     for raw_rule in _large_price_variation_rule_configs(config):
         rule_id = _text(raw_rule.get("rule_id"))
-        minimum_days = raw_rule.get("minimum_calendar_days", 1)
-        minimum_tolerance = raw_rule.get("minimum_tolerance", 0.20)
+        minimum_days = raw_rule.get("minimum_calendar_days")
+        minimum_tolerance = raw_rule.get("minimum_tolerance")
         if (
             not rule_id
             or isinstance(minimum_days, bool)

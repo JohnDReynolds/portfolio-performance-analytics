@@ -135,11 +135,16 @@ strictly positive rate. Pair/date rows must also be unique within the available
 `rate_source` and `rate_type` provenance. These are ppar input-integrity rules,
 not claims about Axys quote conventions or native FX storage.
 
-Security-reference rows are snapshot-specific enrichment only. Their
-`security_id` values must be nonblank and unique with exact source case. A
-reference-qualified Data Issues check stops when the file, exact-case join row,
-referenced column, or referenced value is unavailable; it does not silently
-broaden or empty the reviewed population.
+Security-reference rows are snapshot-specific enrichment only. Their normalized
+`security_id` values must be nonblank and unique with exact source case. For the
+Axys/APX starter, PPAR constructs this key from exact source columns `Security
+Type` and `Security Symbol`, in that order, producing values such as
+`csusAAPL`. The default has no separator, matching compact Axys/APX usage; sites
+may configure a separator such as `_`. Axys/APX types are typically four
+characters, but PPAR does not impose a length restriction. A reference-qualified
+Data Issues check stops when the file, exact-case join row, referenced column, or
+referenced value is unavailable; it does not silently broaden or empty the
+reviewed population.
 
 All supplied currency values are normalized to uppercase three-letter codes.
 For a foreign row, a nonzero `holdings.market_value`, `holdings.accrued`, or

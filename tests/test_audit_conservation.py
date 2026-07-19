@@ -302,7 +302,7 @@ class TestAuditConservation(unittest.TestCase):
         ).filter(
             (pl.col("dataset") == pc_cols.HOLDINGS)
             & (pl.col("portfolio_id") == "ALPHA")
-            & (pl.col("security_id") == "CASHUSD")
+            & (pl.col("security_id") == "causCASHUSD")
             & (pl.col("from_date") == pl.date(2026, 1, 31))
             & (pl.col("thru_date") == pl.date(2026, 2, 27))
         )

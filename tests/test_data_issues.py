@@ -109,7 +109,7 @@ class TestDataIssues(unittest.TestCase):
         issues = data_issues.data_issues_table(comparison_path)
         dividend_rate_issues = issues.filter(
             (issues[data_issues.ISSUE_TYPE] == "dividend_rate")
-            & (issues["security_id"] == "JPM")
+            & (issues["security_id"] == "csusJPM")
         )
 
         self.assertEqual(dividend_rate_issues.height, 2)
@@ -131,7 +131,7 @@ class TestDataIssues(unittest.TestCase):
         issues = data_issues.data_issues_table(comparison_path)
         pa_rate_issues = issues.filter(
             (issues[data_issues.ISSUE_TYPE] == "pa_sa_rate")
-            & (issues["security_id"] == "91282Y5Y1")
+            & (issues["security_id"] == "fius91282Y5Y1")
         )
 
         self.assertEqual(pa_rate_issues.height, 2)
@@ -166,7 +166,7 @@ class TestDataIssues(unittest.TestCase):
         )
         self.assertEqual(
             set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
-            {"MSFT"},
+            {"csusMSFT"},
         )
 
     def test_packaged_demo_scopes_nonpositive_transaction_price_example(self) -> None:
@@ -195,7 +195,7 @@ class TestDataIssues(unittest.TestCase):
         )
         self.assertEqual(
             set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
-            {"KO"},
+            {"csusKO"},
         )
 
     def test_packaged_demo_scopes_stale_holding_price_example(self) -> None:
@@ -224,7 +224,7 @@ class TestDataIssues(unittest.TestCase):
         )
         self.assertEqual(
             set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
-            {"GOOGL"},
+            {"csusGOOGL"},
         )
         self.assertEqual(
             set(issues.get_column(data_issues.VALUE_A).to_list()),
@@ -257,7 +257,7 @@ class TestDataIssues(unittest.TestCase):
         )
         self.assertEqual(
             set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
-            {"AVGO"},
+            {"csusAVGO"},
         )
         balanced = issues.filter(
             pl.col(pc_cols.PORTFOLIO_ID) == "BALANCED"
@@ -337,7 +337,7 @@ class TestDataIssues(unittest.TestCase):
         )
         self.assertEqual(
             set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
-            {"KO"},
+            {"csusKO"},
         )
         self.assertEqual(
             set(issues.get_column(data_issues.CATEGORY).to_list()),
@@ -619,6 +619,8 @@ class TestDataIssues(unittest.TestCase):
                     enabled: true
                     rules:
                       - rule_id: common_stock_default
+                        minimum_calendar_days: 1
+                        minimum_tolerance: 0.20
                         only:
                           transactions.transaction_code: [by, sl]
                           security_reference.security_type: csus
@@ -630,6 +632,7 @@ class TestDataIssues(unittest.TestCase):
                         minimum_tolerance: 0.25
                       - rule_id: requires_two_days
                         minimum_calendar_days: 2
+                        minimum_tolerance: 0.20
                 """,
             )
 
@@ -672,6 +675,8 @@ class TestDataIssues(unittest.TestCase):
             enabled: true
             rules:
               - rule_id: common_stock_default
+                minimum_calendar_days: 1
+                minimum_tolerance: 0.20
         """
         periods = [
             "P1,2026-01-01,2026-01-31,0.01",
@@ -754,7 +759,10 @@ class TestDataIssues(unittest.TestCase):
                     enabled: true
                     rules:
                       - rule_id: exact_20_percent
+                        minimum_calendar_days: 1
+                        minimum_tolerance: 0.20
                       - rule_id: below_observed_variation
+                        minimum_calendar_days: 1
                         minimum_tolerance: 0.199
                 """,
             )
@@ -1528,7 +1536,7 @@ def _write_site(
         else ""
     )
     splits_file = "\n  splits: splits.csv" if split_rows is not None else ""
-    base_yaml = textwrap.dedent(
+    files_yaml = textwrap.dedent(
         """
         comparison:
           level: portfolio
@@ -1543,6 +1551,51 @@ def _write_site(
           transactions: transactions.csv
         """
     ).strip() + security_reference_file + splits_file
+    policy_yaml = textwrap.dedent(
+        """
+        extract_contract:
+          enforce_ambiguous_axys_flows: true
+          transaction_semantics_case: legacy_case_insensitive
+        transaction_impact_methods:
+          external_flow:
+            method: evidence_only
+          performance:
+            method: transaction_amount_delta_over_return_denominator
+            denominator_source: begin_market_value
+          quantity:
+            method: evidence_only
+          price:
+            method: evidence_only
+          commission:
+            method: evidence_only
+        holding_impact_methods:
+          market_value:
+            method: market_value_delta_over_return_denominator
+            denominator_source: begin_market_value
+          accrued:
+            method: accrued_delta_over_return_denominator
+            denominator_source: begin_market_value
+          quantity:
+            method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
+            denominator_source: begin_market_value
+          cost:
+            method: evidence_only
+        price_impact_methods:
+          price:
+            method: price_delta_over_snapshot_a_price_times_weight
+            weight_source: snapshot_a_weight
+        tolerances:
+          return: 0.000001
+          contribution: 0.000001
+          weight: 0.000001
+          market_value: 0.01
+          quantity: 0.000001
+          price: 0.000001
+          split_factor: 0.00000001
+          fx_rate: 0.00000001
+        """
+    ).strip()
+    base_yaml = files_yaml + "\n" + policy_yaml
     comparison_path.write_text(
         "\n".join([base_yaml, optional_blocks]).strip() + "\n",
         encoding="utf-8",

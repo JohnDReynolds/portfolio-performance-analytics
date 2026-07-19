@@ -25,6 +25,25 @@ _RESTATEMENT_COMPARISON_PATH = Path(
 
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
+    if isinstance(contents, dict):
+        contents = {
+            "comparison": {"level": "portfolio"},
+            "extract_contract": {
+                "enforce_ambiguous_axys_flows": True,
+                "transaction_semantics_case": "legacy_case_insensitive",
+            },
+            "tolerances": {
+                "return": 0.000001,
+                "contribution": 0.000001,
+                "weight": 0.000001,
+                "market_value": 0.01,
+                "quantity": 0.000001,
+                "price": 0.000001,
+                "split_factor": 0.00000001,
+                "fx_rate": 0.00000001,
+            },
+            **contents,
+        }
     path = directory / "ppar_audit.yaml"
     path.write_text(yaml.safe_dump(contents), encoding="utf-8")
     return path

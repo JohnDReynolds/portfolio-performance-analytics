@@ -221,13 +221,13 @@ class TestScaleCheck(unittest.TestCase):
             snapshot_b.mkdir()
             frame_a = pl.DataFrame(
                 {
-                    "PORTFOLIO_CODE": ["BALANCED", "INCOME"],
+                    "Portfolio Code": ["BALANCED", "INCOME"],
                     "VALUE": [100.0, 200.0],
                 }
             )
             frame_b = pl.DataFrame(
                 {
-                    "PORTFOLIO_CODE": ["BALANCED", "INCOME"],
+                    "Portfolio Code": ["BALANCED", "INCOME"],
                     "VALUE": [110.0, 220.0],
                 }
             )
@@ -239,7 +239,7 @@ class TestScaleCheck(unittest.TestCase):
                 frozenset({"BALANCED"}),
             )
             retained = pl.read_csv(snapshot_b / "holdings.csv").sort(
-                "PORTFOLIO_CODE"
+                "Portfolio Code"
             )
 
         self.assertEqual(retained["VALUE"].to_list(), [110.0, 200.0])
@@ -253,15 +253,15 @@ class TestScaleCheck(unittest.TestCase):
         """Unique securities preserve total weight/contribution and lookup coverage."""
         performance = pl.DataFrame(
             {
-                "SECURITY_ID": ["A", "B"],
-                "BEGIN_WEIGHT": [0.6, 0.4],
-                "CONTRIBUTION": [0.06, 0.02],
+                "Security Symbol": ["A", "B"],
+                "Beginning Weight": [0.6, 0.4],
+                "Contribution": [0.06, 0.02],
             }
         )
         reference = pl.DataFrame(
             {
-                "SECURITY_ID": ["A", "B"],
-                "SECURITY_NAME": ["Alpha", "Beta"],
+                "Security Symbol": ["A", "B"],
+                "Security Name": ["Alpha", "Beta"],
             }
         )
 
@@ -275,13 +275,13 @@ class TestScaleCheck(unittest.TestCase):
 
         self.assertEqual(expanded_performance.height, 20)
         self.assertEqual(expanded_reference.height, 20)
-        self.assertAlmostEqual(expanded_performance["BEGIN_WEIGHT"].sum(), 1.0)
-        self.assertAlmostEqual(expanded_performance["CONTRIBUTION"].sum(), 0.08)
+        self.assertAlmostEqual(expanded_performance["Beginning Weight"].sum(), 1.0)
+        self.assertAlmostEqual(expanded_performance["Contribution"].sum(), 0.08)
         self.assertEqual(
-            set(expanded_performance["SECURITY_ID"]),
-            set(expanded_reference["SECURITY_ID"]),
+            set(expanded_performance["Security Symbol"]),
+            set(expanded_reference["Security Symbol"]),
         )
-        self.assertIn("Alpha_LOAD_09", set(expanded_reference["SECURITY_NAME"]))
+        self.assertIn("Alpha_LOAD_09", set(expanded_reference["Security Name"]))
 
     def test_generated_paths_must_stay_inside_workspace(self) -> None:
         """Scale generation rejects paths outside its temporary workspace."""
@@ -310,8 +310,8 @@ class TestScaleCheck(unittest.TestCase):
         """History copies are chronological and preserve their financial rows."""
         source = pl.DataFrame(
             {
-                "FROM_DATE": ["2020-02-01", "2020-03-01"],
-                "THRU_DATE": ["2020-02-29", "2020-03-31"],
+                "From Date": ["2020-02-01", "2020-03-01"],
+                "Thru Date": ["2020-02-29", "2020-03-31"],
                 "RETURN": [0.01, 0.02],
             }
         )
@@ -320,7 +320,7 @@ class TestScaleCheck(unittest.TestCase):
 
         self.assertEqual(expanded.height, 6)
         self.assertEqual(
-            expanded["FROM_DATE"].cast(pl.String).to_list(),
+            expanded["From Date"].cast(pl.String).to_list(),
             [
                 "2020-02-01",
                 "2020-03-01",
@@ -331,7 +331,7 @@ class TestScaleCheck(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            expanded["THRU_DATE"].cast(pl.String).to_list()[2],
+            expanded["Thru Date"].cast(pl.String).to_list()[2],
             "2025-02-28",
         )
         self.assertEqual(expanded["RETURN"].to_list(), [0.01, 0.02] * 3)
@@ -340,12 +340,12 @@ class TestScaleCheck(unittest.TestCase):
         """Audit history copies keep related performance and source dates aligned."""
         source = pl.DataFrame(
             {
-                "PORT": ["P1"],
-                "FROM_DATE": ["2024-01-01"],
-                "THRU_DATE": ["2024-01-31"],
-                "TRANSACTION_DATE": ["2024-01-15"],
-                "SETTLE_DATE": ["2024-01-17"],
-                "AMOUNT": [100.0],
+                "Portfolio Code": ["P1"],
+                "From Date": ["2024-01-01"],
+                "Thru Date": ["2024-01-31"],
+                "Transaction Date": ["2024-01-15"],
+                "Settlement Date": ["2024-01-17"],
+                "Amount": [100.0],
             }
         )
 
@@ -353,18 +353,18 @@ class TestScaleCheck(unittest.TestCase):
 
         self.assertEqual(expanded.height, 3)
         self.assertEqual(
-            expanded["FROM_DATE"].cast(pl.String).to_list(),
+            expanded["From Date"].cast(pl.String).to_list(),
             ["2024-01-01", "2029-01-01", "2034-01-01"],
         )
         self.assertEqual(
-            expanded["TRANSACTION_DATE"].cast(pl.String).to_list(),
+            expanded["Transaction Date"].cast(pl.String).to_list(),
             ["2024-01-15", "2029-01-15", "2034-01-15"],
         )
         self.assertEqual(
-            expanded["SETTLE_DATE"].cast(pl.String).to_list(),
+            expanded["Settlement Date"].cast(pl.String).to_list(),
             ["2024-01-17", "2029-01-17", "2034-01-17"],
         )
-        self.assertEqual(expanded["AMOUNT"].to_list(), [100.0] * 3)
+        self.assertEqual(expanded["Amount"].to_list(), [100.0] * 3)
 
     def test_scale_summary_displays_consistent_baseline_ratios_and_caps(self) -> None:
         """Every scenario summary exposes the same comparison fields."""

@@ -363,15 +363,15 @@ def _expanded_selected_analytics_frames(
         suffix = f"_LOAD_{copy_number:02d}"
         performance_copies.append(
             security_performance.with_columns(
-                (pl.col("SECURITY_ID") + suffix).alias("SECURITY_ID"),
-                (pl.col("BEGIN_WEIGHT") / scale).alias("BEGIN_WEIGHT"),
-                (pl.col("CONTRIBUTION") / scale).alias("CONTRIBUTION"),
+                (pl.col("Security Symbol") + suffix).alias("Security Symbol"),
+                (pl.col("Beginning Weight") / scale).alias("Beginning Weight"),
+                (pl.col("Contribution") / scale).alias("Contribution"),
             )
         )
         reference_copies.append(
             security_reference.with_columns(
-                (pl.col("SECURITY_ID") + suffix).alias("SECURITY_ID"),
-                (pl.col("SECURITY_NAME") + suffix).alias("SECURITY_NAME"),
+                (pl.col("Security Symbol") + suffix).alias("Security Symbol"),
+                (pl.col("Security Name") + suffix).alias("Security Name"),
             )
         )
     return (
@@ -383,16 +383,16 @@ def _expanded_selected_analytics_frames(
 def _expanded_history_frame(source: pl.DataFrame, scale: int) -> pl.DataFrame:
     """Return chronologically shifted, non-overlapping copies of period rows."""
     dated = source.with_columns(
-        pl.col("FROM_DATE").str.to_date(),
-        pl.col("THRU_DATE").str.to_date(),
+        pl.col("From Date").str.to_date(),
+        pl.col("Thru Date").str.to_date(),
     )
     copies: list[pl.DataFrame] = []
     for copy_number in range(scale):
         offset = f"{copy_number * _HISTORY_BLOCK_YEARS}y"
         copies.append(
             dated.with_columns(
-                pl.col("FROM_DATE").dt.offset_by(offset),
-                pl.col("THRU_DATE").dt.offset_by(offset),
+                pl.col("From Date").dt.offset_by(offset),
+                pl.col("Thru Date").dt.offset_by(offset),
             )
         )
     return pl.concat(copies, how="vertical")
@@ -400,7 +400,7 @@ def _expanded_history_frame(source: pl.DataFrame, scale: int) -> pl.DataFrame:
 
 def _expanded_audit_history_frame(source: pl.DataFrame, scale: int) -> pl.DataFrame:
     """Return consistently date-shifted copies of one Audit source table."""
-    date_columns = [column for column in source.columns if column.endswith("_DATE")]
+    date_columns = [column for column in source.columns if column.endswith(" Date")]
     if not date_columns:
         return pl.concat([source] * scale, how="vertical")
     dated = source.with_columns(
@@ -425,7 +425,7 @@ def _prepare_analytics(directory: Path, scale: int) -> tuple[Path, int]:
         frame = _expanded_frame(
             directory / file_name,
             scale,
-            ("PORTFOLIO_CODE",),
+            ("Portfolio Code",),
         )
         frame.write_csv(directory / file_name)
     return directory, pl.read_csv(directory / "secperf.csv").height
@@ -451,7 +451,7 @@ def _prepare_audit(
             frame = _expanded_frame(
                 path,
                 scale,
-                ("PORTFOLIO_CODE", "PORT"),
+                ("Portfolio Code",),
             )
             frame.write_csv(path)
             row_count += frame.height
@@ -479,7 +479,7 @@ def _retain_audit_changes_for_portfolios(
         portfolio_column = next(
             (
                 column_name
-                for column_name in ("PORTFOLIO_CODE", "PORT")
+                for column_name in ("Portfolio Code",)
                 if column_name in frame_a.columns and column_name in frame_b.columns
             ),
             None,
@@ -569,8 +569,8 @@ def _prepare_long_history_analytics(directory: Path) -> tuple[Path, int, int]:
         row_count += expanded.height
         if file_name == "portperf.csv":
             period_count = (
-                expanded.filter(pl.col("PORTFOLIO_CODE") == "MEGA_ALPHA")
-                .select("FROM_DATE", "THRU_DATE")
+                expanded.filter(pl.col("Portfolio Code") == "MEGA_ALPHA")
+                .select("From Date", "Thru Date")
                 .unique()
                 .height
             )
@@ -917,12 +917,12 @@ def _check_long_history_analytics(workspace: Path) -> tuple[int, float]:
         )
 
     performance = pl.read_csv(site / "portperf.csv").filter(
-        pl.col("PORTFOLIO_CODE") == "MEGA_ALPHA"
+        pl.col("Portfolio Code") == "MEGA_ALPHA"
     )
-    periods = performance.select("FROM_DATE", "THRU_DATE").sort("FROM_DATE")
-    if not periods["FROM_DATE"].is_sorted() or not (
-        periods["FROM_DATE"].slice(1)
-        > periods["THRU_DATE"].slice(0, periods.height - 1)
+    periods = performance.select("From Date", "Thru Date").sort("From Date")
+    if not periods["From Date"].is_sorted() or not (
+        periods["From Date"].slice(1)
+        > periods["Thru Date"].slice(0, periods.height - 1)
     ).all():
         raise RuntimeError("Long-history periods overlap or are not chronological.")
 

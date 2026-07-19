@@ -213,16 +213,6 @@ _CHANGED_VALUE_ROW_ORDER: Final[str] = "__ppar_changed_value_row_order"
 _CHANGED_VALUE_COLUMN_ORDER: Final[str] = "__ppar_changed_value_column_order"
 _CHANGED_VALUE_SOURCE_COLUMN: Final[str] = "__ppar_changed_value_source_column"
 _CHANGED_VALUE_DELTA: Final[str] = "__ppar_changed_value_delta"
-_DEFAULT_TOLERANCES: Final[dict[str, float]] = {
-    "return": 1e-6,
-    "contribution": 1e-6,
-    "weight": 1e-6,
-    "market_value": 0.01,
-    "quantity": 1e-6,
-    "price": 1e-6,
-    "split_factor": 1e-8,
-    "fx_rate": 1e-8,
-}
 _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.PORTFOLIO_RETURN: "return",
     pc_cols.BEGIN_MARKET_VALUE: "market_value",
@@ -2153,13 +2143,9 @@ class PerformanceComparison:
 
     def _tolerance(self, column: str) -> float:
         """Return configured tolerance for a portfolio comparison column."""
-        tolerances = self._specification.values.get("tolerances", {})
+        tolerances = cast(dict[str, Any], self._specification.values["tolerances"])
         tolerance_key = _COLUMN_TOLERANCE_KEYS[column]
-        if isinstance(tolerances, dict):
-            configured_tolerance = tolerances.get(tolerance_key)
-            if isinstance(configured_tolerance, int | float):
-                return float(configured_tolerance)
-        return _DEFAULT_TOLERANCES[tolerance_key]
+        return float(tolerances[tolerance_key])
 
     def _source_file(self, dataset: str) -> str | None:
         """Return the configured relative source file for a dataset."""

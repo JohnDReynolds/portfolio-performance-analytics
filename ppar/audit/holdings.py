@@ -65,13 +65,14 @@ class HoldingsLoader:
         if cached is not None:
             return cached
 
-        frame = source_loader.read_mapped_csv(
+        frame = source_loader.read_schema_mapped_csv(
             path,
             pc_cols.HOLDINGS_COLUMNS,
             pc_cols.HOLDINGS,
             aliases.HOLDINGS_REQUIRED_ALIASES,
             aliases.HOLDINGS_OPTIONAL_ALIASES,
-            self._specification.path,
+            self._specification,
+            snapshot_key,
         ).with_columns(
             pl.col(pc_cols.HOLDING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )

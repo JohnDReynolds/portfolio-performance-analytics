@@ -41,11 +41,29 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
             }
         ).write_csv(snapshot_path / "portperf.csv")
     return {
+        "comparison": {"level": "portfolio"},
         "snapshots": {
             "a": {"path": "snapshot_a"},
             "b": {"path": "snapshot_b"},
         },
         "files": {"portfolio_performance": "portperf.csv"},
+        "extract_contract": {
+            "enforce_ambiguous_axys_flows": True,
+            "transaction_semantics_case": "legacy_case_insensitive",
+        },
+        "tolerances": {
+            "return": 0.000001,
+            "contribution": 0.000001,
+            "weight": 0.000001,
+            "market_value": 0.01,
+            "quantity": 0.000001,
+            "price": 0.000001,
+            "split_factor": 0.00000001,
+            "fx_rate": 0.00000001,
+        },
+        "fx_rate_impact_methods": {
+            "fx_rate": {"method": "evidence_only"}
+        },
     }
 
 

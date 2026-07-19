@@ -237,9 +237,13 @@ def _persisted_csv_semantic_issues(
             table = pl.read_csv(csv_path, infer_schema=False)
         except (OSError, pl.exceptions.PolarsError):
             continue
-        actual_hash = _generic_table_hash(table, column_types)
         if table.columns != expected_columns:
             issues.append(f"table {table_name!r} ordered columns do not match manifest")
+            continue
+        if len(table.columns) != len(column_types):
+            issues.append(f"manifest table {table_name!r} semantic metadata is malformed")
+            continue
+        actual_hash = _generic_table_hash(table, column_types)
         if actual_hash != expected_hash:
             issues.append(f"table {table_name!r} semantic fingerprint does not match")
     return issues

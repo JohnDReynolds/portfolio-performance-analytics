@@ -99,23 +99,24 @@ _PACKAGED_DEMO_TRANSACTION_CODES = {
 _TEST_ONLY_TRANSACTION_CODES: set[str] = set()
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 _PACKAGED_TRANSACTION_COLUMNS = [
-    "PORT",
-    "TRANSACTION_DATE",
-    "SETTLE_DATE",
-    "SEC",
-    "TRAN",
-    "SEC_TYPE",
-    "SRC_DEST_TYPE",
-    "SRC_DEST_SYMBOL",
-    "SPECIAL_SEC_TYPE",
-    "SPECIAL_SEC_SYMBOL",
-    "CURRENCY",
-    "BASE_CURRENCY",
-    "QTY",
-    "PRICE",
-    "AMOUNT",
-    "BASE_AMOUNT",
-    "COMMISSION",
+    "Portfolio Code",
+    "Transaction Date",
+    "Settlement Date",
+    "Security Symbol",
+    "Security Type",
+    "Transaction Code",
+    "Transaction Security Type",
+    "Source/Destination Type",
+    "Source/Destination Symbol",
+    "Special Security Type",
+    "Special Security Symbol",
+    "Currency Code",
+    "Base Currency",
+    "Quantity",
+    "Price",
+    "Amount",
+    "Base Amount",
+    "Commission",
 ]
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
@@ -203,7 +204,7 @@ def _transaction_row(
     return frame.filter(
         (pl.col(pc_cols.PORTFOLIO_ID) == portfolio)
         & (pl.col(pc_cols.TRANSACTION_DATE).cast(pl.String) == transaction_date)
-        & (pl.col(pc_cols.SECURITY_ID) == security)
+        & pl.col(pc_cols.SECURITY_ID).str.ends_with(security)
         & (pl.col(pc_cols.TRANSACTION_CODE) == transaction_code)
     ).row(0, named=True)
 
@@ -283,9 +284,9 @@ class TestAuditDemoData(unittest.TestCase):
                     list(transactions.columns),
                     _PACKAGED_TRANSACTION_COLUMNS,
                 )
-                self.assertNotIn("TRANSACTION_ID", transactions.columns)
-                self.assertIn("SRC_DEST_TYPE", transactions.columns)
-                self.assertIn("SPECIAL_SEC_TYPE", transactions.columns)
+                self.assertNotIn("Transaction ID", transactions.columns)
+                self.assertIn("Source/Destination Type", transactions.columns)
+                self.assertIn("Special Security Type", transactions.columns)
 
         scenario_columns = pd.read_csv(scenario_path, nrows=0).columns
         self.assertIn("TRANSACTION_ID", scenario_columns)
@@ -409,23 +410,23 @@ class TestAuditDemoData(unittest.TestCase):
                     self.assertTrue(str(metadata["comments"]).strip())
 
         transaction_columns = datasets["transactions.csv"]["columns"]
-        self.assertNotIn("TRANSACTION_ID", transaction_columns)
+        self.assertNotIn("Transaction ID", transaction_columns)
         for context_column in [
-            "SEC_TYPE",
-            "SRC_DEST_TYPE",
-            "SRC_DEST_SYMBOL",
-            "SPECIAL_SEC_TYPE",
-            "SPECIAL_SEC_SYMBOL",
+            "Transaction Security Type",
+            "Source/Destination Type",
+            "Source/Destination Symbol",
+            "Special Security Type",
+            "Special Security Symbol",
         ]:
             metadata = transaction_columns[context_column]
             self.assertTrue(metadata["requires_context_for_semantics"])
             self.assertTrue(metadata["blocking_if_missing"])
 
-        self.assertNotIn("ORIGINAL_COST_DATE", transaction_columns)
-        self.assertNotIn("ORIGINAL_COST", transaction_columns)
+        self.assertNotIn("Original Cost Date", transaction_columns)
+        self.assertNotIn("Original Cost", transaction_columns)
         self.assertEqual(
             list(datasets["secref.csv"]["columns"]),
-            ["SECURITY_ID", "SECURITY_TYPE", "ASSET_CLASS_CODE"],
+            ["Security Symbol", "Security Type", "Asset Class Code"],
         )
 
     def test_packaged_demo_extraction_requirements_cover_each_field_once(self) -> None:
@@ -454,11 +455,23 @@ class TestAuditDemoData(unittest.TestCase):
 
         self.assertEqual(
             datasets["portperf.csv"]["extraction_requirements"]["optional"],
-            ["BEGIN_MV", "END_MV", "FLOW", "INCOME", "GAIN_LOSS"],
+            [
+                "Beginning Market Value",
+                "Ending Market Value",
+                "Net Flow",
+                "Income",
+                "Gain/Loss",
+            ],
         )
         self.assertEqual(
             datasets["holdings.csv"]["extraction_requirements"]["required"],
-            ["PORT", "SEC", "HOLDING_DATE", "MKT_VAL"],
+            [
+                "Portfolio Code",
+                "Security Symbol",
+                "Security Type",
+                "Holding Date",
+                "Market Value",
+            ],
         )
         self.assertEqual(
             datasets["secperf.csv"]["extraction_requirements"]["dataset"],
@@ -472,7 +485,7 @@ class TestAuditDemoData(unittest.TestCase):
 
         for file_name in ("portperf.csv", "secperf.csv"):
             with self.subTest(file_name=file_name):
-                metadata = datasets[file_name]["columns"]["GAIN_LOSS"]
+                metadata = datasets[file_name]["columns"]["Gain/Loss"]
 
                 self.assertEqual(metadata["name_confidence"], "report_label_inferred")
                 self.assertEqual(metadata["preferred_source"], "rep_preferred")
@@ -513,7 +526,9 @@ class TestAuditDemoData(unittest.TestCase):
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
             observed_codes.update(
-                str(code).strip() for code in transactions["TRAN"].dropna() if str(code).strip()
+                str(code).strip()
+                for code in transactions["Transaction Code"].dropna()
+                if str(code).strip()
             )
 
         configuration = yaml.safe_load(_PACKAGED_AUDIT_PATH.read_text(encoding="utf-8"))
@@ -612,7 +627,7 @@ class TestAuditDemoData(unittest.TestCase):
             transactions = pd.read_csv(
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
-            observed_codes = set(transactions["TRAN"].astype(str))
+            observed_codes = set(transactions["Transaction Code"].astype(str))
 
             self.assertLessEqual(observed_codes, _PACKAGED_DEMO_TRANSACTION_CODES)
             self.assertTrue(observed_codes.isdisjoint(_TEST_ONLY_TRANSACTION_CODES))
@@ -623,7 +638,7 @@ class TestAuditDemoData(unittest.TestCase):
             transactions = pd.read_csv(
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
-            observed_codes = set(transactions["TRAN"].astype(str))
+            observed_codes = set(transactions["Transaction Code"].astype(str))
 
             self.assertTrue(
                 observed_codes.isdisjoint(_REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES)
@@ -641,7 +656,7 @@ class TestAuditDemoData(unittest.TestCase):
                 transactions = pd.read_csv(
                     _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
                 )
-                observed_codes = set(transactions["TRAN"].astype(str))
+                observed_codes = set(transactions["Transaction Code"].astype(str))
 
                 disallowed_backlog_codes = FIXED_INCOME_BACKLOG_TRANSACTION_CODES - {
                     "ai",
@@ -654,27 +669,37 @@ class TestAuditDemoData(unittest.TestCase):
                     self.assertIn("sa", observed_codes)
 
                 fixed_income_interest = transactions.loc[
-                    (transactions["PORT"] == "INCOME")
-                    & (transactions["TRANSACTION_DATE"] == "2026-05-15")
-                    & (transactions["SEC"] == "91282Y2Y1")
-                    & (transactions["TRAN"] == "in")
+                    (transactions["Portfolio Code"] == "INCOME")
+                    & (transactions["Transaction Date"] == "2026-05-15")
+                    & (transactions["Security Symbol"] == "91282Y2Y1")
+                    & (transactions["Transaction Code"] == "in")
                 ].iloc[0]
-                self.assertEqual(fixed_income_interest["TRAN"], "in")
+                self.assertEqual(fixed_income_interest["Transaction Code"], "in")
                 self.assertEqual(
-                    fixed_income_transaction_boundary(fixed_income_interest["TRAN"]),
+                    fixed_income_transaction_boundary(
+                        fixed_income_interest["Transaction Code"]
+                    ),
                     "safe_income",
                 )
-                self.assertEqual(fixed_income_interest["SEC"], "91282Y2Y1")
-                self.assertEqual(fixed_income_interest["SEC_TYPE"], "fius")
-                self.assertGreater(fixed_income_interest["AMOUNT"], 0)
+                self.assertEqual(
+                    fixed_income_interest["Security Symbol"],
+                    "91282Y2Y1",
+                )
+                self.assertEqual(
+                    fixed_income_interest["Transaction Security Type"],
+                    "fius",
+                )
+                self.assertGreater(fixed_income_interest["Amount"], 0)
 
                 holdings = pd.read_csv(
                     _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "holdings.csv"
                 )
-                fixed_income_holdings = holdings.loc[holdings["SEC"] == "91282Y2Y1"]
+                fixed_income_holdings = holdings.loc[
+                    holdings["Security Symbol"] == "91282Y2Y1"
+                ]
 
                 self.assertFalse(fixed_income_holdings.empty)
-                self.assertGreater(fixed_income_holdings["ACCRUED"].sum(), 0)
+                self.assertGreater(fixed_income_holdings["Accrued Income"].sum(), 0)
 
                 frame = TransactionsLoader(specification).load(
                     cast(Literal["a", "b"], snapshot_key)
@@ -799,9 +824,11 @@ class TestAuditDemoData(unittest.TestCase):
             transaction_code="ai",
         )
 
-        self.assertEqual(row[pc_cols.SECURITY_TYPE], "margin")
+        self.assertEqual(row[pc_cols.SECURITY_TYPE], "caus")
         self.assertEqual(row[pc_cols.SOURCE_DESTINATION_TYPE], "$pth")
-        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_SYMBOL], "margin")
+        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_SYMBOL], "$cash")
+        self.assertEqual(row[pc_cols.SPECIAL_SECURITY_TYPE], "caus")
+        self.assertEqual(row[pc_cols.SPECIAL_SECURITY_SYMBOL], "margin")
         self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], "fee_expense")
         self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
         self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
@@ -831,8 +858,8 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertGreater(cast(float, dividend[pc_cols.AMOUNT]), 0)
         self.assertEqual(dividend[pc_cols.TRANSACTION_CATEGORY], "income")
         self.assertLess(cast(float, withholding[pc_cols.AMOUNT]), 0)
-        self.assertEqual(withholding[pc_cols.SPECIAL_SECURITY_TYPE], "exus")
-        self.assertEqual(withholding[pc_cols.SPECIAL_SECURITY_SYMBOL], "withholding")
+        self.assertEqual(withholding[pc_cols.SPECIAL_SECURITY_TYPE], "epus")
+        self.assertEqual(withholding[pc_cols.SPECIAL_SECURITY_SYMBOL], "with")
         self.assertEqual(withholding[pc_cols.TRANSACTION_CATEGORY], "fee_expense")
         self.assertEqual(withholding[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
 
@@ -845,7 +872,7 @@ class TestAuditDemoData(unittest.TestCase):
         pair = frame.filter(
             (pl.col(pc_cols.PORTFOLIO_ID) == "INCOME")
             & (pl.col(pc_cols.TRANSACTION_DATE) == pl.date(2026, 5, 14))
-            & (pl.col(pc_cols.SECURITY_ID) == "AAPL")
+            & (pl.col(pc_cols.SECURITY_ID) == "csusAAPL")
             & (pl.col(pc_cols.TRANSACTION_CODE).is_in(["dv", "by"]))
         ).sort(pc_cols.TRANSACTION_CODE)
 
@@ -936,14 +963,14 @@ class TestAuditDemoData(unittest.TestCase):
         split_causes = causes.filter(
             (pl.col("dataset") == pc_cols.SPLITS)
             & (pl.col("source_column") == pc_cols.SPLIT_FACTOR)
-            & (pl.col("security_id") == "CVNA")
+            & (pl.col("security_id") == "csusCVNA")
         )
 
         self.assertEqual(split_causes.height, 1)
         self.assertEqual(
             split_causes["review_guidance"][0],
             (
-                "split: Caused CVNA holdings.quantity and related "
+                "split: Caused csusCVNA holdings.quantity and related "
                 "holdings.market_value to increase using a 5.0 split factor."
             ),
         )
@@ -959,7 +986,7 @@ class TestAuditDemoData(unittest.TestCase):
         rc_causes = causes.filter(
             (pl.col("dataset") == pc_cols.TRANSACTIONS)
             & (pl.col("source_column") == pc_cols.AMOUNT)
-            & (pl.col("security_id") == "JPM")
+            & (pl.col("security_id") == "csusJPM")
             & (pl.col("snapshot_b_value") == 240.0)
             & pl.col("review_guidance").str.starts_with("rc:")
         )
@@ -981,7 +1008,7 @@ class TestAuditDemoData(unittest.TestCase):
         pd_causes = causes.filter(
             (pl.col("dataset") == pc_cols.TRANSACTIONS)
             & (pl.col("source_column") == pc_cols.AMOUNT)
-            & (pl.col("security_id") == "36225MBS1")
+            & (pl.col("security_id") == "fius36225MBS1")
             & pl.col("review_guidance").str.starts_with("pd:")
         )
 
@@ -1035,8 +1062,12 @@ class TestAuditDemoData(unittest.TestCase):
             for row in security_changes.iter_rows(named=True)
         }
 
-        partly_explained = security_statuses[("BALANCED", "MSFT", "2026-05-09", "2026-05-14")]
-        unexplained = security_statuses[("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30")]
+        partly_explained = security_statuses[
+            ("BALANCED", "csusMSFT", "2026-05-09", "2026-05-14")
+        ]
+        unexplained = security_statuses[
+            ("INCOME", "fius91282Y5Y1", "2026-04-01", "2026-04-30")
+        ]
         self.assertEqual(partly_explained["review_status"], "Partly Explained")
         self.assertGreater(abs(partly_explained["estimated_cause_total"]), 0.0)
         self.assertGreater(abs(partly_explained["unexplained_change"]), 0.0)
@@ -1432,10 +1463,10 @@ class TestAuditDemoData(unittest.TestCase):
             & pl.col("from_date").cast(pl.String).str.starts_with("2026-04")
         )
         expected_story_security = {
-            ("2026-04-01", "2026-04-10"): "JPM",
-            ("2026-04-11", "2026-04-16"): "SAP.DE",
-            ("2026-04-17", "2026-04-24"): "JPM",
-            ("2026-04-25", "2026-04-30"): "SHEL.L",
+            ("2026-04-01", "2026-04-10"): "csusJPM",
+            ("2026-04-11", "2026-04-16"): "cseuSAP.DE",
+            ("2026-04-17", "2026-04-24"): "csusJPM",
+            ("2026-04-25", "2026-04-30"): "csgbSHEL.L",
         }
         for period, expected_security in expected_story_security.items():
             from_date, thru_date = period
@@ -1510,17 +1541,22 @@ class TestAuditDemoData(unittest.TestCase):
             & (pl.col("thru_date") == pl.date(2026, 3, 31))
         )
 
-        self.assertNotIn("AAPL", set(balanced_may["security_id"]))
-        self.assertIn("CVNA", set(balanced_may["security_id"]))
+        self.assertNotIn("csusAAPL", set(balanced_may["security_id"]))
+        self.assertIn("csusCVNA", set(balanced_may["security_id"]))
         inherited = balanced_may.filter(pl.col("as_of_date") < pl.col("from_date"))
         self.assertTrue(
-            {"CASHEUR", "SHEL.L", "CASHUSD"}.issubset(set(inherited["security_id"]))
+            {"causCASHEUR", "csgbSHEL.L", "causCASHUSD"}.issubset(
+                set(inherited["security_id"])
+            )
         )
         for guidance in inherited.filter(pl.col("dataset") == pc_cols.HOLDINGS)[
             "review_guidance"
         ]:
             self.assertIn("input to Modified Dietz", guidance)
-        self.assertEqual(set(aapl_march["security_id"]), {"AAPL", "JPM"})
+        self.assertEqual(
+            set(aapl_march["security_id"]),
+            {"csusAAPL", "csusJPM"},
+        )
 
     def test_generated_multicurrency_stories_match_calendar(self) -> None:
         """Generated multi-currency causes agree with their calendar securities."""
@@ -1609,7 +1645,10 @@ class TestAuditDemoData(unittest.TestCase):
         """Transaction changes create the expected cash and security adjustments."""
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_APX_DIRECTORY
-        base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
+        base_holdings = rebuild_module._read_packaged_axys_frame(
+            axys_directory / "snapshot_a" / "holdings.csv",
+            "holdings",
+        )
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
         )
@@ -1625,7 +1664,10 @@ class TestAuditDemoData(unittest.TestCase):
             base_transactions=base_transactions,
             transaction_scenarios=scenarios,
         )
-        periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
+        periods = rebuild_module._read_packaged_axys_frame(
+            axys_directory / "snapshot_b" / "portperf.csv",
+            "portfolio_performance",
+        )
 
         adjustments = rebuild_module._transaction_derived_holding_adjustments(
             "snapshot_b",
@@ -2019,11 +2061,17 @@ reconstruction_roles:
         """Explicit inserted li/lo rows can drive cash-flow scenarios."""
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_APX_DIRECTORY
-        base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
+        base_holdings = rebuild_module._read_packaged_axys_frame(
+            axys_directory / "snapshot_a" / "holdings.csv",
+            "holdings",
+        )
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
         )
-        periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
+        periods = rebuild_module._read_packaged_axys_frame(
+            axys_directory / "snapshot_b" / "portperf.csv",
+            "portfolio_performance",
+        )
         scenario_rows: list[dict[str, object]] = []
         for transaction_id, transaction_code, amount, scenario in (
             ("BALANCED0403", "li", 2500, "Test-only contribution insertion."),
@@ -2108,11 +2156,17 @@ reconstruction_roles:
         """Explicit pa/sa rows can drive cash settlement scenarios."""
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_APX_DIRECTORY
-        base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
+        base_holdings = rebuild_module._read_packaged_axys_frame(
+            axys_directory / "snapshot_a" / "holdings.csv",
+            "holdings",
+        )
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
         )
-        periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
+        periods = rebuild_module._read_packaged_axys_frame(
+            axys_directory / "snapshot_b" / "portperf.csv",
+            "portfolio_performance",
+        )
         scenario_rows: list[dict[str, object]] = []
         for transaction_id, transaction_code, amount, scenario in (
             ("TESTPA", "pa", -42.5, "Test-only purchase accrued interest."),
@@ -2197,10 +2251,16 @@ reconstruction_roles:
         """Packaged fixtures expose exact cash IDs and explicit base values."""
         holdings = pd.read_csv(_PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "holdings.csv")
         transactions = pd.read_csv(_PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "transactions.csv")
-        self.assertTrue({"CASHUSD", "CASHEUR", "CASHGBP"}.issubset(set(holdings["SEC"])))
-        self.assertTrue({"EUR", "GBP"}.issubset(set(transactions["CURRENCY"])))
-        self.assertIn("BASE_AMOUNT", transactions.columns)
-        self.assertIn("BASE_MKT_VAL", holdings.columns)
+        self.assertTrue(
+            {"CASHUSD", "CASHEUR", "CASHGBP"}.issubset(
+                set(holdings["Security Symbol"])
+            )
+        )
+        self.assertTrue(
+            {"EUR", "GBP"}.issubset(set(transactions["Currency Code"]))
+        )
+        self.assertIn("Base Amount", transactions.columns)
+        self.assertIn("Base Market Value", holdings.columns)
 
     def test_packaged_demo_counts_base_values_and_links_fx_support(self) -> None:
         """Foreign base values are counted while the changed FX rate is support."""
@@ -2240,7 +2300,10 @@ reconstruction_roles:
             fx_support["from_date"].cast(pl.String).to_list(),
             ["2026-04-25", "2026-05-01"],
         )
-        self.assertEqual(fx_support["security_id"].to_list(), ["SHEL.L", "SHEL.L"])
+        self.assertEqual(
+            fx_support["security_id"].to_list(),
+            ["csgbSHEL.L", "csgbSHEL.L"],
+        )
         for guidance in fx_support["review_guidance"]:
             self.assertIn(
                 "GBP-to-USD FX rate changed from 1.268 to 1.288 USD per GBP",
