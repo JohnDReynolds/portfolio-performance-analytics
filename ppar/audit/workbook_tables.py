@@ -2375,7 +2375,13 @@ def _workbook_changed_item_row(
         _layout.ESTIMATED_IMPACT: estimated_impact,
         _layout.INPUT_ROLE: input_role,
         _layout.IMPACT_STATUS: impact_status,
-        _layout.REVIEW_NOTE: _guidance.review_note(row, estimated_impact, row_use, impact_status),
+        _layout.REVIEW_NOTE: _guidance.review_note(
+            row,
+            estimated_impact,
+            row_use,
+            impact_status,
+            comparison_path=comparison_path,
+        ),
         _layout.REVIEW_GUIDANCE: review_guidance,
         _pc_findings.DATASET: row.get(_pc_findings.DATASET),
         _pc_findings.SOURCE_RECORD_LOCATOR: row.get(

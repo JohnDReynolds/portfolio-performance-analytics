@@ -13,9 +13,13 @@ from ppar.audit import schema as _pc_cols
 from ppar.audit.performance_comparison.compare import PerformanceComparison
 from ppar.audit.data_issues.config import (
     data_issues_config_summary,
+    required_transaction_columns,
     security_reference_filter_fields,
 )
-from ppar.audit.extract_contract import extract_contract_summary
+from ppar.audit.extract_contract import (
+    extract_contract_summary,
+    transaction_semantics_exact_case,
+)
 from ppar.audit.performance_comparison.findings import findings_to_polars
 from ppar.audit.runner import validate_yaml_setup_complete
 from ppar.audit.security_reference import SecurityReferenceLoader
@@ -203,7 +207,16 @@ def _validate_transactions(
     specification: AuditSpecification,
 ) -> dict[str, object]:
     """Validate configured transaction files and return preview fields."""
+    required_columns = required_transaction_columns(specification.values)
     if _pc_cols.TRANSACTIONS not in specification.files:
+        if required_columns:
+            raise PpaError(
+                (
+                    f"{specification.path}: enabled Data Issues checks require "
+                    "files.transactions."
+                ),
+                504,
+            )
         return {
             "files_checked": 0,
             "codes_observed": "none",
@@ -217,12 +230,38 @@ def _validate_transactions(
     for snapshot_key in ("a", "b"):
         frame = loader.load(snapshot_key)
         if frame is None:
+            if required_columns:
+                raise PpaError(
+                    (
+                        f"{specification.path}: enabled Data Issues checks require "
+                        f"transactions for snapshot {snapshot_key}."
+                    ),
+                    504,
+                )
             continue
+        missing_columns = sorted(required_columns - set(frame.columns))
+        if missing_columns:
+            raise PpaError(
+                (
+                    f"{specification.path}: transactions for snapshot "
+                    f"{snapshot_key} are missing columns required by enabled "
+                    f"Data Issues checks: {', '.join(missing_columns)}."
+                ),
+                504,
+            )
         checked += 1
         frames.append(frame)
+    exact_case = transaction_semantics_exact_case(
+        specification.values,
+        specification_path=specification.path,
+    )
     summary = transaction_semantics_summary(
         frames,
-        rule_codes=transaction_rule_codes(specification.values),
+        rule_codes=transaction_rule_codes(
+            specification.values,
+            exact_case=exact_case,
+        ),
+        exact_case=exact_case,
     )
     return {
         "files_checked": checked,

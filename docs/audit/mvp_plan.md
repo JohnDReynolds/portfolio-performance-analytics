@@ -56,8 +56,9 @@ retain their prior relative order, schemas, and financial semantics.
 
 ## 2.2 Current Data Issues vocabulary
 
-The current code has twelve optional issue-type strings:
+The current code has thirteen optional issue-type strings:
 
+- `deliver_in_original_cost_incomplete`
 - `duplicate_transactions`
 - `dividend_rate`
 - `holdings_accrued_rate`
@@ -80,9 +81,10 @@ These values now serialize through public `DataIssueType` members without
 changing their strings. `DATA_ISSUE_REGISTRY` carries the category,
 mandatory/default enablement, required datasets, tolerance applicability, and
 reviewer meaning for every implemented issue type. The conservative
-`holdings_nonpositive_price`, `holdings_stale_price`,
-`large_price_variation`, `transactions_nonpositive_price`, and
-`transaction_security_type_mismatch` are off by default. The row-level checks
+`deliver_in_original_cost_incomplete`, `holdings_nonpositive_price`,
+`holdings_stale_price`, `large_price_variation`,
+`transaction_security_type_mismatch`, and `transactions_nonpositive_price`
+checks are off by default. The row-level checks
 require a nonempty `only` population when explicitly enabled. The stale-price
 check also requires an explicit positive
 `minimum_calendar_days` and reviewed `security_reference.security_type`
@@ -693,11 +695,31 @@ and `ti` scenarios.
 
 ## Slice 5 — Exact case and required transaction source-contract work
 
-- implement exact-case transaction rule and context-condition capability without
-  globally assigning cancellation meaning to uppercase codes;
-- add original-cost/date support and the bounded deliver-in completeness check;
-- add APX Mark-to-Market context and version/site-aware validation;
-- add the separate Trade Blotter cancellation-control fixture; and
+- **Slice 5A — implemented for founder review:** added a versioned
+  `extract_contract.transaction_semantics_case: exact` capability for exact
+  transaction-rule keys and native context-condition values. Omitted settings
+  retain the established case-insensitive behavior of existing valid
+  configurations. Exact mode disables code-only compatibility inference, keeps
+  lowercase and uppercase rules distinct, and leaves an unmatched uppercase
+  posted-transaction code unknown rather than treating it as a cancellation.
+  A focused site fixture gives `by` and `BY` separate explicit economic meanings;
+  it is not a Trade Blotter cancellation fixture.
+- **Slice 5B — implemented for founder review:** added optional normalized
+  `transactions.original_cost` and `transactions.original_cost_date` inputs and
+  the opt-in `deliver_in_original_cost_incomplete` Data Issues check. The check
+  requires an explicit YAML population containing transaction code, security
+  type, and source/destination type and symbol; Python assigns no universal
+  meaning to `li`, `ti`, or `si`. Enabled checks fail when either source column
+  is absent, report one row when either value is blank, accept zero original
+  cost as present, and do not calculate cost basis or conclude that Axys used
+  its documented trade-date market-value fallback. The packaged, context-gated
+  `ti` row demonstrates the issue in both snapshots without adding a new
+  performance cause or report column. Lot context remains deferred because its
+  source semantics are incomplete and it is not needed for this bounded check.
+- **Slice 5C:** add APX Mark-to-Market context and version/site-aware
+  validation;
+- **Slice 5D:** add the separate Trade Blotter cancellation-control fixture;
+  and
 - prove that cancellation instructions cannot become posted-transaction
   performance causes.
 

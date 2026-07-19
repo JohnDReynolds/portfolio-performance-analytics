@@ -16,6 +16,29 @@ system.
   recognized source category, a recognized transaction code, or explicit
   `transaction_rules`.
 
+## Transaction Code And Context Case
+
+New or reviewed site contracts should declare a positive integer `version` and
+may require exact native-case semantics:
+
+```yaml
+extract_contract:
+  path: site_extract_contract.yaml
+  enforce_ambiguous_axys_flows: true
+  transaction_semantics_case: exact
+```
+
+With `exact`, YAML transaction-rule keys and native `when` values match source
+text after whitespace trimming without changing case. `by` and `BY`, or `Desk`
+and `DESK`, can therefore have different explicitly reviewed meanings. Built-in
+code-only compatibility inference is disabled, so an unmatched uppercase code
+remains unknown; uppercase does not mean cancellation. The referenced extract
+contract must contain `version: 1` or another positive integer.
+
+Existing comparison YAML that omits `transaction_semantics_case` retains its
+established case-insensitive rule behavior. This compatibility default does not
+establish a source contract for cancellation or for new site mappings.
+
 ## IMEX With Context Fields
 
 Use an IMEX-context contract when the transaction extract includes source fields
@@ -44,6 +67,22 @@ context. The fallback source should carry reviewed semantics directly, such as:
 
 Do not weaken the `li`/`lo`/`ti`/`dp`/`wd` guardrail only because IMEX is sparse.
 Prefer a richer local extract that proves the Modified Dietz formula role.
+
+## Optional Deliver-In Original-Cost Review
+
+Sites may opt into `deliver_in_original_cost_incomplete` when a reviewed local
+population should carry both an original-cost amount and original-cost date.
+The YAML `only` population must name transaction code, security type,
+source/destination type, and source/destination symbol. Enabling the check also
+requires normalized `original_cost` and `original_cost_date` columns in both
+snapshot transaction extracts; aliases such as `ORIG_COST` and
+`ORIG_COST_DATE` are accepted.
+
+The check reports absence only. Zero cost counts as supplied, and ppar neither
+calculates cost basis nor concludes that Axys/APX substituted trade-date market
+value. Keep the check disabled when the extract cannot distinguish a blank
+field from an unavailable column. These are optional input fields and do not
+add columns to Audit reports.
 
 ## Tested Candidate Override Profiles
 

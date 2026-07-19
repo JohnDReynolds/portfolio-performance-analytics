@@ -19,6 +19,7 @@ class DataIssueType(StrEnum):
     """Stable machine-readable identifiers for implemented Data Issues checks."""
 
     DUPLICATE_TRANSACTIONS = "duplicate_transactions"
+    DELIVER_IN_ORIGINAL_COST_INCOMPLETE = "deliver_in_original_cost_incomplete"
     DIVIDEND_RATE = "dividend_rate"
     HOLDINGS_ACCRUED_RATE = "holdings_accrued_rate"
     HOLDINGS_NONPOSITIVE_PRICE = "holdings_nonpositive_price"
@@ -97,6 +98,19 @@ DATA_ISSUE_REGISTRY: Final[
             supports_absolute_tolerance=False,
             supports_percent_tolerance=False,
             reviewer_meaning="Exact transaction rows repeat within one snapshot.",
+        ),
+        DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE: DataIssueDefinition(
+            category=DataIssueCategory.POSITION_VALUE,
+            mandatory=False,
+            default_enabled=False,
+            required_datasets=("transactions",),
+            supports_absolute_tolerance=False,
+            supports_percent_tolerance=False,
+            reviewer_meaning=(
+                "Original cost amount or date is absent for a transaction in "
+                "the explicitly configured deliver-in population."
+            ),
+            requires_only_filter=True,
         ),
         DataIssueType.DIVIDEND_RATE: DataIssueDefinition(
             category=DataIssueCategory.INCOME,

@@ -1,3 +1,4 @@
+version: 1
 datasets:
   transactions.csv:
     columns:

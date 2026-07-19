@@ -11,6 +11,7 @@ default or future core `vendor: axys` preset.
 | --- | --- |
 | `alternate_fee_context` | A `dp` row with `epus expense` special-security context classifies as a fee only through an explicit site rule; `epus` is not promoted as a standalone transaction code. |
 | `ai_margin_interest` | Margin-style negative-interest rows classify `ai` only through explicit YAML rules; code-only treatment remains unknown. |
+| `exact_case_rules` | A versioned site contract gives `by` and `BY` distinct, explicitly configured economic meanings and requires exact native context values; uppercase is not treated as cancellation. |
 | `fixed_income_accruals` | Bond accrued-interest rows classify `pa` and `sa` only through explicit YAML rules; code-only treatment remains unknown. |
 | `imex_context` | IMEX-style transaction rows include source/destination and special-security context, so conditional YAML can classify `li`, `lo`, `dp`, and `wd`. |
 | `imex_code_only` | Code-only IMEX-style `li`/`lo`/`dp`/`ti`/`wd` rows intentionally omit the required context and must fail before YAML can classify ambiguous external flows. |

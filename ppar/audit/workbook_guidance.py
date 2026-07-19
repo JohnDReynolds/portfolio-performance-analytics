@@ -5,6 +5,7 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Mapping, Sequence
 import datetime as _dt
+from functools import cache
 from pathlib import Path
 
 # Project imports
@@ -12,9 +13,10 @@ import ppar.utilities as util
 from ppar.audit import schema as audit_schema
 from ppar.audit import workbook_rows as rows
 from ppar.audit import workbook_source_allocation as source_allocation
+from ppar.audit.extract_contract import transaction_semantics_exact_case
 from ppar.audit.performance_comparison import findings
 from ppar.audit.rendering import format_value
-from ppar.audit.specification import SECURITY_COMPARISON_LEVEL
+from ppar.audit.specification import AuditSpecification, SECURITY_COMPARISON_LEVEL
 from ppar.audit.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
     TRANSACTION_CATEGORY_BUY,
@@ -23,7 +25,10 @@ from ppar.audit.transactions import (
     TRANSACTION_CATEGORY_INCOME,
     TRANSACTION_CATEGORY_SELL,
 )
-from ppar.audit.transaction_policy import transaction_boundary_codes
+from ppar.audit.transaction_policy import (
+    transaction_boundary_codes,
+    transaction_code_matching_key,
+)
 
 IMPACT_STATUS_ESTIMATED = "Estimated"
 IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
@@ -55,6 +60,8 @@ def review_note(
     estimated_impact: float | None,
     row_use: str,
     impact_status: str,
+    *,
+    comparison_path: util.PathLike | None = None,
 ) -> str:
     """Return one reviewer-facing note for a changed workbook row.
 
@@ -63,6 +70,8 @@ def review_note(
         estimated_impact: Additive estimated return impact, when available.
         row_use: Reviewer-facing use classification.
         impact_status: Reviewer-facing impact treatment status.
+        comparison_path: Optional comparison YAML path used to apply its
+            transaction case-matching contract.
 
     Returns:
         Concise reviewer note for the cause table.
@@ -77,7 +86,12 @@ def review_note(
         audit_schema.SECURITY_PERFORMANCE,
     }:
         return _performance_dataset_review_note(source_column)
-    source_explanation = _source_row_explanation(row, dataset, source_column)
+    source_explanation = _source_row_explanation(
+        row,
+        dataset,
+        source_column,
+        exact_case=_comparison_uses_exact_transaction_case(comparison_path),
+    )
     if source_explanation:
         return source_explanation
     if rows.has_evidence_only_policy(row):
@@ -132,9 +146,13 @@ def review_guidance(
     """
     dataset = format_value(row.get(findings.DATASET))
     source_column = format_value(row.get(findings.SOURCE_COLUMN))
+    exact_case = _comparison_uses_exact_transaction_case(comparison_path)
     if estimated_impact is not None:
         if row.get(rows.TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW):
-            return _transaction_reconstruction_flow_guidance(row)
+            return _transaction_reconstruction_flow_guidance(
+                row,
+                exact_case=exact_case,
+            )
         if dataset == audit_schema.HOLDINGS and source_column in {
             audit_schema.ACCRUED,
             audit_schema.BASE_ACCRUED,
@@ -145,7 +163,11 @@ def review_guidance(
         }:
             return _holding_detail_explanation(row, source_column)
         if dataset == audit_schema.TRANSACTIONS:
-            return _transaction_component_explanation(row, source_column)
+            return _transaction_component_explanation(
+                row,
+                source_column,
+                exact_case=exact_case,
+            )
         return ""
 
     if dataset == audit_schema.TRANSACTIONS and source_column in {
@@ -153,15 +175,27 @@ def review_guidance(
         audit_schema.PRICE,
         audit_schema.QUANTITY,
     }:
-        return _transaction_component_explanation(row, source_column)
+        return _transaction_component_explanation(
+            row,
+            source_column,
+            exact_case=exact_case,
+        )
     if row.get(rows.POSSIBLE_CAUSE_ROW):
-        return _possible_cause_review_guidance(row, dataset, source_column)
+        return _possible_cause_review_guidance(
+            row,
+            dataset,
+            source_column,
+            exact_case=exact_case,
+        )
     if rows.has_additive_policy(row) and impact_status == IMPACT_STATUS_MISSING_INPUT:
         return _missing_impact_input_setup(dataset, source_column)
     if row.get(rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return _transaction_cash_balance_explanation(row)
     if row.get(rows.TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW):
-        return _transaction_reconstruction_flow_guidance(row)
+        return _transaction_reconstruction_flow_guidance(
+            row,
+            exact_case=exact_case,
+        )
     if row.get(rows.TRANSACTION_FLOW_SUPPORTS_HOLDING):
         security_id = format_value(row.get(findings.SECURITY_ID))
         if security_id:
@@ -175,7 +209,12 @@ def review_guidance(
     if row.get(source_allocation.FX_RATE_SUPPORTS_BASE_INPUT):
         return _fx_rate_support_explanation(row)
     if row.get(rows.UNSELECTED_RELATED_ESTIMATE):
-        return _related_input_guidance(row, dataset, source_column)
+        return _related_input_guidance(
+            row,
+            dataset,
+            source_column,
+            exact_case=exact_case,
+        )
     if rows.has_evidence_only_policy(row):
         return (
             "Review-only evidence; this row is not counted in "
@@ -201,7 +240,12 @@ def review_guidance(
         return _holding_detail_explanation(row, source_column)
     if dataset == audit_schema.TRANSACTIONS:
         if source_column == audit_schema.AMOUNT:
-            return _source_row_explanation(row, dataset, source_column)
+            return _source_row_explanation(
+                row,
+                dataset,
+                source_column,
+                exact_case=exact_case,
+            )
         return f"No supported YAML impact method exists yet for {dataset_column}."
     if rows.has_additive_policy(row):
         return _missing_impact_input_setup(dataset, source_column)
@@ -290,6 +334,8 @@ def _source_row_explanation(
     row: Mapping[str, object],
     dataset: str,
     source_column: str,
+    *,
+    exact_case: bool,
 ) -> str:
     """Return source-data explanation text for a recognized source shape."""
     if dataset == audit_schema.HOLDINGS:
@@ -299,7 +345,11 @@ def _source_row_explanation(
             if row.get(findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
                 return _portfolio_external_flow_transaction_explanation(row)
             return _transaction_cash_balance_explanation(row)
-        return _transaction_component_explanation(row, source_column)
+        return _transaction_component_explanation(
+            row,
+            source_column,
+            exact_case=exact_case,
+        )
     if dataset == audit_schema.SPLITS and source_column == audit_schema.SPLIT_FACTOR:
         return _split_factor_explanation(row)
     return ""
@@ -323,6 +373,8 @@ def _related_input_guidance(
     row: Mapping[str, object],
     dataset: str,
     source_column: str,
+    *,
+    exact_case: bool,
 ) -> str:
     """Return guidance for an input component's related performance field."""
     if dataset == audit_schema.HOLDINGS and source_column in {
@@ -335,15 +387,27 @@ def _related_input_guidance(
     }:
         return _holding_detail_explanation(row, source_column)
     if dataset == audit_schema.TRANSACTIONS:
-        return _transaction_component_explanation(row, source_column)
+        return _transaction_component_explanation(
+            row,
+            source_column,
+            exact_case=exact_case,
+        )
     return "Review-only supporting evidence for the related counted row."
 
 
-def _transaction_reconstruction_flow_guidance(row: Mapping[str, object]) -> str:
+def _transaction_reconstruction_flow_guidance(
+    row: Mapping[str, object],
+    *,
+    exact_case: bool,
+) -> str:
     """Return guidance for transaction rows absorbed by reconstruction formulas."""
     comparison_level = row.get("_workbook_reconstruction_comparison_level")
     if comparison_level == SECURITY_COMPARISON_LEVEL:
-        return _transaction_component_explanation(row, audit_schema.AMOUNT)
+        return _transaction_component_explanation(
+            row,
+            audit_schema.AMOUNT,
+            exact_case=exact_case,
+        )
     if row.get(findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
         return _portfolio_external_flow_transaction_explanation(row)
     return _transaction_cash_balance_explanation(row)
@@ -353,6 +417,8 @@ def _possible_cause_review_guidance(
     row: Mapping[str, object],
     dataset: str,
     source_column: str,
+    *,
+    exact_case: bool,
 ) -> str:
     """Return concise guidance for evidence that may explain a residual."""
     if row.get(rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION):
@@ -360,7 +426,12 @@ def _possible_cause_review_guidance(
     elif dataset == audit_schema.TRANSACTIONS and source_column == audit_schema.AMOUNT:
         explanation = _transaction_amount_possible_cause_explanation(row)
     else:
-        explanation = _source_row_explanation(row, dataset, source_column)
+        explanation = _source_row_explanation(
+            row,
+            dataset,
+            source_column,
+            exact_case=exact_case,
+        )
     if not explanation:
         explanation = possible_cause_row_comment(row)
     return f"{explanation} {_POSSIBLE_CAUSE_CONFIGURATION_NOTE}"
@@ -512,6 +583,8 @@ def _holding_timing_label(row: Mapping[str, object]) -> str:
 def _transaction_component_explanation(
     row: Mapping[str, object],
     source_column: str,
+    *,
+    exact_case: bool,
 ) -> str:
     """Return plain-language explanation for a transaction component row."""
     security_id = format_value(row.get(findings.SECURITY_ID))
@@ -544,7 +617,10 @@ def _transaction_component_explanation(
             else "transactions.amount"
         )
         if source_column == audit_schema.QUANTITY:
-            quantity_effect = _transaction_quantity_holding_effect(row)
+            quantity_effect = _transaction_quantity_holding_effect(
+                row,
+                exact_case=exact_case,
+            )
             if quantity_effect:
                 holdings_quantity = (
                     f"{security_id} holdings.quantity"
@@ -580,12 +656,19 @@ def _transaction_component_explanation(
     )
 
 
-def _transaction_quantity_holding_effect(row: Mapping[str, object]) -> str:
+def _transaction_quantity_holding_effect(
+    row: Mapping[str, object],
+    *,
+    exact_case: bool,
+) -> str:
     """Return buy/sell holding direction for a transaction quantity row."""
     change_number = rows.number_or_none(rows.row_change_value(row))
     if change_number is None:
         return ""
-    transaction_code = format_value(row.get(findings.TRANSACTION_CODE)).lower()
+    transaction_code = transaction_code_matching_key(
+        row.get(findings.TRANSACTION_CODE),
+        exact_case=exact_case,
+    )
     if transaction_code in transaction_boundary_codes("quantity_holding_neutral"):
         return ""
     transaction_category = row.get(findings.TRANSACTION_CATEGORY)
@@ -594,6 +677,25 @@ def _transaction_quantity_holding_effect(row: Mapping[str, object]) -> str:
     if transaction_category == TRANSACTION_CATEGORY_SELL:
         return "increase" if change_number < 0 else "decrease"
     return ""
+
+
+@cache
+def _comparison_path_uses_exact_transaction_case(path: str) -> bool:
+    """Return the cached exact-case setting for one comparison path."""
+    specification = AuditSpecification(path)
+    return transaction_semantics_exact_case(
+        specification.values,
+        specification_path=specification.path,
+    )
+
+
+def _comparison_uses_exact_transaction_case(
+    comparison_path: util.PathLike | None,
+) -> bool:
+    """Return whether reviewer guidance must honor exact transaction case."""
+    if comparison_path is None:
+        return False
+    return _comparison_path_uses_exact_transaction_case(str(Path(comparison_path)))
 
 
 def _transaction_code_prefix(row: Mapping[str, object]) -> str:

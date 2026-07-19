@@ -14,6 +14,7 @@ import polars as pl
 
 # Project imports
 from ppar.audit import compare_snapshots, schema as pc_cols
+from ppar.audit.config_validation import validate_config
 from ppar.audit.data_issues import checks as data_issues
 from ppar.errors import PpaError
 
@@ -81,6 +82,7 @@ class TestDataIssues(unittest.TestCase):
             issue_types,
             {
                 "duplicate_transactions",
+                "deliver_in_original_cost_incomplete",
                 "dividend_rate",
                 "holdings_nonpositive_price",
                 "holdings_price_range",
@@ -275,6 +277,54 @@ class TestDataIssues(unittest.TestCase):
                 "20.04% maximum price variation" in explanation
                 and "10 calendar days" in explanation
                 for explanation in balanced.get_column(data_issues.EXPLANATION)
+            )
+        )
+
+    def test_packaged_demo_reports_scoped_missing_deliver_in_cost(self) -> None:
+        """The packaged ti scenario demonstrates bounded source completeness."""
+        comparison_path = (
+            Path(__file__).resolve().parents[1]
+            / "ppar"
+            / "setup_templates"
+            / "axys_apx_audit"
+            / "axys_apx_audit.yaml"
+        )
+
+        issues = data_issues.data_issues_table(comparison_path).filter(
+            pl.col(data_issues.ISSUE_TYPE)
+            == data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+        )
+
+        self.assertEqual(issues.height, 2)
+        self.assertEqual(
+            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            {"Snapshot A", "Snapshot B"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"BALANCED"},
+        )
+        self.assertEqual(
+            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            {"JPM"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.DATASET_FIELD).to_list()),
+            {"transactions.original_cost + transactions.original_cost_date"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"position_value"},
+        )
+        self.assertTrue(issues.get_column(data_issues.VALUE_A).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.VALUE_B).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.DIFFERENCE).is_null().all())
+        self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 2)
+        self.assertTrue(
+            all(
+                "code ti" in explanation
+                and "may fall back to trade-date market value" in explanation
+                for explanation in issues.get_column(data_issues.EXPLANATION)
             )
         )
 
@@ -824,6 +874,242 @@ class TestDataIssues(unittest.TestCase):
         self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 4)
         self.assertTrue(performance_findings.is_empty())
 
+    def test_deliver_in_original_cost_incomplete_is_scoped_and_independent(
+        self,
+    ) -> None:
+        """The opt-in check reports one row per incomplete configured deliver-in."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_header=(
+                    "PORT,TRANSACTION_DATE,SETTLE_DATE,SEC,TRAN,SEC_TYPE,"
+                    "SRC_DEST_TYPE,SRC_DEST_SYMBOL,SPECIAL_SEC_TYPE,"
+                    "SPECIAL_SEC_SYMBOL,QTY,PRICE,AMOUNT,COMMISSION,"
+                    "ORIGINAL_COST_DATE,ORIGINAL_COST"
+                ),
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,ti,csus,$pty,external_delivery,,"
+                    ",5,10,50,0,,",
+                    "P2,2026-02-16,2026-02-16,ABC,ti,csus,$pty,external_delivery,,"
+                    ",5,10,50,0,2020-01-01,",
+                    "P3,2026-02-17,2026-02-17,ABC,ti,csus,$pty,external_delivery,,"
+                    ",5,10,50,0,,100",
+                    "P4,2026-02-18,2026-02-18,ABC,ti,csus,$pty,external_delivery,,"
+                    ",5,10,50,0,2020-01-01,0",
+                    "P5,2026-02-19,2026-02-19,ABC,by,csus,$pty,external_delivery,,"
+                    ",5,10,-50,0,,",
+                ],
+                transaction_rules="""
+                transaction_rules:
+                  ti:
+                    when:
+                      security_type: csus
+                      source_destination_type: $pty
+                      source_destination_symbol: external_delivery
+                    transaction_category: external_flow
+                    cash_flow_sign: positive
+                    performance_flow_sign: external
+                """,
+                data_issues_config="""
+                data_issues:
+                  deliver_in_original_cost_incomplete:
+                    enabled: true
+                    only:
+                      transaction_code: ti
+                      security_type: csus
+                      source_destination_type: $pty
+                      source_destination_symbol: external_delivery
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path).filter(
+                pl.col(data_issues.ISSUE_TYPE)
+                == data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+            )
+            performance_findings = compare_snapshots(comparison_path)
+
+        self.assertEqual(issues.height, 6)
+        self.assertEqual(
+            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"P1", "P2", "P3"},
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.DATASET_FIELD).to_list()),
+            {
+                "transactions.original_cost",
+                "transactions.original_cost_date",
+                "transactions.original_cost + transactions.original_cost_date",
+            },
+        )
+        self.assertEqual(
+            set(issues.get_column(data_issues.CATEGORY).to_list()),
+            {"position_value"},
+        )
+        self.assertTrue(issues.get_column(data_issues.VALUE_A).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.VALUE_B).is_null().all())
+        self.assertTrue(issues.get_column(data_issues.DIFFERENCE).is_null().all())
+        self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 6)
+        self.assertTrue(
+            all(
+                "may fall back to trade-date market value" in explanation
+                for explanation in issues.get_column(data_issues.EXPLANATION)
+            )
+        )
+        self.assertTrue(performance_findings.is_empty())
+
+    def test_deliver_in_original_cost_incomplete_is_off_by_default(self) -> None:
+        """Existing configurations do not require original-cost columns."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,by,csus,$cash,CASHUSD,,,"
+                    "5,10,-50,0"
+                ],
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn(
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
+            issue_types,
+        )
+
+    def test_deliver_in_original_cost_requires_source_columns(self) -> None:
+        """Enabled completeness review fails when source columns are absent."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,2026-02-15,ABC,ti,csus,$pty,"
+                    "external_delivery,,,5,10,50,0"
+                ],
+                transaction_rules="""
+                transaction_rules:
+                  ti:
+                    when:
+                      security_type: csus
+                      source_destination_type: $pty
+                      source_destination_symbol: external_delivery
+                    transaction_category: external_flow
+                    cash_flow_sign: positive
+                    performance_flow_sign: external
+                """,
+                data_issues_config="""
+                data_issues:
+                  deliver_in_original_cost_incomplete:
+                    enabled: true
+                    only:
+                      transaction_code: ti
+                      security_type: csus
+                      source_destination_type: $pty
+                      source_destination_symbol: external_delivery
+                """,
+            )
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "original_cost, original_cost_date",
+            ):
+                validate_config(comparison_path, require_complete_yaml_setup=False)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "original_cost, original_cost_date",
+            ):
+                data_issues.data_issues_table(comparison_path)
+
+    def test_deliver_in_original_cost_filter_honors_exact_case(self) -> None:
+        """Exact source contracts do not fold deliver-in filter context case."""
+        config = {
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE: {
+                "enabled": True,
+                "only": {
+                    "transaction_code": "ti",
+                    "security_type": "csus",
+                    "source_destination_type": "$pty",
+                    "source_destination_symbol": "external_delivery",
+                },
+            }
+        }
+        base_row = {
+            data_issues.SNAPSHOT: "Snapshot A",
+            pc_cols.PORTFOLIO_ID: "P1",
+            pc_cols.TRANSACTION_DATE: dt.date(2026, 2, 15),
+            pc_cols.SECURITY_ID: "ABC",
+            pc_cols.TRANSACTION_CODE: "ti",
+            pc_cols.SECURITY_TYPE: "csus",
+            pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
+            pc_cols.SOURCE_DESTINATION_SYMBOL: "external_delivery",
+            pc_cols.ORIGINAL_COST: None,
+            pc_cols.ORIGINAL_COST_DATE: None,
+        }
+        rows = [
+            base_row,
+            {**base_row, pc_cols.TRANSACTION_CODE: "TI"},
+            {**base_row, pc_cols.SOURCE_DESTINATION_SYMBOL: "EXTERNAL_DELIVERY"},
+        ]
+
+        issues = data_issues._deliver_in_original_cost_incomplete_issues(
+            rows,
+            config,
+            exact_case=True,
+        )
+
+        self.assertEqual(len(issues), 1)
+
+    def test_deliver_in_review_identity_is_invariant_across_scale_copies(
+        self,
+    ) -> None:
+        """Synthetic portfolio copies retain the same normalized review key."""
+        config = {
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE: {
+                "enabled": True,
+                "only": {
+                    "transaction_code": "ti",
+                    "security_type": "csus",
+                    "source_destination_type": "$pty",
+                    "source_destination_symbol": "external_delivery",
+                },
+            }
+        }
+        base_row = {
+            data_issues.SNAPSHOT: "Snapshot A",
+            pc_cols.PORTFOLIO_ID: "P1",
+            pc_cols.TRANSACTION_DATE: dt.date(2026, 2, 15),
+            pc_cols.SECURITY_ID: "ABC",
+            pc_cols.TRANSACTION_CODE: "ti",
+            pc_cols.SECURITY_TYPE: "csus",
+            pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
+            pc_cols.SOURCE_DESTINATION_SYMBOL: "external_delivery",
+            pc_cols.ORIGINAL_COST: None,
+            pc_cols.ORIGINAL_COST_DATE: None,
+        }
+        rows = [
+            base_row,
+            {**base_row, pc_cols.PORTFOLIO_ID: "P1_SCALE_001"},
+        ]
+
+        issues = data_issues._deliver_in_original_cost_incomplete_issues(
+            rows,
+            config,
+            exact_case=True,
+        )
+        normalized_review_keys = {
+            str(issue[data_issues.REVIEW_KEY]).replace("_SCALE_001", "")
+            for issue in issues
+        }
+
+        self.assertEqual(len(issues), 2)
+        self.assertEqual(len(normalized_review_keys), 1)
+
     def test_transactions_nonpositive_price_is_off_by_default(self) -> None:
         """Existing configurations do not require reference data for the new check."""
         with tempfile.TemporaryDirectory() as directory:
@@ -1198,6 +1484,7 @@ def _write_site(
     *,
     holdings_rows: list[str],
     transaction_rows: list[str],
+    transaction_header: str | None = None,
     portfolio_performance_rows: list[str] | None = None,
     security_reference_rows: list[str] | None = None,
     split_rows: list[str] | None = None,
@@ -1223,7 +1510,8 @@ def _write_site(
             _write_csv(
                 snapshot_directory / "transactions.csv",
                 (
-                    "PORT,TRANSACTION_DATE,SETTLE_DATE,SEC,TRAN,SEC_TYPE,"
+                    transaction_header
+                    or "PORT,TRANSACTION_DATE,SETTLE_DATE,SEC,TRAN,SEC_TYPE,"
                     "SRC_DEST_TYPE,SRC_DEST_SYMBOL,SPECIAL_SEC_TYPE,"
                     "SPECIAL_SEC_SYMBOL,QTY,PRICE,AMOUNT,COMMISSION"
                 ),

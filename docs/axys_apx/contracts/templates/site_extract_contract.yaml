@@ -8,6 +8,7 @@
 # extract_contract:
 #   path: site_extract_contract.yaml
 #   enforce_ambiguous_axys_flows: true
+#   transaction_semantics_case: exact
 #
 # Keep ambiguous-flow enforcement on unless you have a deliberate local review
 # reason to opt out. With enforcement on, dp/li/lo/ti/wd rows require either:
@@ -20,6 +21,7 @@
 # Every listed transaction column must use a supported ppar transaction alias
 # and must define both boolean guard flags below. Only list columns that your
 # local extract actually includes.
+version: 1
 datasets:
   transactions.csv:
     columns:

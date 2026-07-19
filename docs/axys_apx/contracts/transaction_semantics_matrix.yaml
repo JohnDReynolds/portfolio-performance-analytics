@@ -37,9 +37,11 @@ ambiguous_external_flow_codes:
   - wd
 matching_rules:
   preserve_native_case: true
-  current_semantics_rule_case_behavior: case_insensitive_implementation_gap
+  current_semantics_rule_case_behavior: versioned_exact_mode_with_legacy_compatibility_default
   required_semantics_rule_case_capability: exact_case_when_source_contract_requires
   case_insensitive_matching_requires_versioned_site_contract: true
+  legacy_case_insensitive_default_is_compatibility_exception: true
+  exact_case_fixture: site_variants/exact_case_rules
   cancellation_requires_explicit_source_stage: true
   source_transaction_id: preferred_when_present_and_trustworthy
   strict_fallback_key:
@@ -193,12 +195,12 @@ rows:
     ppar_categories: [external_flow, transfer]
     cash_flow_signs: [positive, none]
     performance_flow_signs: [external, neutral]
-    required_evidence: [source_workflow, source_destination_type, source_destination_symbol, security_type, quantity, amount, local_mapping]
+    required_evidence: [source_workflow, source_destination_type, source_destination_symbol, security_type, quantity, amount, original_cost, original_cost_date, local_mapping]
     imex_confidence: low_medium
     rep_confidence: medium_high_for_cited_workflow
     coverage_status: partial
     fixtures: [packaged_demo]
-    coverage_notes: Packaged demo covers one site-scoped external-security deliver-in using explicit external-party and security context. Code-only ti remains unknown; internal-transfer treatment requires separate local evidence.
+    coverage_notes: Packaged demo covers one site-scoped external-security deliver-in using explicit external-party and security context. Its blank original-cost amount and date drive the separately opt-in completeness finding without changing performance treatment. Code-only ti remains unknown; internal-transfer treatment requires separate local evidence.
   lo:
     observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
     ppar_categories: [external_flow, transfer]

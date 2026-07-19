@@ -1022,8 +1022,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Slice 5A exact-case transaction rule and context-condition capability",
+            "Founder review of Slice 5B, then Slice 5C APX foreign-currency "
+            "Mark-to-Market context and version-aware validation",
             audit_roadmap,
+        )
+        self.assertIn(
+            "Slice 5B — implemented for founder review",
+            plan,
         )
         self.assertIn(
             "Slice 2 — Executive Summary shared model — Complete",

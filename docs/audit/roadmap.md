@@ -12,7 +12,7 @@ acceptance criteria, and slice status for the active phase.
 | Date | 2026-07-18 |
 | Governing product authority | [`product_constitution.md`](product_constitution.md) |
 | Active implementation plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Slice 5A exact-case transaction rule and context-condition capability |
+| Next gate | Founder review of Slice 5B, then Slice 5C APX foreign-currency Mark-to-Market context and version-aware validation |
 
 ## Roadmap Doctrine
 
@@ -111,12 +111,14 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## Immediate Priorities
 
-1. Begin Slice 5A exact-case transaction rule and context-condition capability.
-2. Continue the normalized source-contract and staging-control work required by
-   the active MVP plan.
-3. Re-run report parity, determinism, financial invariants, demo coverage, and
+1. Review Slice 5B original-cost/date support and bounded deliver-in completeness.
+2. Begin Slice 5C APX foreign-currency Mark-to-Market context and
+   version-aware validation.
+3. Continue the remaining normalized source-contract and staging-control work
+   required by the active MVP plan.
+4. Re-run report parity, determinism, financial invariants, demo coverage, and
    the 500x release-candidate scale check after the cross-cutting MVP changes.
-4. Only then decide whether the product is ready for validation-partner planning.
+5. Only then decide whether the product is ready for validation-partner planning.
 
 ## Material Open Questions
 

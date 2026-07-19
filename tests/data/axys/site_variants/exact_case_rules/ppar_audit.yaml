@@ -1,0 +1,37 @@
+comparison:
+  name: Exact-case site transaction rules
+
+snapshots:
+  a:
+    label: exact_case_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: exact_case_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+extract_contract:
+  path: site_extract_contract.yaml
+  enforce_ambiguous_axys_flows: true
+  transaction_semantics_case: exact
+
+transaction_rules:
+  by:
+    when:
+      security_type: csus
+      source_destination_symbol: Desk
+    transaction_category: buy
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  BY:
+    when:
+      security_type: CSUS
+      source_destination_symbol: DESK
+    transaction_category: sell
+    cash_flow_sign: positive
+    performance_flow_sign: performance

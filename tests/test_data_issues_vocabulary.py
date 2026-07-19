@@ -22,6 +22,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             {issue_type.value for issue_type in DataIssueType},
             {
                 "duplicate_transactions",
+                "deliver_in_original_cost_incomplete",
                 "dividend_rate",
                 "holdings_accrued_rate",
                 "holdings_nonpositive_price",
@@ -40,6 +41,10 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertEqual(
             data_issues.ISSUE_DUPLICATE_TRANSACTIONS,
             DataIssueType.DUPLICATE_TRANSACTIONS.value,
+        )
+        self.assertEqual(
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
+            DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE.value,
         )
         self.assertEqual(
             data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY,
@@ -107,6 +112,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             opt_in_checks,
             {
                 DataIssueType.HOLDINGS_NONPOSITIVE_PRICE,
+                DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
                 DataIssueType.HOLDINGS_STALE_PRICE,
                 DataIssueType.LARGE_PRICE_VARIATION,
                 DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH,
@@ -118,6 +124,15 @@ class TestDataIssuesVocabulary(unittest.TestCase):
                 DataIssueType.HOLDINGS_NONPOSITIVE_PRICE
             ].requires_only_filter
         )
+        deliver_in_definition = DATA_ISSUE_REGISTRY[
+            DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+        ]
+        self.assertEqual(
+            deliver_in_definition.category,
+            DataIssueCategory.POSITION_VALUE,
+        )
+        self.assertTrue(deliver_in_definition.requires_only_filter)
+        self.assertEqual(deliver_in_definition.required_datasets, ("transactions",))
         stale_price_definition = DATA_ISSUE_REGISTRY[
             DataIssueType.HOLDINGS_STALE_PRICE
         ]

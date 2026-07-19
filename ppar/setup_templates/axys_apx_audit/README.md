@@ -91,6 +91,13 @@ combines linked boundary holdings with inclusive trade-date transaction prices
 and uses optional `splits.csv` factors to put prices on the period-ending share
 basis. The packaged AVGO rule uses real dated observations without injecting a
 price or market value.
+The opt-in `deliver_in_original_cost_incomplete` check reviews only an explicit
+transaction-code, security-type, and source/destination population. It requires
+both original-cost source columns in both snapshots, treats zero cost as
+supplied, and does not calculate cost basis or claim that a source-system
+fallback occurred. The packaged `ti` example is intentionally blank in both
+fields and appears as a Data Issues review row without changing performance or
+adding report columns.
 Optional `secref.csv` fields can qualify Data Issues populations through
 `security_reference.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
@@ -175,6 +182,7 @@ differences from identifiable input differences and other evidence:
   nonpositive holding price, a reference-scoped nonpositive transaction price,
   an observed-date stale GOOGL holding price,
   an exact-case transaction-versus-reference security-type mismatch,
+  a context-scoped `ti` row missing original cost and original-cost date,
   dividend-rate mismatches, fixed-income
   accrued-interest transaction-rate mismatches, missing dividends, and
   holdings.accrued rate mismatches. Both nonpositive-price examples, the stale
@@ -439,7 +447,11 @@ Current public YAML targets are intentionally narrow:
   presence before ambiguous Axys/APX `li`, `lo`, `ti`, `dp`, or `wd` rows can be
   classified by YAML rules. Use
   `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starter
-  when a real site needs a local contract.
+  when a real site needs a local contract. A versioned contract can set
+  `transaction_semantics_case: exact` so transaction-rule keys and native
+  context values match by exact case. In exact mode, unmatched uppercase codes
+  remain unknown and do not acquire cancellation meaning. Existing YAML that
+  omits the setting retains legacy case-insensitive rule matching.
 - `transaction_rules`: authoritatively classifies matching transaction rows for
   amount attribution. A complete matching rule overrides any recognized
   category/sign labels carried by the source row; when no rule matches, usable

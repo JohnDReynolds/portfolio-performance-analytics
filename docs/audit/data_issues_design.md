@@ -87,6 +87,14 @@ data_issues:
           security_reference.security_type: csus
         minimum_calendar_days: 1
         minimum_tolerance: 0.20
+
+  deliver_in_original_cost_incomplete:
+    enabled: true
+    only:
+      transaction_code: ti
+      security_type: csus
+      source_destination_type: $pty
+      source_destination_symbol: external_delivery
 ```
 
 Interpretation:
@@ -104,6 +112,10 @@ Interpretation:
   `security_reference.security_type` population it compares against.
   `holdings_stale_price` also requires that reference population plus an
   explicit positive integer `minimum_calendar_days` threshold.
+  `deliver_in_original_cost_incomplete` requires transaction code, security
+  type, source/destination type, and source/destination symbol in `only`, plus
+  both original-cost source columns in each snapshot. Its native filters honor
+  an exact-case transaction source contract.
 - `large_price_variation` is off by default and uses an issue-specific nonempty
   `rules` list. Every rule has a unique lowercase snake-case `rule_id`; optional
   rule-level `enabled`, `only`, `exclude`, `minimum_calendar_days`, and
@@ -140,11 +152,13 @@ rejected before source loading or report generation when:
   malformed/nonempty-rules violation, an unknown rule key or dataset namespace,
   a nonpositive calendar-day minimum, or an invalid decimal tolerance.
 
-Supported filter fields are `snapshot`, `portfolio`/`portfolio_id`,
-`security`/`security_id`, `security_type`, `asset_class`, and
-`transaction_code`. Dataset-qualified forms continue to resolve by the name
-after the final dot. Scalar and list values are compared as case-insensitive
-strings.
+Supported native filter fields are `snapshot`, `portfolio`/`portfolio_id`,
+`security`/`security_id`, `security_type`, `asset_class`, `transaction_code`,
+`source_destination_type`, and `source_destination_symbol`. Dataset-qualified
+forms continue to resolve by the name after the final dot. Scalar and list
+values retain the established case-insensitive comparison behavior except when
+the enabled original-cost check runs under an exact-case transaction source
+contract; that check then compares all native population fields by exact case.
 
 When `files.security_reference` is configured, a Data Issues filter may also
 use `security_reference.security_name`, `ticker`, `cusip`, `isin`,
@@ -170,7 +184,7 @@ symbol-plus-type or another composite identity, its extract must first supply a
 stable, unambiguous normalized `security_id`; PPAR must not guess between
 duplicate symbols.
 
-Eleven row-level optional checks support `enabled`, `only`, and `exclude`. Numeric
+Twelve row-level optional checks support `enabled`, `only`, and `exclude`. Numeric
 range/rate checks additionally support both tolerance keys. Duplicate,
 missing-dividend, nonpositive-price, and classification-mismatch checks do not
 accept unused tolerance keys. Only `holdings_stale_price` accepts
@@ -179,7 +193,7 @@ mandatory continuity blocks accept only absolute and percent tolerances; they
 cannot be disabled or filtered. `validate_config` prints the effective optional
 checks, mandatory continuity checks, and master-switch policy.
 
-The twelfth optional check, `large_price_variation`, accepts only top-level
+The thirteenth optional check, `large_price_variation`, accepts only top-level
 `enabled` and `rules`. Rule IDs are output provenance and part of the review
 key. Rule defaults are one inclusive calendar day and decimal tolerance `0.20`.
 Rule order is canonicalized by ID so reordering YAML does not change output.
@@ -226,26 +240,33 @@ normalized datasets, and easy to explain:
    price`; equality with the tolerance does not report. Conflicting nonblank
    price currencies are not compared. Multiple matching rules each emit one
    independently identified row.
-6. `holdings_price_range`: for each snapshot, security, and holding date,
+6. `deliver_in_original_cost_incomplete`: for each transaction in the explicit
+   transaction-code, security-type, and source/destination population, report
+   one review row when `transactions.original_cost`,
+   `transactions.original_cost_date`, or both are absent. Zero original cost is
+   present rather than missing. Enabling the check requires both source columns
+   in both snapshots. The check does not calculate cost basis, classify a code
+   by itself, or conclude that a source-system fallback occurred.
+7. `holdings_price_range`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.price` values across portfolios.
-7. `transactions_price_range`: for each snapshot, security, and transaction
+8. `transactions_price_range`: for each snapshot, security, and transaction
    date, compare same-day same-security `transactions.price` values across
    portfolios.
-8. `duplicate_transactions`: for each snapshot, flag exact duplicate
+9. `duplicate_transactions`: for each snapshot, flag exact duplicate
    transaction rows with the same portfolio, date, security, code, amount,
    quantity, and price.
-9. `dividend_rate`: for each snapshot, security, and dividend date, compare
+10. `dividend_rate`: for each snapshot, security, and dividend date, compare
    same-day same-security dividend rates across portfolios.
-10. `missing_dividend`: for each snapshot, security, and dividend date where at
+11. `missing_dividend`: for each snapshot, security, and dividend date where at
    least one portfolio has a dividend, flag other portfolios that
    conservatively appear eligible for that dividend. A portfolio qualifies only
    when it has positive beginning-period quantity, or positive buy activity
    before the dividend date, and has no pre-dividend transaction activity other
    than buys.
-11. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
+12. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
    same-day same-security purchase-accrued and sale-accrued rates across
    portfolios.
-12. `holdings_accrued_rate`: for each snapshot, security, and holding date,
+13. `holdings_accrued_rate`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.accrued` per unit across
    portfolios.
 
@@ -273,6 +294,12 @@ and maximum source/date evidence, adjusted prices, and any cumulative split
 factor. Ties select the earliest date, then holdings before transactions, then
 original source order. The absolute `Difference` remains `Observed Value -
 Reference Value`; the explanation carries the percentage variation.
+
+The original-cost completeness check is a source-evidence review, not a
+valuation conclusion. The normalized original-cost fields are optional inputs
+unless this check is enabled. They do not enter performance calculations or add
+columns to any user-facing report; findings use the existing Data Issues
+schema.
 
 The optional security-reference dataset makes carefully scoped classification
 qualifiers available now. Continue to defer checks that require additional

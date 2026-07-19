@@ -9,6 +9,7 @@ import re
 from typing import Final
 
 # Project imports
+from ppar.audit import schema as pc_cols
 from ppar.audit.data_issues.vocabulary import (
     DATA_ISSUE_REGISTRY,
     DataIssueDefinition,
@@ -41,7 +42,20 @@ _FILTER_FIELD_ALIASES: Final[frozenset[str]] = frozenset(
         "security_type",
         "asset_class",
         "transaction_code",
+        "source_destination_type",
+        "source_destination_symbol",
     }
+)
+_DELIVER_IN_POPULATION_FIELDS: Final[frozenset[str]] = frozenset(
+    {
+        "transaction_code",
+        "security_type",
+        "source_destination_type",
+        "source_destination_symbol",
+    }
+)
+_DELIVER_IN_REQUIRED_TRANSACTION_COLUMNS: Final[frozenset[str]] = frozenset(
+    {pc_cols.ORIGINAL_COST, pc_cols.ORIGINAL_COST_DATE}
 )
 _SECURITY_REFERENCE_FILTER_FIELDS: Final[frozenset[str]] = frozenset(
     {
@@ -209,6 +223,34 @@ def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object
     }
 
 
+def required_transaction_columns(
+    values: Mapping[str, object],
+) -> frozenset[str]:
+    """Return transaction columns required by enabled Data Issues checks.
+
+    Args:
+        values: Parsed and validated comparison YAML root mapping.
+
+    Returns:
+        Normalized transaction columns that must exist in every configured
+        snapshot transaction extract.
+    """
+    _, raw_config = _configured_section(values)
+    if (
+        not isinstance(raw_config, Mapping)
+        or raw_config.get(_ENABLED_KEY, True) is False
+    ):
+        return frozenset()
+    issue_type = DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+    if _effective_check_enabled(
+        raw_config,
+        issue_type,
+        DATA_ISSUE_REGISTRY[issue_type],
+    ):
+        return _DELIVER_IN_REQUIRED_TRANSACTION_COLUMNS
+    return frozenset()
+
+
 def _validate_check(
     issue_type: DataIssueType,
     definition: DataIssueDefinition,
@@ -264,6 +306,11 @@ def _validate_check(
         and raw_check.get(_ENABLED_KEY) is True
     ):
         _validate_stale_price_population(raw_check, path)
+    if (
+        issue_type is DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+        and raw_check.get(_ENABLED_KEY) is True
+    ):
+        _validate_deliver_in_population(raw_check, path)
 
 
 def _validate_large_price_variation(
@@ -420,6 +467,24 @@ def _validate_stale_price_population(
     if _MINIMUM_CALENDAR_DAYS_KEY not in raw_check:
         raise ValueError(
             f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY} is required when "
+            f"{path}.enabled is true."
+        )
+
+
+def _validate_deliver_in_population(
+    raw_check: Mapping[object, object],
+    path: str,
+) -> None:
+    """Require explicit code, security, and source/destination context."""
+    raw_only = raw_check.get(_ONLY_KEY)
+    only_filter = raw_only if isinstance(raw_only, Mapping) else {}
+    normalized_fields = {
+        _normalized_filter_field_name(str(field_name)) for field_name in only_filter
+    }
+    missing_fields = sorted(_DELIVER_IN_POPULATION_FIELDS - normalized_fields)
+    if missing_fields:
+        raise ValueError(
+            f"{path}.only must include {', '.join(missing_fields)} when "
             f"{path}.enabled is true."
         )
 

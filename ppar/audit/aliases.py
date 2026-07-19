@@ -108,6 +108,11 @@ TRANSACTIONS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
         "TRANS_CODE",
         "ACTIVITY",
     ),
+    pc_cols.ORIGINAL_COST_DATE: (
+        "ORIGINAL_COST_DATE",
+        "ORIG_COST_DATE",
+        "COST_DATE",
+    ),
     pc_cols.SECURITY_TYPE: (
         "SECURITY_TYPE",
         "SEC_TYPE",
@@ -151,6 +156,10 @@ TRANSACTIONS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
     pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
     pc_cols.BROKER: ("BROKER", "BRKR", "BROKER_CODE"),
+    pc_cols.ORIGINAL_COST: (
+        "ORIGINAL_COST",
+        "ORIG_COST",
+    ),
 }
 
 HOLDINGS_REQUIRED_ALIASES: Final[ColumnAliases] = {

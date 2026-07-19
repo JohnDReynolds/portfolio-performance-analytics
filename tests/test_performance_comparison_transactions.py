@@ -1,6 +1,7 @@
 """Tests for loading normalized transaction comparison sources."""
 
 # Python imports
+import datetime as dt
 from pathlib import Path
 import tempfile
 import unittest
@@ -84,10 +85,15 @@ def _write_yaml(directory: Path, contents: object) -> Path:
     return path
 
 
-def _write_extract_contract(directory: Path, required_columns: list[str]) -> Path:
+def _write_extract_contract(
+    directory: Path,
+    required_columns: list[str],
+    *,
+    version: int | None = None,
+) -> Path:
     """Write a minimal site extract contract and return the path."""
     contract_path = directory / "site_extract_contract.yaml"
-    contract = {
+    contract: dict[str, object] = {
         "datasets": {
             "transactions.csv": {
                 "columns": {
@@ -100,6 +106,8 @@ def _write_extract_contract(directory: Path, required_columns: list[str]) -> Pat
             }
         }
     }
+    if version is not None:
+        contract["version"] = version
     contract_path.write_text(yaml.safe_dump(contract), encoding="utf-8")
     return contract_path
 
@@ -270,6 +278,35 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(target_row[pc_cols.QUANTITY], 200.0)
         self.assertEqual(target_row[pc_cols.BROKER], "INIT")
 
+    def test_original_cost_aliases_load_as_typed_optional_evidence(self) -> None:
+        """Original-cost aliases normalize to numeric amount and date fields."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["ABC"],
+                        "TRANSACTION_DATE": ["2025-01-15"],
+                        "TRAN": ["by"],
+                        "ORIG_COST_DATE": ["2020-04-03"],
+                        "ORIG_COST": [0.0],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+
+            frame = TransactionsLoader(AuditSpecification(path)).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+        self.assertEqual(row[pc_cols.ORIGINAL_COST_DATE], dt.date(2020, 4, 3))
+        self.assertEqual(row[pc_cols.ORIGINAL_COST], 0.0)
+
     def test_conflicting_transaction_base_currency_raises_error_504(self) -> None:
         """Transaction currency cannot contradict its portfolio currency."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -350,6 +387,10 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(transaction_category_from_code("cs"), "unknown")
         self.assertEqual(transaction_category_from_code("SELL"), "sell")
         self.assertEqual(transaction_category_from_code("not-a-real-code"), "unknown")
+        self.assertEqual(
+            transaction_category_from_code("BY", exact_case=True),
+            "unknown",
+        )
 
     def test_fixed_income_transaction_boundary_is_modified_dietz_scoped(self) -> None:
         """Fixed-income helper names safe formula inputs and blocked backlog codes."""
@@ -376,6 +417,10 @@ class TestTransactionsLoader(unittest.TestCase):
         )
         self.assertIn("amortization/accretion engine", FIXED_INCOME_OUT_OF_SCOPE)
         self.assertIn("yield calculation", FIXED_INCOME_OUT_OF_SCOPE)
+        self.assertEqual(
+            fixed_income_transaction_boundary("IN", exact_case=True),
+            "not_fixed_income_boundary",
+        )
 
     def test_high_risk_backlog_gates_are_code_only_boundaries(self) -> None:
         """Capital-return and short-side codes stay gated without context."""
@@ -395,6 +440,10 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertIn("cost-basis or principal context", CAPITAL_RETURN_REQUIRED_EVIDENCE)
         self.assertIn("short security type", SHORT_SIDE_REQUIRED_EVIDENCE)
         self.assertIn("amount and quantity signs", SHORT_SIDE_REQUIRED_EVIDENCE)
+        self.assertEqual(
+            transaction_backlog_gate("RC", exact_case=True),
+            "not_backlog_gate",
+        )
 
     def test_transaction_sign_semantics_use_documented_vocabulary(self) -> None:
         """Transaction sign semantics normalize only recognized source labels."""
@@ -1014,6 +1063,28 @@ class TestTransactionsLoader(unittest.TestCase):
                 row[pc_cols.PERFORMANCE_FLOW_SIGN],
             )
         self.assertEqual(actual_rows, expected_rows)
+
+    def test_site_variant_exact_case_rules_keep_codes_distinct(self) -> None:
+        """The focused site fixture proves exact code and context matching."""
+        path = _SITE_VARIANT_FIXTURES_PATH / "exact_case_rules" / "ppar_audit.yaml"
+        frame = TransactionsLoader(AuditSpecification(path)).load("a")
+        assert frame is not None
+
+        rows = frame.sort(pc_cols.SECURITY_ID).to_dicts()
+        self.assertEqual(
+            [row[pc_cols.TRANSACTION_CODE] for row in rows],
+            ["by", "BY"],
+        )
+        self.assertEqual(
+            [row[pc_cols.TRANSACTION_CATEGORY] for row in rows],
+            [TRANSACTION_CATEGORY_BUY, TRANSACTION_CATEGORY_SELL],
+        )
+        self.assertEqual(
+            validate_config(path, require_complete_yaml_setup=False)[
+                "transaction_codes_without_yaml_rules"
+            ],
+            "none",
+        )
 
     def test_site_variant_fixed_income_accruals_use_explicit_rules(self) -> None:
         """Fixed-income accrued-interest codes stay YAML-scoped, not built-in."""
@@ -1843,6 +1914,214 @@ class TestTransactionsLoader(unittest.TestCase):
                 row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
                 TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
+
+    def test_legacy_transaction_rules_remain_case_insensitive(self) -> None:
+        """Omitted case policy preserves existing rule-key and context matching."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "when": {"security_type": "csus"},
+                    "transaction_category": "fee_expense",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["SEC1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["BY"],
+                        "SEC_TYPE": ["CSUS"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            frame = TransactionsLoader(AuditSpecification(path)).load("a")
+            assert frame is not None
+
+            row = frame.row(0, named=True)
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_CATEGORY],
+                TRANSACTION_CATEGORY_FEE_EXPENSE,
+            )
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+            )
+
+    def test_exact_case_rules_distinguish_codes_and_context_values(self) -> None:
+        """A versioned contract may give lowercase and uppercase codes distinct roles."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(directory, ["SEC_TYPE"], version=1)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "transaction_semantics_case": "exact",
+            }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "when": {"security_type": "csus"},
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                },
+                "BY": {
+                    "when": {"security_type": "CSUS"},
+                    "transaction_category": "sell",
+                    "cash_flow_sign": "positive",
+                    "performance_flow_sign": "performance",
+                },
+            }
+            transaction_rows = {
+                "PORT": ["P1", "P1"],
+                "SEC": ["LOWER", "UPPER"],
+                "TRANSACTION_DATE": ["2025-01-30", "2025-01-31"],
+                "TRAN": ["by", "BY"],
+                "SEC_TYPE": ["csus", "CSUS"],
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(transaction_rows).write_csv(
+                    directory / snapshot_name / "transactions.csv"
+                )
+            path = _write_yaml(directory, configuration)
+            frame = TransactionsLoader(AuditSpecification(path)).load("a")
+            assert frame is not None
+
+            rows = frame.sort(pc_cols.SECURITY_ID).to_dicts()
+            self.assertEqual(
+                [row[pc_cols.TRANSACTION_CODE] for row in rows],
+                ["by", "BY"],
+            )
+            self.assertEqual(
+                [row[pc_cols.TRANSACTION_CATEGORY] for row in rows],
+                [TRANSACTION_CATEGORY_BUY, TRANSACTION_CATEGORY_SELL],
+            )
+            self.assertEqual(
+                validate_config(path, require_complete_yaml_setup=False)[
+                    "transaction_codes_without_yaml_rules"
+                ],
+                "none",
+            )
+
+    def test_exact_case_does_not_inherit_lowercase_semantics(self) -> None:
+        """An ordinary uppercase code remains unknown without an exact site rule."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(directory, ["SEC_TYPE"], version=1)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "transaction_semantics_case": "exact",
+            }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "when": {"security_type": "csus"},
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["SEC1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["BY"],
+                        "SEC_TYPE": ["CSUS"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "transaction_code=BY"):
+                TransactionsLoader(AuditSpecification(path)).load("a")
+
+    def test_exact_case_requires_matching_context_case(self) -> None:
+        """Exact mode does not fold native transaction context identifiers."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(directory, ["SEC_TYPE"], version=1)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "transaction_semantics_case": "exact",
+            }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "when": {"security_type": "csus"},
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["SEC1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["by"],
+                        "SEC_TYPE": ["CSUS"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "security_type=CSUS"):
+                TransactionsLoader(AuditSpecification(path)).load("a")
+
+    def test_exact_case_requires_versioned_extract_contract(self) -> None:
+        """Exact transaction semantics fail closed for an unversioned contract."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(directory, ["SEC_TYPE"])
+            configuration = _minimal_specification(directory)
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "transaction_semantics_case": "exact",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "exact transaction semantics require a positive integer contract version",
+            ):
+                validate_config(path, require_complete_yaml_setup=False)
+
+    def test_invalid_transaction_semantics_case_fails_closed(self) -> None:
+        """Unknown extract-contract case policy is rejected."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["extract_contract"] = {
+                "transaction_semantics_case": "sometimes",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "transaction_semantics_case must be one of",
+            ):
+                validate_config(path, require_complete_yaml_setup=False)
 
     def test_validate_config_rejects_extract_contract_without_transactions(self) -> None:
         """A local extract contract must define transaction columns."""

@@ -9,6 +9,7 @@
 # with the comparison YAML vocabulary: transaction_category, cash_flow_sign, and
 # performance_flow_sign. Source semantics can mark dp/li/lo/ti/wd rows as
 # external, performance-impacting, neutral transfer, or unknown pending review.
+version: 1
 datasets:
   transactions.csv:
     columns:

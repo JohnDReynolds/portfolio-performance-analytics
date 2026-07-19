@@ -310,6 +310,7 @@ rate-selection method.
 `transactions` useful optional columns:
 
 - `transaction_id`
+- `original_cost_date`
 - `settlement_date`
 - `transaction_code`
 - `transaction_category`
@@ -319,8 +320,18 @@ rate-selection method.
 - `price`
 - `amount`
 - `commission`
+- `original_cost`
 - `currency`
 - `broker`
+
+`original_cost` and `original_cost_date` are normalized source evidence. They
+remain optional for existing configurations and do not enter performance
+comparison calculations. When the opt-in
+`deliver_in_original_cost_incomplete` Data Issues check is enabled, both fields
+must be available in each snapshot so absence can be distinguished from an
+extract that never supplied the columns. The check treats numeric zero as a
+supplied cost, reports incomplete evidence through the established Data Issues
+schema, and does not infer cost basis or a source-system fallback.
 
 Changed `commission` values are useful review evidence for fee, net amount, and
 accounting-treatment differences. By default they remain context evidence. When
@@ -363,9 +374,14 @@ normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
 `corporate_action`. The normalized category is an explanation label and a rule
 selector; it does not replace the source transaction code in the audit trail.
 Transaction-code normalization is limited to semantic classification and
-rule-coverage checks. It is not a broad case-insensitive comparison policy for
-source identifiers; reviewer handoff artifacts preserve native transaction-code
-case.
+rule-coverage checks for legacy configurations. A versioned site extract contract
+may set `extract_contract.transaction_semantics_case: exact`; transaction-rule
+keys and native `when` values then match stripped source text by exact case,
+compatibility inference from code alone is disabled, and unmatched uppercase
+codes remain unknown. Omitting the setting preserves the established
+case-insensitive behavior of existing valid configurations. Neither mode assigns
+cancellation meaning to uppercase codes. Reviewer handoff artifacts preserve
+native transaction-code case.
 
 `cash_flow_sign` and `performance_flow_sign` are optional source-supplied
 semantics. They should not be inferred from transaction code in the first pass.

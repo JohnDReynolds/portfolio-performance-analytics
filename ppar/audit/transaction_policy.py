@@ -68,6 +68,28 @@ def transaction_boundary_codes(group: str) -> frozenset[str]:
     return registry[group]
 
 
+def transaction_code_matching_key(
+    value: object,
+    *,
+    exact_case: bool = False,
+) -> str:
+    """Return a transaction-code comparison key without inventing semantics.
+
+    Args:
+        value: Native source transaction code.
+        exact_case: Preserve source case when ``True``; otherwise retain the
+            legacy lowercase comparison behavior.
+
+    Returns:
+        Stripped exact-case or legacy lowercase code. Missing values return an
+        empty string.
+    """
+    if value is None:
+        return ""
+    code = str(value).strip()
+    return code if exact_case else code.lower()
+
+
 @cache
 def _loaded_policy() -> tuple[
     Mapping[str, Mapping[str, str]],

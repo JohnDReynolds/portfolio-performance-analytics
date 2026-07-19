@@ -191,8 +191,13 @@ _TRANSACTION_SOURCE_COLUMNS: Final = [
     "CURRENCY",
     "BASE_CURRENCY",
 ]
+_TRANSACTION_COMPLETENESS_COLUMNS: Final = [
+    "ORIGINAL_COST_DATE",
+    "ORIGINAL_COST",
+]
 _PACKAGED_TRANSACTION_COLUMNS: Final = [
     *_TRANSACTION_SOURCE_COLUMNS,
+    *_TRANSACTION_COMPLETENESS_COLUMNS,
     *_TRANSACTION_NUMERIC_COLUMNS,
 ]
 _TRANSACTION_SCENARIO_COLUMNS: Final = [
@@ -1598,6 +1603,10 @@ def _with_demo_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
         rows["BASE_CURRENCY"] = "USD"
     if "BASE_AMOUNT" not in rows.columns:
         rows["BASE_AMOUNT"] = rows["AMOUNT"]
+    if "ORIGINAL_COST_DATE" not in rows.columns:
+        rows["ORIGINAL_COST_DATE"] = ""
+    if "ORIGINAL_COST" not in rows.columns:
+        rows["ORIGINAL_COST"] = pd.NA
 
     examples = [
         {

@@ -727,6 +727,10 @@ def _report_bundle_transaction_semantics(
     if comparison_path is None:
         return transaction_semantics_summary([active_findings])
     specification = AuditSpecification(comparison_path)
+    exact_case = _pc_extract_contract.transaction_semantics_exact_case(
+        specification.values,
+        specification_path=specification.path,
+    )
     loader = TransactionsLoader(specification)
     snapshot_keys: tuple[SnapshotKey, SnapshotKey] = ("a", "b")
     frames = [
@@ -736,7 +740,11 @@ def _report_bundle_transaction_semantics(
     ]
     return transaction_semantics_summary(
         frames,
-        rule_codes=transaction_rule_codes(specification.values),
+        rule_codes=transaction_rule_codes(
+            specification.values,
+            exact_case=exact_case,
+        ),
+        exact_case=exact_case,
     )
 
 

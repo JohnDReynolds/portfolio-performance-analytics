@@ -10,12 +10,14 @@ import polars as pl
 
 # Project imports
 from ppar.audit import schema as _pc_cols
+from ppar.audit.transaction_policy import transaction_code_matching_key
 
 
 def transaction_semantics_summary(
     frames: Iterable[pl.DataFrame],
     *,
     rule_codes: set[str] | None = None,
+    exact_case: bool = False,
 ) -> dict[str, object]:
     """Return structured transaction semantics summary metadata.
 
@@ -23,6 +25,8 @@ def transaction_semantics_summary(
         frames: Transaction-like DataFrames with normalized transaction columns.
         rule_codes: Optional normalized transaction-code rules configured in
             YAML.
+        exact_case: Compare observed codes to YAML keys by exact native case
+            instead of using the legacy case-insensitive key.
 
     Returns:
         JSON-serializable transaction summary fields.
@@ -47,7 +51,12 @@ def transaction_semantics_summary(
         {
             code
             for code in observed_codes
-            if normalized_transaction_code(code) not in rule_codes
+            if (
+                transaction_code_matching_key(code, exact_case=True)
+                if exact_case
+                else normalized_transaction_code(code)
+            )
+            not in rule_codes
         }
         if rule_codes is not None
         else set()
@@ -85,7 +94,11 @@ def native_transaction_codes(frame: pl.DataFrame) -> set[str]:
     return codes
 
 
-def transaction_rule_codes(values: Mapping[str, object]) -> set[str]:
+def transaction_rule_codes(
+    values: Mapping[str, object],
+    *,
+    exact_case: bool = False,
+) -> set[str]:
     """Return normalized transaction code keys configured in YAML rules."""
     rules_value = values.get("transaction_rules", {})
     if not isinstance(rules_value, dict):
@@ -93,7 +106,13 @@ def transaction_rule_codes(values: Mapping[str, object]) -> set[str]:
     return {
         code
         for raw_code in rules_value
-        if (code := normalized_transaction_code(raw_code))
+        if (
+            code := (
+                transaction_code_matching_key(raw_code, exact_case=True)
+                if exact_case
+                else normalized_transaction_code(raw_code)
+            )
+        )
     }
 
 

@@ -430,6 +430,15 @@ transaction_impact_methods:
                         }
                     ],
                 },
+                "deliver_in_original_cost_incomplete": {
+                    "enabled": True,
+                    "only": {
+                        "transaction_code": ["ti", "si"],
+                        "security_type": "csus",
+                        "source_destination_type": "$pty",
+                        "source_destination_symbol": "external_delivery",
+                    },
+                },
             }
             configuration["data_issues"] = data_issues
             path = _write_yaml(directory, configuration)
@@ -769,6 +778,38 @@ transaction_impact_methods:
                     }
                 },
                 "data_issues.transaction_security_type_mismatch has unsupported "
+                "keys: absolute_tolerance",
+            ),
+            (
+                {"deliver_in_original_cost_incomplete": {"enabled": True}},
+                "data_issues.deliver_in_original_cost_incomplete.only must be a "
+                "nonempty mapping when data_issues.deliver_in_original_cost_"
+                "incomplete.enabled is true",
+            ),
+            (
+                {
+                    "deliver_in_original_cost_incomplete": {
+                        "enabled": True,
+                        "only": {"transaction_code": "ti"},
+                    }
+                },
+                "data_issues.deliver_in_original_cost_incomplete.only must include "
+                "security_type, source_destination_symbol, source_destination_type",
+            ),
+            (
+                {
+                    "deliver_in_original_cost_incomplete": {
+                        "enabled": True,
+                        "only": {
+                            "transaction_code": "ti",
+                            "security_type": "csus",
+                            "source_destination_type": "$pty",
+                            "source_destination_symbol": "external_delivery",
+                        },
+                        "absolute_tolerance": 0,
+                    }
+                },
+                "data_issues.deliver_in_original_cost_incomplete has unsupported "
                 "keys: absolute_tolerance",
             ),
             (

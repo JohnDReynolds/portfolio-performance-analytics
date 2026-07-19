@@ -184,6 +184,13 @@ files:
   fx_rates: fx_rates.csv
   splits: splits.csv
 
+# The packaged source contract is versioned and the demo rules intentionally
+# match transaction codes and native context identifiers by exact case. Existing
+# site configurations that omit this setting retain legacy case-insensitive
+# semantics until their source contract is reviewed and versioned.
+extract_contract:
+  transaction_semantics_case: exact
+
 data_issues:
   # Purpose:
   #   Writes the "Data Issues" worksheet. These checks are independent
@@ -304,6 +311,18 @@ data_issues:
       security_id:
         - KO
       security_reference.security_type: csus
+
+  deliver_in_original_cost_incomplete:
+    # Reviews original-cost completeness only for the explicitly configured,
+    # context-qualified ti deliver-in population. It does not classify ti from
+    # code alone, calculate cost basis, or conclude that Axys used a fallback.
+    # The fixed condition accepts no tolerance settings.
+    enabled: true
+    only:
+      transactions.transaction_code: ti
+      transactions.security_type: csus
+      transactions.source_destination_type: $pty
+      transactions.source_destination_symbol: external_delivery
 
   duplicate_transactions:
     # Checks exact duplicate transaction rows. This is a simple source-data

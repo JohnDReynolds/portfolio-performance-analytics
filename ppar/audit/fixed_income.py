@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Final
 
-from ppar.audit.transaction_policy import transaction_boundary_codes
+from ppar.audit.transaction_policy import (
+    transaction_boundary_codes,
+    transaction_code_matching_key,
+)
 
 FIXED_INCOME_SAFE_TRANSACTION_CODES: Final[frozenset[str]] = (
     transaction_boundary_codes("fixed_income_safe")
@@ -28,11 +31,17 @@ FIXED_INCOME_OUT_OF_SCOPE: Final[tuple[str, ...]] = (
 )
 
 
-def fixed_income_transaction_boundary(code: object) -> str:
+def fixed_income_transaction_boundary(
+    code: object,
+    *,
+    exact_case: bool = False,
+) -> str:
     """Return fixed-income boundary treatment for one transaction code.
 
     Args:
         code: Source transaction code.
+        exact_case: Preserve native case instead of using legacy lowercase
+            boundary matching.
 
     Returns:
         ``"safe_income"`` for ordinary interest rows,
@@ -40,7 +49,7 @@ def fixed_income_transaction_boundary(code: object) -> str:
         interest adjuncts, ``"backlog"`` for fixed-income rows that still need
         more evidence, and ``"not_fixed_income_boundary"`` otherwise.
     """
-    normalized = "" if code is None else str(code).strip().lower()
+    normalized = transaction_code_matching_key(code, exact_case=exact_case)
     if normalized in FIXED_INCOME_SAFE_TRANSACTION_CODES:
         return "safe_income"
     if normalized in FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES:

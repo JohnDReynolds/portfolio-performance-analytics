@@ -7,6 +7,7 @@ from typing import Final
 from ppar.audit.transaction_policy import (
     transaction_boundary_codes,
     transaction_boundary_registry,
+    transaction_code_matching_key,
 )
 
 PACKAGED_FORMULA_TRANSACTION_CODES: Final[frozenset[str]] = (
@@ -31,17 +32,23 @@ STANDALONE_BACKLOG_TRANSACTION_CODES: Final[frozenset[str]] = (
 TRANSACTION_BOUNDARY_REGISTRY: Final = transaction_boundary_registry()
 
 
-def transaction_boundary_groups(code: object) -> tuple[str, ...]:
+def transaction_boundary_groups(
+    code: object,
+    *,
+    exact_case: bool = False,
+) -> tuple[str, ...]:
     """Return boundary groups containing one transaction code.
 
     Args:
         code: Source transaction code.
+        exact_case: Preserve native case instead of using legacy lowercase
+            boundary matching.
 
     Returns:
         Boundary group names containing the normalized code. Unknown, blank, and
         unregistered codes return an empty tuple.
     """
-    normalized = "" if code is None else str(code).strip().lower()
+    normalized = transaction_code_matching_key(code, exact_case=exact_case)
     if not normalized:
         return ()
     return tuple(

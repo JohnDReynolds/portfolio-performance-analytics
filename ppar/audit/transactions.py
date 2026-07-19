@@ -22,6 +22,7 @@ from ppar.audit import schema as pc_cols
 from ppar.audit.base_currency import with_authoritative_base_currency
 from ppar.audit.currency_basis import normalize_currency_columns
 from ppar.audit.extract_contract import (
+    transaction_semantics_exact_case,
     validate_transaction_extract_contract,
 )
 from ppar.audit import source_loader
@@ -30,7 +31,10 @@ from ppar.audit.portfolio_performance import (
     SnapshotKey,
 )
 from ppar.audit.specification import AuditSpecification
-from ppar.audit.transaction_policy import default_transaction_rules
+from ppar.audit.transaction_policy import (
+    default_transaction_rules,
+    transaction_code_matching_key,
+)
 import ppar.utilities as util
 
 __all__ = [
@@ -222,17 +226,26 @@ def normalize_transaction_category(value: object) -> str:
     return _CATEGORY_NORMALIZATION.get(normalized_value, TRANSACTION_CATEGORY_UNKNOWN)
 
 
-def transaction_category_from_code(value: object) -> str:
+def transaction_category_from_code(
+    value: object,
+    *,
+    exact_case: bool = False,
+) -> str:
     """Return a normalized transaction category inferred from a transaction code.
 
     Args:
         value: Source transaction code value.
+        exact_case: Disable compatibility inference when exact native-case
+            semantics are required. Exact-mode meanings must come from an
+            explicit site YAML rule or recognized source semantics.
 
     Returns:
         One of the normalized transaction category labels. Unknown, blank, and
         missing values return ``"unknown"``.
     """
     if value is None:
+        return TRANSACTION_CATEGORY_UNKNOWN
+    if exact_case:
         return TRANSACTION_CATEGORY_UNKNOWN
     normalized_value = str(value).strip().upper()
     if not normalized_value:
@@ -367,7 +380,11 @@ class TransactionsLoader:
         )
         date_columns = [
             column
-            for column in (pc_cols.TRANSACTION_DATE, pc_cols.SETTLEMENT_DATE)
+            for column in (
+                pc_cols.TRANSACTION_DATE,
+                pc_cols.SETTLEMENT_DATE,
+                pc_cols.ORIGINAL_COST_DATE,
+            )
             if column in frame.columns
         ]
         frame = frame.with_columns(
@@ -381,14 +398,22 @@ class TransactionsLoader:
                 pc_cols.AMOUNT,
                 pc_cols.BASE_AMOUNT,
                 pc_cols.COMMISSION,
+                pc_cols.ORIGINAL_COST,
             ),
             dataset_name=pc_cols.TRANSACTIONS,
             path=path,
             specification_path=self._specification.path,
         )
+        exact_case = transaction_semantics_exact_case(
+            self._specification.values,
+            specification_path=self._specification.path,
+        )
         frame = _with_transaction_rules(
-            _with_transaction_semantics(_with_transaction_category(frame)),
-            self._transaction_rules(),
+            _with_transaction_semantics(
+                _with_transaction_category(frame, exact_case=exact_case)
+            ),
+            self._transaction_rules(exact_case=exact_case),
+            exact_case=exact_case,
         )
         _validate_transaction_semantics(
             frame,
@@ -412,7 +437,11 @@ class TransactionsLoader:
             frame,
         )
 
-    def _transaction_rules(self) -> dict[str, tuple[_TransactionRule, ...]]:
+    def _transaction_rules(
+        self,
+        *,
+        exact_case: bool,
+    ) -> dict[str, tuple[_TransactionRule, ...]]:
         """Return normalized YAML transaction rules keyed by transaction code."""
         rules_value = self._specification.values.get(_TRANSACTION_RULES_KEY, {})
         if not isinstance(rules_value, dict):
@@ -429,7 +458,19 @@ class TransactionsLoader:
                     504,
                 )
             try:
-                rules[raw_code.strip().upper()] = _normalized_transaction_rules(raw_rule)
+                code = transaction_code_matching_key(
+                    raw_code,
+                    exact_case=exact_case,
+                )
+                if exact_case and code in rules:
+                    raise ValueError(
+                        "collides with another transaction rule after whitespace "
+                        "normalization."
+                    )
+                rules[code] = _normalized_transaction_rules(
+                    raw_rule,
+                    exact_case=exact_case,
+                )
             except ValueError as error:
                 raise PpaError(
                     (
@@ -441,7 +482,11 @@ class TransactionsLoader:
         return rules
 
 
-def _with_transaction_category(frame: pl.DataFrame) -> pl.DataFrame:
+def _with_transaction_category(
+    frame: pl.DataFrame,
+    *,
+    exact_case: bool,
+) -> pl.DataFrame:
     """Return transaction rows with a normalized transaction category column."""
     if pc_cols.TRANSACTION_CATEGORY in frame.columns:
         return frame.with_columns(
@@ -452,7 +497,13 @@ def _with_transaction_category(frame: pl.DataFrame) -> pl.DataFrame:
     if pc_cols.TRANSACTION_CODE in frame.columns:
         return frame.with_columns(
             pl.col(pc_cols.TRANSACTION_CODE)
-            .map_elements(transaction_category_from_code, return_dtype=pl.String)
+            .map_elements(
+                lambda value: transaction_category_from_code(
+                    value,
+                    exact_case=exact_case,
+                ),
+                return_dtype=pl.String,
+            )
             .alias(pc_cols.TRANSACTION_CATEGORY),
         )
     return frame.with_columns(
@@ -486,6 +537,8 @@ def _with_transaction_semantics(frame: pl.DataFrame) -> pl.DataFrame:
 def _with_transaction_rules(
     frame: pl.DataFrame,
     rules: dict[str, tuple[_TransactionRule, ...]],
+    *,
+    exact_case: bool,
 ) -> pl.DataFrame:
     """Return transaction rows with matching YAML semantics applied."""
     if pc_cols.CASH_FLOW_SIGN not in frame.columns:
@@ -512,7 +565,10 @@ def _with_transaction_rules(
         ]
         return pl.DataFrame(rows).select(frame.columns)
 
-    rows = [_row_with_transaction_rule(row, rules) for row in frame.iter_rows(named=True)]
+    rows = [
+        _row_with_transaction_rule(row, rules, exact_case=exact_case)
+        for row in frame.iter_rows(named=True)
+    ]
     return pl.DataFrame(rows).select(frame.columns)
 
 
@@ -576,13 +632,16 @@ def _transaction_semantics_error_samples(frame: pl.DataFrame) -> str:
 def _row_with_transaction_rule(
     row: dict[str, object],
     rules: dict[str, tuple[_TransactionRule, ...]],
+    *,
+    exact_case: bool,
 ) -> dict[str, object]:
     """Return one transaction row with matching YAML rule values applied."""
     original_row = dict(row)
     raw_code = row.get(pc_cols.TRANSACTION_CODE)
     if raw_code is None:
         return _row_with_transaction_semantics_source(dict(row), False, original_row)
-    rule = _matching_transaction_rule(row, rules.get(str(raw_code).strip().upper()))
+    code = transaction_code_matching_key(raw_code, exact_case=exact_case)
+    rule = _matching_transaction_rule(row, rules.get(code), exact_case=exact_case)
     if rule is None:
         return _row_with_transaction_semantics_source(dict(row), False, original_row)
 
@@ -679,12 +738,14 @@ def _recognized_performance_flow_sign(value: object) -> bool:
 def _matching_transaction_rule(
     row: Mapping[str, object],
     rules: tuple[_TransactionRule, ...] | None,
+    *,
+    exact_case: bool,
 ) -> _TransactionRule | None:
     """Return the first YAML rule whose conditions match one transaction row."""
     if rules is None:
         return None
     for rule in rules:
-        if _transaction_rule_matches(row, rule):
+        if _transaction_rule_matches(row, rule, exact_case=exact_case):
             return rule
     return None
 
@@ -692,16 +753,28 @@ def _matching_transaction_rule(
 def _transaction_rule_matches(
     row: Mapping[str, object],
     rule: _TransactionRule,
+    *,
+    exact_case: bool,
 ) -> bool:
     """Return whether all normalized YAML ``when`` conditions match a row."""
     for column, expected_value in rule.when.items():
         actual_value = row.get(column)
-        if _normalized_transaction_rule_condition(actual_value) != expected_value:
+        if (
+            _normalized_transaction_rule_condition(
+                actual_value,
+                exact_case=exact_case,
+            )
+            != expected_value
+        ):
             return False
     return True
 
 
-def _normalized_transaction_rules(raw_rule: object) -> tuple[_TransactionRule, ...]:
+def _normalized_transaction_rules(
+    raw_rule: object,
+    *,
+    exact_case: bool,
+) -> tuple[_TransactionRule, ...]:
     """Return normalized YAML transaction semantics rules for one code."""
     if isinstance(raw_rule, list):
         rules = raw_rule
@@ -717,14 +790,21 @@ def _normalized_transaction_rules(raw_rule: object) -> tuple[_TransactionRule, .
     for rule in rules:
         if not isinstance(rule, dict):
             raise ValueError("must contain mapping rules.")
-        normalized_rules.append(_normalized_transaction_rule(rule))
+        normalized_rules.append(
+            _normalized_transaction_rule(rule, exact_case=exact_case)
+        )
     return tuple(normalized_rules)
 
 
-def _normalized_transaction_rule(rule: Mapping[str, object]) -> _TransactionRule:
+def _normalized_transaction_rule(
+    rule: Mapping[str, object],
+    *,
+    exact_case: bool,
+) -> _TransactionRule:
     """Return one normalized YAML transaction semantics rule."""
     when = _normalized_transaction_rule_conditions(
-        rule.get(_TRANSACTION_RULE_WHEN_KEY, {})
+        rule.get(_TRANSACTION_RULE_WHEN_KEY, {}),
+        exact_case=exact_case,
     )
     values = {
         pc_cols.TRANSACTION_CATEGORY: normalize_transaction_category(
@@ -740,7 +820,11 @@ def _normalized_transaction_rule(rule: Mapping[str, object]) -> _TransactionRule
     return _TransactionRule(when=when, values=values)
 
 
-def _normalized_transaction_rule_conditions(raw_conditions: object) -> dict[str, str]:
+def _normalized_transaction_rule_conditions(
+    raw_conditions: object,
+    *,
+    exact_case: bool,
+) -> dict[str, str]:
     """Return normalized YAML transaction rule conditions."""
     if raw_conditions in (None, ""):
         return {}
@@ -757,15 +841,23 @@ def _normalized_transaction_rule_conditions(raw_conditions: object) -> dict[str,
                 "when keys must be normalized transaction column names; "
                 f"unsupported key {column!r}."
             )
-        conditions[column] = _normalized_transaction_rule_condition(raw_value)
+        conditions[column] = _normalized_transaction_rule_condition(
+            raw_value,
+            exact_case=exact_case,
+        )
     return conditions
 
 
-def _normalized_transaction_rule_condition(value: object) -> str:
+def _normalized_transaction_rule_condition(
+    value: object,
+    *,
+    exact_case: bool,
+) -> str:
     """Return normalized scalar value used for conditional rule matching."""
     if value is None:
         return ""
-    return str(value).strip().lower()
+    condition = str(value).strip()
+    return condition if exact_case else condition.lower()
 
 
 def _normalize_transaction_semantic_label(
