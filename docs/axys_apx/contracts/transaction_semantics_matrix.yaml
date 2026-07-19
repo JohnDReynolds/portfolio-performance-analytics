@@ -7,6 +7,7 @@ coverage_statuses:
   covered_packaged_demo: Covered by packaged demo data and tests.
   covered_site_variant: Covered by site-variant fixtures and tests.
   covered_context_only: Covered as context for another transaction code.
+  covered_regression_test: Covered by a focused safety regression.
   backlog: Documented backlog; no dedicated fixture yet.
   partial: Partially documented or tested, but not fully covered.
 required_matrix_codes:
@@ -68,7 +69,7 @@ rows:
     rep_confidence: medium
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo]
-    coverage_notes: Packaged demo includes normal buy rows; reinvestment-pair coverage remains backlog under pair_patterns.dv_by_reinvestment.
+    coverage_notes: Packaged demo includes normal buy rows and a matched dv/by reinvestment pair that remains performance activity rather than an investor external flow.
   sl:
     observed_meaning: Sell; positive closure leg.
     ppar_categories: [sell]
@@ -112,7 +113,7 @@ rows:
     rep_confidence: medium
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo]
-    coverage_notes: Packaged demo includes ordinary dividend income rows; paired dividend-reinvestment coverage remains backlog under pair_patterns.dv_by_reinvestment.
+    coverage_notes: Packaged demo includes ordinary dividend income rows and a matched dv/by reinvestment pair with one dividend-income amount and no investor external flow.
   in:
     observed_meaning: Income, interest, cash-security dividend/income.
     ppar_categories: [income]
@@ -195,12 +196,12 @@ rows:
     ppar_categories: [external_flow, transfer]
     cash_flow_signs: [positive, none]
     performance_flow_signs: [external, neutral]
-    required_evidence: [source_workflow, source_destination_type, source_destination_symbol, security_type, quantity, amount, original_cost, original_cost_date, local_mapping]
+    required_evidence: [source_workflow, source_destination_type, source_destination_symbol, security_type, quantity, amount, local_mapping]
     imex_confidence: low_medium
     rep_confidence: medium_high_for_cited_workflow
     coverage_status: partial
     fixtures: [packaged_demo]
-    coverage_notes: Packaged demo covers one site-scoped external-security deliver-in using explicit external-party and security context. Its blank original-cost amount and date drive the separately opt-in completeness finding without changing performance treatment. Code-only ti remains unknown; internal-transfer treatment requires separate local evidence.
+    coverage_notes: Packaged demo covers one site-scoped external-security deliver-in using explicit external-party and security context. Original-cost completeness is a separately opt-in source-evidence check covered by focused tests; its optional inputs are deliberately absent from the primary demo. Code-only ti remains unknown; internal-transfer treatment requires separate local evidence.
   lo:
     observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
     ppar_categories: [external_flow, transfer]
@@ -268,6 +269,11 @@ rows:
     fixtures: [packaged_demo, site_variants/imex_context]
     coverage_notes: Covered only as special-security context for dp fee examples; standalone transaction-code treatment remains unproven.
 pair_patterns:
+  uppercase_trade_blotter_cancellation:
+    codes: [BY, SL, SS, CS]
+    ppar_treatment: unknown_pending_review_without_explicit_source_stage
+    coverage_status: covered_regression_test
+    coverage_notes: Exact-case regression proves an unsupported uppercase code cannot inherit lowercase semantics or reach performance-cause generation. Trade Blotter source-stage product support remains deferred because ordinary posted-export availability is unproven.
   dp_wd:
     codes: [dp, wd]
     ppar_treatment: transfer_neutral_when_context_proves_internal_sweep

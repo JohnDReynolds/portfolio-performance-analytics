@@ -5,8 +5,8 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.12 |
-| Date | 2026-07-18 |
+| Version | 1.13 |
+| Date | 2026-07-19 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
 | Canonical scope | Product identity, current truth, principles, boundaries, capability status, validation doctrine, claims, and founder decisions |
@@ -16,6 +16,21 @@
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
 
 ## Change Log
+
+### Version 1.13 — 2026-07-19
+
+- Kept Workstream D MVP-blocking while defining its material completion around
+  YAML-driven transaction semantics, coherent Axys/APX scenarios, exact-case
+  behavior, unknown-code fail-closed behavior, and protection against
+  unsupported transaction meanings.
+- Classified the implemented missing-cost check as an optional, non-MVP-blocking
+  Data Issues capability.
+- Deferred APX Custodial Integrator Mark-to-Market validation and a Trade
+  Blotter source-stage product contract until validation-partner evidence shows
+  that PPAR receives those inputs and that the controls provide material value.
+- Retained the current exact-case unknown-code regression as the MVP safety
+  boundary preventing unsupported uppercase meanings from becoming performance
+  causes.
 
 ### Version 1.12 — 2026-07-18
 
@@ -671,7 +686,7 @@ Validation may conclude that PPAR should provide no managed workflow.
 | Executive Summary worksheet | CURRENT — FOUNDER ACCEPTED | Two quantity tables; first XLSX sheet and first HTML section; shared validated truth, no new financial calculation |
 | Data Issues issue-type expansion | SELECTED RULES IMPLEMENTED — FOUNDER REVIEW PENDING | Add only defensible, enumerated checks with evidence, YAML policy, and tests |
 | Cause/issue codification and YAML control | APPROVED DIRECTION and required MVP gap | Stable vocabulary and fail-closed configuration; user policy cannot redefine product arithmetic |
-| Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | Evidence-scoped scenarios, exact-case capability, source contracts, and staging controls must preserve posted-transaction boundaries |
+| Axys/APX transaction semantics and demo coverage | FOUNDER-APPROVED and required MVP gap | YAML-driven semantics, coherent scenarios, exact-case behavior, unknown-code failure, and protection against unsupported meanings must preserve posted-transaction boundaries |
 | Broad Audit Rules Library | Long-term APPROVED DIRECTION | Defer a broad catalog; MVP work is limited to the codification and checks above |
 | Repeated-restatement history | APPROVED DIRECTION but implementation DEFERRED | Requires recurring use, source-state identity, provenance, comparability, and local retention |
 | Audit Health Dashboard and Operational Intelligence | Founder-approved conditional design; implementation DEFERRED | No superficial one-run dashboard, composite score, blame, or cross-client aggregation |
@@ -803,7 +818,12 @@ measured evidence.
     and the evidence-scoped
     Axys/APX transaction-semantics and demo work defined by the active MVP plan.
 18. Workstream D is blocking for MVP completion but remains sequenced after the
-    Executive Summary and first additional issue-type slices.
+    Executive Summary and first additional issue-type slices. Its material MVP
+    scope is YAML-driven transaction semantics, coherent Axys/APX scenarios,
+    exact-case behavior, unknown-code fail-closed behavior, and protection
+    against unsupported transaction meanings. Optional missing-cost evidence and
+    deferred integration-specific source-stage controls do not broaden that
+    scope.
 19. The Executive Summary uses the founder-approved two-table quantity design
     in active MVP-plan Section 5; narrative, links, priority lists, and YAML
     display control are excluded.

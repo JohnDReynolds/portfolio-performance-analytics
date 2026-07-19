@@ -497,6 +497,19 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
 
+    def test_packaged_audit_column_schema_omits_analytics_classifications(self) -> None:
+        """The Audit schema does not advertise unused analytics groupings."""
+        schema = _load_yaml(
+            Path(
+                "ppar/setup_templates/axys_apx_audit/"
+                "axys_apx_column_mappings.yaml"
+            )
+        )
+        defaults = _yaml_mapping(schema["defaults"], label="defaults")
+
+        self.assertNotIn("classification", defaults)
+        self.assertNotIn("mappings", schema)
+
     def test_user_facing_setup_docs_avoid_retired_command_language(self) -> None:
         """Installed-user docs stay aligned with the current setup/report commands."""
         docs_to_check = [
@@ -997,7 +1010,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("**Archived implementation journal.**", archived_roadmap)
 
     def test_audit_mvp_authorities_agree_on_scope_and_sequence(self) -> None:
-        """Current Audit authorities retain one approved MVP boundary and next slice."""
+        """Audit authorities retain one material MVP boundary and release gate."""
         constitution = " ".join(
             Path("docs/audit/product_constitution.md")
             .read_text(encoding=util.ENCODING)
@@ -1022,14 +1035,28 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Founder review of Slice 5B, then Slice 5C APX foreign-currency "
-            "Mark-to-Market context and version-aware validation",
+            "Slice 6 MVP release audit after founder-directed completion of "
+            "Workstream D's material scope",
             audit_roadmap,
         )
         self.assertIn(
-            "Slice 5B — implemented for founder review",
+            "Slice 5 — Exact case and optional missing-cost work — Complete",
             plan,
         )
+        self.assertIn("optional, non-MVP-blocking capability", plan)
+        for required_outcome in (
+            "YAML-driven transaction semantics",
+            "coherent Axys/APX scenarios",
+            "exact-case behavior",
+            "unknown-code fail-closed behavior",
+            "protection against unsupported transaction meanings",
+        ):
+            self.assertIn(required_outcome, constitution)
+            self.assertIn(required_outcome, audit_roadmap)
+        self.assertIn("APX Custodial Integrator Mark-to-Market", plan)
+        self.assertIn("Deferred; no MVP implementation", plan)
+        self.assertNotIn("Slice 5C", plan)
+        self.assertNotIn("Slice 5D", plan)
         self.assertIn(
             "Slice 2 — Executive Summary shared model — Complete",
             plan,
@@ -1040,6 +1067,29 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIn("same commit whenever the number or identity", audit_index)
         self.assertIn("four bounded MVP capabilities", audit_roadmap)
+
+    def test_trade_blotter_boundary_is_a_fail_closed_regression(self) -> None:
+        """The matrix defers source-stage support and records its safety test."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
+        )
+        pair_patterns = _yaml_mapping_rows(
+            matrix_yaml["pair_patterns"],
+            label="pair_patterns",
+        )
+        cancellation = pair_patterns["uppercase_trade_blotter_cancellation"]
+
+        self.assertEqual(
+            cancellation["ppar_treatment"],
+            "unknown_pending_review_without_explicit_source_stage",
+        )
+        self.assertEqual(
+            cancellation["coverage_status"],
+            "covered_regression_test",
+        )
+        notes = str(cancellation["coverage_notes"])
+        self.assertIn("cannot inherit lowercase semantics", notes)
+        self.assertIn("product support remains deferred", notes)
 
     def test_axys_apx_reference_documents_blockers(self) -> None:
         """The Axys/APX reference keeps a single blocker summary discoverable."""

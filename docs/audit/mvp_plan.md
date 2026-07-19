@@ -4,9 +4,9 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — Slice 4 implemented; pre-Slice 5 transaction-policy hardening complete |
-| Version | 1.5 |
-| Date | 2026-07-18 |
+| Status | Active MVP implementation plan — Workstream D material scope implemented; Slice 6 release audit next |
+| Version | 1.6 |
+| Date | 2026-07-19 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Product roadmap | [`roadmap.md`](roadmap.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
@@ -26,8 +26,9 @@ evidence pack, and safety controls plus four additional product capabilities:
 2. additional enumerated **Issue Type** values and checks for `Data Issues`;
 3. stronger codification of causes and issues, with safe, understandable user
    control in YAML; and
-4. required Axys/APX transaction-semantics, exact-case, source-contract, and
-   demo coverage defined in Section 7.
+4. required Axys/APX YAML-driven transaction semantics, coherent scenarios,
+   exact-case behavior, unknown-code failure, and protection against unsupported
+   transaction meanings defined in Section 7.
 
 The MVP is complete only when these capabilities are implemented, tested,
 demonstrated in the packaged Axys/APX scope, documented for users, and preserve
@@ -483,9 +484,28 @@ current-capability scenarios in Section 7.2.
 
 ## 7.1 Target and scope boundary
 
-Every requirement in this section is blocking for MVP completion. The work must
-remain evidence-scoped and must not turn integration-, version-, or
-site-specific behavior into universal Axys/APX semantics.
+The material requirements identified in Sections 7.1 through 7.3 and 7.5 are
+blocking for MVP completion. Section 7.4 explicitly classifies optional and
+deferred evidence that is not blocking. The work must remain evidence-scoped
+and must not turn integration-, version-, or site-specific behavior into
+universal Axys/APX semantics.
+
+Workstream D's material MVP completion is limited to:
+
+- driving transaction categories, signs, and performance treatment from
+  executable YAML policy rather than transaction-code rules hidden in Python;
+- demonstrating coherent Axys/APX transaction, holdings, cash, and reported-
+  performance scenarios;
+- preserving and matching transaction codes and native context using exact case
+  when a versioned source contract requires it;
+- failing closed when a transaction code or required policy remains unknown;
+  and
+- preventing unsupported or merely observed transaction meanings from becoming
+  performance causes.
+
+Evidence about an external integration does not itself create an MVP field,
+dataset, or product feature. Such work remains deferred until PPAR receives that
+input from a validation partner and its material reviewer value is established.
 
 Keep detailed transaction meanings, confidence boundaries, and fixture coverage
 in the canonical Axys/APX sources:
@@ -545,33 +565,35 @@ Therefore:
   must not present uppercase cancellation instructions as extracted posted
   transactions;
 - cancellation instructions must not contribute an additive performance impact;
-- any future example belongs in a separate test-only Trade Blotter,
-  import-control, or audit-lifecycle fixture;
+- PPAR does not need a Trade Blotter fixture while its supported input remains
+  posted-transaction snapshots;
 - cancellation interpretation requires an explicit source-stage or extract
   contract, plus linkage to the original transaction; and
 - an uppercase row in an ordinary posted-transaction extract remains unknown
   unless local evidence establishes its role.
 
-Snapshot transaction matching and reviewer metadata already preserve native
-case. The remaining implementation gap is semantic classification: current
-built-in category inference, YAML rule keys and conditions, coverage summaries,
-and several audit helpers still normalize case. Slice 5 must close that gap
-without changing currency-domain normalization or weakening existing exact-case
-portfolio/security matching.
+Before Slice 5A, snapshot transaction matching and reviewer metadata preserved
+native case, but semantic classification still normalized case in built-in
+category inference, YAML rule keys and conditions, coverage summaries, and
+several audit helpers. Slice 5A closed that gap without changing currency-domain
+normalization or weakening existing exact-case portfolio/security matching. Its
+focused safety regression proves that an uppercase
+`BY` in an ordinary exact-case posted extract does not inherit lowercase `by`
+semantics: source loading stops with an unknown-transaction error before the row
+can become a performance cause. A source-stage cancellation product contract is
+therefore not required for the current MVP.
 
-## 7.4 Required normalized-contract and product work
+## 7.4 Optional and deferred source-contract evidence
 
-| Required capability | Required implementation | Intended reviewer value |
+| Evidence item | MVP posture | Reason |
 |---|---|---|
-| Missing-cost deliver-in | Add normalized original-cost amount/date and, if justified, lot context; then implement a narrowly scoped completeness check. | Detect deliver-ins whose apparently reasonable report value may rely on a trade-date market-value fallback rather than supplied original cost. |
-| APX foreign-currency Mark-to-Market | Add an optional normalized context field and version/site-aware validation. | Surface the documented APX CI v1-v3 versus v4 requiredness difference without treating the field as an additive performance cause. |
-| Trade Blotter cancellation control | Add a distinct staging/control fixture or source-stage contract after exact-case matching exists. | Prove that cancellation instructions are quarantined from posted transaction and performance semantics. |
+| Missing-cost deliver-in | Implemented optional capability; not MVP-blocking. | The narrowly scoped completeness check can reveal missing original-cost evidence in a cited deliver-in report workflow, but original cost does not drive current time-weighted performance and the primary demo correctly omits the optional columns. |
+| APX Custodial Integrator Mark-to-Market | Deferred; no MVP implementation. | The evidence establishes version-specific requiredness for one external integration, not the field's accounting meaning, availability in PPAR snapshots, or material value to Performance Comparison. |
+| Trade Blotter cancellation control | Product feature deferred; current MVP uses a focused safety regression. | PPAR consumes posted-transaction snapshots, while the reviewed cancellation evidence concerns pre-posting instructions. Exact-case unknown-code failure already prevents unsupported uppercase meanings from becoming performance causes. |
 
-All three capabilities are required before MVP completion. Missing-cost and
-Mark-to-Market behavior must have user-visible packaged or focused validation
-examples appropriate to their data contracts. The Trade Blotter cancellation
-control must remain a separate staging/control fixture rather than appearing in
-packaged posted-transaction snapshots.
+None of these evidence items adds another MVP-blocking field, dataset, fixture,
+or source-stage feature. The underlying research remains available for a future
+validation partner whose actual workflow demonstrates the need.
 
 Do not add speculative ACA merger, spin-off, or reorganization transaction codes.
 Public evidence verifies an APX ACA-to-Reorg-Utility-to-Trade-Blotter workflow but
@@ -583,18 +605,19 @@ transaction fixture.
 Before this workstream can be marked complete:
 
 - identify the exact source/workflow and preserve its confidence boundary;
-- define complete YAML semantics and the normalized fields needed to support
-  them;
+- keep transaction categories, signs, and performance treatment driven by
+  complete executable YAML policy;
 - construct coherent transaction, holdings, cash, and reported-performance
-  effects where those datasets are applicable;
-- place each example in the packaged demo, site-variant fixture, or
-  staging/control fixture required by Sections 7.2 through 7.4;
+  effects for the implemented Axys/APX scenarios;
+- preserve exact case when the versioned source contract requires it;
+- fail closed for unknown codes or incomplete required transaction policy;
+- prevent unsupported meanings from becoming performance causes;
 - update the canonical transaction-semantics contract and generated companion;
 - add validation, reconstruction, reviewer-output, and false-positive tests;
 - preserve all financial, conservation, explanation-reconciliation, and output
   invariants; and
-- demonstrate that ordinary posted-transaction extracts remain separate from
-  Trade Blotter cancellation instructions.
+- keep external integration and source-stage evidence deferred until actual
+  validation-partner inputs justify product support.
 
 ---
 
@@ -693,9 +716,9 @@ retains its established output schema; every transaction-associated row starts
 its `Explanation` with the native transaction code, including the existing `ai`
 and `ti` scenarios.
 
-## Slice 5 — Exact case and required transaction source-contract work
+## Slice 5 — Exact case and optional missing-cost work — Complete
 
-- **Slice 5A — implemented for founder review:** added a versioned
+- **Slice 5A — complete:** added a versioned
   `extract_contract.transaction_semantics_case: exact` capability for exact
   transaction-rule keys and native context-condition values. Omitted settings
   retain the established case-insensitive behavior of existing valid
@@ -704,7 +727,8 @@ and `ti` scenarios.
   posted-transaction code unknown rather than treating it as a cancellation.
   A focused site fixture gives `by` and `BY` separate explicit economic meanings;
   it is not a Trade Blotter cancellation fixture.
-- **Slice 5B — implemented for founder review:** added optional normalized
+- **Slice 5B — complete as an optional, non-MVP-blocking capability:** added
+  optional normalized
   `transactions.original_cost` and `transactions.original_cost_date` inputs and
   the opt-in `deliver_in_original_cost_incomplete` Data Issues check. The check
   requires an explicit YAML population containing transaction code, security
@@ -712,21 +736,21 @@ and `ti` scenarios.
   meaning to `li`, `ti`, or `si`. Enabled checks fail when either source column
   is absent, report one row when either value is blank, accept zero original
   cost as present, and do not calculate cost basis or conclude that Axys used
-  its documented trade-date market-value fallback. The packaged, context-gated
-  `ti` row demonstrates the issue in both snapshots without adding a new
-  performance cause or report column. Lot context remains deferred because its
-  source semantics are incomplete and it is not needed for this bounded check.
-- **Slice 5C:** add APX Mark-to-Market context and version/site-aware
-  validation;
-- **Slice 5D:** add the separate Trade Blotter cancellation-control fixture;
-  and
-- prove that cancellation instructions cannot become posted-transaction
-  performance causes.
+  its documented trade-date market-value fallback. After founder review, the
+  primary demo omits the optional source columns so they are not mistaken for
+  Performance Comparison requirements; its YAML retains a disabled, fully
+  scoped example while focused tests demonstrate the enabled finding. Lot
+  context remains deferred because its source semantics are incomplete and it
+  is not needed for this bounded check.
+- The exact-case unknown-code safety regression proves that an unsupported
+  uppercase transaction cannot inherit lowercase semantics or become a posted-
+  transaction performance cause. APX Mark-to-Market and a Trade Blotter
+  source-stage product contract are deferred under Section 7.4.
 
-## Slice 6 — Remaining approved issue types and MVP release audit
+## Slice 6 — MVP release audit
 
-- repeat the end-to-end Data Issues rule process for any remaining approved
-  candidates;
+- do not add another field, issue type, or integration contract unless the
+  founder separately approves material value and scope;
 - run the full relevant suite and release-candidate checks;
 - generate final representative portfolio/security bundles; and
 - assess whether the founder considers the resulting product an MVP.
@@ -740,13 +764,12 @@ Workstream D's MVP-blocking status, are founder-approved. Workstream D remains
 sequenced after Slices 2 and 3; blocking MVP completion does not make it a Slice
 2 prerequisite.
 
-1. **Slice 3 output:** approve or revise the implemented
-   `holdings_nonpositive_price` reviewer presentation before Slice 4 begins;
-   approve the remaining candidates separately before their detection logic is
-   implemented.
-2. **YAML priority:** confirm that `review_priority: high | normal | low` and
+1. **YAML priority:** confirm that `review_priority: high | normal | low` and
    comparable workflow/presentation policy are deferred. Recommended: defer
    until real usage establishes a need.
+
+No open product decision blocks the Slice 6 release audit. The founder retains
+the final decision about whether the reviewed result is an MVP.
 
 No further visionary product-design phase is required to make these decisions.
 
@@ -761,8 +784,9 @@ The founder determines that PPAR Audit has reached MVP only after:
   a useful first view;
 - additional issue types are defensible and controllable;
 - cause/issue vocabulary and YAML behavior are stable and fail closed;
-- every Section 7 transaction-semantic, exact-case, source-contract, and demo
-  requirement satisfies its evidence, fixture, and safety gates;
+- every material Section 7 YAML-semantic, coherent-scenario, exact-case,
+  unknown-code, and unsupported-meaning requirement satisfies its evidence,
+  fixture, and safety gates;
 - all financial, safety, output, determinism, demo, and scale gates pass; and
 - remaining gaps are acceptable for a controlled validation partner.
 

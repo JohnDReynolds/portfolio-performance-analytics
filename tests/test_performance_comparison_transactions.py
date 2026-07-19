@@ -2015,8 +2015,8 @@ class TestTransactionsLoader(unittest.TestCase):
                 "none",
             )
 
-    def test_exact_case_does_not_inherit_lowercase_semantics(self) -> None:
-        """An ordinary uppercase code remains unknown without an exact site rule."""
+    def test_unsupported_uppercase_code_cannot_become_performance_cause(self) -> None:
+        """An unsupported uppercase code fails before cause generation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             _write_extract_contract(directory, ["SEC_TYPE"], version=1)
@@ -2049,8 +2049,12 @@ class TestTransactionsLoader(unittest.TestCase):
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
 
-            with self.assertRaisesRegex(PpaError, "transaction_code=BY"):
+            with self.assertRaises(PpaError) as context:
                 TransactionsLoader(AuditSpecification(path)).load("a")
+
+            message = str(context.exception)
+            self.assertIn("unknown transaction codes or categories", message)
+            self.assertIn("transaction_code=BY", message)
 
     def test_exact_case_requires_matching_context_case(self) -> None:
         """Exact mode does not fold native transaction context identifiers."""

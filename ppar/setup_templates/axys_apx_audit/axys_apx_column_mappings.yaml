@@ -33,10 +33,6 @@ defaults:
   # Optional inclusive latest thru date to retain.
   thru_date: 2024-12-31
 
-  # Optional classification loaded with each portfolio.
-  classification: Country
-
-
 # =========================
 # Portfolio Performance Export
 # =========================
@@ -119,35 +115,3 @@ security_performance_path: snapshot_a/secperf.csv
 #   country_code: COUNTRY_CODE
 #   country: COUNTRY_DESC
 #   currency: CURRENCY_CODE
-
-# =========================
-# Mappings
-# =========================
-# Groupings From The Security Master
-# Each mapping tells PPAR how to roll securities up to a grouping such as
-# sector, country, currency, or asset class.
-mappings:
-  # Security -> asset class.
-  AssetClass:
-    classification_column: ASSET_CLASS_CODE
-    display_name_column: ASSET_CLASS_CODE
-
-  # Security -> country.
-  Country:
-    classification_column: COUNTRY_CODE
-    display_name_column: COUNTRY_CODE
-
-  # Security -> currency.
-  Currency:
-    classification_column: CURRENCY_CODE
-    display_name_column: CURRENCY_CODE
-
-  # Security -> industry.
-  Industry:
-    classification_column: INDUSTRY_CODE
-    display_name_column: INDUSTRY_CODE
-
-  # Security -> sector.
-  Sector:
-    classification_column: SECTOR_CODE
-    display_name_column: SECTOR_CODE

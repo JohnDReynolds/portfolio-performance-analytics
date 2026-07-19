@@ -9,10 +9,10 @@ acceptance criteria, and slice status for the active phase.
 | Document field | Value |
 |---|---|
 | Status | Active product roadmap — MVP completion is the current phase |
-| Date | 2026-07-18 |
+| Date | 2026-07-19 |
 | Governing product authority | [`product_constitution.md`](product_constitution.md) |
 | Active implementation plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Founder review of Slice 5B, then Slice 5C APX foreign-currency Mark-to-Market context and version-aware validation |
+| Next gate | Slice 6 MVP release audit after founder-directed completion of Workstream D's material scope |
 
 ## Roadmap Doctrine
 
@@ -78,6 +78,10 @@ storage and support complexity.
 - additional vendor source contracts;
 - broader asset/transaction rule packs;
 - enterprise deployment and controlled integrations;
+- APX Custodial Integrator import-contract validation if a validation partner
+  actually supplies that workflow;
+- Trade Blotter source-stage ingestion or cancellation controls if PPAR later
+  accepts pre-posting instructions;
 - cross-portfolio monitoring within one client-controlled environment; and
 - a narrowly tailored human-disposition capability if distant-future evidence
   shows a common problem PPAR should own.
@@ -99,8 +103,9 @@ capabilities:
    vocabulary and fail-closed configuration for supported user choices without
    allowing YAML to redefine analytical truth or safety invariants.
 4. **Axys/APX transaction semantics and demo coverage:** complete the
-   founder-approved, evidence-scoped scenarios, exact-case capability, normalized
-   source contracts, and staging controls defined by the active MVP plan without
+   founder-approved, evidence-scoped YAML-driven transaction semantics,
+   coherent Axys/APX scenarios, exact-case behavior, unknown-code fail-closed
+   behavior, and protection against unsupported transaction meanings without
    turning site- or workflow-specific evidence into universal semantics.
 
 The active implementation plan is maintained in
@@ -111,14 +116,13 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## Immediate Priorities
 
-1. Review Slice 5B original-cost/date support and bounded deliver-in completeness.
-2. Begin Slice 5C APX foreign-currency Mark-to-Market context and
-   version-aware validation.
-3. Continue the remaining normalized source-contract and staging-control work
-   required by the active MVP plan.
-4. Re-run report parity, determinism, financial invariants, demo coverage, and
+1. Retain Slice 5B original-cost/date support as an optional, non-MVP-blocking
+   Data Issues capability.
+2. Begin the Slice 6 MVP release audit; do not add APX Mark-to-Market or Trade
+   Blotter product contracts without validation-partner evidence.
+3. Re-run report parity, determinism, financial invariants, demo coverage, and
    the 500x release-candidate scale check after the cross-cutting MVP changes.
-5. Only then decide whether the product is ready for validation-partner planning.
+4. Only then decide whether the product is ready for validation-partner planning.
 
 ## Material Open Questions
 

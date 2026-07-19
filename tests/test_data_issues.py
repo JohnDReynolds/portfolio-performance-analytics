@@ -13,7 +13,7 @@ import unittest
 import polars as pl
 
 # Project imports
-from ppar.audit import compare_snapshots, schema as pc_cols
+from ppar.audit import AuditSpecification, compare_snapshots, schema as pc_cols
 from ppar.audit.config_validation import validate_config
 from ppar.audit.data_issues import checks as data_issues
 from ppar.errors import PpaError
@@ -65,8 +65,8 @@ class TestDataIssues(unittest.TestCase):
         self.assertEqual(issues[0][pc_cols.PORTFOLIO_ID], "P2")
         self.assertEqual(issues[0][data_issues.DIFFERENCE], -11.0)
 
-    def test_packaged_demo_includes_every_data_issues_issue_type(self) -> None:
-        """The Axys/APX demo keeps one visible example of every X-Ref issue type."""
+    def test_packaged_demo_includes_every_enabled_data_issues_type(self) -> None:
+        """The Axys/APX demo keeps examples of every enabled X-Ref issue type."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
@@ -82,7 +82,6 @@ class TestDataIssues(unittest.TestCase):
             issue_types,
             {
                 "duplicate_transactions",
-                "deliver_in_original_cost_incomplete",
                 "dividend_rate",
                 "holdings_nonpositive_price",
                 "holdings_price_range",
@@ -280,8 +279,8 @@ class TestDataIssues(unittest.TestCase):
             )
         )
 
-    def test_packaged_demo_reports_scoped_missing_deliver_in_cost(self) -> None:
-        """The packaged ti scenario demonstrates bounded source completeness."""
+    def test_packaged_demo_keeps_original_cost_review_optional(self) -> None:
+        """The primary demo omits optional cost inputs and disables their check."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
@@ -290,42 +289,26 @@ class TestDataIssues(unittest.TestCase):
             / "axys_apx_audit.yaml"
         )
 
-        issues = data_issues.data_issues_table(comparison_path).filter(
-            pl.col(data_issues.ISSUE_TYPE)
-            == data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+        specification = AuditSpecification(comparison_path)
+        check_config = specification.values["data_issues"][
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
+        ]
+        issue_types = set(
+            data_issues.data_issues_table(comparison_path)
+            .get_column(data_issues.ISSUE_TYPE)
+            .to_list()
         )
+        for snapshot_name in ("snapshot_a", "snapshot_b"):
+            header = (
+                comparison_path.parent / snapshot_name / "transactions.csv"
+            ).read_text(encoding="utf-8").splitlines()[0].split(",")
+            self.assertNotIn("ORIGINAL_COST_DATE", header)
+            self.assertNotIn("ORIGINAL_COST", header)
 
-        self.assertEqual(issues.height, 2)
-        self.assertEqual(
-            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
-            {"Snapshot A", "Snapshot B"},
-        )
-        self.assertEqual(
-            set(issues.get_column(pc_cols.PORTFOLIO_ID).to_list()),
-            {"BALANCED"},
-        )
-        self.assertEqual(
-            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
-            {"JPM"},
-        )
-        self.assertEqual(
-            set(issues.get_column(data_issues.DATASET_FIELD).to_list()),
-            {"transactions.original_cost + transactions.original_cost_date"},
-        )
-        self.assertEqual(
-            set(issues.get_column(data_issues.CATEGORY).to_list()),
-            {"position_value"},
-        )
-        self.assertTrue(issues.get_column(data_issues.VALUE_A).is_null().all())
-        self.assertTrue(issues.get_column(data_issues.VALUE_B).is_null().all())
-        self.assertTrue(issues.get_column(data_issues.DIFFERENCE).is_null().all())
-        self.assertEqual(issues.get_column(data_issues.REVIEW_KEY).n_unique(), 2)
-        self.assertTrue(
-            all(
-                "code ti" in explanation
-                and "may fall back to trade-date market value" in explanation
-                for explanation in issues.get_column(data_issues.EXPLANATION)
-            )
+        self.assertFalse(check_config["enabled"])
+        self.assertNotIn(
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
+            issue_types,
         )
 
     def test_packaged_demo_scopes_security_type_mismatch_example(self) -> None:

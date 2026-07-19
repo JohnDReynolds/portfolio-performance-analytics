@@ -729,8 +729,6 @@ datasets:
         CURRENCY: Required for transaction amounts stated in a currency other than portfolio base currency.
         BASE_CURRENCY: Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.
         BASE_AMOUNT: Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction.
-        ORIGINAL_COST_DATE: Required when deliver_in_original_cost_incomplete is enabled.
-        ORIGINAL_COST: Required when deliver_in_original_cost_incomplete is enabled.
       optional: [SETTLE_DATE, QTY, PRICE, COMMISSION]
     columns:
       PORT:
@@ -978,40 +976,6 @@ datasets:
         normalized_meaning: Portfolio reporting currency for the transaction.
         candidate_axys_names: [Base Currency, Portfolio Currency]
         candidate_report_labels: [Base Currency, Reporting Currency]
-      ORIGINAL_COST_DATE:
-        normalized_meaning: Original acquisition or cost date supplied for a configured deliver-in transaction.
-        imex_confidence: low_medium
-        rep_confidence: high
-        comments: Observed in a cited Axys missing-cost report workflow; ordinary posted-transaction extract availability is site-specific.
-        basis: Chapter_05_Transactions.md Section 2.8 records Original_Cost_Date in the bounded public missing-cost report workflow.
-        open_questions:
-        - Confirm the local field name, date basis, deliver-in population, and whether blank values trigger report fallback behavior.
-        candidate_axys_names: [ORIGINAL_COST_DATE, ORIG_COST_DATE, COST_DATE]
-        candidate_report_labels: [Original Cost Date]
-        name_confidence: report_label_inferred
-        name_notes: The report label is documented for the cited workflow; native IMEX naming and broader version coverage remain unproven.
-        preferred_source: rep_preferred
-        fallback_source: local_discovery_required
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Required only for the explicitly enabled deliver-in completeness check; absence must fail setup rather than classify every row as incomplete.
-      ORIGINAL_COST:
-        normalized_meaning: Original cost amount supplied for a configured deliver-in transaction.
-        imex_confidence: low_medium
-        rep_confidence: high
-        comments: Observed in a cited Axys missing-cost report workflow; currency basis and ordinary posted-export availability require local confirmation.
-        basis: Chapter_05_Transactions.md Section 2.8 records Original_Cost in the bounded public missing-cost report workflow.
-        open_questions:
-        - Confirm the local field name, currency basis, deliver-in population, and whether blank values trigger report fallback behavior.
-        candidate_axys_names: [ORIGINAL_COST, ORIG_COST]
-        candidate_report_labels: [Original Cost]
-        name_confidence: report_label_inferred
-        name_notes: The report label is documented for the cited workflow; native IMEX naming and broader version coverage remain unproven.
-        preferred_source: rep_preferred
-        fallback_source: local_discovery_required
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Required only for the explicitly enabled deliver-in completeness check; PPAR checks presence without calculating cost basis.
       QTY:
         normalized_meaning: Transaction quantity.
         imex_confidence: high
@@ -1117,10 +1081,6 @@ datasets:
       required_only_when_applicable:
         SECURITY_TYPE: Required when a Data Issues filter references security_reference.security_type.
         ASSET_CLASS_CODE: Required when a Data Issues filter references security_reference.asset_class_code.
-        ASSET_CLASS_NAME: Required when a Data Issues filter references security_reference.asset_class_name.
-        SECTOR_CODE: Required when a Data Issues filter references security_reference.sector_code.
-        COUNTRY_CODE: Required when a Data Issues filter references security_reference.country_code.
-        CURRENCY_CODE: Required when a Data Issues filter references security_reference.currency.
       optional: []
     columns:
       SECURITY_ID:
@@ -1174,74 +1134,6 @@ datasets:
         requires_context_for_semantics: false
         blocking_if_missing: true
         source_strategy_notes: Tie the code to the same snapshot as the source rows so later reclassification does not silently change an audit population.
-      ASSET_CLASS_NAME:
-        normalized_meaning: Display name associated with the site asset-class code.
-        imex_confidence: medium
-        rep_confidence: high
-        comments: A display label is plausible in classification-rich exports and reports but is not needed when the code alone controls the filter.
-        basis: Chapter_11_Classifications.md supports code/name classification concepts while exact source fields remain site specific.
-        open_questions:
-        - Confirm the local display-name field and whether names are unique and historically effective.
-        candidate_axys_names: [ASSET_CLASS_NAME, ASSET_CLASS_DESC, Asset Class Name, Asset Class Description]
-        candidate_report_labels: [Asset Class, Asset Class Name]
-        name_confidence: inferred_alias
-        name_notes: Candidate labels only; use an explicit local mapping when the source differs.
-        preferred_source: imex_or_rep
-        fallback_source: local_discovery_required
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Prefer stable codes for policy filters and use names primarily for readability.
-      SECTOR_CODE:
-        normalized_meaning: Site security-master sector code used to qualify Data Issues populations.
-        imex_confidence: medium
-        rep_confidence: high
-        comments: Sector/grouping data is plausible and report-visible, but local lookup structures and historical treatment require validation.
-        basis: Chapter_04_Security_Master.md and Chapter_11_Classifications.md support sector lookup dependencies and reclassification cautions.
-        open_questions:
-        - Confirm the local sector field, lookup source, code dictionary, and effective-date behavior.
-        candidate_axys_names: [SECTOR_CODE, Sector Code, Industry Group Code]
-        candidate_report_labels: [Sector Code, Sector, Industry Group]
-        name_confidence: inferred_alias
-        name_notes: Candidate labels are site- and report-dependent.
-        preferred_source: imex_then_rep_cross_check
-        fallback_source: rep_preferred
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Validate classification timing before using sector membership to define an audit population.
-      COUNTRY_CODE:
-        normalized_meaning: Site security-master country code used to qualify Data Issues populations.
-        imex_confidence: medium
-        rep_confidence: high
-        comments: Country classification is plausible in security-master and report workflows, but exact source and definition are site dependent.
-        basis: Chapter_11_Classifications.md supports country as a classification concept without establishing one universal native field.
-        open_questions:
-        - Confirm whether the code represents domicile, incorporation, risk country, listing country, or another site definition.
-        candidate_axys_names: [COUNTRY_CODE, Country Code, Country]
-        candidate_report_labels: [Country Code, Country]
-        name_confidence: inferred_alias
-        name_notes: Candidate labels only; confirm both the field and its business definition.
-        preferred_source: imex_or_rep
-        fallback_source: local_discovery_required
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Record the site's country definition alongside any policy filter that uses it.
-      CURRENCY_CODE:
-        normalized_meaning: Security-reference currency code used to qualify Data Issues populations.
-        imex_confidence: medium
-        rep_confidence: high
-        comments: Security currency is plausible in security-master and report output, but it does not replace row-level or portfolio base-currency evidence.
-        basis: Chapter_07_Cash.md, Chapter_10_Multi_Currency.md, and Chapter_11_Classifications.md support currency concepts while exact security-master fields remain unverified.
-        open_questions:
-        - Confirm whether the field means trading, pricing, income, or another security currency and whether it is historically effective.
-        candidate_axys_names: [CURRENCY_CODE, CURRENCY, Currency Code, Currency]
-        candidate_report_labels: [Currency Code, Currency]
-        name_confidence: inferred_alias
-        name_notes: Candidate aliases only; confirm the local currency meaning before filtering.
-        preferred_source: imex_then_rep_cross_check
-        fallback_source: rep_preferred
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Use this field only as a qualifier; retain row currency and portfolio base currency as the authoritative monetary basis.
   fx_rates.csv:
     extraction_requirements:
       dataset: optional

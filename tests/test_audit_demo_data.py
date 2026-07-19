@@ -111,8 +111,6 @@ _PACKAGED_TRANSACTION_COLUMNS = [
     "SPECIAL_SEC_SYMBOL",
     "CURRENCY",
     "BASE_CURRENCY",
-    "ORIGINAL_COST_DATE",
-    "ORIGINAL_COST",
     "QTY",
     "PRICE",
     "AMOUNT",
@@ -423,16 +421,12 @@ class TestAuditDemoData(unittest.TestCase):
             self.assertTrue(metadata["requires_context_for_semantics"])
             self.assertTrue(metadata["blocking_if_missing"])
 
-        for original_cost_column in ["ORIGINAL_COST_DATE", "ORIGINAL_COST"]:
-            metadata = transaction_columns[original_cost_column]
-            self.assertFalse(metadata["requires_context_for_semantics"])
-            self.assertFalse(metadata["blocking_if_missing"])
-            self.assertIn(
-                original_cost_column,
-                datasets["transactions.csv"]["extraction_requirements"][
-                    "required_only_when_applicable"
-                ],
-            )
+        self.assertNotIn("ORIGINAL_COST_DATE", transaction_columns)
+        self.assertNotIn("ORIGINAL_COST", transaction_columns)
+        self.assertEqual(
+            list(datasets["secref.csv"]["columns"]),
+            ["SECURITY_ID", "SECURITY_TYPE", "ASSET_CLASS_CODE"],
+        )
 
     def test_packaged_demo_extraction_requirements_cover_each_field_once(self) -> None:
         """The user-facing extraction checklist is exhaustive and unambiguous."""

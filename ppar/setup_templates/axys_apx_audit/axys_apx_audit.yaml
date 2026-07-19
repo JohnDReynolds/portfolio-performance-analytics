@@ -313,11 +313,12 @@ data_issues:
       security_reference.security_type: csus
 
   deliver_in_original_cost_incomplete:
-    # Reviews original-cost completeness only for the explicitly configured,
-    # context-qualified ti deliver-in population. It does not classify ti from
+    # Optional site-specific example. The primary demo deliberately omits the
+    # original-cost amount/date input columns because Performance Comparison
+    # does not require them. Before enabling this check, add both columns to
+    # both snapshot transaction extracts. The check does not classify ti from
     # code alone, calculate cost basis, or conclude that Axys used a fallback.
-    # The fixed condition accepts no tolerance settings.
-    enabled: true
+    enabled: false
     only:
       transactions.transaction_code: ti
       transactions.security_type: csus

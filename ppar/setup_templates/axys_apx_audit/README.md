@@ -95,13 +95,17 @@ The opt-in `deliver_in_original_cost_incomplete` check reviews only an explicit
 transaction-code, security-type, and source/destination population. It requires
 both original-cost source columns in both snapshots, treats zero cost as
 supplied, and does not calculate cost basis or claim that a source-system
-fallback occurred. The packaged `ti` example is intentionally blank in both
-fields and appears as a Data Issues review row without changing performance or
-adding report columns.
+fallback occurred. The packaged YAML retains a disabled, fully scoped example,
+but the primary demo transactions deliberately omit those optional columns so
+they are not mistaken for Performance Comparison requirements. Focused tests
+cover the enabled check end to end.
 Optional `secref.csv` fields can qualify Data Issues populations through
 `security_reference.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
-change performance calculations.
+change performance calculations. The starter includes only `SECURITY_ID`,
+`SECURITY_TYPE`, and `ASSET_CLASS_CODE`, because those are the only reference
+fields used by its active rules. Site extracts may add other supported reference
+qualifiers when the YAML explicitly uses them.
 The same validation is available through
 `ppar.audit.cli.validate_config` when maintainers need to
 check a YAML file without writing reports; its success summary lists effective optional
@@ -182,7 +186,6 @@ differences from identifiable input differences and other evidence:
   nonpositive holding price, a reference-scoped nonpositive transaction price,
   an observed-date stale GOOGL holding price,
   an exact-case transaction-versus-reference security-type mismatch,
-  a context-scoped `ti` row missing original cost and original-cost date,
   dividend-rate mismatches, fixed-income
   accrued-interest transaction-rate mismatches, missing dividends, and
   holdings.accrued rate mismatches. Both nonpositive-price examples, the stale
