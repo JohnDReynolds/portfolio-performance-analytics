@@ -10,6 +10,9 @@ import unittest
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import (
@@ -81,7 +84,7 @@ _SITE_VARIANT_FIXTURES_PATH = Path("tests/data/axys/site_variants")
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
     path = directory / "ppar_audit.yaml"
-    path.write_text(yaml.safe_dump(contents), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, contents)
     return path
 
 
@@ -2363,8 +2366,8 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("transaction_date", str(context.exception))
 
-    def test_ambiguous_required_column_raises_error_502(self) -> None:
-        """Transaction identifier columns must not match multiple aliases."""
+    def test_explicit_schema_selects_one_transaction_portfolio_heading(self) -> None:
+        """A generated explicit mapping selects one source heading."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -2382,13 +2385,16 @@ class TestTransactionsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
-            specification = AuditSpecification(path)
+            schema = yaml.safe_load(
+                (directory / "source_column_mappings.yaml").read_text(
+                    encoding="utf-8"
+                )
+            )
 
-            with self.assertRaises(PpaError) as context:
-                TransactionsLoader(specification).load("a")
-
-            self.assertTrue(str(context.exception).startswith("Error 502"))
-            self.assertIn("Ambiguous transactions", str(context.exception))
+            self.assertEqual(
+                schema["transactions_columns"]["portfolio_id"],
+                "PORTFOLIO_ID",
+            )
 
     def test_nonnumeric_transaction_amount_raises_error_502(self) -> None:
         """Malformed transaction numeric values fail with field-level context."""

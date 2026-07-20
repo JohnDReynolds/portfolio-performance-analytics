@@ -34,7 +34,7 @@ _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
 _AXYS_ANALYTICS_YAML = Path("ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml").resolve()
 _AXYS_ANALYTICS_DIRECTORY = Path("ppar/setup_templates/axys_apx_analytics")
-_AXYS_ANALYTICS_SECREF = _AXYS_ANALYTICS_DIRECTORY / "secref.csv"
+_AXYS_ANALYTICS_SECREF = _AXYS_ANALYTICS_DIRECTORY / "secmast.csv"
 _AXYS_ANALYTICS_SECPERF = _AXYS_ANALYTICS_DIRECTORY / "secperf.csv"
 _EXPECTED_ANALYTICS_ARTIFACTS = {
     "risk_statistics.html",
@@ -244,7 +244,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
                 [
                     sys.executable,
                     str(site_directory / "run_analytics.py"),
-                    "--output",
+                    "--output-directory",
                     str(runner_output),
                 ],
                 check=True,
@@ -266,7 +266,10 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
 
     def test_demo_frequency_parser_accepts_lenient_values(self) -> None:
         """Analytics demo frequency parsing accepts first-letter shortcuts."""
-        self.assertEqual(_frequency_from_string(None), Frequency.QUARTERLY)
+        self.assertEqual(
+            _frequency_from_string(None),
+            Frequency.AS_OFTEN_AS_POSSIBLE,
+        )
         self.assertEqual(_frequency_from_string(""), Frequency.QUARTERLY)
         self.assertEqual(_frequency_from_string("monthly"), Frequency.MONTHLY)
         self.assertEqual(_frequency_from_string("M"), Frequency.MONTHLY)

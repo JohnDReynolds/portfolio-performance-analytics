@@ -1,4 +1,4 @@
-"""Resolve explicit or inferred Axys source column names."""
+"""Resolve explicit or exact-default Axys source column names."""
 
 from __future__ import annotations
 
@@ -21,11 +21,11 @@ def resolve_column(
     ambiguous_message: str,
     error_code: int,
 ) -> str | None:
-    """Return an explicit column, inferred alias, or ``None`` when missing.
+    """Return an explicit column, exact default, or ``None`` when missing.
 
     Args:
         field_name: Logical field being resolved.
-        aliases: Candidate CSV column names in inference priority order.
+        aliases: Exact default CSV column names allowed when not configured.
         available_columns: CSV header columns available for matching.
         error_message: Callback adding Axys source context to validation
             details.
@@ -35,7 +35,7 @@ def resolve_column(
         error_code: PPA error code to use for ambiguity errors.
 
     Returns:
-        The explicit or inferred CSV column name, or ``None`` if no alias
+        The explicit or exact-default CSV column name, or ``None`` if no candidate
         matches and no explicit column was supplied.
 
     Raises:

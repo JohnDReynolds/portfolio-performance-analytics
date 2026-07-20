@@ -16,7 +16,6 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.audit import aliases
 from ppar.audit import schema as pc_cols
 from ppar.audit.transaction_policy import transaction_boundary_codes
 import ppar.utilities as util
@@ -481,21 +480,34 @@ def _resolve_contract_path(
 
 
 def _normalized_transaction_column(demo_column: str) -> str:
-    """Return the normalized transaction column represented by a demo header."""
+    """Return the normalized transaction field named by an extract contract.
+
+    This vocabulary validates fields explicitly declared by an extract
+    contract; it is not used to infer CSV source mappings.
+    """
     common_axys_apx_columns = {
+        "PORT": pc_cols.PORTFOLIO_ID,
         "Portfolio Code": pc_cols.PORTFOLIO_ID,
         "Transaction Date": pc_cols.TRANSACTION_DATE,
         "Settlement Date": pc_cols.SETTLEMENT_DATE,
+        "SETTLE_DATE": pc_cols.SETTLEMENT_DATE,
+        "SEC": pc_cols.SECURITY_ID,
         "Security Symbol": pc_cols.SECURITY_ID,
         # Security Type is the second component of security_id; it is distinct
         # from the transaction row's auditable Transaction Security Type.
         "Security Type": pc_cols.SECURITY_ID,
         "Transaction Code": pc_cols.TRANSACTION_CODE,
+        "TRAN": pc_cols.TRANSACTION_CODE,
         "Transaction Security Type": pc_cols.SECURITY_TYPE,
+        "SEC_TYPE": pc_cols.SECURITY_TYPE,
         "Source/Destination Type": pc_cols.SOURCE_DESTINATION_TYPE,
+        "SRC_DEST_TYPE": pc_cols.SOURCE_DESTINATION_TYPE,
         "Source/Destination Symbol": pc_cols.SOURCE_DESTINATION_SYMBOL,
+        "SRC_DEST_SYMBOL": pc_cols.SOURCE_DESTINATION_SYMBOL,
         "Special Security Type": pc_cols.SPECIAL_SECURITY_TYPE,
+        "SPECIAL_SEC_TYPE": pc_cols.SPECIAL_SECURITY_TYPE,
         "Special Security Symbol": pc_cols.SPECIAL_SECURITY_SYMBOL,
+        "SPECIAL_SEC_SYMBOL": pc_cols.SPECIAL_SECURITY_SYMBOL,
         "Currency Code": pc_cols.CURRENCY,
         "Base Currency": pc_cols.BASE_CURRENCY,
         "Quantity": pc_cols.QUANTITY,
@@ -506,15 +518,12 @@ def _normalized_transaction_column(demo_column: str) -> str:
     }
     if demo_column in common_axys_apx_columns:
         return common_axys_apx_columns[demo_column]
-    aliases_by_column = (
-        aliases.TRANSACTIONS_REQUIRED_ALIASES | aliases.TRANSACTIONS_OPTIONAL_ALIASES
-    )
     normalized_demo_column = demo_column.strip().upper()
-    for internal_column, source_aliases in aliases_by_column.items():
-        alias_names = {alias.upper() for alias in source_aliases}
-        if normalized_demo_column == internal_column.upper() or (
-            normalized_demo_column in alias_names
-        ):
+    for internal_column in (
+        pc_cols.TRANSACTIONS_REQUIRED_COLUMNS
+        + pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS
+    ):
+        if normalized_demo_column == internal_column.upper():
             return internal_column
     raise PpaError(f"Unsupported contract transaction column {demo_column!r}.", 504)
 

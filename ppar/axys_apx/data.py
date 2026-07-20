@@ -68,19 +68,17 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
                 ``file_path`` values for explicit classification sources.
 
         Raises:
-            PpaError: If required performance paths are missing from both
-                arguments and the Axys specification, or a source path override
-                references an unknown source.
+            PpaError: If a source path override references an unknown source.
         """
         self.specifications_path = Path(specifications_path)
 
         self._specification = AxysSpecification(self.specifications_path, self._error_message)
         self.specifications: dict[str, Any] = self._specification.values
         self.portfolio_performance_path = self._specification.performance_path(
-            portfolio_performance_path, "portfolio_performance_path", self._error_message
+            portfolio_performance_path, "portfolio_performance_path"
         )
         self.security_performance_path = self._specification.performance_path(
-            security_performance_path, "security_performance_path", self._error_message
+            security_performance_path, "security_performance_path"
         )
         self._classification_loader = AxysClassificationSourceLoader(
             self._specification,

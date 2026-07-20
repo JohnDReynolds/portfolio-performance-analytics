@@ -27,6 +27,7 @@ from ppar.audit.performance_comparison.methods import (
     ReturnReconstructionSignConvention,
     ReturnReconstructionValueSource,
 )
+from ppar.audit.run_settings import audit_settings
 import ppar.utilities as util
 
 _SNAPSHOT_A_KEY: Final[str] = "a"
@@ -35,8 +36,10 @@ _SNAPSHOTS_KEY: Final[str] = "snapshots"
 _FILES_KEY: Final[str] = "files"
 _PATH_KEY: Final[str] = "path"
 _LABEL_KEY: Final[str] = "label"
-_VENDOR_KEY: Final[str] = "vendor"
 _SCHEMA_KEY: Final[str] = "schema"
+_SUPPORTED_SNAPSHOT_KEYS: Final[frozenset[str]] = frozenset(
+    {_LABEL_KEY, _PATH_KEY, _SCHEMA_KEY}
+)
 _REQUIRED_KEY: Final[str] = "required"
 _COMPARISON_KEY: Final[str] = "comparison"
 _LEVEL_KEY: Final[str] = "level"
@@ -79,6 +82,13 @@ _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
         _SECURITY_REFERENCE_KEY,
     }
 )
+_DEFAULT_FILE_PATHS: Final[dict[str, str]] = {
+    _PORTFOLIO_PERFORMANCE_KEY: "portperf.csv",
+    _SECURITY_PERFORMANCE_KEY: "secperf.csv",
+    "holdings": "holdings.csv",
+    "transactions": "transactions.csv",
+    _SECURITY_REFERENCE_KEY: "secmast.csv",
+}
 _REMOVED_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
 SECURITY_COMPARISON_LEVEL: Final[str] = "security"
@@ -149,14 +159,12 @@ class ComparisonSnapshot:
         key: Neutral snapshot key, currently ``"a"`` or ``"b"``.
         label: User-facing snapshot label.
         path: Resolved snapshot directory path.
-        vendor: Optional source-system adapter name.
-        schema_path: Optional resolved vendor schema YAML path.
+        schema_path: Optional resolved source-column mapping YAML path.
     """
 
     key: str
     label: str
     path: Path
-    vendor: str | None
     schema_path: Path | None
 
 
@@ -226,9 +234,9 @@ class AuditSpecification:
         snapshot_b: Resolved snapshot B settings.
         files: Resolved file settings keyed by normalized dataset name.
         comparison_level: Primary performance-result level to compare. The
-            YAML must explicitly select ``"portfolio"`` or ``"security"``;
-            ``"security"`` uses ``security_performance`` as the target
-            performance-result dataset.
+            caller or YAML must explicitly select ``"portfolio"`` or
+            ``"security"``; ``"security"`` uses ``security_performance`` as
+            the target performance-result dataset.
 
     Notes:
         The primary performance-result file is always required. Other files are
@@ -247,7 +255,7 @@ class AuditSpecification:
         Args:
             path: Path to the comparison YAML specification.
             comparison_level: Optional primary performance-result level override.
-                When omitted, ``comparison.level`` from the YAML is used.
+                When omitted, the YAML must provide ``comparison.level``.
 
         Raises:
             PpaError: If the YAML cannot be parsed, its shape is invalid, the
@@ -263,7 +271,8 @@ class AuditSpecification:
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
-        self._validate_comparison_configuration()
+        audit_settings(self.values, required=False)
+        self._validate_comparison_configuration(comparison_level)
         self._validate_tolerances_configuration()
         self._validate_extract_contract_configuration()
         self._validate_removed_cash_configuration()
@@ -308,9 +317,11 @@ class AuditSpecification:
             504,
         )
 
-    def _validate_comparison_configuration(self) -> None:
-        """Require an explicit primary comparison level."""
+    def _validate_comparison_configuration(self, override: str | None) -> None:
+        """Require a caller or YAML primary comparison level."""
         comparison = self.values.get(_COMPARISON_KEY)
+        if comparison is None and override is not None:
+            return
         if not isinstance(comparison, dict):
             raise PpaError(
                 self._error_message("comparison must be a mapping."),
@@ -420,6 +431,19 @@ class AuditSpecification:
                 504,
             )
 
+        unsupported_keys = sorted(
+            str(setting) for setting in snapshot if setting not in _SUPPORTED_SNAPSHOT_KEYS
+        )
+        if unsupported_keys:
+            raise PpaError(
+                self._error_message(
+                    f"snapshots.{key} has unsupported keys: "
+                    + ", ".join(unsupported_keys)
+                    + "."
+                ),
+                504,
+            )
+
         snapshot_path_value = snapshot.get(_PATH_KEY)
         if not isinstance(snapshot_path_value, str) or not snapshot_path_value:
             raise PpaError(
@@ -435,13 +459,6 @@ class AuditSpecification:
                 504,
             )
 
-        vendor_value = snapshot.get(_VENDOR_KEY)
-        if vendor_value is not None and not isinstance(vendor_value, str):
-            raise PpaError(
-                self._error_message(f"snapshots.{key}.vendor must be a string."),
-                504,
-            )
-
         schema_value = snapshot.get(_SCHEMA_KEY)
         schema_path = self._schema_path(key, schema_value)
 
@@ -449,7 +466,6 @@ class AuditSpecification:
             key=key,
             label=label_value,
             path=snapshot_path,
-            vendor=vendor_value,
             schema_path=schema_path,
         )
 
@@ -468,18 +484,13 @@ class AuditSpecification:
 
     def _files(self) -> dict[str, ComparisonFile]:
         """Return resolved comparison files keyed by normalized dataset name."""
-        files_value = self.values.get(_FILES_KEY)
+        files_value = self.values.get(_FILES_KEY, {})
         if not isinstance(files_value, dict):
             raise PpaError(self._error_message("files must be a mapping."), 504)
-        required_performance_file = self._required_performance_file_name()
-        if required_performance_file not in files_value:
-            raise PpaError(
-                self._error_message(f"files.{required_performance_file} is required."),
-                504,
-            )
 
         files: dict[str, ComparisonFile] = {}
-        for file_name, file_value in files_value.items():
+        file_values = self._default_file_values(files_value)
+        for file_name, file_value in file_values.items():
             if not isinstance(file_name, str) or not file_name:
                 raise PpaError(self._error_message("File names must be strings."), 504)
             if file_name not in _SUPPORTED_FILE_KEYS:
@@ -493,6 +504,26 @@ class AuditSpecification:
                 )
             files[file_name] = self._file(file_name, file_value)
         return files
+
+    def _default_file_values(
+        self,
+        configured_values: dict[object, object],
+    ) -> dict[object, object]:
+        """Return explicit paths plus required standard filename defaults.
+
+        A required dataset always receives its standard filename when omitted,
+        so normal missing-file validation remains fail-closed. Optional evidence
+        remains explicit because silently activating a discovered dataset can
+        change comparison findings and its required accounting policies.
+        """
+        values = dict(configured_values)
+        required_names = self._required_file_names()
+        for file_name, default_path in _DEFAULT_FILE_PATHS.items():
+            if file_name in values:
+                continue
+            if file_name in required_names:
+                values[file_name] = default_path
+        return values
 
     def _portfolio_return_reconstruction(
         self,
@@ -754,9 +785,12 @@ class AuditSpecification:
         )
 
     def _comparison_level(self, override: str | None = None) -> str:
-        """Return the primary comparison level from YAML settings."""
-        comparison_value = cast(dict[str, Any], self.values[_COMPARISON_KEY])
-        level_value = override if override is not None else comparison_value[_LEVEL_KEY]
+        """Return the explicit caller or YAML primary comparison level."""
+        if override is not None:
+            level_value = override
+        else:
+            comparison_value = cast(dict[str, Any], self.values[_COMPARISON_KEY])
+            level_value = comparison_value[_LEVEL_KEY]
         if not isinstance(level_value, str) or level_value not in COMPARISON_LEVELS:
             allowed_values = ", ".join(sorted(COMPARISON_LEVELS))
             raise PpaError(

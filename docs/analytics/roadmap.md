@@ -19,6 +19,12 @@ does not inherit Audit's changed-performance investigation roadmap.
 
 - The installed-user path starts with `ppar setup` and the packaged Axys/APX
   Analytics starter workspace.
+- Normal run choices live together in the starter's strict `analytics:` section;
+  matching CLI options are one-run overrides rather than a second source of
+  defaults.
+- Conventional Analytics source filenames are `portperf.csv`, `secperf.csv`,
+  and `secmast.csv`. Vendor-specific source headings require explicit YAML
+  mappings; an omitted mapping accepts only the exact normalized field name.
 - The `generic_analytics` dataset remains maintainer/demo infrastructure for
   README images, analytics regression tests, optional-value tests, and selected
   operational demo-data derivation.
@@ -55,6 +61,104 @@ analytical lesson clearer without making the data look contrived.
 | Broader currency and source coverage | Validate quote conventions, portfolio currencies, mappings, and report interpretation before expanding claims. |
 | Larger-scale optimization | Start from measured timings after meaningful data growth or report-shape changes; preserve the maintained scale gates. |
 | Additional vendor starters | Require a documented, tested, supportable source contract rather than assuming configurable normalization proves compatibility. |
+
+## Eventual Security Display Identity
+
+This is a long-term, cross-product usability candidate, not a current priority
+and not authorized for implementation. Axys/APX users often recognize a
+security by its symbol, while PPAR must use a canonical identifier such as
+`csusAAPL` to distinguish the rarer cases in which the same symbol belongs to
+more than one security type. An eventual display policy could suppress the
+usually redundant type prefix without weakening internal identity.
+
+The canonical `security_id` must remain the only key used for joins, grouping,
+filtering, lineage, fingerprints, calculations, and YAML rules. The feature
+should not add a general-purpose display column to financial DataFrames because
+that would make accidental use of a noncanonical value more likely. Instead,
+the shared Axys/APX security-identity layer should build an immutable mapping
+from canonical security ID to presentation label, and Analytics and Audit should
+apply that mapping only at explicit presentation boundaries.
+
+The eventual YAML could extend the existing identity definition rather than add
+an unrelated top-level setting:
+
+```yaml
+security_id:
+  components:
+    - "Security Type"
+    - "Security Symbol"
+  display_component: "Security Symbol"
+```
+
+Omitting `display_component` must preserve current behavior exactly by showing
+the canonical `security_id`. The configured display component should be
+restricted to a validated security-ID component so that it has a defined
+relationship to canonical identity.
+
+The display mapping must be exact-case, deterministic, and independent of input
+row order. It should be derived from the complete configured security-bearing
+source universe rather than only the portfolios, dates, or rows selected for a
+particular report. For Audit, that universe includes both snapshots. For
+Analytics, it includes security performance and the complete security master.
+Using the same complete security-master universe wherever possible reduces the
+risk that Analytics and Audit choose different labels for the same security.
+
+For each canonical security ID, the configured component may be displayed only
+when:
+
+- every observed value for that ID is present and identical;
+- the candidate value maps to exactly one canonical security ID across the
+  complete source universe; and
+- the candidate would not collide with another security's canonical-ID
+  fallback value.
+
+When any condition fails, the presentation label must fall back to the canonical
+`security_id`. All IDs participating in a shared-symbol collision must fall back,
+not just one arbitrarily selected row. The implementation must also handle the
+less obvious case in which one security's symbol equals another security's full
+canonical ID. A mapping constructed from sorted distinct pairs, with explicit
+collision resolution, can make the result reproducible without depending on
+file or row order.
+
+Reviewer-facing outputs are the intended scope. That can eventually include
+Analytics HTML and charts, Audit XLSX and HTML, root review CSVs, root
+`source_detail.csv`, and user-facing explanations or review guidance. Merely
+replacing the visible Security column would be incomplete because current
+narrative text can also contain canonical IDs.
+
+Machine-integrity artifacts should retain canonical identifiers. In particular,
+Audit `findings.csv`, `cause_lineage.csv`, matching and reconstruction
+diagnostics, source locators, and fingerprint inputs depend on stable technical
+identity. Replacing those values while also forbidding an additional output
+column would make evidence harder or impossible to reconcile to source-data.
+The durable boundary is therefore display labels in reviewer artifacts and
+canonical IDs in machine evidence, even when expanded support files are visible
+to a user.
+
+YAML filters must continue to use canonical IDs such as `csusAAPL`, regardless
+of what a report displays. Documentation and validation must make that
+distinction explicit. The bundle manifest should record the selected display
+policy and deterministic counts of symbol displays and canonical-ID fallbacks;
+an output-contract change may require a deliberate manifest-version increment.
+
+Before implementation, require focused decisions and tests for:
+
+- the precise complete-source universe for each product;
+- behavior when a configured or optional dataset lacks the display component;
+- exact-case symbols, blanks, inconsistent values, and cross-type collisions;
+- candidate-label collisions with canonical fallback IDs;
+- stability when portfolios or report dates change;
+- complete projection of user-facing narrative as well as tabular values;
+- unchanged calculations, joins, grouping, lineage, conservation, and YAML
+  matching;
+- byte-for-byte preservation for configurations that omit the setting; and
+- report parity, determinism, manifest validation, and maintained 500x scale
+  gates.
+
+The shared policy belongs in the Axys/APX security-identity module, but there is
+not one universal report call site: Analytics and Audit have separate output
+stacks and would each need a narrow presentation adapter. Treat this as a
+separately scoped feature slice if it is eventually promoted from the roadmap.
 
 ## Deferred Cleanup
 

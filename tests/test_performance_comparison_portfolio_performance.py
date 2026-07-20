@@ -9,6 +9,9 @@ import unittest
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import (
@@ -45,7 +48,7 @@ def _write_yaml(directory: Path, contents: object) -> Path:
             **contents,
         }
     path = directory / "ppar_audit.yaml"
-    path.write_text(yaml.safe_dump(contents), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, contents)
     return path
 
 
@@ -113,8 +116,8 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("portfolio_return", str(context.exception))
 
-    def test_ambiguous_required_column_raises_error_502(self) -> None:
-        """Required columns must not match multiple source aliases."""
+    def test_explicit_schema_selects_one_portfolio_identifier_heading(self) -> None:
+        """A generated explicit mapping selects one source heading."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             for snapshot_name in ("snapshot_a", "snapshot_b"):
@@ -139,13 +142,16 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
                     "files": {"portfolio_performance": "portperf.csv"},
                 },
             )
-            specification = AuditSpecification(path)
+            schema = yaml.safe_load(
+                (directory / "source_column_mappings.yaml").read_text(
+                    encoding="utf-8"
+                )
+            )
 
-            with self.assertRaises(PpaError) as context:
-                PortfolioPerformanceLoader(specification).load("a")
-
-            self.assertTrue(str(context.exception).startswith("Error 502"))
-            self.assertIn("Ambiguous portfolio performance", str(context.exception))
+            self.assertEqual(
+                schema["portfolio_performance_columns"]["portfolio_id"],
+                "PORTFOLIO_CODE",
+            )
 
     def test_nonnumeric_return_raises_error_502(self) -> None:
         """Malformed portfolio numeric values fail with field-level context."""

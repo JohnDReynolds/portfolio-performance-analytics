@@ -166,7 +166,9 @@ def compare_snapshots(
             results are returned. This does not require every performance
             change to be fully explained.
         comparison_level: Optional primary performance-result level override.
-            When omitted, ``comparison.level`` from the YAML is used.
+            When omitted, the YAML must provide ``comparison.level``. The
+            user-facing ``ppar audit`` command always supplies this explicitly
+            for each applicable report level.
 
     Returns:
         Polars DataFrame containing one row per finding. If no findings are

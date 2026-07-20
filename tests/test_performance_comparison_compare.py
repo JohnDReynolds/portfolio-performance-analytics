@@ -12,6 +12,9 @@ from unittest import mock
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import AuditSpecification
@@ -200,7 +203,7 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -256,7 +259,7 @@ def _write_no_id_transaction_date_move_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -289,7 +292,7 @@ def _write_duplicate_transaction_fallback_specification(directory: Path) -> Path
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -334,7 +337,7 @@ def _write_transaction_singleton_duplicate_specification(
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -377,7 +380,7 @@ def _write_transaction_case_sensitive_singleton_specification(
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -411,7 +414,7 @@ def _write_transaction_period_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -459,7 +462,7 @@ def _write_security_transaction_period_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -497,7 +500,7 @@ def _write_security_case_sensitive_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -531,7 +534,7 @@ def _write_transaction_outside_period_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -592,7 +595,7 @@ def _write_transaction_changed_period_fallback_specification(
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -627,7 +630,7 @@ def _write_holding_period_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -682,7 +685,7 @@ def _write_multi_portfolio_holding_price_specification(
             },
         }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -711,7 +714,7 @@ def _write_duplicate_portfolio_specification(directory: Path) -> Path:
         "files": {"portfolio_performance": "portperf.csv"},
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -736,7 +739,7 @@ def _write_blank_portfolio_key_specification(directory: Path) -> Path:
         "files": {"portfolio_performance": "portperf.csv"},
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -769,7 +772,7 @@ def _write_blank_holding_key_specification(directory: Path) -> Path:
         },
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, specification)
     return specification_path
 
 
@@ -1460,21 +1463,19 @@ class TestPerformanceComparison(unittest.TestCase):
                     encoding="utf-8",
                 )
             specification_path = root / "ppar_audit.yaml"
-            specification_path.write_text(
-                yaml.safe_dump(
-                    {
-                        **_required_yaml_settings(),
-                        "snapshots": {
-                            "a": {"path": "snapshot_a"},
-                            "b": {"path": "snapshot_b"},
-                        },
-                        "files": {
-                            "portfolio_performance": "portperf.csv",
-                            "holdings": "holdings.csv",
-                        },
-                    }
-                ),
-                encoding="utf-8",
+            test_util.write_audit_test_yaml(
+                specification_path,
+                {
+                    **_required_yaml_settings(),
+                    "snapshots": {
+                        "a": {"path": "snapshot_a"},
+                        "b": {"path": "snapshot_b"},
+                    },
+                    "files": {
+                        "portfolio_performance": "portperf.csv",
+                        "holdings": "holdings.csv",
+                    },
+                },
             )
             specification = AuditSpecification(specification_path)
 
@@ -1698,6 +1699,10 @@ class TestPerformanceComparison(unittest.TestCase):
                     f"100.00,{commission},cash out,external\n",
                     encoding="utf-8",
                 )
+            configuration = yaml.safe_load(
+                specification_path.read_text(encoding="utf-8")
+            )
+            test_util.write_audit_test_yaml(specification_path, configuration)
             specification = AuditSpecification(specification_path)
 
             comparison = PerformanceComparison(specification)
@@ -1738,10 +1743,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     "method": "evidence_only",
                 },
             }
-            specification_path.write_text(
-                yaml.safe_dump(configuration),
-                encoding="utf-8",
-            )
+            test_util.write_audit_test_yaml(specification_path, configuration)
             specification = AuditSpecification(specification_path)
 
             policies = _transaction_impact_policies(specification)
@@ -2521,7 +2523,7 @@ class TestPerformanceComparison(unittest.TestCase):
                             "transaction_impact_methods is missing required keys: "
                             "commission"
                         )
-                    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+                    test_util.write_audit_test_yaml(path, configuration)
 
                     with self.assertRaisesRegex(PpaError, expected_message):
                         PerformanceComparison(AuditSpecification(path))
@@ -2795,7 +2797,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     path = _write_holding_period_specification(Path(temp_dir))
                     configuration = yaml.safe_load(path.read_text(encoding="utf-8"))
                     del configuration[omitted_section]
-                    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+                    test_util.write_audit_test_yaml(path, configuration)
 
                     with self.assertRaisesRegex(
                         PpaError,
@@ -2918,7 +2920,7 @@ class TestPerformanceComparison(unittest.TestCase):
                     "EUR,USD,2025-05-31,1.10000000\n",
                     encoding="utf-8",
                 )
-            path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+            test_util.write_audit_test_yaml(path, configuration)
 
             with self.assertRaisesRegex(
                 PpaError,

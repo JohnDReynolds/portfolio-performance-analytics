@@ -6,7 +6,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import tempfile
-from typing import Literal, cast
+from typing import Any, Literal, cast
 import unittest
 
 import pandas as pd
@@ -67,6 +67,23 @@ _PACKAGED_AUDIT_PATH = (
     / "axys_apx_audit"
     / "axys_apx_audit.yaml"
 )
+
+
+def _packaged_audit_specification() -> AuditSpecification:
+    """Return the packaged starter for an explicit portfolio execution."""
+    return AuditSpecification(
+        _PACKAGED_AUDIT_PATH,
+        comparison_level="portfolio",
+    )
+
+
+def _packaged_portfolio_findings(**kwargs: Any) -> pl.DataFrame:
+    """Compare the packaged starter at the portfolio execution level."""
+    return compare_snapshots(
+        _PACKAGED_AUDIT_PATH,
+        comparison_level="portfolio",
+        **kwargs,
+    )
 _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT
     / "docs"
@@ -425,7 +442,7 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertNotIn("Original Cost Date", transaction_columns)
         self.assertNotIn("Original Cost", transaction_columns)
         self.assertEqual(
-            list(datasets["secref.csv"]["columns"]),
+            list(datasets["secmast.csv"]["columns"]),
             ["Security Symbol", "Security Type", "Asset Class Code"],
         )
 
@@ -518,6 +535,14 @@ class TestAuditDemoData(unittest.TestCase):
 
         self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
 
+    def test_packaged_starter_does_not_select_one_report_level(self) -> None:
+        """The user-facing command owns portfolio/security orchestration."""
+        configuration = yaml.safe_load(
+            _PACKAGED_AUDIT_PATH.read_text(encoding="utf-8")
+        )
+
+        self.assertNotIn("comparison", configuration)
+
     def test_packaged_demo_transaction_rules_cover_ambiguous_axys_codes(self) -> None:
         """Packaged demo YAML covers observed and ambiguous Axys/APX source codes."""
         observed_codes: set[str] = set()
@@ -539,7 +564,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_resolves_ambiguous_axys_flow_examples(self) -> None:
         """Packaged ambiguous-code examples resolve only through reviewed context."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
 
         for snapshot_key in ("a", "b"):
             with self.subTest(snapshot_key=snapshot_key):
@@ -646,7 +671,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_fixed_income_boundary_stays_evidenced(self) -> None:
         """Fixed-income demo rows use proved income/accrual inputs only."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
 
         for snapshot_key, snapshot_directory in (
             ("a", "snapshot_a"),
@@ -765,7 +790,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_wd_uses_contextual_external_flow_rule(self) -> None:
         """Packaged Axys wd rows classify external flow from context, not code alone."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
@@ -788,7 +813,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_dp_uses_contextual_fee_rule(self) -> None:
         """Packaged Axys dp fee rows stay performance items, not external flows."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
@@ -812,7 +837,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_ai_uses_contextual_margin_rule(self) -> None:
         """Packaged margin interest stays contextual and performance-impacting."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
         frame = TransactionsLoader(specification).load("b")
         assert frame is not None
 
@@ -836,7 +861,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_withholding_is_separate_contextual_expense(self) -> None:
         """Gross dividend and withholding remain separate net-basis rows."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
         frame = TransactionsLoader(specification).load("b")
         assert frame is not None
 
@@ -865,7 +890,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_reinvestment_pair_is_matched_and_not_external(self) -> None:
         """The corrected dividend and dvwash purchase form one matched pair."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
         frame = TransactionsLoader(specification).load("b")
         assert frame is not None
 
@@ -887,7 +912,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_ti_requires_external_security_context(self) -> None:
         """The packaged ti deliver-in is external only through reviewed context."""
-        specification = AuditSpecification(_PACKAGED_AUDIT_PATH)
+        specification = _packaged_audit_specification()
         frame = TransactionsLoader(specification).load("b")
         assert frame is not None
 
@@ -912,8 +937,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
         """Performance Difference Causes only contains approved demo fields."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
 
@@ -925,8 +949,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_audit_fields_match_source_contract(self) -> None:
         """Cost is not exposed in the packaged Axys/APX demo evidence surface."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
 
@@ -940,8 +963,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_accrual_changes_are_performance_causes(self) -> None:
         """Configured accrual amount changes remain performance-cause rows."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
 
@@ -954,8 +976,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_split_factor_supports_holding_cause(self) -> None:
         """Split-factor evidence supports the CVNA holding-value correction."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
 
@@ -977,8 +998,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_rc_row_explains_return_of_capital_cash_effect(self) -> None:
         """Return-of-capital row has explicit reviewer-facing cash wording."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
 
@@ -999,8 +1019,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_pd_row_explains_principal_paydown_cash_effect(self) -> None:
         """Principal-paydown row has explicit reviewer-facing cash wording."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
 
@@ -1020,7 +1039,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
         """Packaged reports preserve intentional partial and unresolved periods."""
-        portfolio_findings = compare_snapshots(_PACKAGED_AUDIT_PATH)
+        portfolio_findings = _packaged_portfolio_findings()
         portfolio_changes = _workbook_portfolio_changes_table(
             portfolio_findings,
             comparison_path=_PACKAGED_AUDIT_PATH,
@@ -1451,8 +1470,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_balanced_april_has_one_new_story_and_keeps_inherited_inputs(self) -> None:
         """Each April period has one new story without hiding inherited inputs."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
         causes = _workbook_underlying_causes_table(
@@ -1492,8 +1510,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_march_contribution_is_standalone_and_fully_explained(self) -> None:
         """The restored contribution remains visible without affecting April."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
         portfolio_changes = _workbook_portfolio_changes_table(
@@ -1522,8 +1539,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_balanced_periods_keep_inherited_inputs_and_isolate_new_stories(self) -> None:
         """BALANCED keeps AAPL and CVNA in separate periods without hiding inputs."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
         causes = _workbook_underlying_causes_table(
@@ -2264,8 +2280,7 @@ reconstruction_roles:
 
     def test_packaged_demo_counts_base_values_and_links_fx_support(self) -> None:
         """Foreign base values are counted while the changed FX rate is support."""
-        findings = compare_snapshots(
-            _PACKAGED_AUDIT_PATH,
+        findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
         summary = portfolio_period_cause_summary(findings).filter(

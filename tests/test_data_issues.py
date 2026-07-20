@@ -289,7 +289,10 @@ class TestDataIssues(unittest.TestCase):
             / "axys_apx_audit.yaml"
         )
 
-        specification = AuditSpecification(comparison_path)
+        specification = AuditSpecification(
+            comparison_path,
+            comparison_level="portfolio",
+        )
         check_config = specification.values["data_issues"][
             data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
         ]
@@ -1483,6 +1486,53 @@ def _write_site(
     transaction_rules: str = "",
 ) -> Path:
     """Write a minimal performance-comparison site and return its YAML path."""
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "source_column_mappings.yaml").write_text(
+        textwrap.dedent(
+            """
+            portfolio_performance_columns:
+              portfolio_code: PORTFOLIO_CODE
+              from_date: FROM_DATE
+              thru_date: THRU_DATE
+              portfolio_return: PORT_RETURN
+            holdings_columns:
+              portfolio_code: PORT
+              identifier: SEC
+              holding_date: HOLDING_DATE
+              quantity: QTY
+              price: PRICE
+              market_value: MKT_VAL
+              accrued: ACCRUED
+            transactions_columns:
+              portfolio_code: PORT
+              identifier: SEC
+              transaction_date: TRANSACTION_DATE
+              settlement_date: SETTLE_DATE
+              transaction_code: TRAN
+              original_cost_date: ORIGINAL_COST_DATE
+              security_type: SEC_TYPE
+              source_destination_type: SRC_DEST_TYPE
+              source_destination_symbol: SRC_DEST_SYMBOL
+              special_security_type: SPECIAL_SEC_TYPE
+              special_security_symbol: SPECIAL_SEC_SYMBOL
+              quantity: QTY
+              price: PRICE
+              amount: AMOUNT
+              commission: COMMISSION
+              original_cost: ORIGINAL_COST
+            security_reference_columns:
+              identifier: SECURITY_ID
+              security_type: SECURITY_TYPE
+              asset_class_code: ASSET_CLASS_CODE
+            splits_columns:
+              identifier: SEC
+              split_date: SPLIT_DATE
+              split_factor: SPLIT_FACTOR
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
     for snapshot in ("snapshot_a", "snapshot_b"):
         snapshot_directory = root / snapshot
         snapshot_directory.mkdir(parents=True)
@@ -1510,7 +1560,7 @@ def _write_site(
             )
         if security_reference_rows is not None:
             _write_csv(
-                snapshot_directory / "secref.csv",
+                snapshot_directory / "secmast.csv",
                 "SECURITY_ID,SECURITY_TYPE,ASSET_CLASS_CODE",
                 security_reference_rows,
             )
@@ -1531,7 +1581,7 @@ def _write_site(
         if block
     )
     security_reference_file = (
-        "\n  security_reference: secref.csv"
+        "\n  security_reference: secmast.csv"
         if security_reference_rows is not None
         else ""
     )
@@ -1543,8 +1593,10 @@ def _write_site(
         snapshots:
           a:
             path: snapshot_a
+            schema: source_column_mappings.yaml
           b:
             path: snapshot_b
+            schema: source_column_mappings.yaml
         files:
           portfolio_performance: portperf.csv
           holdings: holdings.csv

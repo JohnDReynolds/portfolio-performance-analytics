@@ -30,19 +30,19 @@ _GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
-    "secref.csv",
+    "secmast.csv",
     "run_analytics.py",
 )
 _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "holdings.csv",
     "transactions.csv",
-    "secref.csv",
+    "secmast.csv",
     "splits.csv",
 )
 _AUDIT_SETUP_FILES: Final[tuple[str, ...]] = (
     "run_audit.py",
-    "axys_apx_column_mappings.yaml",
+    "column_mappings.yaml",
 )
 
 
@@ -361,7 +361,7 @@ Steps:
 
 1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
 2. Replace `analytics/secperf.csv` with your own security-performance export.
-3. Replace `analytics/secref.csv` with your own security reference export.
+3. Replace `analytics/secmast.csv` with your own security reference export.
 4. Edit `analytics/ppar.yaml` if your filenames or headers differ.
 5. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
 
@@ -390,7 +390,7 @@ python audit/run_audit.py -h
     ppar.yaml
     portperf.csv
     secperf.csv
-    secref.csv
+    secmast.csv
     run_analytics.py
   audit/
     ppar.yaml
@@ -399,7 +399,7 @@ python audit/run_audit.py -h
       portperf.csv
       holdings.csv
       transactions.csv
-      secref.csv
+      secmast.csv
       secperf.csv
       fx_rates.csv
       splits.csv
@@ -407,7 +407,7 @@ python audit/run_audit.py -h
       portperf.csv
       holdings.csv
       transactions.csv
-      secref.csv
+      secmast.csv
       secperf.csv
       fx_rates.csv
       splits.csv

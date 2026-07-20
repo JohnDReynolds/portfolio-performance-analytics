@@ -12,13 +12,11 @@ snapshots:
   a:
     label: axys_modified_dietz_a
     path: ../snapshots/axys_modified_dietz_a
-    vendor: axys
     schema: ../axys_column_mappings.yaml
 
   b:
     label: axys_modified_dietz_b
     path: ../snapshots/axys_modified_dietz_b
-    vendor: axys
     schema: ../axys_column_mappings.yaml
 
 files:

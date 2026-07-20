@@ -6,11 +6,11 @@ snapshots:
   a:
     label: rep_semantics_a
     path: snapshot_a
-    vendor: axys
+    schema: ../source_column_mappings.yaml
   b:
     label: rep_semantics_b
     path: snapshot_b
-    vendor: axys
+    schema: ../source_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv

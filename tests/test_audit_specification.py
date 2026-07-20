@@ -123,6 +123,44 @@ class TestAuditSpecification(unittest.TestCase):
                     ):
                         AuditSpecification(path)
 
+    def test_caller_level_allows_comparison_section_to_be_omitted(self) -> None:
+        """An explicit lower-level execution choice replaces user YAML level."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            del configuration["comparison"]
+            path = _write_yaml(directory, configuration)
+
+            specification = AuditSpecification(
+                path,
+                comparison_level="portfolio",
+            )
+
+        self.assertEqual(specification.comparison_level, "portfolio")
+
+    def test_security_execution_uses_standard_performance_filename(self) -> None:
+        """An explicit security run defaults its required file to secperf.csv."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            del configuration["comparison"]
+            configuration["files"] = {}
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (directory / snapshot_name / "secperf.csv").write_text(
+                    "header\n",
+                    encoding="utf-8",
+                )
+            path = _write_yaml(directory, configuration)
+
+            specification = AuditSpecification(
+                path,
+                comparison_level="security",
+            )
+
+        security_file = specification.files["security_performance"]
+        self.assertEqual(security_file.relative_path, Path("secperf.csv"))
+        self.assertTrue(security_file.required)
+
     def test_fixture_comparison_paths_are_resolved(self) -> None:
         """Committed baseline fixture resolves snapshots, schemas, and files."""
         specification = AuditSpecification(_AXYS_COMPARISON_PATH)
@@ -427,19 +465,35 @@ transaction_impact_methods:
             self.assertTrue(str(context.exception).startswith("Error 504"))
             self.assertIn("must not specify required", str(context.exception))
 
-    def test_missing_portfolio_performance_raises_error_504(self) -> None:
-        """Portfolio performance must be listed in the files section."""
+    def test_omitted_portfolio_performance_uses_standard_filename(self) -> None:
+        """The required portfolio file defaults to portperf.csv."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
             configuration["files"] = {"security_performance": "secperf.csv"}
             path = _write_yaml(directory, configuration)
 
-            with self.assertRaises(PpaError) as context:
-                AuditSpecification(path)
+            specification = AuditSpecification(path)
 
-            self.assertTrue(str(context.exception).startswith("Error 504"))
-            self.assertIn("files.portfolio_performance is required", str(context.exception))
+        portfolio_file = specification.files["portfolio_performance"]
+        self.assertEqual(portfolio_file.relative_path, Path("portperf.csv"))
+        self.assertTrue(portfolio_file.required)
+
+    def test_optional_standard_file_remains_explicit(self) -> None:
+        """File presence alone does not expand the configured evidence set."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (directory / snapshot_name / "splits.csv").write_text(
+                    "header\n",
+                    encoding="utf-8",
+                )
+            path = _write_yaml(directory, configuration)
+
+            specification = AuditSpecification(path)
+
+        self.assertNotIn("splits", specification.files)
 
     def test_missing_snapshot_b_raises_error_504(self) -> None:
         """Snapshot definitions must include both neutral comparison sides."""
@@ -456,6 +510,24 @@ transaction_impact_methods:
 
             self.assertTrue(str(context.exception).startswith("Error 504"))
             self.assertIn("snapshots.b must be a mapping", str(context.exception))
+
+    def test_retired_snapshot_vendor_key_fails_closed(self) -> None:
+        """The removed dormant vendor setting is not silently ignored."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            snapshots = configuration["snapshots"]
+            assert isinstance(snapshots, dict)
+            snapshot_a = snapshots["a"]
+            assert isinstance(snapshot_a, dict)
+            snapshot_a["vendor"] = "axys_apx"
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "snapshots.a has unsupported keys: vendor",
+            ):
+                AuditSpecification(path)
 
     def test_non_mapping_yaml_root_raises_error_504(self) -> None:
         """The comparison YAML root must be a mapping."""

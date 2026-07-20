@@ -132,8 +132,8 @@ class TestSourceLoader(unittest.TestCase):
                 {
                     "ACCT_CODE": ["PORT_A"],
                     "PORTFOLIO_CODE": ["SHOULD_NOT_WIN"],
-                    "FROM_DATE": ["2025-05-01"],
-                    "THRU_DATE": ["2025-05-31"],
+                    "from_date": ["2025-05-01"],
+                    "thru_date": ["2025-05-31"],
                     "GROSS_RETURN": [0.01],
                 }
             ).write_csv(source_path)
@@ -141,7 +141,6 @@ class TestSourceLoader(unittest.TestCase):
                 key="a",
                 label="snapshot_a",
                 path=directory,
-                vendor="axys",
                 schema_path=schema_path,
             )
 
@@ -165,6 +164,30 @@ class TestSourceLoader(unittest.TestCase):
                 [0.01],
             )
 
+    def test_default_source_names_reject_legacy_uppercase_headings(self) -> None:
+        """Audit does not guess vendor headings without a schema mapping."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            source_path = directory / "portperf.csv"
+            pl.DataFrame(
+                {
+                    "PORTFOLIO_CODE": ["PORT_A"],
+                    "FROM_DATE": ["2025-05-01"],
+                    "THRU_DATE": ["2025-05-31"],
+                    "PORT_RETURN": [0.01],
+                }
+            ).write_csv(source_path)
+
+            with self.assertRaisesRegex(PpaError, "expected one of.*portfolio_id"):
+                source_loader.read_mapped_csv(
+                    source_path,
+                    pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS,
+                    pc_cols.PORTFOLIO_PERFORMANCE,
+                    aliases.PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES,
+                    aliases.PORTFOLIO_PERFORMANCE_OPTIONAL_ALIASES,
+                    directory / "comparison.yaml",
+                )
+
     def test_schema_mapping_supports_security_performance_section(self) -> None:
         """Referenced schema mappings support security performance overrides."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -185,7 +208,6 @@ class TestSourceLoader(unittest.TestCase):
                 key="a",
                 label="snapshot_a",
                 path=directory,
-                vendor="axys",
                 schema_path=schema_path,
             )
 
@@ -283,7 +305,7 @@ class TestSourceLoader(unittest.TestCase):
                 construction,
                 output_column="security_id",
                 dataset_name="security_reference",
-                source_path="secref.csv",
+                source_path="secmast.csv",
                 error_message=lambda message: message,
             )
 
@@ -398,7 +420,7 @@ def _write_source_loader_specification(directory: Path) -> Path:
         snapshot_path = directory / snapshot_name
         snapshot_path.mkdir()
         (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "portfolio_id,from_date,thru_date,portfolio_return\n"
             "PORT_A,2025-05-01,2025-05-31,0.01\n",
             encoding="utf-8",
         )

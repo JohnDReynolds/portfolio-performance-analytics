@@ -516,7 +516,7 @@ def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, int]:
         snapshot = directory / snapshot_name
         for path in snapshot.glob("*.csv"):
             source = pl.read_csv(path)
-            if path.name == "secref.csv":
+            if path.name == "secmast.csv":
                 expanded = source
                 static_reference_rows += source.height
             else:
@@ -535,14 +535,14 @@ def _prepare_selected_analytics(directory: Path, scale: int) -> tuple[Path, int]
     (directory / "axys_apx_analytics.yaml").rename(directory / "ppar.yaml")
 
     security_performance = pl.read_csv(directory / "secperf.csv")
-    security_reference = pl.read_csv(directory / "secref.csv")
+    security_reference = pl.read_csv(directory / "secmast.csv")
     expanded_performance, expanded_reference = _expanded_selected_analytics_frames(
         security_performance,
         security_reference,
         scale,
     )
     expanded_performance.write_csv(directory / "secperf.csv")
-    expanded_reference.write_csv(directory / "secref.csv")
+    expanded_reference.write_csv(directory / "secmast.csv")
     return directory, expanded_performance.height
 
 

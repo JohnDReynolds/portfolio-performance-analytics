@@ -102,7 +102,7 @@ def _fixture_specification() -> dict[str, object]:
         test_util.axys_data_path("secperf.csv")
     )
     mutable_specification["security_master_path"] = str(
-        test_util.axys_data_path("secref.csv")
+        test_util.axys_data_path("secmast.csv")
     )
     classifications = _classification_definitions(mutable_specification)
     for classification in classifications.values():
@@ -162,8 +162,8 @@ class TestAxysValidation(unittest.TestCase):
                 _AxysArguments(security_performance_path=security_performance_path),
             )
 
-    def test_ambiguous_performance_column_aliases_raise_error_502(self) -> None:
-        """Inferred performance columns must resolve to one CSV header."""
+    def test_unconfigured_legacy_performance_columns_raise_error_502(self) -> None:
+        """Legacy headings are not guessed when a mapping is omitted."""
         specification = _fixture_specification()
         specification["portfolio_performance_columns"] = {
             "from_date": "FROM_DATE",
@@ -191,7 +191,7 @@ class TestAxysValidation(unittest.TestCase):
                     specifications_path=specifications_path,
                     portfolio_performance_path=portfolio_performance_path,
                 ),
-                "Ambiguous inferred source columns",
+                "portfolio_return",
             )
 
     def test_material_reconciliation_difference_raises_error_503(self) -> None:
@@ -271,34 +271,34 @@ class TestAxysValidation(unittest.TestCase):
             path = _write_yaml(Path(temp_dir), ["not", "a", "mapping"])
             _assert_axys_error(self, 504, _AxysArguments(specifications_path=path))
 
-    def test_missing_portfolio_performance_path_raises_error_504(self) -> None:
-        """Portfolio performance must be provided either by argument or specification."""
+    def test_omitted_performance_paths_use_conventional_filenames(self) -> None:
+        """Omitted Analytics performance paths resolve beside the YAML."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = _write_yaml(Path(temp_dir), {})
-            _assert_axys_error(
-                self,
-                504,
-                _AxysArguments(specifications_path=path, portfolio_performance_path=None),
+            directory = Path(temp_dir)
+            path = _write_yaml(directory, {})
+            data = AxysData(
+                path,
+                portfolio_performance_path=None,
+                security_performance_path=None,
             )
 
-    def test_missing_security_performance_path_raises_error_504(self) -> None:
-        """Security performance must be provided by argument or specification."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            path = _write_yaml(Path(temp_dir), {})
-            _assert_axys_error(
-                self,
-                504,
-                _AxysArguments(specifications_path=path, security_performance_path=None),
+            self.assertEqual(
+                data.portfolio_performance_path,
+                directory / "portperf.csv",
+            )
+            self.assertEqual(
+                data.security_performance_path,
+                directory / "secperf.csv",
             )
 
     def test_unknown_classification_raises_error_504(self) -> None:
         """Requested classification names must be defined in the specification."""
         _assert_axys_error(self, 504, _AxysArguments(classification_name="unknown"))
 
-    def test_invalid_default_date_raises_error_504(self) -> None:
-        """Default Axys date filters must be ISO dates."""
+    def test_invalid_analytics_date_raises_error_504(self) -> None:
+        """Configured Analytics date filters must be ISO dates."""
         specification = _fixture_specification()
-        specification["defaults"] = {"from_date": "01/01/2024"}
+        specification["analytics"] = {"from_date": "01/01/2024"}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_yaml(Path(temp_dir), specification)
@@ -306,13 +306,13 @@ class TestAxysValidation(unittest.TestCase):
                 self,
                 504,
                 _AxysArguments(specifications_path=path),
-                "defaults.from_date must be an ISO date",
+                "analytics.from_date must be an ISO date",
             )
 
-    def test_invalid_default_classification_raises_error_504(self) -> None:
-        """Default Axys classification must be a string."""
+    def test_invalid_analytics_classification_raises_error_504(self) -> None:
+        """Configured Analytics classification must be a string."""
         specification = _fixture_specification()
-        specification["defaults"] = {"classification": ["Country"]}
+        specification["analytics"] = {"classification": ["Country"]}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_yaml(Path(temp_dir), specification)
@@ -320,7 +320,22 @@ class TestAxysValidation(unittest.TestCase):
                 self,
                 504,
                 _AxysArguments(specifications_path=path),
-                "defaults.classification must be a string",
+                "analytics.classification must be a string",
+            )
+
+    def test_removed_defaults_section_raises_error_504(self) -> None:
+        """The retired split defaults section fails with migration guidance."""
+        specification = _fixture_specification()
+        specification["defaults"] = {"classification": "Country"}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path),
+                "defaults is not supported; move from_date, thru_date, and "
+                "classification under analytics",
             )
 
     def test_missing_portfolio_error_includes_requested_dates(self) -> None:
@@ -408,8 +423,8 @@ class TestAxysValidation(unittest.TestCase):
                 ),
             )
 
-    def test_ambiguous_security_master_column_aliases_raise_error_504(self) -> None:
-        """Inferred security master columns must resolve to one CSV header."""
+    def test_unconfigured_legacy_security_master_columns_raise_error_504(self) -> None:
+        """Legacy security-master headings are not guessed without mappings."""
         specification = _fixture_specification()
         specification.pop("security_master_columns", None)
 
@@ -433,7 +448,27 @@ class TestAxysValidation(unittest.TestCase):
                     specifications_path=specifications_path,
                     classification_name="Security",
                 ),
-                "Ambiguous inferred security master column",
+                "security_name",
+            )
+
+    def test_retired_security_master_name_column_is_rejected(self) -> None:
+        """The security-master name mapping uses the normalized key."""
+        specification = _fixture_specification()
+        specification["security_master_columns"] = {
+            "identifier_column": "SECURITY_ID",
+            "name_column": "SECURITY_NAME",
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specifications_path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(
+                    specifications_path=specifications_path,
+                    classification_name="Security",
+                ),
+                "security_master_columns has unsupported keys: name_column",
             )
 
     def test_mapping_without_display_name_column_cannot_be_classification(self) -> None:

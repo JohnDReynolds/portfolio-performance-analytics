@@ -479,14 +479,17 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "both the configuration file and the onboarding guide",
+            "The default command to run Audit is",
             "Why did my reported performance change?",
-            "Recommended first pass",
-            "Axys/APX assumption",
-            "First-run edit map",
-            "Edit snapshots.*.path",
-            "Leave transaction rules and impact methods alone",
-            "Allowed values: portfolio, security",
+            "To customize with your own data",
+            "Ambiguous transaction codes must not become external flows",
+            "If snapshot folder names or filenames differ",
+            "edit snapshots.*.path",
+            "Leave the starter transaction rules and impact",
+            "Every setting below has a default",
+            "Default: None (use the standard level-specific titles)",
+            "Command-line override: --exclude-suppressed",
+            "writes both\n# portfolio and security reports",
             "Usually the original/older source-data extract",
             "security_performance",
             "Required only when applicable: the file is needed for security-level",
@@ -506,6 +509,31 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
 
+        self.assertNotIn(
+            "Command-line override: ppar audit",
+            yaml_text,
+        )
+        self.assertNotIn("comparison:", yaml_text)
+        self.assertEqual(yaml_text.count("  # Default:"), 8)
+        file_positions = [
+            yaml_text.index("  portfolio_performance: portperf.csv"),
+            yaml_text.index("  security_performance: secperf.csv"),
+            yaml_text.index("  holdings: holdings.csv"),
+            yaml_text.index("  transactions: transactions.csv"),
+            yaml_text.index("  security_reference: secmast.csv"),
+            yaml_text.index("  fx_rates: fx_rates.csv"),
+            yaml_text.index("  splits: splits.csv"),
+        ]
+        self.assertEqual(file_positions, sorted(file_positions))
+        self.assertLess(
+            yaml_text.index("  portfolio_performance: portperf.csv"),
+            yaml_text.index("  # security_performance:"),
+        )
+        self.assertLess(
+            yaml_text.index("  security_performance: secperf.csv"),
+            yaml_text.index("  # holdings:"),
+        )
+
     def test_packaged_axys_analytics_yaml_documents_onboarding_boundaries(self) -> None:
         """The packaged Axys/APX analytics YAML names first-pass setup choices."""
         yaml_text = Path(
@@ -513,16 +541,25 @@ class TestPackageMetadata(unittest.TestCase):
         ).read_text(encoding=util.ENCODING)
 
         for expected_text in [
-            "both the configuration file and the onboarding guide",
-            "Axys/APX IMEX portfolio-performance",
-            "Replace the starter CSV files with your own IMEX CSVs",
-            "First site setup",
-            "column mappings",
-            "IMEX portfolio-performance export",
-            "security-performance export",
-            "secref.csv",
-            "Optional portfolio-performance column overrides",
-            "Optional security-performance column overrides",
+            "PPAR Axys/APX Analytics Configuration",
+            "To customize with your own data",
+            "your own IMEX/REP",
+            'edit the "*_columns" mappings',
+            "The path for the portfolio-level performance CSV file.",
+            "The path for the security-level performance CSV file.",
+            "Default: portperf.csv",
+            "Default: secperf.csv",
+            "Default: secmast.csv",
+            "Settings with documented defaults",
+            "Default: Use the performance periods as supplied",
+            "Risk Statistics require a fixed frequency and are omitted",
+            "frequency: quarterly",
+            "Command-line override: --annual-risk-free-rate 0.04",
+            "Command-line override: --annual-minimum-acceptable-return 0.01",
+            "Command-line override: --output-directory ./review_output",
+            "Portfolio-performance source-column mappings",
+            "Security-performance source-column mappings",
+            'security_name: "Security Name"',
             "mappings",
             "classification_column",
             "display_name_column",
@@ -530,12 +567,26 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
 
+        self.assertNotIn(
+            "Command-line override: ppar analytics",
+            yaml_text,
+        )
+        self.assertEqual(yaml_text.count("  # Default:"), 12)
+        self.assertLess(
+            yaml_text.index("portfolio_performance_path: portperf.csv"),
+            yaml_text.index("# security_performance_path:"),
+        )
+        self.assertLess(
+            yaml_text.index("security_performance_path: secperf.csv"),
+            yaml_text.index("# security_master_path:"),
+        )
+
     def test_packaged_audit_column_schema_omits_analytics_classifications(self) -> None:
         """The Audit schema does not advertise unused analytics groupings."""
         schema = _load_yaml(
             Path(
                 "ppar/setup_templates/axys_apx_audit/"
-                "axys_apx_column_mappings.yaml"
+                "column_mappings.yaml"
             )
         )
         self.assertNotIn("defaults", schema)
@@ -1753,12 +1804,12 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = demo_data / "axys_apx_audit"
         expected_resources = (
             "README.md",
-            "axys_apx_column_mappings.yaml",
+            "column_mappings.yaml",
             "axys_apx_audit.yaml",
             "transaction_semantics_policy.yaml",
             "snapshot_a/portperf.csv",
-            "snapshot_a/secref.csv",
-            "snapshot_b/secref.csv",
+            "snapshot_a/secmast.csv",
+            "snapshot_b/secmast.csv",
             "snapshot_b/transactions.csv",
         )
 
@@ -1769,7 +1820,7 @@ class TestPackageMetadata(unittest.TestCase):
             "axys_apx_analytics.yaml",
             "portperf.csv",
             "secperf.csv",
-            "secref.csv",
+            "secmast.csv",
         ):
             with self.subTest(resource_path=f"axys_apx_analytics/{resource_path}"):
                 self.assertTrue((axys_apx_analytics_data / resource_path).is_file())
@@ -1831,7 +1882,7 @@ class TestPackageMetadata(unittest.TestCase):
 
         for snapshot_name in ("snapshot_a", "snapshot_b"):
             snapshot = Path(str(axys_demo_data / snapshot_name))
-            with (snapshot / "secref.csv").open(
+            with (snapshot / "secmast.csv").open(
                 encoding=util.ENCODING,
                 newline="",
             ) as file:

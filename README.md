@@ -160,7 +160,7 @@ my_ppar_data/
       portperf.csv
       holdings.csv
       transactions.csv
-      secref.csv
+      secmast.csv
       secperf.csv
       fx_rates.csv
       splits.csv
@@ -168,7 +168,7 @@ my_ppar_data/
       portperf.csv
       holdings.csv
       transactions.csv
-      secref.csv
+      secmast.csv
       secperf.csv
       fx_rates.csv
       splits.csv
@@ -176,7 +176,7 @@ my_ppar_data/
     ppar.yaml
     portperf.csv
     secperf.csv
-    secref.csv
+    secmast.csv
     run_analytics.py
 ```
 
@@ -201,6 +201,11 @@ reference exports.
 
 PPAR normalizes those files through YAML, so that each site can configure its own
 local field names, transaction-code treatment, and report assumptions.
+
+The setup-created YAML keeps normal run choices together: Performance Analytics
+uses its `analytics:` section and Audit uses its `audit:` section. Each setting
+is documented beside an exact one-run command-line override. The command line
+does not create a second configuration layer; an option changes only that run.
 
 ---
 
@@ -227,8 +232,9 @@ audit/output/
     audit_support.zip
 ```
 
-Use `--no-xlsx-output` for HTML-only output or `--no-html-output` for XLSX-only
-output. Supplying both options writes a CSV-only audit and promotes
+The starter's `audit:` section enables both XLSX and HTML. Use
+`--no-xlsx-output` for HTML-only output or `--no-html-output` for XLSX-only
+output for one run. Supplying both options writes a CSV-only audit and promotes
 `performance_differences.csv`, `performance_difference_causes.csv`,
 `data_issues.csv`, and `source_detail.csv` to each report directory.
 

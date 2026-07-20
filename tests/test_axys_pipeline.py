@@ -94,7 +94,7 @@ def _write_axys_inputs(directory: Path) -> Path:
         "security_master_path": "security_master.csv",
         "security_master_columns": {
             "identifier_column": "SECURITY_ID",
-            "name_column": "SECURITY_NAME",
+            "security_name": "SECURITY_NAME",
         },
         "classifications": {
             "SectorLookup": {
@@ -186,10 +186,31 @@ class TestAxysPipeline(unittest.TestCase):
         self.assertEqual(portfolios["P2"].portfolio_name, "P2 - Income")
         self.assertEqual(scan_csv.call_count, 2)
 
-    def test_performance_columns_can_be_inferred_from_standard_aliases(self) -> None:
-        """Portfolio and security performance column mappings can be omitted."""
+    def test_performance_columns_default_only_to_exact_normalized_names(self) -> None:
+        """Performance mappings may be omitted for exact normalized headers."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_axys_inputs(Path(temp_dir))
+            directory = Path(temp_dir)
+            specification_path = _write_axys_inputs(directory)
+            pl.read_csv(directory / "portperf.csv").rename(
+                {
+                    "FROM_DATE": "from_date",
+                    "THRU_DATE": "thru_date",
+                    "PORTFOLIO_CODE": "portfolio_code",
+                    "PORTFOLIO_NAME": "portfolio_name",
+                    "PORT_RETURN": "portfolio_return",
+                }
+            ).write_csv(directory / "portperf.csv")
+            pl.read_csv(directory / "secperf.csv").rename(
+                {
+                    "FROM_DATE": "from_date",
+                    "THRU_DATE": "thru_date",
+                    "PORTFOLIO_CODE": "portfolio_code",
+                    "SECURITY_ID": "identifier",
+                    "SEC_RETURN": "return",
+                    "BEGIN_WEIGHT": "weight",
+                    "CONTRIBUTION": "contribution",
+                }
+            ).write_csv(directory / "secperf.csv")
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
             del specification["portfolio_performance_columns"]
@@ -249,8 +270,8 @@ class TestAxysPipeline(unittest.TestCase):
                 ["csus_A", "csus_B"],
             )
 
-    def test_explicit_performance_mapping_wins_over_aliases(self) -> None:
-        """Configured performance columns avoid ambiguity from alias columns."""
+    def test_explicit_performance_mapping_ignores_unconfigured_columns(self) -> None:
+        """Configured performance columns ignore unrelated legacy headings."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             specification_path = _write_axys_inputs(directory)
@@ -270,10 +291,17 @@ class TestAxysPipeline(unittest.TestCase):
             self.assertEqual(portfolio.portfolio_name, "P1 - Growth")
             self.assertEqual(portfolio.security_performance.height, 4)
 
-    def test_security_master_columns_can_be_inferred_from_standard_aliases(self) -> None:
-        """Security master identifier and name columns can be omitted."""
+    def test_security_master_columns_default_to_exact_normalized_names(self) -> None:
+        """Security-master mappings may be omitted for normalized headers."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_axys_inputs(Path(temp_dir))
+            directory = Path(temp_dir)
+            specification_path = _write_axys_inputs(directory)
+            pl.read_csv(directory / "security_master.csv").rename(
+                {
+                    "SECURITY_ID": "security_id",
+                    "SECURITY_NAME": "security_name",
+                }
+            ).write_csv(directory / "security_master.csv")
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
             del specification["security_master_columns"]
@@ -295,8 +323,28 @@ class TestAxysPipeline(unittest.TestCase):
             )
             self.assertEqual(sector_sources.classification_name, "Sector")
 
-    def test_explicit_security_master_mapping_wins_over_aliases(self) -> None:
-        """Configured security master columns avoid ambiguity from alias columns."""
+    def test_security_master_path_defaults_to_secmast_csv(self) -> None:
+        """Analytics resolves an omitted security-master path conventionally."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_axys_inputs(directory)
+            (directory / "security_master.csv").rename(directory / "secmast.csv")
+            specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            assert isinstance(specification, dict)
+            del specification["security_master_path"]
+            specification_path.write_text(
+                yaml.safe_dump(specification),
+                encoding="utf-8",
+            )
+
+            data = AxysData(specification_path)
+            portfolio = data.get_portfolio("P1")
+            sources = data.get_classification_sources("Security", portfolio)
+
+            self.assertEqual(sources.classification_data_source.height, 2)
+
+    def test_explicit_security_master_mapping_ignores_other_columns(self) -> None:
+        """Configured security-master columns ignore unrelated headings."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             specification_path = _write_axys_inputs(directory)
@@ -362,13 +410,13 @@ class TestAxysPipeline(unittest.TestCase):
                 [dt.date(2024, 2, 29)],
             )
 
-    def test_get_portfolio_uses_configured_defaults(self) -> None:
-        """YAML defaults supply omitted date filters and classification."""
+    def test_get_portfolio_uses_configured_analytics_selection(self) -> None:
+        """Analytics settings supply omitted date filters and classification."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_axys_inputs(Path(temp_dir))
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
-            specification["defaults"] = {
+            specification["analytics"] = {
                 "from_date": dt.date(2024, 2, 1),
                 "thru_date": dt.date(2024, 2, 29),
                 "classification": "Country",
@@ -389,13 +437,13 @@ class TestAxysPipeline(unittest.TestCase):
                 ["Canada", "United Kingdom", "United States"],
             )
 
-    def test_get_portfolio_arguments_override_configured_defaults(self) -> None:
-        """Explicit date and classification arguments override YAML defaults."""
+    def test_get_portfolio_arguments_override_analytics_selection(self) -> None:
+        """Explicit arguments override the configured Analytics selection."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_axys_inputs(Path(temp_dir))
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
-            specification["defaults"] = {
+            specification["analytics"] = {
                 "from_date": "2024-02-01",
                 "thru_date": "2024-02-29",
                 "classification": "Country",

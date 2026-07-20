@@ -60,9 +60,9 @@ def main(argv: list[str] | None = None) -> int:
     # ---------------------------------------------------------------------
     # 1. Resolve this run's presentation and validation choices
     # ---------------------------------------------------------------------
-    # Source files, transaction rules, tolerances, reconstruction policy, and
-    # Data Issues checks remain in ppar.yaml where they are reviewable and
-    # reproducible. CLI-style options control only this particular run.
+    # Source files, financial policy, Data Issues checks, and normal run choices
+    # remain in ppar.yaml where they are reviewable and reproducible. CLI-style
+    # options override matching run choices only for this invocation.
     settings = script_run_settings(SITE_DIRECTORY, argv)
 
     # ---------------------------------------------------------------------

@@ -2,8 +2,8 @@
 
 The normal command is ``ppar analytics ./analytics``. This script produces the
 same output while showing the important Python objects and calculation steps.
-PPAR handles command-line parsing, YAML precedence, validation, and routine file
-I/O so this example can focus on the financial workflow.
+PPAR handles command-line overrides, YAML validation, and routine file I/O so
+this example can focus on the financial workflow.
 
 This script accepts the same command-line options as ``ppar analytics``. Run
 ``python run_analytics.py -h`` to view them.
@@ -25,6 +25,7 @@ from ppar.analytics.cli import (
     script_run_settings,
     write_html_file,
     write_png_file,
+    write_risk_statistics_file,
 )
 import ppar.analytics.schema as cols
 from ppar.axys_apx import AxysData
@@ -49,16 +50,16 @@ def main(argv: list[str] | None = None) -> int:
     # ---------------------------------------------------------------------
     # 1. Resolve configuration
     # ---------------------------------------------------------------------
-    # PPAR combines command-line overrides, analytics settings in ppar.yaml,
-    # and library defaults. Inspect ``settings`` in a debugger or print it when
-    # you want to see the exact assumptions used for this run.
+    # PPAR reads the analytics settings in ppar.yaml, then applies any one-run
+    # command-line overrides. Inspect ``settings`` in a debugger or print it
+    # when you want to see the exact assumptions used for this run.
     settings = script_run_settings(SITE_DIRECTORY, argv)
 
     # ---------------------------------------------------------------------
     # 2. Load and reconcile the source data
     # ---------------------------------------------------------------------
     # AxysData reads period performance from portperf.csv and secperf.csv, then
-    # resolves security names and classifications from secref.csv as configured
+    # resolves security names and classifications from secmast.csv as configured
     # in ppar.yaml. get_portfolio() reconciles the selected account and dates.
     source_data = AxysData(SPECIFICATIONS_PATH)
     portfolio = source_data.get_portfolio(
@@ -107,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Security attribution answers which holdings drove active performance.
     # Security names are reference data, so explicitly combine the filtered
-    # secref.csv lookups for the portfolio and benchmark before attribution.
+    # secmast.csv lookups for the portfolio and benchmark before attribution.
     security_classification = pl.concat(
         [
             source_data.get_classification_sources(
@@ -152,15 +153,15 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     # RiskStatistics uses the same aligned return stream and assumptions as the
-    # attribution calculation above.
-    risk_statistics: Any = analytics.get_riskstatistics()
-    written_paths.append(
-        write_html_file(
-            settings.output_directory,
-            "risk_statistics.html",
-            risk_statistics.to_html(),
-        )
+    # attribution calculation above. Native source periods intentionally skip
+    # this fixed-frequency report.
+    risk_statistics_path = write_risk_statistics_file(
+        analytics,
+        settings.output_directory,
+        settings.frequency,
     )
+    if risk_statistics_path is not None:
+        written_paths.append(risk_statistics_path)
 
     # ---------------------------------------------------------------------
     # 5. Hand the review files back to the user

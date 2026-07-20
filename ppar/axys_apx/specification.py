@@ -17,11 +17,16 @@ import ppar.utilities as util
 ErrorMessage = Callable[[str], str]
 SourceType = Literal["classification", "mapping"]
 _DefaultDateKey = Literal["from_date", "thru_date"]
-_DEFAULTS_KEY = "defaults"
+_ANALYTICS_KEY = "analytics"
+_REMOVED_DEFAULTS_KEY = "defaults"
 _DEFAULT_FROM_DATE_KEY: _DefaultDateKey = "from_date"
 _DEFAULT_THRU_DATE_KEY: _DefaultDateKey = "thru_date"
 _DEFAULT_CLASSIFICATION_KEY = "classification"
 _AXYS_PORTFOLIO_NAME_SEPARATOR = " - "
+_DEFAULT_PERFORMANCE_PATHS: dict[str, str] = {
+    "portfolio_performance_path": "portperf.csv",
+    "security_performance_path": "secperf.csv",
+}
 
 
 class AxysSpecification:
@@ -54,6 +59,14 @@ class AxysSpecification:
         if not isinstance(loaded_yaml, dict):
             raise PpaError(error_message("YAML must be a dictionary"), 504)
         self.values: dict[str, Any] = loaded_yaml
+        if _REMOVED_DEFAULTS_KEY in self.values:
+            raise PpaError(
+                error_message(
+                    "defaults is not supported; move from_date, thru_date, and "
+                    "classification under analytics."
+                ),
+                504,
+            )
 
     def resolve_path(self, file_path: util.PathLike) -> Path:
         """Return an absolute or specifications-relative source path.
@@ -75,33 +88,22 @@ class AxysSpecification:
             "portfolio_performance_path",
             "security_performance_path",
         ],
-        error_message: ErrorMessage,
     ) -> Path:
-        """Resolve an explicit or configured performance source path.
+        """Resolve an explicit, configured, or conventional performance path.
 
         Args:
             argument_path: Explicit source path provided to ``AxysData``, if
                 any.
-            specification_key: Specification setting holding the fallback path.
-            error_message: Callback that adds facade-level source context to
-                validation messages.
+            specification_key: Specification setting holding a path override.
 
         Returns:
             Resolved portfolio- or security-performance source path.
-
-        Raises:
-            PpaError: If neither an argument path nor a configured path is
-                available.
         """
-        file_path = argument_path or self.values.get(specification_key)
-        if not file_path:
-            raise PpaError(
-                error_message(
-                    f"{specification_key} not in specifications file and not provided "
-                    "as an argument."
-                ),
-                504,
-            )
+        file_path = (
+            argument_path
+            or self.values.get(specification_key)
+            or _DEFAULT_PERFORMANCE_PATHS[specification_key]
+        )
         return self.resolve_path(file_path)
 
     @property
@@ -148,13 +150,13 @@ class AxysSpecification:
         Raises:
             PpaError: If the configured value is not a string.
         """
-        value = self._defaults.get(_DEFAULT_CLASSIFICATION_KEY)
+        value = self._analytics.get(_DEFAULT_CLASSIFICATION_KEY)
         if value is None:
             return None
         if not isinstance(value, str):
             raise PpaError(
                 self._error_message(
-                    f"{_DEFAULTS_KEY}.{_DEFAULT_CLASSIFICATION_KEY} must be a string."
+                    f"{_ANALYTICS_KEY}.{_DEFAULT_CLASSIFICATION_KEY} must be a string."
                 ),
                 504,
             )
@@ -204,19 +206,19 @@ class AxysSpecification:
         )
 
     @property
-    def _defaults(self) -> dict[str, Any]:
-        """Return optional user defaults from the Axys specification."""
-        defaults = self.values.get(_DEFAULTS_KEY, {})
-        if not isinstance(defaults, dict):
+    def _analytics(self) -> dict[str, Any]:
+        """Return Analytics settings used by direct ``AxysData`` calls."""
+        analytics = self.values.get(_ANALYTICS_KEY, {})
+        if not isinstance(analytics, dict):
             raise PpaError(
-                self._error_message(f"{_DEFAULTS_KEY} must be a mapping."),
+                self._error_message(f"{_ANALYTICS_KEY} must be a mapping."),
                 504,
             )
-        return cast(dict[str, Any], defaults)
+        return cast(dict[str, Any], analytics)
 
     def _default_date(self, key: Literal["from_date", "thru_date"]) -> dt.date | None:
         """Return an optional default date from a YAML date or ISO string."""
-        value = self._defaults.get(key)
+        value = self._analytics.get(key)
         if value is None:
             return None
         if isinstance(value, dt.date) and not isinstance(value, dt.datetime):
@@ -227,13 +229,13 @@ class AxysSpecification:
             except ValueError as error:
                 raise PpaError(
                     self._error_message(
-                        f"{_DEFAULTS_KEY}.{key} must be an ISO date like 2024-01-01."
+                        f"{_ANALYTICS_KEY}.{key} must be an ISO date like 2024-01-01."
                     ),
                     504,
                 ) from error
         raise PpaError(
             self._error_message(
-                f"{_DEFAULTS_KEY}.{key} must be a date or ISO date string."
+                f"{_ANALYTICS_KEY}.{key} must be a date or ISO date string."
             ),
             504,
         )

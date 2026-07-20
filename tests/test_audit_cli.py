@@ -19,6 +19,7 @@ from openpyxl import load_workbook
 import yaml
 
 from ppar.errors import PpaError
+from ppar.analytics import cli as _analytics_cli
 from ppar.audit.cli import site_report as _site_report
 
 _RESTATEMENT_COMPARISON_PATH = Path(
@@ -72,6 +73,219 @@ class TestAuditCli(unittest.TestCase):
             "No files were written for the oversized report",
             stderr.getvalue(),
         )
+
+    def test_audit_yaml_settings_and_cli_overrides_resolve_consistently(self) -> None:
+        """Audit run settings come from YAML unless one run overrides them."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            _write_audit_run_settings(site_directory / "ppar.yaml")
+            configuration = yaml.safe_load(
+                (site_directory / "ppar.yaml").read_text(encoding="utf-8")
+            )
+            configuration["audit"].update(
+                {
+                    "output_directory": "configured_output",
+                    "title": "Configured Audit",
+                    "xlsx_output": False,
+                    "exclude_suppressed": True,
+                }
+            )
+            (site_directory / "ppar.yaml").write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            configured = _site_report.script_run_settings(site_directory, [])
+            overridden = _site_report.script_run_settings(
+                site_directory,
+                [
+                    "--output-directory",
+                    str(site_directory / "one_run"),
+                    "--title",
+                    "One Run",
+                    "--xlsx-output",
+                    "--no-exclude-suppressed",
+                    "--reconstruction-diagnostics",
+                ],
+            )
+
+        self.assertEqual(
+            configured.output_directory,
+            site_directory / "configured_output",
+        )
+        self.assertEqual(configured.title, "Configured Audit")
+        self.assertFalse(configured.include_workbook)
+        self.assertTrue(configured.exclude_suppressed)
+        self.assertEqual(overridden.output_directory, site_directory / "one_run")
+        self.assertEqual(overridden.title, "One Run")
+        self.assertTrue(overridden.include_workbook)
+        self.assertFalse(overridden.exclude_suppressed)
+        self.assertTrue(overridden.include_reconstruction_diagnostics)
+
+    def test_audit_run_settings_default_missing_and_reject_unknown_keys(self) -> None:
+        """Omitted Audit settings default while unknown settings fail closed."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            config_path = site_directory / "ppar.yaml"
+            _write_audit_run_settings(config_path)
+            configuration = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            configuration["audit"] = {}
+            config_path.write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+            settings = _site_report.script_run_settings(site_directory, [])
+            self.assertEqual(settings.output_directory, site_directory / "output")
+            self.assertIsNone(settings.title)
+            self.assertTrue(settings.include_workbook)
+            self.assertTrue(settings.include_html_output)
+            self.assertFalse(settings.exclude_suppressed)
+            self.assertFalse(settings.include_reconstruction_diagnostics)
+            self.assertFalse(settings.expand_all_supporting_files)
+            self.assertFalse(settings.require_causal_attribution)
+
+            configuration["audit"]["html_ouput"] = True
+            config_path.write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                PpaError,
+                "audit has unsupported keys: html_ouput",
+            ):
+                _site_report.script_run_settings(site_directory, [])
+
+    def test_audit_cli_rejects_retired_flag_spellings(self) -> None:
+        """The former inconsistent Audit option names are not aliases."""
+        for retired_flag in (
+            "--output",
+            "--exclude_suppressed",
+            "--include-reconstruction-diagnostics",
+        ):
+            with self.subTest(retired_flag=retired_flag):
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    _site_report.script_run_settings(Path.cwd(), [retired_flag])
+
+    def test_analytics_cli_rejects_retired_flag_names(self) -> None:
+        """Analytics accepts only CLI names corresponding to YAML settings."""
+        for retired_flag in (
+            "--output",
+            "--minimum-acceptable-return",
+            "--risk-free-rate",
+        ):
+            with self.subTest(retired_flag=retired_flag):
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    _analytics_cli.script_run_settings(Path.cwd(), [retired_flag])
+
+    def test_analytics_run_settings_use_defaults_then_cli_overrides(self) -> None:
+        """Analytics resolves omitted settings from documented defaults."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            configuration = yaml.safe_load(
+                Path(
+                    "ppar/setup_templates/axys_apx_analytics/"
+                    "axys_apx_analytics.yaml"
+                ).read_text(encoding="utf-8")
+            )
+            del configuration["analytics"]["confidence_level"]
+            (site_directory / "ppar.yaml").write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            defaulted = _analytics_cli.script_run_settings(site_directory, [])
+
+            settings = _analytics_cli.script_run_settings(
+                site_directory,
+                ["--confidence-level", "0.90"],
+            )
+
+        self.assertEqual(defaulted.confidence_level, 0.95)
+        self.assertEqual(settings.confidence_level, 0.90)
+
+    def test_analytics_required_values_may_come_from_command_line(self) -> None:
+        """Portfolio and benchmark may be supplied by YAML or command line."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            configuration = yaml.safe_load(
+                Path(
+                    "ppar/setup_templates/axys_apx_analytics/"
+                    "axys_apx_analytics.yaml"
+                ).read_text(encoding="utf-8")
+            )
+            del configuration["analytics"]["portfolio"]
+            del configuration["analytics"]["benchmark"]
+            (site_directory / "ppar.yaml").write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "analytics.portfolio must be set in ppar.yaml or supplied",
+            ):
+                _analytics_cli.script_run_settings(site_directory, [])
+
+            settings = _analytics_cli.script_run_settings(
+                site_directory,
+                ["--portfolio", "CLI_PORT", "--benchmark", "CLI_BENCH"],
+            )
+
+        self.assertEqual(settings.portfolio_code, "CLI_PORT")
+        self.assertEqual(settings.benchmark_code, "CLI_BENCH")
+
+    def test_analytics_omitted_optional_settings_use_documented_defaults(self) -> None:
+        """Every optional Analytics run setting has an executable default."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            configuration = {
+                "analytics": {
+                    "portfolio": "PORT",
+                    "benchmark": "BENCH",
+                }
+            }
+            (site_directory / "ppar.yaml").write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            settings = _analytics_cli.script_run_settings(site_directory, [])
+
+        self.assertEqual(
+            settings.frequency,
+            _analytics_cli.Frequency.AS_OFTEN_AS_POSSIBLE,
+        )
+        self.assertEqual(settings.output_directory, site_directory / "output")
+        self.assertIsNone(settings.from_date)
+        self.assertIsNone(settings.thru_date)
+        self.assertEqual(settings.classification_name, "Security")
+        self.assertEqual(settings.annual_minimum_acceptable_return, 0.0)
+        self.assertEqual(settings.annual_risk_free_rate, 0.03)
+        self.assertEqual(settings.confidence_level, 0.95)
+        self.assertEqual(settings.portfolio_value, 100000.0)
+        self.assertEqual(settings.currency_symbol, "$")
+
+    def test_analytics_run_settings_reject_unknown_yaml_keys(self) -> None:
+        """Analytics setting typos fail instead of being ignored."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            configuration = yaml.safe_load(
+                Path(
+                    "ppar/setup_templates/axys_apx_analytics/"
+                    "axys_apx_analytics.yaml"
+                ).read_text(encoding="utf-8")
+            )
+            configuration["analytics"]["confidence_levle"] = 0.95
+            (site_directory / "ppar.yaml").write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "analytics has unsupported keys: confidence_levle",
+            ):
+                _analytics_cli.script_run_settings(site_directory, [])
 
     def test_report_cli_modules_expose_help(self) -> None:
         """Report CLI modules expose consistent command-line help."""
@@ -259,7 +473,7 @@ class TestAuditCli(unittest.TestCase):
                 readme,
             )
             self.assertIn(
-                "Replace `analytics/secref.csv` with your own "
+                "Replace `analytics/secmast.csv` with your own "
                 "security reference export.",
                 readme,
             )
@@ -313,7 +527,7 @@ class TestAuditCli(unittest.TestCase):
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
             self.assertTrue((analytics_path / "secperf.csv").exists())
-            self.assertTrue((analytics_path / "secref.csv").exists())
+            self.assertTrue((analytics_path / "secmast.csv").exists())
             self.assertTrue((analytics_path / "run_analytics.py").exists())
             analytics_script = (analytics_path / "run_analytics.py").read_text(
                 encoding="utf-8"
@@ -352,18 +566,18 @@ class TestAuditCli(unittest.TestCase):
             self.assertEqual(config["snapshots"]["b"]["path"], "snapshot_b")
             for snapshot_name in ("a", "b"):
                 snapshot = config["snapshots"][snapshot_name]
-                self.assertEqual(snapshot["vendor"], "axys_apx")
+                self.assertNotIn("vendor", snapshot)
                 self.assertEqual(
                     snapshot["schema"],
-                    "axys_apx_column_mappings.yaml",
+                    "column_mappings.yaml",
                 )
             self.assertIn("security_return_reconstruction", config)
             self.assertTrue(
-                (comparison_path / "axys_apx_column_mappings.yaml").exists()
+                (comparison_path / "column_mappings.yaml").exists()
             )
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 self.assertTrue(
-                    (comparison_path / snapshot_name / "secref.csv").exists()
+                    (comparison_path / snapshot_name / "secmast.csv").exists()
                 )
 
     def test_setup_creates_starter_workspace(self) -> None:
@@ -660,16 +874,16 @@ class TestAuditCli(unittest.TestCase):
             shared_options = [
                 "--title",
                 "Custom Audit",
-                "--exclude_suppressed",
+                "--exclude-suppressed",
                 "--no-xlsx-output",
-                "--include-reconstruction-diagnostics",
+                "--reconstruction-diagnostics",
             ]
             subprocess.run(
                 _module_command(
                     _PPAR_MODULE,
                     "audit",
                     str(cli_audit),
-                    "--output",
+                    "--output-directory",
                     str(cli_advanced),
                     *shared_options,
                 ),
@@ -681,7 +895,7 @@ class TestAuditCli(unittest.TestCase):
                 [
                     sys.executable,
                     str(script_audit / "run_audit.py"),
-                    "--output",
+                    "--output-directory",
                     str(script_advanced),
                     *shared_options,
                 ],
@@ -721,12 +935,12 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             ).stdout
             for option in (
-                "--output",
+                "--output-directory",
                 "--title",
                 "--no-xlsx-output",
                 "--no-html-output",
-                "--exclude_suppressed",
-                "--include-reconstruction-diagnostics",
+                "--exclude-suppressed",
+                "--reconstruction-diagnostics",
                 "--require-causal-attribution",
                 "--allow-incomplete-yaml",
             ):
@@ -797,9 +1011,9 @@ class TestAuditCli(unittest.TestCase):
                     "2025-12-31",
                     "--classification",
                     "Security",
-                    "--minimum-acceptable-return",
+                    "--annual-minimum-acceptable-return",
                     "0.02",
-                    "--risk-free-rate",
+                    "--annual-risk-free-rate",
                     "0.04",
                     "--confidence-level",
                     "0.90",
@@ -807,7 +1021,7 @@ class TestAuditCli(unittest.TestCase):
                     "250000",
                     "--currency-symbol",
                     "EUR",
-                    "--output",
+                    "--output-directory",
                     str(cli_override_output),
                 ),
                 check=True,
@@ -826,9 +1040,9 @@ class TestAuditCli(unittest.TestCase):
                     "2025-12-31",
                     "--classification",
                     "Security",
-                    "--minimum-acceptable-return",
+                    "--annual-minimum-acceptable-return",
                     "0.02",
-                    "--risk-free-rate",
+                    "--annual-risk-free-rate",
                     "0.04",
                     "--confidence-level",
                     "0.90",
@@ -836,7 +1050,7 @@ class TestAuditCli(unittest.TestCase):
                     "250000",
                     "--currency-symbol",
                     "EUR",
-                    "--output",
+                    "--output-directory",
                     str(script_override_output),
                 ],
                 check=True,
@@ -872,33 +1086,30 @@ class TestAuditCli(unittest.TestCase):
                 "--portfolio",
                 "--benchmark",
                 "--frequency",
-                "--output",
+                "--output-directory",
                 "--from-date",
                 "--thru-date",
                 "--classification",
-                "--minimum-acceptable-return",
-                "--risk-free-rate",
+                "--annual-minimum-acceptable-return",
+                "--annual-risk-free-rate",
                 "--confidence-level",
                 "--portfolio-value",
                 "--currency-symbol",
             ):
                 self.assertIn(option, analytics_help)
             for yaml_setting in (
-                "YAML analytics.portfolio in ppar.yaml",
-                "YAML analytics.benchmark in ppar.yaml",
-                "YAML analytics.frequency in ppar.yaml",
-                "YAML analytics.output_directory in ppar.yaml",
+                "YAML analytics.portfolio for this run",
+                "YAML analytics.benchmark for this run",
+                "YAML analytics.frequency for this run",
+                "YAML analytics.output_directory for this run",
                 "YAML analytics.from_date",
-                "YAML defaults.from_date in ppar.yaml",
                 "YAML analytics.thru_date",
-                "YAML defaults.thru_date in ppar.yaml",
-                "YAML analytics.classification",
-                "YAML defaults.classification in ppar.yaml",
-                "YAML analytics.annual_minimum_acceptable_return in ppar.yaml",
-                "YAML analytics.annual_risk_free_rate in ppar.yaml",
-                "YAML analytics.confidence_level in ppar.yaml",
-                "YAML analytics.portfolio_value in ppar.yaml",
-                "YAML analytics.currency_symbol in ppar.yaml",
+                "YAML analytics.classification for this run",
+                "YAML analytics.annual_minimum_acceptable_return for this run",
+                "YAML analytics.annual_risk_free_rate for this run",
+                "YAML analytics.confidence_level for this run",
+                "YAML analytics.portfolio_value for this run",
+                "YAML analytics.currency_symbol for this run",
             ):
                 self.assertIn(yaml_setting, analytics_help)
 
@@ -952,11 +1163,11 @@ class TestAuditCli(unittest.TestCase):
             self.assertIn("--no-xlsx-output", audit_help)
             self.assertIn("--no-html-output", audit_help)
             self.assertIn(
-                "Supplying both options writes a CSV-only audit.",
+                "Disabling both XLSX and HTML writes a CSV-only audit.",
                 audit_help,
             )
             self.assertIn(
-                "Use this to focus review output on findings that still require attention.",
+                "Override YAML audit.exclude_suppressed for this run.",
                 audit_help,
             )
             self.assertNotIn("{portfolio,security,both}", audit_help)
@@ -1123,7 +1334,7 @@ class TestAuditCli(unittest.TestCase):
         """One Audit run reuses reconstruction inputs for both report levels."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory)
-            (site_directory / "ppar.yaml").touch()
+            _write_audit_run_settings(site_directory / "ppar.yaml")
             comparison_views = mock.Mock()
             comparison_views.findings.side_effect = [
                 mock.sentinel.portfolio_findings,
@@ -1163,7 +1374,7 @@ class TestAuditCli(unittest.TestCase):
         """Only unavailable security-performance input permits a security skip."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory)
-            (site_directory / "ppar.yaml").touch()
+            _write_audit_run_settings(site_directory / "ppar.yaml")
             comparison_views = mock.Mock()
             comparison_views.findings.side_effect = (
                 mock.sentinel.portfolio_findings,
@@ -1329,8 +1540,69 @@ class TestAuditCli(unittest.TestCase):
                     / "sector_overall_attribution.html"
                 ).exists()
             )
+
             self.assertFalse((analytics_directory / "output" / ".matplotlib").exists())
             self.assertFalse((analytics_directory / "output" / ".cache").exists())
+
+    def test_analytics_native_frequency_omits_risk_statistics(self) -> None:
+        """Native-period Attribution succeeds without a Risk Statistics artifact."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            analytics_directory = site_directory / "analytics"
+            config_path = analytics_directory / "ppar.yaml"
+            configuration = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            del configuration["analytics"]["frequency"]
+            config_path.write_text(
+                yaml.safe_dump(configuration, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                _module_command(_ANALYTICS_MODULE, str(analytics_directory)),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Open these files to review analytics output:", result.stdout)
+            self.assertNotIn("risk_statistics.html", result.stdout)
+            self.assertFalse(
+                (analytics_directory / "output" / "risk_statistics.html").exists()
+            )
+            self.assertTrue(
+                (
+                    analytics_directory
+                    / "output"
+                    / "sector_overall_attribution.html"
+                ).exists()
+            )
+
+            script_output = Path(directory) / "script_output"
+            script_result = subprocess.run(
+                [
+                    sys.executable,
+                    str(analytics_directory / "run_analytics.py"),
+                    "--output-directory",
+                    str(script_output),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(script_result.returncode, 0, script_result.stderr)
+            self.assertNotIn("risk_statistics.html", script_result.stdout)
+            self.assertFalse((script_output / "risk_statistics.html").exists())
+            self.assertTrue(
+                (script_output / "sector_overall_attribution.html").exists()
+            )
 
     def test_performance_comparison_demo_handoff_matches_quiet_success_contract(
         self,
@@ -1641,6 +1913,8 @@ class TestAuditCli(unittest.TestCase):
                     _BUNDLE_MODULE,
                     str(_PORTFOLIO_COMPARISON_PATH),
                     str(output_directory),
+                    "--comparison-level",
+                    "portfolio",
                     "--include-workbook",
                     "--require-supported-attribution-setup",
                 ),
@@ -1898,7 +2172,7 @@ def _absolute_restatement_configuration() -> dict[str, object]:
     configuration["snapshots"]["b"]["path"] = str(
         fixture_directory / "axys_b_restatement"
     )
-    schema_path = _PACKAGED_AXYS_APX_DATA_PATH.resolve() / "axys_apx_column_mappings.yaml"
+    schema_path = _PACKAGED_AXYS_APX_DATA_PATH.resolve() / "column_mappings.yaml"
     configuration["snapshots"]["a"]["schema"] = str(
         schema_path
     )
@@ -1906,6 +2180,28 @@ def _absolute_restatement_configuration() -> dict[str, object]:
         schema_path
     )
     return configuration
+
+
+def _write_audit_run_settings(path: Path) -> None:
+    """Write the strict normal-run section used by isolated CLI tests."""
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "audit": {
+                    "output_directory": "output",
+                    "title": None,
+                    "xlsx_output": True,
+                    "html_output": True,
+                    "exclude_suppressed": False,
+                    "reconstruction_diagnostics": False,
+                    "expand_all_supporting_files": False,
+                    "require_causal_attribution": False,
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
 
 
 def _copy_site_snapshots(directory: Path) -> Path:

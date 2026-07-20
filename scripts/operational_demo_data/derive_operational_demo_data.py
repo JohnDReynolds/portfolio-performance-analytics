@@ -52,7 +52,7 @@ _AXYS_SCHEMA_PATH: Final = (
     / "ppar"
     / "setup_templates"
     / "axys_apx_audit"
-    / "axys_apx_column_mappings.yaml"
+    / "column_mappings.yaml"
 )
 _PORTFOLIOS: Final = (
     ("ALPHA", "Mega-Cap Alpha", 0.04),
@@ -710,7 +710,7 @@ def write_outputs(
     source_path = output_directory / "source_performance.csv"
     performance.to_csv(source_path, index=False)
     paths["source_performance"] = str(source_path)
-    schema_path = output_directory / "axys_apx_column_mappings.yaml"
+    schema_path = output_directory / "column_mappings.yaml"
     schema_path.write_text(_AXYS_SCHEMA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
     paths["axys_schema"] = str(schema_path)
     for snapshot_name, frames in (("axys_a", snapshot_a), ("axys_b", snapshot_b)):
@@ -1550,14 +1550,12 @@ snapshots:
   a:
     label: operational_axys_a
     path: axys_a
-    vendor: axys
-    schema: axys_apx_column_mappings.yaml
+    schema: column_mappings.yaml
 
   b:
     label: operational_axys_b
     path: axys_b
-    vendor: axys
-    schema: axys_apx_column_mappings.yaml
+    schema: column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv

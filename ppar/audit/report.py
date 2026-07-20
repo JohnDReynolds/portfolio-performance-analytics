@@ -656,6 +656,7 @@ def write_audit_report_bundle(
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         expand_all_supporting_files=expand_all_supporting_files,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
         artifact_paths=paths,
         tables=tables,
         review_sheets=workbook_sheets,

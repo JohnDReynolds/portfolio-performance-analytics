@@ -905,7 +905,7 @@ values to uppercase at the boundary.
 The existing Axys/APX column mapping configuration and the new comparison
 configuration serve different purposes and should have distinct names:
 
-- `axys_apx_column_mappings.yaml`: Describes how Axys/APX source columns map to
+- `column_mappings.yaml`: Describes how Axys/APX source columns map to
   normalized internal column names for reusable Axys/APX datasets.
 - `performance_comparison.yaml`: Describes which snapshots and files to
   compare, plus comparison tolerances, materiality, and suppressions.
@@ -913,10 +913,10 @@ configuration serve different purposes and should have distinct names:
 A comparison probably needs one YAML file for the comparison run, not a separate
 YAML file inside each snapshot. The comparison YAML can point at both snapshot
 directories, define shared rules, and optionally reference vendor schema files
-such as `axys_apx_column_mappings.yaml`.
+such as `column_mappings.yaml`.
 
 The performance comparison feature has its own normalization/default alias
-layer. Referencing `axys_apx_column_mappings.yaml` is a reuse mechanism for shared
+layer. Referencing `column_mappings.yaml` is a reuse mechanism for shared
 Axys/APX datasets, not a requirement that performance comparison become
 Axys/APX-only.
 Comparison-only datasets such as FX rates, transactions, holdings,
@@ -929,12 +929,26 @@ suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
 Financially meaningful execution choices are explicit rather than inherited
-from Python. Every Audit YAML must name `comparison.level`, both extract-contract
-safety choices, and all eight comparison tolerances. When `transactions`,
-`holdings`, or `fx_rates` is configured, the corresponding transaction,
-holding/price, or FX impact-policy block must be complete. The packaged starter
-shows the former effective values, so migrating an existing configuration by
-copying those values preserves its calculations and serialized findings.
+from Python. The user-facing `ppar audit` orchestrator explicitly selects
+`portfolio` and then `security` when the required security-performance files are
+available; the starter YAML therefore does not choose one primary level.
+Lower-level single-view calls must supply a comparison level directly or retain
+an explicit `comparison.level` in their specialized YAML. Both extract-contract
+safety choices and all eight comparison tolerances remain mandatory. When
+`transactions`, `holdings`, or `fx_rates` is configured, the corresponding
+transaction, holding/price, or FX impact-policy block must be complete.
+
+Snapshot mappings support `label`, `path`, and `schema`. The former snapshot
+`vendor` setting was removed because it selected no adapter or behavior;
+source-column interpretation comes from `schema`, while financial meaning comes
+from the explicit extract contract and policy sections.
+
+Standard Audit filenames are defaults for datasets required by the explicitly
+selected report or configured feature. They retain normal missing-file
+validation when their `files.*` key is omitted. Genuinely optional evidence
+remains explicitly configured: merely placing a standard-named file in both
+snapshots must not expand findings or accounting-policy requirements. Explicit
+`files.*` paths always take precedence.
 
 See [Axys/APX Common-Core Export Reference](../axys_apx/axys_apx_common_core_export.md) for an
 operational Axys/APX export template and starter field-reference tables. Those
@@ -954,14 +968,14 @@ Path resolution should be predictable:
    that comparison YAML file.
 3. Snapshot data files resolve relative to the configured snapshot directory.
 4. Relative paths inside a referenced schema YAML, such as
-   `axys_apx_column_mappings.yaml`, resolve relative to that schema YAML file.
+   `column_mappings.yaml`, resolve relative to that schema YAML file.
 
 A suggested project layout is:
 
 ```text
 comparisons/
   performance_comparison.yaml
-  axys_apx_column_mappings.yaml
+  column_mappings.yaml
 
 snapshots/
   2026-05-01/
@@ -984,14 +998,12 @@ snapshots:
   a:
     label: run_2026_05_01
     path: snapshots/2026-05-01
-    vendor: axys
-    schema: axys_apx_column_mappings.yaml
+    schema: column_mappings.yaml
 
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
-    vendor: axys
-    schema: axys_apx_column_mappings.yaml
+    schema: column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
@@ -1071,7 +1083,6 @@ snapshots:
   a:
     label: run_2026_05_01
     path: snapshots/2026-05-01
-    vendor: axys
     schema:
       portfolio_performance_columns:
         portfolio_code: PORT
@@ -1080,7 +1091,6 @@ snapshots:
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
-    vendor: axys
     schema:
       portfolio_performance_columns:
         portfolio_code: PORTFOLIO_CODE
@@ -1157,36 +1167,27 @@ the next product lane.
 
 ### Column Mapping Defaults
 
-The comparison YAML should use the same defaulting method for column mappings
-that the existing Axys/APX YAML uses. Users should not need to specify obvious
-column names.
+Source-column mappings are explicit whenever a vendor or site heading differs
+from PPAR's normalized field name. Omitting a mapping accepts only the exact
+normalized name, including case; PPAR does not guess vendor aliases.
 
 Column mappings should resolve in this order:
 
-1. Snapshot-specific mapping in `performance_comparison.yaml`.
-2. Shared comparison-level mapping in `performance_comparison.yaml`.
-3. Referenced vendor schema file, such as `axys_apx_column_mappings.yaml`.
-4. Built-in default aliases.
-5. Error when the column is missing or ambiguous.
+1. Referenced source-column mapping file, such as `column_mappings.yaml`.
+2. Exact normalized field name when that schema field is omitted.
+3. Error when a required column is missing.
 
-Built-in aliases should be conservative and dataset-scoped. Generic names such
-as `DATE`, `ID`, `TYPE`, and undifferentiated `VALUE` are too ambiguous for
-defaults unless a specific schema mapping says what they mean. If a source file
-contains two aliases for the same normalized column, loading should fail with a
-clear error instead of choosing one by priority.
+This makes a source contract reviewable and prevents generic headings such as
+`DATE`, `ID`, `TYPE`, or `VALUE` from being assigned a meaning implicitly.
 
 The current implementation honors explicit mappings from referenced schema YAML
-files for `portfolio_performance_columns` and `security_performance_columns`.
-For mapped columns, the explicit schema mapping is authoritative. Built-in
-aliases remain the fallback for columns not mapped in the schema file.
-
-Comparison-only datasets such as FX rates, transactions, and holdings currently
-use the performance-comparison alias/default layer. They do
-not require entries in `axys_apx_column_mappings.yaml`.
+files for every supported dataset. For mapped columns, the explicit schema
+mapping is authoritative. Exact normalized names are the only fallback for
+columns not mapped in the schema file.
 
 Inline snapshot-specific schema mappings remain a future step. The current
-test fixtures use one referenced Axys/APX column-mapping file plus
-performance-comparison defaults.
+test fixtures use referenced source-column mapping files or exact normalized
+headers.
 
 ## Suppression And Filtering
 
@@ -1669,9 +1670,11 @@ be interpreted as a calculated residual.
 
 Report bundles can be written with `write_audit_report_bundle()`.
 The bundle API includes HTML output by default. The
-user-facing `ppar audit` command defaults to XLSX plus HTML. `--no-xlsx-output`
-selects HTML-only output, `--no-html-output` selects XLSX-only output, and both
-options select promoted CSV-only review output. Every bundle therefore contains
+user-facing `ppar audit` command reads its presentation choices from the strict
+`audit:` run-settings section; the maintained starter selects XLSX plus HTML.
+`--no-xlsx-output` selects HTML-only output for one run, `--no-html-output`
+selects XLSX-only output, and both options select promoted CSV-only review
+output. Every bundle therefore contains
 primary review artifacts, raw findings, current
 report helper tables as CSV files, a short `README.md`, a compact
 `review_summary.json`, and a JSON

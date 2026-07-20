@@ -16,7 +16,11 @@ from ppar.audit import workbook_source_allocation as source_allocation
 from ppar.audit.extract_contract import transaction_semantics_exact_case
 from ppar.audit.performance_comparison import findings
 from ppar.audit.rendering import format_value
-from ppar.audit.specification import AuditSpecification, SECURITY_COMPARISON_LEVEL
+from ppar.audit.specification import (
+    AuditSpecification,
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+)
 from ppar.audit.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
     TRANSACTION_CATEGORY_BUY,
@@ -682,7 +686,10 @@ def _transaction_quantity_holding_effect(
 @cache
 def _comparison_path_uses_exact_transaction_case(path: str) -> bool:
     """Return the cached exact-case setting for one comparison path."""
-    specification = AuditSpecification(path)
+    specification = AuditSpecification(
+        path,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
     return transaction_semantics_exact_case(
         specification.values,
         specification_path=specification.path,

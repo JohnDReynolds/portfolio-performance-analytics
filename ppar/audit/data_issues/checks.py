@@ -33,7 +33,7 @@ from ppar.audit.portfolio_performance import (
 from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.security_reference import SecurityReferenceLoader
 from ppar.audit.splits import SplitsLoader
-from ppar.audit.specification import AuditSpecification
+from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
 from ppar.audit.extract_contract import transaction_semantics_exact_case
 from ppar.audit.transaction_policy import (
     transaction_boundary_codes,
@@ -306,7 +306,10 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     if comparison_path is None:
         return _empty_issues_table()
 
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
     exact_case = transaction_semantics_exact_case(
         specification.values,
         specification_path=specification.path,

@@ -166,7 +166,7 @@ use `security_reference.security_name`, `ticker`, `cusip`, `isin`,
 `sector`, `country_code`, `country`, or `currency`. These fields are a separate
 reference namespace: `transactions.security_type` means the value carried by a
 transaction row, while `security_reference.security_type` means the value
-joined from `secref.csv` for the same snapshot.
+joined from `secmast.csv` for the same snapshot.
 
 Reference joins and reference-filter values preserve exact source case. This is
 deliberately stricter than the compatibility behavior for established native

@@ -262,7 +262,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
         """Generated workbook uses stable, action-oriented sheets and columns."""
         openpyxl: Any = importlib.import_module("openpyxl")
 
-        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        findings = compare_snapshots(
+            _PORTFOLIO_COMPARISON_PATH,
+            comparison_level="portfolio",
+        )
         # Transaction metadata remains internal, but it must still make every
         # transaction-associated reviewer explanation self-identifying.
         cause_table = _pc_workbook_tables._workbook_underlying_causes_table(
@@ -1154,7 +1157,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
         """Reconstruction diagnostic sheets are available by explicit opt-in."""
         openpyxl: Any = importlib.import_module("openpyxl")
 
-        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        findings = compare_snapshots(
+            _PORTFOLIO_COMPARISON_PATH,
+            comparison_level="portfolio",
+        )
         with tempfile.TemporaryDirectory() as directory:
             paths = write_audit_report_bundle(
                 findings,

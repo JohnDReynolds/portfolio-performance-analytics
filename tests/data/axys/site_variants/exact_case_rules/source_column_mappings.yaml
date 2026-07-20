@@ -1,0 +1,15 @@
+# Explicit source headings for the exact-case transaction-rule fixture.
+portfolio_performance_columns:
+  portfolio_code: PORTFOLIO_CODE
+  from_date: FROM_DATE
+  thru_date: THRU_DATE
+  portfolio_return: PORT_RETURN
+
+transactions_columns:
+  portfolio_code: PORT
+  identifier: SEC
+  transaction_date: TRANSACTION_DATE
+  transaction_code: TRAN
+  security_type: SEC_TYPE
+  source_destination_symbol: SRC_DEST_SYMBOL
+  amount: AMOUNT

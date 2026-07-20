@@ -10,6 +10,9 @@ import unittest
 # Third-party imports
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
@@ -78,7 +81,7 @@ class TestCashRepresentationContract(unittest.TestCase):
                 },
             }
             path = directory / "ppar.yaml"
-            path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+            test_util.write_audit_test_yaml(path, configuration)
 
             with self.assertRaisesRegex(PpaError, "files.cash is not supported"):
                 AuditSpecification(path)
@@ -112,7 +115,7 @@ class TestCashRepresentationContract(unittest.TestCase):
                 "cash_impact_methods": {},
             }
             path = directory / "ppar.yaml"
-            path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+            test_util.write_audit_test_yaml(path, configuration)
 
             with self.assertRaisesRegex(PpaError, "represent cash as holdings"):
                 AuditSpecification(path)

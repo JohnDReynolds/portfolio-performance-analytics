@@ -1013,7 +1013,11 @@ def _audit_scenario_report_contract(
     comparison_path: Path,
 ) -> list[AuditIssue]:
     """Return issues when a protected scenario's reviewer-visible result drifts."""
-    findings = compare_snapshots(comparison_path, require_causal_attribution=True)
+    findings = compare_snapshots(
+        comparison_path,
+        require_causal_attribution=True,
+        comparison_level="portfolio",
+    )
     portfolio_changes = _workbook_portfolio_changes_table(
         findings,
         comparison_path=comparison_path,
@@ -1222,6 +1226,7 @@ def _audit_generated_causal_story_coverage(
     findings = compare_snapshots(
         comparison_path,
         require_causal_attribution=True,
+        comparison_level="portfolio",
     )
     causes = _workbook_underlying_causes_table(
         findings,
@@ -1302,7 +1307,10 @@ def rebuild_demo_performance_files(
     Returns:
         JSON-serializable audit summary with one entry per snapshot.
     """
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level="portfolio",
+    )
     portfolio_reconstruction = specification.portfolio_return_reconstruction
     security_reconstruction = specification.security_return_reconstruction
     if portfolio_reconstruction is None or security_reconstruction is None:
@@ -1580,7 +1588,7 @@ def _read_packaged_axys_frame(path: Path, dataset_name: str) -> pd.DataFrame:
 
 def _security_types_for_symbols(path: Path, symbols: pd.Series) -> pd.Series:
     """Return reviewed security-master types for source security symbols."""
-    reference = pd.read_csv(path.parent / "secref.csv", dtype=str)
+    reference = pd.read_csv(path.parent / "secmast.csv", dtype=str)
     type_by_symbol = dict(
         zip(
             reference["Security Symbol"],
@@ -3823,7 +3831,10 @@ def _flow_weight(
 
 def _audit_visible_portfolio_residuals(comparison_path: Path) -> list[AuditIssue]:
     """Return issues for unintended visible portfolio residuals."""
-    findings = compare_snapshots(comparison_path)
+    findings = compare_snapshots(
+        comparison_path,
+        comparison_level="portfolio",
+    )
     portfolio_rows = _workbook_portfolio_changes_table(
         findings,
         comparison_path=comparison_path,

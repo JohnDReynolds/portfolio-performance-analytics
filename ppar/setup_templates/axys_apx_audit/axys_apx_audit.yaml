@@ -1,57 +1,81 @@
-# =========================
-# Axys/APX Audit Starter Configuration
-# =========================
-# This file is copied to your setup folder as audit/ppar.yaml.
-# Treat it as both the configuration file and the onboarding guide for
-# Audit.
+# =================================
+# PPAR Axys/APX Audit Configuration
+# =================================
+# This file has been copied to your setup folder as audit/ppar.yaml.
 #
-# Big picture:
+# The default command to run Audit is:
+#   ppar audit ./my_ppar_data/audit
+#
+# Audit has two complementary results:
 # - Performance Comparison answers: "Why did my reported performance change?"
 # - Data Issues answers: "Are there suspicious source-data inconsistencies?"
-# - It compares two Axys/APX-style source-data snapshots.
-# - It then ties changed performance to changed Modified Dietz inputs:
-#   beginning market value, ending market value, and dated cash flows.
-# - Portfolio comparison is the primary onboarding path. Security comparison is
-#   also configured when secperf.csv is available.
+# PPAR writes both
+# portfolio and security reports when secperf.csv is available in both snapshots.
 #
-# Recommended first pass:
-# 1. Replace CSVs in snapshot_a with the older/original IMEX snapshot.
-# 2. Replace CSVs in snapshot_b with the newer/restated IMEX snapshot.
-# 3. Keep the starter filenames and headers when possible.
-# 4. Run ppar audit ./my_ppar_data/audit.
-#    The command writes both portfolio and security reports when secperf.csv is
-#    available in both snapshots.
-# 5. Edit this YAML only when validation or report evidence says what to fix.
-#
-# Axys/APX assumption:
-# The starter is intentionally conservative. Ambiguous transaction codes should
-# not become external flows, income, fees, or transfers from code alone. Use
-# source/destination fields, special-security context, report evidence, or
-# reviewed local site evidence before changing transaction meanings.
-#
-# First-run edit map:
-# - Edit snapshots.*.path only if you rename snapshot_a or snapshot_b.
-# - Edit files.* only when local extracts use different filenames.
-# - Keep the starter headers when possible. If validation reports missing
-#   source columns, resolve the export/header mismatch before changing
-#   transaction or impact rules.
-# - Leave transaction rules and impact methods alone until validation or
-#   reviewed site evidence proves a site-specific override is needed.
-# - PPAR fails closed when a newly supported comparison field has no explicit
-#   accounting role. A suppression rule cannot silently classify that field.
+# To customize with your own data:
+# 1. Replace the CSV files in the snapshot_a directory with your own
+#    older/original IMEX/REP files.
+# 2. Replace the CSV files in the snapshot_b directory with your own
+#    newer/restated IMEX/REP files.
+# 3. If snapshot folder names or filenames differ, edit snapshots.*.path or
+#    files.* below.
+# 4. If column names differ, edit column_mappings.yaml.
+# 5. Run ppar audit ./my_ppar_data/audit again and review the outputs.
+# 6. Ambiguous transaction codes must not become external flows or other
+#    financial meanings without reviewed local evidence.
+#    Leave the starter transaction rules and impact methods unchanged unless that
+#    evidence supports an override.
 
-comparison:
-  # Optional human-readable configuration label. The current MVP accepts this
-  # label but does not surface it in generated report metadata.
-  name: PPAR Audit
+audit:
+  # Command-line values override YAML values. Every setting below has a default
+  # and may be omitted.
 
-  # Primary review level for lower-level bundle tooling.
-  # Allowed values: portfolio, security.
-  # Most users should leave this as portfolio. The production `ppar audit`
-  # command writes both portfolio and security reports when the configured
-  # security-performance files are available; this setting remains for
-  # lower-level one-view APIs and bundle tooling.
-  level: portfolio
+  # Folder that receives both portfolio and security report bundles. A YAML
+  # relative path is anchored to this audit folder; PPAR creates it when needed.
+  # Default: output
+  # Command-line override: --output-directory ./review_output
+  output_directory: output
+
+  # Shared visible report title. Keep this null to use the standard Portfolio
+  # Audit Report and Security Audit Report titles.
+  # Default: None (use the standard level-specific titles)
+  # Command-line override: --title "Quarter-end Audit"
+  title: null
+
+  # Whether to write each level-specific XLSX workbook.
+  # Default: true
+  # Command-line override: --no-xlsx-output
+  xlsx_output: true
+
+  # Whether to write each level-specific browser review report.
+  # Default: true
+  # Command-line override: --no-html-output
+  html_output: true
+
+  # Whether findings suppressed by the rules below are omitted from reports.
+  # Source-data is still processed when suppressed findings are omitted.
+  # Default: false
+  # Command-line override: --exclude-suppressed
+  exclude_suppressed: false
+
+  # Whether detailed return-reconstruction diagnostics are added to reports and
+  # supporting artifacts.
+  # Default: false
+  # Command-line override: --reconstruction-diagnostics
+  reconstruction_diagnostics: false
+
+  # Whether supporting CSV and JSON files are written individually instead of
+  # in audit_support.zip. source_detail.csv always remains at the report root.
+  # Default: false
+  # Command-line override: --expand-all-supporting-files
+  expand_all_supporting_files: false
+
+  # Whether changed periods must have the YAML setup required by a supported
+  # causal explanation method. This does not require every difference to be
+  # fully explained.
+  # Default: false
+  # Command-line override: --require-causal-attribution
+  require_causal_attribution: false
 
 snapshots:
   # Required. A snapshot is one complete set of source CSVs.
@@ -66,28 +90,22 @@ snapshots:
   #   User-facing label used in reports.
   #
   # path:
-  #   Folder containing the snapshot CSV files. Keep paths relative to this YAML
-  #   so the setup folder can move as one unit.
+  #   Folder containing the snapshot IMEX/REP CSV files. Keep paths relative to
+  #   this YAML so the setup folder can move as one unit.
   #
-  # vendor:
-  #   Identifies the combined Axys/APX integration boundary.
   # schema:
   #   Points to the explicit source-column mapping file copied with this setup.
   a:
     label: snapshot_a
     path: snapshot_a
-    vendor: axys_apx
-    schema: axys_apx_column_mappings.yaml
+    schema: column_mappings.yaml
 
   b:
     label: snapshot_b
     path: snapshot_b
-    vendor: axys_apx
-    schema: axys_apx_column_mappings.yaml
+    schema: column_mappings.yaml
 
 files:
-  # Extraction checklist for users replacing the starter CSVs.
-  #
   # The three labels below are deliberately narrow:
   #   Required: needed to make Fully Explained possible in the ordinary
   #     portfolio comparison.
@@ -97,9 +115,10 @@ files:
   #   Optional: safe to omit; its absence alone does not prevent Fully
   #     Explained.
   #
-  # Rename these only if your site uses different filenames. Header differences
-  # are handled by the Axys/APX vendor mapping and source-column validation,
-  # not by changing filenames.
+  # Required datasets use the standard filenames below when their key is
+  # omitted. Genuinely optional evidence remains explicit so merely placing a
+  # file in a snapshot cannot change comparison findings or accounting policy.
+  # Override only the filenames that differ at your site.
   #
   # Currency naming rule:
   #   In holdings and transactions, an unqualified monetary field is in
@@ -123,17 +142,23 @@ files:
   #   compared when present but are not needed for Fully Explained.
   #   Likely source: REP performance report. The current evidence does not
   #   verify a native performance IMEX object.
-  #
+  #   Default: portperf.csv
+  portfolio_performance: portperf.csv
+
   # security_performance:
   #   Required only when applicable: the file is needed for security-level
   #   comparison, with Portfolio Code, Security Symbol, Security Type, From
   #   Date, Thru Date, and Security Return. It is not needed for portfolio-only
-  #   audit. PPAR constructs security_id as type + "_" + symbol.
+  #   audit. PPAR constructs security_id by concatenating Security Type and
+  #   Security Symbol, for example csusAAPL.
   #   Optional fields: BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, and
   #   CONTRIBUTION. They are compared when present.
   #   Likely source: REP security-performance or attribution report. The
   #   current evidence does not verify a native performance IMEX object.
-  #
+  #   Default for the security report: secperf.csv. Security reporting is
+  #   skipped when it is unavailable in either snapshot.
+  security_performance: secperf.csv
+
   # holdings:
   #   Required fields: Portfolio Code, Security Symbol, Security Type, Holding
   #   Date, and Market Value, with rows for the beginning and ending dates of
@@ -144,7 +169,9 @@ files:
   #   ACCRUED value participates in Modified Dietz.
   #   Optional fields: QTY and PRICE.
   #   Likely source: IMEX positions/holdings export or REP appraisal report.
-  #
+  #   Default when required by configured reconstruction: holdings.csv.
+  holdings: holdings.csv
+
   # transactions:
   #   Required fields: Portfolio Code, Transaction Date, Security Symbol,
   #   Security Type, Transaction Code, and Amount.
@@ -155,7 +182,9 @@ files:
   #   Optional fields: SETTLE_DATE, QTY, PRICE, COMMISSION.
   #   Likely source: IMEX transaction export. Use REP/custom output or another
   #   reviewed source if IMEX omits the context needed for ambiguous codes.
-  #
+  #   Default when required by configured reconstruction: transactions.csv.
+  transactions: transactions.csv
+
   # security_reference:
   #   Required only when applicable: configure this file when a Data Issues
   #   only/exclude filter uses a security_reference.* qualifier. Security Symbol
@@ -164,7 +193,9 @@ files:
   #   Code are optional until referenced.
   #   Likely source: IMEX security-information export, a security-master report,
   #   or another reviewed security-reference extract.
-  #
+  #   Default when required by a configured reference filter: secmast.csv.
+  security_reference: secmast.csv
+
   # fx_rates:
   #   Required only when applicable: to explain a changed FX rate itself, use
   #   PORT, FROM_CURRENCY, TO_CURRENCY, RATE_DATE, FX_RATE, and LOCAL_EXPOSURE.
@@ -172,19 +203,16 @@ files:
   #   identify one controlled series. Otherwise this entire file is optional.
   #   Likely source: local discovery is required; use a validated REP extract,
   #   FX/price source, or other controlled rate source.
-  #
+  #   Default: None (optional evidence must be configured explicitly).
+  fx_rates: fx_rates.csv
+
   # splits:
   #   Optional fields: Security Symbol, Security Type, Split Date, and Split
   #   Factor. Split factors can explain a quantity change, but they do not
   #   directly enter the current Modified Dietz explanation formula.
   #   Likely source: split.inf or a local split-factor export; REP/custom output
   #   only if it exposes equivalent factors.
-  portfolio_performance: portperf.csv
-  security_performance: secperf.csv
-  holdings: holdings.csv
-  transactions: transactions.csv
-  security_reference: secref.csv
-  fx_rates: fx_rates.csv
+  #   Default: None (optional evidence must be configured explicitly).
   splits: splits.csv
 
 # The packaged source contract is versioned and the demo rules intentionally
@@ -219,12 +247,11 @@ data_issues:
   enabled: true
 
   holdings_nonpositive_price:
-    # Flags a nonzero holding with a zero or negative price. This conservative
-    # check is off by default and requires both explicit enablement and a
-    # nonempty only population. Worthless securities, cash, accrued-only rows,
-    # shorts, derivatives, and site-specific valuation conventions can be
-    # legitimate exclusions. The demo scopes one deliberate MSFT example in
-    # each snapshot. The fixed condition does not accept tolerance settings.
+    # Flags a nonzero holding with a zero or negative price. Product default:
+    # disabled. This starter enables a narrowly scoped demo population.
+    # Worthless securities, cash, accrued-only rows, shorts, derivatives, and
+    # site-specific valuation conventions can be legitimate exclusions. The
+    # fixed condition does not accept tolerance settings.
     enabled: true
     only:
       security_id:
@@ -260,7 +287,7 @@ data_issues:
     # transaction prices, split-normalizes them to the period-ending share
     # basis, and reports one maximum variation per rule/security/period. Rules
     # are independently identified so overlapping populations remain visible.
-    # This demo rule uses the real AVGO observations and the default 20 percent
+    # This demo rule uses the real AVGO observations and a configured 20 percent
     # decimal tolerance. Transaction-code filtering applies only to transaction
     # observations; the two boundary holdings observations remain eligible.
     enabled: true
@@ -290,12 +317,10 @@ data_issues:
     percent_tolerance: 0.05
 
   transactions_nonpositive_price:
-    # Flags a nonzero-quantity transaction with a zero or negative price. This
-    # conservative check is off by default and requires explicit transaction-
-    # code and reviewed security-reference populations. It does not infer that
-    # a transaction code is universally price-bearing. The demo isolates one
-    # zero-price KO buy in each snapshot; the zero-quantity duplicate rows do
-    # not qualify. The fixed condition does not accept tolerance settings.
+    # Flags a nonzero-quantity transaction with a zero or negative price.
+    # Product default: disabled. This starter enables a narrowly scoped demo
+    # population. It does not infer that a transaction code is universally
+    # price-bearing. The fixed condition does not accept tolerance settings.
     enabled: true
     only:
       security_id:
@@ -308,8 +333,8 @@ data_issues:
     # Compares the transaction row's exact-case security type with the reviewed
     # snapshot security reference. The demo's uppercase CSUS value differs only
     # by case; PPAR reports both values without choosing which one is correct.
-    # This conservative check is off by default, requires an explicit reference
-    # type population, and does not accept tolerance settings.
+    # Product default: disabled. This starter enables an explicit reference-type
+    # demo population. The check does not accept tolerance settings.
     enabled: true
     only:
       security_id:

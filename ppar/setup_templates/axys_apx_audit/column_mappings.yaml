@@ -2,6 +2,8 @@
 #
 # Source headings intentionally resemble readable IMEX/REP report captions.
 # PPAR matches every configured heading exactly, including spaces and case.
+# Any omitted mapping falls back only to the exact normalized field name; PPAR
+# does not guess alternate vendor headings.
 
 # Axys/APX security identity is the security-type/symbol pair. Human-facing
 # exports usually present Symbol before Type, but compact Axys tokens commonly

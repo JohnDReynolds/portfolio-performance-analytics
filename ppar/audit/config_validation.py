@@ -23,7 +23,7 @@ from ppar.audit.extract_contract import (
 from ppar.audit.performance_comparison.findings import findings_to_polars
 from ppar.audit.runner import validate_yaml_setup_complete
 from ppar.audit.security_reference import SecurityReferenceLoader
-from ppar.audit.specification import AuditSpecification
+from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
 from ppar.audit.source_data_contract import (
     comparison_required_dataset_names,
     source_data_contract_summary,
@@ -138,7 +138,10 @@ def _validate_config(
     require_complete_yaml_setup: bool,
 ) -> dict[str, object]:
     """Validate one comparison YAML file with explicit YAML setup strictness."""
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
     comparison = PerformanceComparison(specification)
     findings = findings_to_polars(comparison.compare())
     if require_complete_yaml_setup:

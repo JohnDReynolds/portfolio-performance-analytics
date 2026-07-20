@@ -22,7 +22,9 @@ from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
 from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.specification import (
     AuditSpecification,
+    PORTFOLIO_COMPARISON_LEVEL,
     PortfolioReturnReconstruction,
+    SECURITY_COMPARISON_LEVEL,
     SecurityReturnReconstruction,
 )
 from ppar.audit.transactions import TransactionsLoader
@@ -313,7 +315,10 @@ def portfolio_return_reconstruction_checks(
     if comparison_path is None:
         return _empty_portfolio_return_reconstruction_checks()
 
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
     reconstruction = specification.portfolio_return_reconstruction
     if reconstruction is None:
         return _empty_portfolio_return_reconstruction_checks()
@@ -353,7 +358,10 @@ def security_return_reconstruction_checks(
     if comparison_path is None:
         return _empty_security_return_reconstruction_checks()
 
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level=SECURITY_COMPARISON_LEVEL,
+    )
     reconstruction = specification.security_return_reconstruction
     if reconstruction is None:
         return _empty_security_return_reconstruction_checks()

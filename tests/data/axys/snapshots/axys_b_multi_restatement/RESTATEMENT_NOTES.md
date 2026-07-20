@@ -16,8 +16,8 @@ Controlled changes:
 - `fx_rates.csv`: Restated the `EUR` to `USD` spot rate for `2025-05-30`.
 - `transactions.csv`: Restated the `TXN000001` AAPL transaction quantity,
   price, and amount.
-- `secref.csv`: Restated the `AAPL` name and sector fields.
-- `secref.csv`: Added `RESTATED_SEC`.
+- `secmast.csv`: Restated the `AAPL` name and sector fields.
+- `secmast.csv`: Added `RESTATED_SEC`.
 - `portperf.csv`: Restated `PORT_B` for `2025-05-30` with a larger gain/loss
   and return change.
 - `secperf.csv`: Restated the `PORT_B`/`META` gain/loss, return, and

@@ -25,12 +25,46 @@ import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _ANALYTICS_SECTION: Final[str] = "analytics"
+_REMOVED_DEFAULTS_SECTION: Final[str] = "defaults"
+_MISSING_SETTING: Final[object] = object()
 _DEFAULT_OUTPUT_DIRECTORY: Final[str] = "output"
+_DEFAULT_CLASSIFICATION_NAME: Final[str] = "Security"
+_ANALYTICS_SETTING_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "portfolio",
+        "benchmark",
+        "frequency",
+        "output_directory",
+        "from_date",
+        "thru_date",
+        "classification",
+        "annual_minimum_acceptable_return",
+        "annual_risk_free_rate",
+        "confidence_level",
+        "portfolio_value",
+        "currency_symbol",
+    }
+)
 
 
 @dataclass(frozen=True)
 class AnalyticsRunSettings:
-    """Resolved scalar settings for one standard Performance Analytics run."""
+    """Resolved scalar settings for one standard Performance Analytics run.
+
+    Attributes:
+        portfolio_code: Portfolio account code.
+        benchmark_code: Benchmark account code.
+        frequency: Reporting-period frequency.
+        output_directory: Directory receiving generated artifacts.
+        from_date: Inclusive first source date, or ``None`` for no lower bound.
+        thru_date: Inclusive last source date, or ``None`` for no upper bound.
+        classification_name: Attribution classification name.
+        annual_minimum_acceptable_return: Annual downside-risk target.
+        annual_risk_free_rate: Annual risk-free assumption.
+        confidence_level: Value-at-risk confidence level.
+        portfolio_value: Monetary value used for value-at-risk presentation.
+        currency_symbol: Currency marker used for value-at-risk presentation.
+    """
 
     portfolio_code: str
     benchmark_code: str
@@ -38,7 +72,7 @@ class AnalyticsRunSettings:
     output_directory: Path
     from_date: dt.date | None
     thru_date: dt.date | None
-    classification_name: str | None
+    classification_name: str
     annual_minimum_acceptable_return: float
     annual_risk_free_rate: float
     confidence_level: float
@@ -62,12 +96,12 @@ def main(argv: list[str] | None = None) -> int:
             portfolio_code=args.portfolio,
             benchmark_code=args.benchmark,
             frequency_value=args.frequency,
-            output_directory=args.output,
+            output_directory=args.output_directory,
             from_date=args.from_date,
             thru_date=args.thru_date,
             classification_name=args.classification,
-            annual_minimum_acceptable_return=args.minimum_acceptable_return,
-            annual_risk_free_rate=args.risk_free_rate,
+            annual_minimum_acceptable_return=args.annual_minimum_acceptable_return,
+            annual_risk_free_rate=args.annual_risk_free_rate,
             confidence_level=args.confidence_level,
             portfolio_value=args.portfolio_value,
             currency_symbol=args.currency_symbol,
@@ -173,6 +207,7 @@ def run_analytics(
         analytics,
         settings.output_directory,
         security_classification,
+        settings.frequency,
     )
 
     if written_paths:
@@ -190,6 +225,7 @@ def _argument_parser(
     """Return the analytics argument parser."""
     parser = argparse.ArgumentParser(
         prog=prog,
+        allow_abbrev=False,
         description="Write Axys/APX analytics reports from a configured site folder.",
         epilog=(
             (
@@ -218,91 +254,79 @@ def _argument_parser(
         )
     parser.add_argument(
         "--portfolio",
-        help="Portfolio code. Defaults to YAML analytics.portfolio in ppar.yaml.",
+        help="Override YAML analytics.portfolio for this run.",
     )
     parser.add_argument(
         "--benchmark",
-        help="Benchmark code. Defaults to YAML analytics.benchmark in ppar.yaml.",
+        help="Override YAML analytics.benchmark for this run.",
     )
     parser.add_argument(
         "-f",
         "--frequency",
         help=(
             "Reporting frequency: monthly, quarterly, yearly, or m/q/y. "
-            "Defaults to YAML analytics.frequency in ppar.yaml, then the "
-            "Python default quarterly."
+            "Overrides YAML analytics.frequency for this run. When omitted "
+            "from both places, source periods are preserved and Risk Statistics "
+            "is not written."
         ),
     )
     parser.add_argument(
-        "--output",
+        "--output-directory",
         type=Path,
         help=(
-            "Output directory. Defaults to YAML analytics.output_directory in "
-            "ppar.yaml, then the Python default output."
+            "Override YAML analytics.output_directory for this run."
         ),
     )
     parser.add_argument(
         "--from-date",
         help=(
-            "Inclusive YYYY-MM-DD start. Defaults to YAML analytics.from_date, "
-            "then YAML defaults.from_date in ppar.yaml."
+            "Override YAML analytics.from_date with an inclusive YYYY-MM-DD start."
         ),
     )
     parser.add_argument(
         "--thru-date",
         help=(
-            "Inclusive YYYY-MM-DD end. Defaults to YAML analytics.thru_date, "
-            "then YAML defaults.thru_date in ppar.yaml."
+            "Override YAML analytics.thru_date with an inclusive YYYY-MM-DD end."
         ),
     )
     parser.add_argument(
         "--classification",
         help=(
-            "Attribution classification. Defaults to YAML "
-            "analytics.classification, then YAML defaults.classification in "
-            "ppar.yaml."
+            "Override YAML analytics.classification for this run."
         ),
     )
     parser.add_argument(
-        "--minimum-acceptable-return",
+        "--annual-minimum-acceptable-return",
         type=float,
         help=(
-            "Annual downside-risk target. Defaults to "
-            "YAML analytics.annual_minimum_acceptable_return in ppar.yaml, "
-            "then the Python default 0.0."
+            "Override YAML analytics.annual_minimum_acceptable_return for this run."
         ),
     )
     parser.add_argument(
-        "--risk-free-rate",
+        "--annual-risk-free-rate",
         type=float,
         help=(
-            "Annual risk-free rate. Defaults to YAML "
-            "analytics.annual_risk_free_rate in ppar.yaml, then the Python "
-            "default 0.03."
+            "Override YAML analytics.annual_risk_free_rate for this run."
         ),
     )
     parser.add_argument(
         "--confidence-level",
         type=float,
         help=(
-            "Value-at-risk confidence. Defaults to YAML "
-            "analytics.confidence_level in ppar.yaml, then the Python default "
-            "0.95."
+            "Override YAML analytics.confidence_level for this run."
         ),
     )
     parser.add_argument(
         "--portfolio-value",
         type=float,
         help=(
-            "Value-at-risk amount. Defaults to YAML analytics.portfolio_value "
-            "in ppar.yaml, then the Python default 100000."
+            "Override YAML analytics.portfolio_value for this run."
         ),
     )
     parser.add_argument(
         "--currency-symbol",
         help=(
-            "Value-at-risk currency. Defaults to YAML analytics.currency_symbol "
-            "in ppar.yaml, then the Python default '$'."
+            "Override YAML analytics.currency_symbol for this run."
         ),
     )
     return parser
@@ -340,12 +364,14 @@ def script_run_settings(
         portfolio_code=arguments.portfolio,
         benchmark_code=arguments.benchmark,
         frequency_value=arguments.frequency,
-        output_directory=arguments.output,
+        output_directory=arguments.output_directory,
         from_date=arguments.from_date,
         thru_date=arguments.thru_date,
         classification_name=arguments.classification,
-        annual_minimum_acceptable_return=arguments.minimum_acceptable_return,
-        annual_risk_free_rate=arguments.risk_free_rate,
+        annual_minimum_acceptable_return=(
+            arguments.annual_minimum_acceptable_return
+        ),
+        annual_risk_free_rate=arguments.annual_risk_free_rate,
         confidence_level=arguments.confidence_level,
         portfolio_value=arguments.portfolio_value,
         currency_symbol=arguments.currency_symbol,
@@ -382,23 +408,24 @@ def _load_config_values(config_path: Path) -> dict[str, Any]:
 
 
 def _analytics_settings(config_values: dict[str, Any]) -> dict[str, Any]:
-    """Return the optional analytics settings mapping."""
-    settings = config_values.get(_ANALYTICS_SECTION, {})
+    """Return the Analytics settings after strict key validation."""
+    if _REMOVED_DEFAULTS_SECTION in config_values:
+        raise PpaError(
+            "defaults is not supported; move its settings under analytics.",
+            504,
+        )
+    settings = config_values.get(_ANALYTICS_SECTION)
     if not isinstance(settings, dict):
         raise PpaError(f"{_ANALYTICS_SECTION} must be a mapping.", 504)
+    unsupported = sorted(
+        str(key) for key in settings if key not in _ANALYTICS_SETTING_NAMES
+    )
+    if unsupported:
+        raise PpaError(
+            "analytics has unsupported keys: " + ", ".join(unsupported) + ".",
+            504,
+        )
     return settings
-
-
-def _required_setting(
-    settings: dict[str, Any],
-    key: str,
-    section_name: str,
-) -> str:
-    """Return a required string setting from a named YAML section."""
-    value = settings.get(key)
-    if not isinstance(value, str) or not value:
-        raise PpaError(f"{section_name}.{key} must be set in ppar.yaml.", 504)
-    return value
 
 
 def _resolve_settings(
@@ -418,7 +445,7 @@ def _resolve_settings(
     portfolio_value: float | None,
     currency_symbol: str | None,
 ) -> AnalyticsRunSettings:
-    """Resolve CLI overrides, YAML values, and library defaults."""
+    """Resolve command-line overrides, YAML settings, and defaults."""
     confidence = _float_setting(
         confidence_level,
         values,
@@ -435,25 +462,38 @@ def _resolve_settings(
         raise ValueError("confidence_level must be greater than 0 and less than 1")
     if value <= 0.0:
         raise ValueError("portfolio_value must be greater than 0")
-    selected_currency = currency_symbol or str(
-        values.get("currency_symbol", util.DEFAULT_CURRENCY_SYMBOL)
+    selected_currency = _string_setting(
+        currency_symbol,
+        values,
+        "currency_symbol",
+        util.DEFAULT_CURRENCY_SYMBOL,
     )
-    if not selected_currency:
-        raise ValueError("currency_symbol must not be empty")
     return AnalyticsRunSettings(
-        portfolio_code=portfolio_code
-        or _required_setting(values, "portfolio", _ANALYTICS_SECTION),
-        benchmark_code=benchmark_code
-        or _required_setting(values, "benchmark", _ANALYTICS_SECTION),
+        portfolio_code=_string_setting(portfolio_code, values, "portfolio"),
+        benchmark_code=_string_setting(benchmark_code, values, "benchmark"),
         frequency=_frequency_from_string(
-            frequency_value or str(values.get("frequency", "quarterly"))
+            _setting_value(frequency_value, values, "frequency", None)
         ),
-        output_directory=output_directory
-        or site_path / str(values.get("output_directory", _DEFAULT_OUTPUT_DIRECTORY)),
-        from_date=_optional_date(from_date or values.get("from_date"), "from_date"),
-        thru_date=_optional_date(thru_date or values.get("thru_date"), "thru_date"),
-        classification_name=classification_name
-        or _optional_string_setting(values, "classification"),
+        output_directory=output_directory or site_path / _string_setting(
+            None,
+            values,
+            "output_directory",
+            _DEFAULT_OUTPUT_DIRECTORY,
+        ),
+        from_date=_optional_date(
+            _setting_value(from_date, values, "from_date", None),
+            "from_date",
+        ),
+        thru_date=_optional_date(
+            _setting_value(thru_date, values, "thru_date", None),
+            "thru_date",
+        ),
+        classification_name=_string_setting(
+            classification_name,
+            values,
+            "classification",
+            _DEFAULT_CLASSIFICATION_NAME,
+        ),
         annual_minimum_acceptable_return=_float_setting(
             annual_minimum_acceptable_return,
             values,
@@ -478,21 +518,42 @@ def _float_setting(
     name: str,
     default: float,
 ) -> float:
-    """Return one float setting using CLI, YAML, then library precedence."""
-    value = override if override is not None else values.get(name, default)
+    """Return one numeric setting using CLI, YAML, then default precedence."""
+    value = _setting_value(override, values, name, default)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"analytics.{name} must be numeric")
     return float(value)
 
 
-def _optional_string_setting(values: dict[str, Any], name: str) -> str | None:
-    """Return one optional non-empty string setting."""
-    value = values.get(name)
-    if value is None:
-        return None
+def _string_setting(
+    override: str | None,
+    values: dict[str, Any],
+    name: str,
+    default: str | object = _MISSING_SETTING,
+) -> str:
+    """Return one string using CLI, YAML, then optional default precedence."""
+    value = _setting_value(override, values, name, default)
     if not isinstance(value, str) or not value:
         raise ValueError(f"analytics.{name} must be a non-empty string")
     return value
+
+
+def _setting_value(
+    override: Any,
+    values: dict[str, Any],
+    name: str,
+    default: Any = _MISSING_SETTING,
+) -> Any:
+    """Return a CLI override, YAML value, or established default."""
+    if override is not None:
+        return override
+    if name in values:
+        return values[name]
+    if default is not _MISSING_SETTING:
+        return default
+    raise ValueError(
+        f"analytics.{name} must be set in ppar.yaml or supplied on the command line"
+    )
 
 
 def _optional_date(value: Any, name: str) -> dt.date | None:
@@ -507,7 +568,11 @@ def _optional_date(value: Any, name: str) -> dt.date | None:
 
 def _frequency_from_string(value: str | None) -> Frequency:
     """Return a reporting frequency from a lenient user string."""
-    normalized = "" if value is None else value.strip().lower()
+    if value is None:
+        return Frequency.AS_OFTEN_AS_POSSIBLE
+    if not isinstance(value, str):
+        raise ValueError("analytics.frequency must be a non-empty string")
+    normalized = value.strip().lower()
     if not normalized:
         return Frequency.QUARTERLY
     first_character = normalized[0]
@@ -527,6 +592,7 @@ def _write_analytics_outputs(
     analytics: Analytics,
     output_directory: Path,
     security_classification: util.ClassificationDataSource,
+    frequency: Frequency,
 ) -> list[Path]:
     """Write the analytics HTML, PNG, and risk outputs used by the CLI.
 
@@ -534,6 +600,7 @@ def _write_analytics_outputs(
         analytics: Configured analytics calculation.
         output_directory: Directory that receives report artifacts.
         security_classification: Security identifier/display-name lookup.
+        frequency: Reporting frequency controlling Risk Statistics availability.
 
     Returns:
         Paths written by the standard analytics workflow.
@@ -579,11 +646,39 @@ def _write_analytics_outputs(
             )
         )
 
-    risk_statistics = analytics.get_riskstatistics()
-    written_paths.append(
-        _write_html(output_directory, "risk_statistics.html", risk_statistics.to_html())
+    risk_statistics_path = write_risk_statistics_file(
+        analytics,
+        output_directory,
+        frequency,
     )
+    if risk_statistics_path is not None:
+        written_paths.append(risk_statistics_path)
     return written_paths
+
+
+def write_risk_statistics_file(
+    analytics: Analytics,
+    output_directory: Path,
+    frequency: Frequency,
+) -> Path | None:
+    """Write Risk Statistics when the reporting frequency supports annualization.
+
+    Args:
+        analytics: Configured analytics calculation.
+        output_directory: Directory receiving the HTML artifact.
+        frequency: Reporting frequency used by the analytics calculation.
+
+    Returns:
+        The written path, or ``None`` when native source periods are preserved.
+    """
+    if frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
+        return None
+    risk_statistics = analytics.get_riskstatistics()
+    return _write_html(
+        output_directory,
+        "risk_statistics.html",
+        risk_statistics.to_html(),
+    )
 
 
 def _write_html(output_directory: Path, file_name: str, html: str) -> Path:

@@ -294,7 +294,10 @@ class TestAuditConservation(unittest.TestCase):
 
     def test_cash_holding_value_has_one_counted_owner(self) -> None:
         """Cash holding market value owns the effect while quantity stays visible."""
-        findings = compare_snapshots(_CASH_HOLDING_COMPARISON_PATH)
+        findings = compare_snapshots(
+            _CASH_HOLDING_COMPARISON_PATH,
+            comparison_level="portfolio",
+        )
         # pylint: disable=protected-access
         causes = _workbook_tables._workbook_underlying_causes_table(
             findings,

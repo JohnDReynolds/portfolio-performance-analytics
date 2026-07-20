@@ -28,7 +28,7 @@ the exact object/profile names, fields, parameters, and date/currency basis.
 | `transactions.csv` | IMEX transaction export first; REP/custom report fallback. | Are transaction code, amount, security, and economic date present? For ambiguous codes, are source/destination and special-security fields available? |
 | `fx_rates.csv` | Validated REP, FX/price, or other controlled local source. | What is the quote convention, effective date, source, rate type, portfolio base currency, and linked local exposure? |
 | `splits.csv` | `split.inf` or an equivalent local split-factor export. | Is the factor a multiplier or inverse? Which date is represented? |
-| `secref.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
+| `secmast.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
 
 ## Field and Contract Ownership
 

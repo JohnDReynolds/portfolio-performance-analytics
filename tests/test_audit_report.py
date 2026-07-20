@@ -17,6 +17,9 @@ import zipfile
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import (
@@ -177,6 +180,10 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    test_util.write_audit_test_yaml(
+        specification_path,
+        yaml.safe_load(specification_path.read_text(encoding="utf-8")),
+    )
     return specification_path
 
 
@@ -220,6 +227,10 @@ def _write_transaction_commission_review_specification(directory: Path) -> Path:
             }
         ),
         encoding="utf-8",
+    )
+    test_util.write_audit_test_yaml(
+        specification_path,
+        yaml.safe_load(specification_path.read_text(encoding="utf-8")),
     )
     return specification_path
 
@@ -274,6 +285,10 @@ def _write_holding_estimate_specification(
             }
         ),
         encoding="utf-8",
+    )
+    test_util.write_audit_test_yaml(
+        specification_path,
+        yaml.safe_load(specification_path.read_text(encoding="utf-8")),
     )
     return specification_path
 
@@ -1198,7 +1213,10 @@ class TestAuditReport(unittest.TestCase):
 
     def test_workbook_table_cache_reuses_portfolio_period_summary(self) -> None:
         """Coverage and supporting tables share one portfolio-period summary."""
-        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        findings = compare_snapshots(
+            _PORTFOLIO_COMPARISON_PATH,
+            comparison_level="portfolio",
+        )
         table_cache = _pc_workbook_tables._WorkbookTableCache(findings)
         summary_builder = _pc_explain.portfolio_period_summary
 
@@ -1272,6 +1290,7 @@ class TestAuditReport(unittest.TestCase):
                 findings = compare_snapshots(
                     comparison_path,
                     require_causal_attribution=require_causal_attribution,
+                    comparison_level="portfolio",
                 )
                 portfolio_changes = _workbook_portfolio_changes_table(findings)
                 underlying_causes = _workbook_underlying_causes_table(findings)
@@ -1454,7 +1473,10 @@ class TestAuditReport(unittest.TestCase):
 
     def test_security_differences_marks_periods_without_security_rows(self) -> None:
         """Portfolio periods without security differences get explicit rows."""
-        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        findings = compare_snapshots(
+            _PORTFOLIO_COMPARISON_PATH,
+            comparison_level="portfolio",
+        )
 
         security_differences = _workbook_security_changes_table(findings)
         portfolio_differences = _workbook_portfolio_changes_table(findings)
@@ -1574,6 +1596,7 @@ class TestAuditReport(unittest.TestCase):
         findings = compare_snapshots(
             _PORTFOLIO_COMPARISON_PATH,
             require_causal_attribution=True,
+            comparison_level="portfolio",
         )
 
         portfolio_changes = _workbook_portfolio_changes_table(findings)

@@ -9,6 +9,9 @@ import unittest
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import compare_snapshots, summarize_findings
@@ -59,7 +62,7 @@ def _write_suppression_specification(
         "suppressions": suppressions,
     }
     specification_path = directory / "ppar_audit.yaml"
-    specification_path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    test_util.write_audit_test_yaml(specification_path, configuration)
     return specification_path
 
 

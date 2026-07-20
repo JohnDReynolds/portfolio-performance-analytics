@@ -1350,7 +1350,7 @@ datasets:
         blocking_if_missing: false
         source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks
           and sign-convention validation.
-  secref.csv:
+  secmast.csv:
     extraction_requirements:
       dataset: required_only_when_applicable
       reason: Security reference values qualify Data Issues populations without changing performance calculations.

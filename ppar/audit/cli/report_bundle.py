@@ -111,8 +111,8 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--comparison-level",
         choices=_COMPARISON_LEVEL_CHOICES,
         help=(
-            "Primary performance result to compare. Overrides comparison.level "
-            "in the YAML when supplied."
+            "Primary performance result for this single-level bundle. When "
+            "omitted, specialized YAML must provide comparison.level."
         ),
     )
     parser.add_argument(

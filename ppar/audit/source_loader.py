@@ -325,8 +325,8 @@ def csv_to_internal_mappings(
     Args:
         path: CSV source path.
         dataset_name: Human-readable normalized dataset name for error messages.
-        required_aliases: Required normalized columns and allowed source aliases.
-        optional_aliases: Optional normalized columns and allowed source aliases.
+        required_aliases: Required normalized columns and allowed source names.
+        optional_aliases: Optional normalized columns and allowed source names.
         specification_path: Comparison specification path for error context.
 
     Returns:
@@ -369,7 +369,9 @@ def _mappings_from_available_columns(
             specification_path,
         )
         if source_column is None:
-            missing_columns.append(f"{internal_column!r}; tried aliases {list(aliases)}")
+            missing_columns.append(
+                f"{internal_column!r}; expected one of {list(aliases)}"
+            )
             continue
         mappings[source_column] = internal_column
 
@@ -406,14 +408,14 @@ def read_mapped_csv(
     optional_aliases: ColumnAliases,
     specification_path: util.PathLike,
 ) -> pl.DataFrame:
-    """Read a CSV and return only normalized columns resolved from aliases.
+    """Read a CSV and return only explicitly or exactly mapped columns.
 
     Args:
         path: CSV source path.
         columns: Normalized output column order.
         dataset_name: Human-readable normalized dataset name for error messages.
-        required_aliases: Required normalized columns and allowed source aliases.
-        optional_aliases: Optional normalized columns and allowed source aliases.
+        required_aliases: Required normalized columns and allowed source names.
+        optional_aliases: Optional normalized columns and allowed source names.
         specification_path: Comparison specification path for error context.
 
     Returns:
@@ -469,14 +471,14 @@ def read_schema_mapped_csv(
     specification: AuditSpecification,
     snapshot_key: str,
 ) -> pl.DataFrame:
-    """Read a CSV using built-in aliases plus snapshot schema overrides.
+    """Read a CSV using exact defaults plus snapshot schema overrides.
 
     Args:
         path: CSV source path.
         columns: Normalized output column order.
         dataset_name: Normalized comparison dataset name.
-        default_required_aliases: Built-in required aliases.
-        default_optional_aliases: Built-in optional aliases.
+        default_required_aliases: Exact default required source names.
+        default_optional_aliases: Exact default optional source names.
         specification: Parsed comparison specification.
         snapshot_key: Snapshot side to load, either ``"a"`` or ``"b"``.
 
@@ -626,11 +628,11 @@ def aliases_with_schema_overrides(
     snapshot: ComparisonSnapshot,
     specification_path: util.PathLike,
 ) -> ColumnAliases:
-    """Return aliases with explicit schema mappings placed first.
+    """Return source candidates with explicit schema mappings replacing defaults.
 
     Args:
         dataset_name: Normalized comparison dataset name.
-        default_aliases: Built-in aliases for the dataset.
+        default_aliases: Exact normalized source names for the dataset.
         snapshot: Snapshot configuration that may reference a schema YAML.
         specification_path: Comparison specification path for error context.
 
@@ -698,10 +700,21 @@ def _schema_aliases(
         )
 
     key_mappings = _SCHEMA_COLUMN_KEYS[dataset_name]
+    unsupported_keys = sorted(
+        str(key) for key in section if key not in key_mappings
+    )
+    if unsupported_keys:
+        raise PpaError(
+            _error_message(
+                f"{section_name} has unsupported keys: "
+                + ", ".join(unsupported_keys)
+                + ".",
+                specification_path,
+            ),
+            504,
+        )
     aliases: ColumnAliases = {}
     for schema_key, source_column in section.items():
-        if schema_key not in key_mappings:
-            continue
         if not isinstance(source_column, str) or not source_column:
             raise PpaError(
                 _error_message(

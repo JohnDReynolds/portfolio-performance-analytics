@@ -24,7 +24,7 @@ The two packaged snapshots currently use the same file layouts:
 - `portperf.csv`
 - `secperf.csv`
 - `transactions.csv`
-- `secref.csv`
+- `secmast.csv`
 - `fx_rates.csv`
 - `splits.csv`
 
@@ -76,7 +76,7 @@ These labels describe extraction needs. They are separate from PPAR's internal v
 | `portperf.csv` | Required | The portfolio, period, and reported return define the performance difference PPAR must explain. Likely source: REP performance report preferred; a native performance IMEX object is not verified by the current evidence. | `Portfolio Code`, `From Date`, `Thru Date`, `Portfolio Return` | `Base Currency` — Required when the portfolio contains holdings or transactions outside its reporting currency. | `Beginning Market Value`, `Ending Market Value`, `Net Flow`, `Income`, `Gain/Loss` |
 | `secperf.csv` | Required only when applicable | Required only when the user wants security-level differences to reach Fully Explained; portfolio-only audit does not need this file. Likely source: REP security-performance or attribution report preferred; a native performance IMEX object is not verified by the current evidence. | `Portfolio Code`, `Security Symbol`, `Security Type`, `From Date`, `Thru Date`, `Security Return` | None | `Beginning Market Value`, `Ending Market Value`, `Beginning Weight`, `Income`, `Gain/Loss`, `Contribution` |
 | `transactions.csv` | Required | Dated, classified amounts are needed to explain changed external flows, income, fees, and security activity. Likely source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context. | `Portfolio Code`, `Transaction Date`, `Security Symbol`, `Security Type`, `Transaction Code`, `Amount` | `Transaction Security Type` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Source/Destination Type` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Source/Destination Symbol` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Special Security Type` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Special Security Symbol` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Currency Code` — Required for transaction amounts stated in a currency other than portfolio base currency.<br>`Base Currency` — Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.<br>`Base Amount` — Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction. | `Settlement Date`, `Quantity`, `Price`, `Commission` |
-| `secref.csv` | Required only when applicable | Security reference values qualify Data Issues populations without changing performance calculations. Likely source: IMEX security-information export, a security-master report, or another reviewed security-reference extract. | `Security Symbol`, `Security Type` | `Asset Class Code` — Required when a Data Issues filter references security_reference.asset_class_code. | None |
+| `secmast.csv` | Required only when applicable | Security reference values qualify Data Issues populations without changing performance calculations. Likely source: IMEX security-information export, a security-master report, or another reviewed security-reference extract. | `Security Symbol`, `Security Type` | `Asset Class Code` — Required when a Data Issues filter references security_reference.asset_class_code. | None |
 | `fx_rates.csv` | Optional | Optional supporting evidence that can link a rate change to a counted base-currency value. Likely source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled rate source. | `Portfolio Code`, `From Currency`, `To Currency`, `Rate Date`, `FX Rate`, `Local Exposure` | `Rate Source` — Required when pair and date do not uniquely identify one controlled rate series.<br>`Rate Type` — Required when pair and date do not uniquely identify one controlled rate convention. | None |
 | `splits.csv` | Optional | Split factors add review context but do not directly enter the current Modified Dietz explanation formula. Likely source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent factors. | `Security Symbol`, `Security Type` | None | `Split Date`, `Split Factor` |
 
@@ -158,7 +158,7 @@ These labels describe extraction needs. They are separate from PPAR's internal v
 | transactions | `Commission` | Commission. | Medium | Medium | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Supported in CI parameter evidence; report/profile availability should be validated. |
 
 
-### `secref.csv`
+### `secmast.csv`
 
 | Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
 |---|---|---|---|---|---|---|---|
@@ -276,7 +276,7 @@ These names are candidate aliases for local discovery. They are not assertions t
 | transactions | `Commission` | Commission, Commissions | Commission | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 
 
-### `secref.csv` Name Candidates
+### `secmast.csv` Name Candidates
 
 | Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
 |---|---|---|---|---|---|
@@ -396,7 +396,7 @@ This matrix translates availability confidence into implementation guidance abou
 | transactions | `Commission` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 
 
-### `secref.csv` Source Strategy
+### `secmast.csv` Source Strategy
 
 | Dataset | Demo column | Preferred source | Fallback source | Notes |
 |---|---|---|---|---|

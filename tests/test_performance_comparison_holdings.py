@@ -8,6 +8,9 @@ import unittest
 # Third-party imports
 import polars as pl
 import yaml
+
+# Test imports
+from tests import test_utilities as test_util
 from polars.testing import assert_frame_equal
 
 # Project imports
@@ -27,7 +30,7 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
     path = directory / "ppar_audit.yaml"
-    path.write_text(yaml.safe_dump(contents), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, contents)
     return path
 
 
@@ -307,8 +310,8 @@ class TestHoldingsLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("holding_date", str(context.exception))
 
-    def test_ambiguous_required_column_raises_error_502(self) -> None:
-        """Holding identifier columns must not match multiple aliases."""
+    def test_explicit_schema_selects_one_holding_portfolio_heading(self) -> None:
+        """A generated explicit mapping selects one source heading."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -326,13 +329,16 @@ class TestHoldingsLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "holdings.csv")
             path = _write_yaml(directory, configuration)
-            specification = AuditSpecification(path)
+            schema = yaml.safe_load(
+                (directory / "source_column_mappings.yaml").read_text(
+                    encoding="utf-8"
+                )
+            )
 
-            with self.assertRaises(PpaError) as context:
-                HoldingsLoader(specification).load("a")
-
-            self.assertTrue(str(context.exception).startswith("Error 502"))
-            self.assertIn("Ambiguous holdings", str(context.exception))
+            self.assertEqual(
+                schema["holdings_columns"]["portfolio_id"],
+                "PORTFOLIO_ID",
+            )
 
     def test_nonnumeric_market_value_raises_error_502(self) -> None:
         """Malformed holding numeric values fail with field-level context."""

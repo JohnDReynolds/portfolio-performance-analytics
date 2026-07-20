@@ -2,6 +2,7 @@
 
 # Python imports
 from collections.abc import Mapping, Sequence
+import copy
 import datetime as dt
 from pathlib import Path
 import tempfile
@@ -10,6 +11,7 @@ import unittest
 
 # Third-party imports
 import polars as pl
+import yaml
 
 # Project imports
 from ppar.analytics import Analytics
@@ -34,6 +36,124 @@ _DEFAULT_AXYS_SNAPSHOT_DIRECTORY = "snapshots/axys_a"
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]
+
+_AUDIT_TEST_SOURCE_COLUMNS: dict[str, dict[str, tuple[str, ...]]] = {
+    "portfolio_performance": {
+        "portfolio_id": ("PORTFOLIO_ID", "PORTFOLIO_CODE", "PORT"),
+        "portfolio_name": ("PORTFOLIO_NAME",),
+        "from_date": ("FROM_DATE",),
+        "thru_date": ("THRU_DATE",),
+        "portfolio_return": ("PORT_RETURN", "RETURN", "RET"),
+        "begin_market_value": ("BEGIN_MV", "BMV"),
+        "end_market_value": ("END_MV", "EMV"),
+        "flow": ("FLOW", "NET_FLOW"),
+        "income": ("INCOME",),
+        "gain_loss": ("GAIN_LOSS",),
+        "period_id": ("PERIOD_ID",),
+        "currency": ("CURRENCY",),
+        "base_currency": ("BASE_CURRENCY",),
+    },
+    "security_performance": {
+        "portfolio_id": ("PORTFOLIO_ID", "PORTFOLIO_CODE", "PORT"),
+        "security_id": ("SECURITY_ID", "SEC"),
+        "security_name": ("SECURITY_NAME",),
+        "from_date": ("FROM_DATE",),
+        "thru_date": ("THRU_DATE",),
+        "security_return": ("SEC_RETURN", "RETURN", "RET"),
+        "weight": ("BEGIN_WEIGHT", "WEIGHT"),
+        "contribution": ("CONTRIBUTION",),
+        "begin_market_value": ("BEGIN_MV",),
+        "end_market_value": ("END_MV",),
+        "income": ("INCOME",),
+        "gain_loss": ("GAIN_LOSS",),
+        "period_id": ("PERIOD_ID",),
+        "currency": ("CURRENCY",),
+        "base_currency": ("BASE_CURRENCY",),
+    },
+    "holdings": {
+        "portfolio_id": ("PORTFOLIO_ID", "PORTFOLIO_CODE", "PORT"),
+        "security_id": ("SECURITY_ID", "SEC"),
+        "holding_date": ("HOLDING_DATE", "POSITION_DATE"),
+        "quantity": ("QUANTITY", "QTY"),
+        "price": ("PRICE",),
+        "market_value": ("MKT_VAL", "MV"),
+        "base_market_value": ("BASE_MKT_VAL", "BASE_MV"),
+        "cost": ("COST",),
+        "accrued": ("ACCRUED",),
+        "base_accrued": ("BASE_ACCRUED_INCOME", "BASE_ACCRUED"),
+        "currency": ("CURRENCY",),
+        "base_currency": ("BASE_CURRENCY",),
+    },
+    "transactions": {
+        "portfolio_id": ("PORTFOLIO_ID", "PORTFOLIO_CODE", "PORT"),
+        "security_id": ("SECURITY_ID", "SEC"),
+        "transaction_id": ("TRANSACTION_ID",),
+        "transaction_date": ("TRANSACTION_DATE", "TRADE_DATE"),
+        "settlement_date": ("SETTLEMENT_DATE", "SETTLE_DATE"),
+        "transaction_code": ("TRANSACTION_CODE", "TRAN"),
+        "original_cost_date": ("ORIGINAL_COST_DATE", "ORIG_COST_DATE"),
+        "security_type": ("SECURITY_TYPE", "SEC_TYPE"),
+        "source_destination_type": ("SOURCE_DESTINATION_TYPE", "SRC_DEST_TYPE"),
+        "source_destination_symbol": (
+            "SOURCE_DESTINATION_SYMBOL",
+            "SRC_DEST_SYMBOL",
+        ),
+        "special_security_type": ("SPECIAL_SECURITY_TYPE", "SPECIAL_SEC_TYPE"),
+        "special_security_symbol": (
+            "SPECIAL_SECURITY_SYMBOL",
+            "SPECIAL_SEC_SYMBOL",
+        ),
+        "transaction_category": (
+            "TRANSACTION_CATEGORY",
+            "TXN_CATEGORY",
+            "ACTIVITY_CATEGORY",
+        ),
+        "cash_flow_sign": ("CASH_FLOW_SIGN",),
+        "performance_flow_sign": ("PERFORMANCE_FLOW_SIGN",),
+        "quantity": ("QUANTITY", "QTY"),
+        "price": ("PRICE",),
+        "amount": ("AMOUNT",),
+        "base_amount": ("BASE_AMOUNT",),
+        "commission": ("COMMISSION",),
+        "currency": ("CURRENCY",),
+        "base_currency": ("BASE_CURRENCY",),
+        "broker": ("BROKER",),
+        "original_cost": ("ORIGINAL_COST", "ORIG_COST"),
+    },
+    "fx_rates": {
+        "portfolio_id": ("PORTFOLIO_ID", "PORT"),
+        "from_currency": ("FROM_CURRENCY", "FROM_CCY"),
+        "to_currency": ("TO_CURRENCY", "TO_CCY"),
+        "rate_date": ("RATE_DATE",),
+        "fx_rate": ("FX_RATE",),
+        "local_exposure": ("LOCAL_EXPOSURE",),
+        "rate_source": ("RATE_SOURCE", "SOURCE"),
+        "rate_type": ("RATE_TYPE",),
+    },
+    "splits": {
+        "security_id": ("SECURITY_ID", "SEC"),
+        "security_name": ("SECURITY_NAME",),
+        "ticker": ("TICKER",),
+        "split_date": ("SPLIT_DATE",),
+        "split_factor": ("SPLIT_FACTOR",),
+    },
+    "security_reference": {
+        "security_id": ("SECURITY_ID", "SEC"),
+        "security_name": ("SECURITY_NAME",),
+        "ticker": ("TICKER",),
+        "security_type": ("SECURITY_TYPE", "SEC_TYPE"),
+        "asset_class_code": ("ASSET_CLASS_CODE",),
+        "sector_code": ("SECTOR_CODE",),
+        "sector": ("SECTOR", "SECTOR_NAME"),
+        "country_code": ("COUNTRY_CODE",),
+        "country": ("COUNTRY", "COUNTRY_NAME"),
+        "currency": ("CURRENCY", "CURRENCY_CODE"),
+    },
+}
+_AUDIT_TEST_SCHEMA_SECTIONS = {
+    dataset_name: f"{dataset_name}_columns"
+    for dataset_name in _AUDIT_TEST_SOURCE_COLUMNS
+}
 
 
 def make_performance_df(
@@ -89,6 +209,74 @@ def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
         except PpaError:
             continue
     return resolve_file_path(_AXYS_DIRECTORIES, file_name, suffix).resolve()
+
+
+def write_audit_test_yaml(path: Path, contents: object) -> None:
+    """Write a synthetic Audit YAML with explicit mappings for its CSV headers.
+
+    This helper migrates compact test fixtures from the retired production alias
+    inference. It inspects only files created by the test and writes the selected
+    source headings into a real schema YAML referenced by both snapshots.
+
+    Args:
+        path: Audit YAML path to write.
+        contents: YAML-compatible configuration object.
+    """
+    if not isinstance(contents, dict):
+        path.write_text(yaml.safe_dump(contents), encoding="utf-8")
+        return
+    configuration = copy.deepcopy(contents)
+    snapshots = configuration.get("snapshots")
+    files = configuration.get("files")
+    if not isinstance(snapshots, dict) or not isinstance(files, dict):
+        path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+        return
+
+    schema: dict[str, dict[str, str]] = {}
+    for dataset_name, file_definition in files.items():
+        candidates_by_field = _AUDIT_TEST_SOURCE_COLUMNS.get(str(dataset_name))
+        if candidates_by_field is None:
+            continue
+        if isinstance(file_definition, str):
+            relative_file_path = Path(file_definition)
+        elif isinstance(file_definition, dict) and isinstance(
+            file_definition.get("path"), str
+        ):
+            relative_file_path = Path(file_definition["path"])
+        else:
+            continue
+        available_columns: set[str] = set()
+        for snapshot in snapshots.values():
+            if not isinstance(snapshot, dict) or not isinstance(snapshot.get("path"), str):
+                continue
+            source_path = path.parent / snapshot["path"] / relative_file_path
+            if source_path.exists():
+                available_columns.update(pl.read_csv(source_path, n_rows=0).columns)
+        mappings: dict[str, str] = {}
+        for normalized_field, candidates in candidates_by_field.items():
+            exact_name = normalized_field
+            if exact_name in available_columns:
+                mappings[normalized_field] = exact_name
+                continue
+            source_name = next(
+                (candidate for candidate in candidates if candidate in available_columns),
+                None,
+            )
+            if source_name is not None:
+                mappings[normalized_field] = source_name
+        if mappings:
+            schema[_AUDIT_TEST_SCHEMA_SECTIONS[str(dataset_name)]] = mappings
+
+    if schema:
+        schema_name = "source_column_mappings.yaml"
+        (path.parent / schema_name).write_text(
+            yaml.safe_dump(schema, sort_keys=False),
+            encoding="utf-8",
+        )
+        for snapshot in snapshots.values():
+            if isinstance(snapshot, dict):
+                snapshot.setdefault("schema", schema_name)
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
 
 
 def classification_data_path(classification_name: str | None) -> util.PathLike | None:

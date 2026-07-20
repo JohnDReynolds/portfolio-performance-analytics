@@ -77,6 +77,11 @@ and MBB market proxies. Intentional Snapshot A errors remain clearly bounded
 Audit/Data Issues scenarios rather than claims about the public-market source.
 
 Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
+Each file keeps its normal run settings in one named section: `analytics:` or
+`audit:`. Every setting in those sections includes a matching one-run CLI
+example. Save the normal choice in YAML and use the command-line form only when
+one invocation needs to differ. Audit keeps `--allow-incomplete-yaml` CLI-only
+because it is a diagnostic safety bypass, not a reproducible normal-run choice.
 Audit validation checks minimum required datasets, required normalized columns,
 complete YAML treatment for changed source-data fields, and the strict Data Issues check
 contract before report bundles are written. Unknown Data Issues issue types, unsupported
@@ -84,11 +89,16 @@ per-check keys, malformed filters, non-Boolean enablement, invalid tolerances, a
 an enabled conservative check without its required `only` population stop with the
 exact YAML path. Mandatory portfolio/security market-value continuity remains active
 when optional Data Issues checks are disabled.
-Audit YAML also requires `comparison.level`, both extract-contract safety choices,
-and all eight comparison tolerances. Configuring `transactions`, `holdings`, or
-`fx_rates` requires the complete corresponding transaction, holding/price, or FX
-impact-policy block. The starter file spells out the former internal values, so
-those choices are reviewable without changing established calculations.
+The user-facing `ppar audit` command explicitly runs the portfolio view and, when
+`secperf.csv` is available in both snapshots, the security view. The starter
+therefore does not contain a misleading single `comparison.level`. Lower-level
+single-view tools must select their level explicitly. Required datasets use
+their standard filenames when their `files.*` keys are omitted. Genuinely
+optional evidence remains explicitly configured so file presence alone cannot
+expand the findings or accounting-policy surface. Audit YAML still requires both
+extract-contract safety choices and all eight comparison tolerances. Configuring
+`transactions`, `holdings`, or `fx_rates` requires the complete corresponding
+transaction, holding/price, or FX impact-policy block.
 The opt-in `large_price_variation` check instead uses a strict nonempty list of
 uniquely identified rules. Each rule can use scalar-or-list exact-match filters,
 an explicitly configured inclusive-period calendar-day minimum, and an explicitly
@@ -105,7 +115,7 @@ fallback occurred. The packaged YAML retains a disabled, fully scoped example,
 but the primary demo transactions deliberately omit those optional columns so
 they are not mistaken for Performance Comparison requirements. Focused tests
 cover the enabled check end to end.
-Optional `secref.csv` fields can qualify Data Issues populations through
+Optional `secmast.csv` fields can qualify Data Issues populations through
 `security_reference.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
 change performance calculations. The starter includes only `Security Symbol`,
@@ -151,7 +161,8 @@ If `files.security_performance` is unavailable, the portfolio bundle is still
 created and the command reports that security output was skipped. Other
 security-generation failures remain fatal.
 
-Generate HTML without XLSX:
+The starter `audit:` settings generate XLSX and HTML. Override that choice for
+one run to generate HTML without XLSX:
 
 ```bash
 ppar audit ./my_ppar_data/audit --no-xlsx-output
@@ -224,7 +235,7 @@ Data used:
 - Snapshot B: `snapshot_b`
 - Files: Axys/APX-style portfolio performance, security performance,
   transactions, holdings, and optional security reference.
-- `secref.csv` is snapshot-specific Data Issues enrichment. The packaged
+- `secmast.csv` is snapshot-specific Data Issues enrichment. The packaged
   nonpositive-price, stale-price, classification-mismatch, and fixed-income
   rate checks use reviewed `security_reference` qualifiers without affecting
   Modified Dietz, choosing an authoritative classification, or assigning

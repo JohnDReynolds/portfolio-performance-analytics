@@ -13,6 +13,9 @@ from unittest import mock
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit.performance_comparison import return_reconstruction as _reconstruction
@@ -204,8 +207,8 @@ def _write_reinvestment_pair_fixture(directory: Path) -> Path:
             "level": "portfolio",
         },
         "snapshots": {
-            "a": {"label": "a", "path": "snapshot_a", "vendor": "axys"},
-            "b": {"label": "b", "path": "snapshot_b", "vendor": "axys"},
+            "a": {"label": "a", "path": "snapshot_a"},
+            "b": {"label": "b", "path": "snapshot_b"},
         },
         "files": {
             "portfolio_performance": "portperf.csv",
@@ -253,7 +256,7 @@ def _write_reinvestment_pair_fixture(directory: Path) -> Path:
         },
     }
     path = directory / "comparison.yaml"
-    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, configuration)
     return path
 
 
@@ -336,8 +339,8 @@ def _write_accrued_value_fixture(
             "level": "portfolio",
         },
         "snapshots": {
-            "a": {"label": "a", "path": "snapshot_a", "vendor": "axys"},
-            "b": {"label": "b", "path": "snapshot_b", "vendor": "axys"},
+            "a": {"label": "a", "path": "snapshot_a"},
+            "b": {"label": "b", "path": "snapshot_b"},
         },
         "files": {
             "portfolio_performance": "portperf.csv",
@@ -380,7 +383,7 @@ def _write_accrued_value_fixture(
         },
     }
     path = directory / "comparison.yaml"
-    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, configuration)
     return path
 
 
@@ -415,7 +418,7 @@ def _comparison_path_with_reconstruction_method(
             section.pop("inclusion_rule", None)
 
     path = directory / "ppar_audit.yaml"
-    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, configuration)
     return path
 
 

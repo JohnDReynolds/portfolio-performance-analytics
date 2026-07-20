@@ -6,11 +6,11 @@ snapshots:
   a:
     label: fixed_income_accruals_a
     path: snapshot_a
-    vendor: axys
+    schema: ../source_column_mappings.yaml
   b:
     label: fixed_income_accruals_b
     path: snapshot_b
-    vendor: axys
+    schema: ../source_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv

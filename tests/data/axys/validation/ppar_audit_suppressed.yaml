@@ -12,13 +12,11 @@ snapshots:
   a:
     label: axys_a
     path: ../snapshots/axys_a
-    vendor: axys
     schema: ../axys_column_mappings.yaml
 
   b:
     label: axys_b_restatement
     path: ../snapshots/axys_b_restatement
-    vendor: axys
     schema: ../axys_column_mappings.yaml
 
 files:

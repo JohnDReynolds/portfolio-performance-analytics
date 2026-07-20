@@ -491,6 +491,7 @@ def write_report_bundle_manifest(
     include_reconstruction_diagnostics: bool = False,
     expand_all_supporting_files: bool = True,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
     review_sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
@@ -514,6 +515,7 @@ def write_report_bundle_manifest(
             remain expanded after validation.
         comparison_path: Optional comparison YAML path used to generate the
             bundle.
+        comparison_level: Explicit portfolio or security result level.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
         review_sheets: Canonical internal tables shared by HTML, XLSX, and the
@@ -535,6 +537,7 @@ def write_report_bundle_manifest(
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         expand_all_supporting_files=expand_all_supporting_files,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
         artifact_paths=artifact_paths,
         tables=tables,
         review_sheets=review_sheets,
@@ -611,6 +614,7 @@ def report_bundle_manifest(
     include_reconstruction_diagnostics: bool = False,
     expand_all_supporting_files: bool = True,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
     review_sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
@@ -632,6 +636,7 @@ def report_bundle_manifest(
             instead of being stored in the compact archive.
         comparison_path: Optional comparison YAML path used to generate the
             bundle.
+        comparison_level: Explicit portfolio or security result level.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
         review_sheets: Canonical internal tables shared by review formats.
@@ -664,7 +669,10 @@ def report_bundle_manifest(
             "include_reconstruction_diagnostics": include_reconstruction_diagnostics,
             "expand_all_supporting_files": expand_all_supporting_files,
         },
-        "source_context": _report_bundle_source_context(comparison_path),
+        "source_context": _report_bundle_source_context(
+            comparison_path,
+            comparison_level=comparison_level,
+        ),
         "counts": {
             "findings": findings.height,
             "active_findings": active_findings.height,
@@ -673,6 +681,7 @@ def report_bundle_manifest(
         "transaction_semantics": _report_bundle_transaction_semantics(
             active_findings,
             comparison_path=comparison_path,
+            comparison_level=comparison_level,
         ),
         "artifacts": artifact_references,
         "tables": {
@@ -697,6 +706,8 @@ def report_bundle_manifest(
 
 def _report_bundle_source_context(
     comparison_path: util.PathLike | None,
+    *,
+    comparison_level: str,
 ) -> dict[str, object]:
     """Return source metadata that helps reviewers reproduce a bundle."""
     if comparison_path is None:
@@ -704,7 +715,10 @@ def _report_bundle_source_context(
             "comparison_path": None,
             "extract_contract": None,
         }
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level=comparison_level,
+    )
     return {
         "comparison_path": str(comparison_path),
         "extract_contract": _pc_extract_contract.extract_contract_summary(
@@ -718,11 +732,15 @@ def _report_bundle_transaction_semantics(
     active_findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None,
+    comparison_level: str,
 ) -> dict[str, object]:
     """Return compact transaction semantics metadata for a report bundle."""
     if comparison_path is None:
         return transaction_semantics_summary([active_findings])
-    specification = AuditSpecification(comparison_path)
+    specification = AuditSpecification(
+        comparison_path,
+        comparison_level=comparison_level,
+    )
     exact_case = _pc_extract_contract.transaction_semantics_exact_case(
         specification.values,
         specification_path=specification.path,

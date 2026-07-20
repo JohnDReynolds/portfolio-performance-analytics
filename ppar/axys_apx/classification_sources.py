@@ -51,11 +51,16 @@ _SECURITY_MASTER_FIELDS_REQUIRED: Final[set[str]] = {
     "name_column",
 }
 _SECURITY_MASTER_COLUMN_ALIASES: Final[dict[str, tuple[str, ...]]] = {
-    "identifier_column": ("SECURITY_ID", "SEC", "SECURITY", "SEC_ID"),
-    "name_column": ("SECURITY_NAME", "DESC", "DESCRIPTION", "NAME", "SEC_DESC"),
+    "identifier_column": ("security_id",),
+    "name_column": ("security_name",),
+}
+_SECURITY_MASTER_CONFIG_KEYS: Final[dict[str, str]] = {
+    "identifier_column": "identifier_column",
+    "name_column": "security_name",
 }
 _SECURITY_MASTER_COLUMNS_KEY: Final[str] = "security_master_columns"
 _SECURITY_MASTER_PATH_KEY: Final[str] = "security_master_path"
+_DEFAULT_SECURITY_MASTER_PATH: Final[str] = "secmast.csv"
 _SECURITY_CLASSIFICATION_NAME: Final[str] = "Security"
 _FILTER_TO_SECURITY_IDS: Final[str] = "_filter_to_security_ids"
 _SOURCE_FILE_PATH: Final[str] = "_source_file_path"
@@ -530,7 +535,10 @@ class AxysClassificationSourceLoader:
             PpaError: If the security master path or required columns are not
                 configured.
         """
-        security_master_path = self._specification.values.get(_SECURITY_MASTER_PATH_KEY)
+        security_master_path = self._specification.values.get(
+            _SECURITY_MASTER_PATH_KEY,
+            _DEFAULT_SECURITY_MASTER_PATH,
+        )
         configured_columns_value = self._specification.values.get(
             _SECURITY_MASTER_COLUMNS_KEY,
             {},
@@ -548,6 +556,19 @@ class AxysClassificationSourceLoader:
                 504,
             )
         configured_columns = cast(dict[str, Any], configured_columns_value)
+        supported_config_keys = set(_SECURITY_MASTER_CONFIG_KEYS.values())
+        unsupported_config_keys = sorted(
+            str(key) for key in configured_columns if key not in supported_config_keys
+        )
+        if unsupported_config_keys:
+            raise PpaError(
+                self._error_message(
+                    f"{_SECURITY_MASTER_COLUMNS_KEY} has unsupported keys: "
+                    + ", ".join(unsupported_config_keys)
+                    + "."
+                ),
+                504,
+            )
         construction = security_id_construction(
             self._specification.values,
             "security_reference",
@@ -577,7 +598,7 @@ class AxysClassificationSourceLoader:
         *,
         composite_identifier: bool,
     ) -> dict[str, str]:
-        """Return explicit or inferred security master column names.
+        """Return explicit or exact-default security master column names.
 
         Args:
             source_name: Source requiring security master settings, used for
@@ -591,7 +612,7 @@ class AxysClassificationSourceLoader:
             Mapping for ``identifier_column`` and ``name_column``.
 
         Raises:
-            PpaError: If a column cannot be inferred or if multiple aliases
+            PpaError: If a column cannot be resolved or if multiple candidates
                 match the security master header.
         """
         path = self._specification.resolve_path(security_master_path)
@@ -606,28 +627,28 @@ class AxysClassificationSourceLoader:
             required_fields.remove("identifier_column")
             resolved_columns["identifier_column"] = _CONSTRUCTED_SECURITY_ID_COLUMN
         for field_name in required_fields:
+            config_key = _SECURITY_MASTER_CONFIG_KEYS[field_name]
             source_column = resolve_column(
                 field_name,
                 _SECURITY_MASTER_COLUMN_ALIASES[field_name],
                 available_columns,
                 self._error_message,
-                explicit_column=configured_columns.get(field_name),
+                explicit_column=configured_columns.get(config_key),
                 ambiguous_message=(
-                    "Ambiguous inferred security master column. "
-                    f"Configure {field_name!r} explicitly. "
+                    "Ambiguous security master column. "
+                    f"Configure {config_key!r} explicitly. "
                     f"Source requiring security master: {source_name!r}"
                 ),
                 error_code=504,
             )
             if source_column is None:
                 missing_fields.append(
-                    f"{field_name!r}; tried aliases "
-                    f"{list(_SECURITY_MASTER_COLUMN_ALIASES[field_name])}"
+                    f"{config_key!r}"
                 )
                 continue
             if source_column not in available_columns:
                 missing_fields.append(
-                    f"{field_name!r} configured as {source_column!r}"
+                    f"{config_key!r} configured as {source_column!r}"
                 )
                 continue
             resolved_columns[field_name] = source_column

@@ -25,7 +25,7 @@ _DATASET_LABELS: Final[dict[str, str]] = {
     "holdings.csv": "holdings",
     "fx_rates.csv": "FX rates",
     "portperf.csv": "portfolio performance",
-    "secref.csv": "security master",
+    "secmast.csv": "security master",
     "secperf.csv": "security performance",
     "splits.csv": "split factors",
     "transactions.csv": "transactions",

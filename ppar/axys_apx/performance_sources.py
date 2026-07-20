@@ -25,13 +25,6 @@ PerformanceSourceType = Literal[
     "portfolio_performance_columns",
     "security_performance_columns",
 ]
-_PORTFOLIO_CODE_ALIASES: Final[tuple[str, ...]] = (
-    "ACCT",
-    "ACCOUNT",
-    "PORT",
-    "PORTFOLIO_CODE",
-    "PORTFOLIO_ID",
-)
 _PERFORMANCE_COLUMN_KEYS: Final[dict[PerformanceSourceType, dict[str, str]]] = {
     "portfolio_performance_columns": {
         cols.FROM_DATE: "from_date",
@@ -50,28 +43,47 @@ _PERFORMANCE_COLUMN_KEYS: Final[dict[PerformanceSourceType, dict[str, str]]] = {
         cols.WEIGHT: "weight",
     },
 }
+_SHARED_AUDIT_COLUMN_KEYS: Final[dict[PerformanceSourceType, frozenset[str]]] = {
+    "portfolio_performance_columns": frozenset(
+        {
+            "begin_market_value",
+            "end_market_value",
+            "flow",
+            "income",
+            "gain_loss",
+            "period_id",
+            "currency",
+            "base_currency",
+        }
+    ),
+    "security_performance_columns": frozenset(
+        {
+            "security_name",
+            "security_return",
+            "begin_market_value",
+            "end_market_value",
+            "income",
+            "gain_loss",
+            "period_id",
+            "currency",
+            "base_currency",
+        }
+    ),
+}
 _PERFORMANCE_COLUMN_ALIASES: Final[dict[PerformanceSourceType, dict[str, tuple[str, ...]]]] = {
     "portfolio_performance_columns": {
-        cols.FROM_DATE: ("FROM_DATE",),
-        cols.THRU_DATE: ("THRU_DATE",),
-        cols.PORTFOLIO_CODE: _PORTFOLIO_CODE_ALIASES,
-        cols.PORTFOLIO_NAME: ("PORTFOLIO_NAME",),
-        cols.PORTFOLIO_RETURN: ("PERF", "PERFORMANCE", "PORT_RETURN", "RET", "RETURN"),
+        internal_column: (yaml_key,)
+        for internal_column, yaml_key in _PERFORMANCE_COLUMN_KEYS[
+            "portfolio_performance_columns"
+        ].items()
     },
     "security_performance_columns": {
-        cols.FROM_DATE: ("FROM_DATE",),
-        cols.CONTRIBUTION: ("CONTRIBUTION_W_X_R", "CONTRIBUTION_WXR", "CONTRIBUTION"),
-        cols.THRU_DATE: ("THRU_DATE",),
-        cols.IDENTIFIER: ("SECURITY_ID", "SEC", "SECURITY", "SEC_ID"),
-        cols.PORTFOLIO_CODE: _PORTFOLIO_CODE_ALIASES,
-        cols.RETURN: ("SEC_RETURN", "RET", "RETURN", "PERF", "PERFORMANCE"),
-        cols.WEIGHT: ("BEGIN_WEIGHT", "WEIGHT", "WGT", "PCT_ASSETS", "PERCENT_ASSETS"),
+        internal_column: (yaml_key,)
+        for internal_column, yaml_key in _PERFORMANCE_COLUMN_KEYS[
+            "security_performance_columns"
+        ].items()
     },
 }
-_LEGACY_PERFORMANCE_COLUMN_KEYS: Final[dict[str, str]] = {
-    cols.PORTFOLIO_RETURN: cols.PORTFOLIO_RETURN,
-}
-
 _PORTFOLIO_PERFORMANCE_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.FROM_DATE,
     cols.THRU_DATE,
@@ -228,7 +240,7 @@ class AxysPerformanceSourceLoader:
             PpaError: If required mapped columns are missing from either the
                 specification or the CSV header.
         """
-        configured_column_mappings: dict[str, str] = self._specification.values.get(
+        configured_column_mappings = self._specification.values.get(
             column_name_mappings_name, {}
         )
         column_mappings = self._normalize_column_mapping_keys(
@@ -276,7 +288,7 @@ class AxysPerformanceSourceLoader:
 
     def _normalize_column_mapping_keys(
         self,
-        column_mappings: dict[str, str],
+        column_mappings: object,
         column_name_mappings_name: PerformanceSourceType,
     ) -> dict[str, str]:
         """Return configured source columns keyed by internal package column.
@@ -294,10 +306,46 @@ class AxysPerformanceSourceLoader:
             yaml_key: internal_column
             for internal_column, yaml_key in canonical_keys.items()
         }
-        key_to_internal_column.update(_LEGACY_PERFORMANCE_COLUMN_KEYS)
-        return {
-            key_to_internal_column.get(key, key): value
+        if not isinstance(column_mappings, dict):
+            raise PpaError(
+                self._error_message(
+                    f"{column_name_mappings_name} must be a mapping."
+                ),
+                504,
+            )
+        supported_keys = set(key_to_internal_column) | set(
+            _SHARED_AUDIT_COLUMN_KEYS[column_name_mappings_name]
+        )
+        unsupported_keys = sorted(
+            str(key) for key in column_mappings if key not in supported_keys
+        )
+        if unsupported_keys:
+            raise PpaError(
+                self._error_message(
+                    f"{column_name_mappings_name} has unsupported keys: "
+                    + ", ".join(unsupported_keys)
+                    + "."
+                ),
+                504,
+            )
+        invalid_values = sorted(
+            str(key)
             for key, value in column_mappings.items()
+            if not isinstance(value, str) or not value
+        )
+        if invalid_values:
+            raise PpaError(
+                self._error_message(
+                    f"{column_name_mappings_name} values must be non-empty strings: "
+                    + ", ".join(invalid_values)
+                    + "."
+                ),
+                504,
+            )
+        return {
+            key_to_internal_column[key]: value
+            for key, value in column_mappings.items()
+            if key in key_to_internal_column
         }
 
     def _resolve_source_column(
@@ -308,7 +356,7 @@ class AxysPerformanceSourceLoader:
         available_columns: set[str],
         explicit_column: str | None,
     ) -> str | None:
-        """Resolve a source CSV column from YAML or known aliases.
+        """Resolve a source CSV column from YAML or its exact normalized name.
 
         Args:
             path: Source CSV path used for error context.
@@ -318,10 +366,10 @@ class AxysPerformanceSourceLoader:
             explicit_column: Explicit source column from the YAML, if any.
 
         Returns:
-            The explicit or inferred CSV column, or ``None`` when not found.
+            The explicit or exact-default CSV column, or ``None`` when not found.
 
         Raises:
-            PpaError: If more than one alias exists for the same internal
+            PpaError: If more than one candidate exists for the same internal
                 column.
         """
         yaml_key = _PERFORMANCE_COLUMN_KEYS[column_name_mappings_name][internal_column]
@@ -333,7 +381,7 @@ class AxysPerformanceSourceLoader:
             self._error_message,
             explicit_column=explicit_column,
             ambiguous_message=(
-                f"Ambiguous inferred source columns in {str(path)!r}. "
+                f"Ambiguous source columns in {str(path)!r}. "
                 f"Configure {yaml_key!r} explicitly"
             ),
             error_code=502,
@@ -347,5 +395,4 @@ class AxysPerformanceSourceLoader:
     ) -> str:
         """Return an error fragment for a missing performance source column."""
         yaml_key = _PERFORMANCE_COLUMN_KEYS[column_name_mappings_name][internal_column]
-        aliases = _PERFORMANCE_COLUMN_ALIASES[column_name_mappings_name][internal_column]
-        return f"{yaml_key!r} for {internal_column!r}; tried aliases {list(aliases)}"
+        return f"{yaml_key!r} for {internal_column!r}"

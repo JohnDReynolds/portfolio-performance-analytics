@@ -12,6 +12,9 @@ import unittest
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
@@ -295,7 +298,7 @@ def _write_site(
     if extra_config:
         configuration.update(extra_config)
     comparison_path = root / "ppar.yaml"
-    comparison_path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    test_util.write_audit_test_yaml(comparison_path, configuration)
     return comparison_path
 
 

@@ -9,6 +9,9 @@ import unittest
 import polars as pl
 import yaml
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import (
@@ -23,7 +26,7 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 def _write_yaml(directory: Path, contents: object) -> Path:
     """Write comparison YAML contents and return the path."""
     path = directory / "ppar_audit.yaml"
-    path.write_text(yaml.safe_dump(contents), encoding="utf-8")
+    test_util.write_audit_test_yaml(path, contents)
     return path
 
 
@@ -138,8 +141,8 @@ class TestFxRatesLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("fx_rate", str(context.exception))
 
-    def test_ambiguous_required_column_raises_error_502(self) -> None:
-        """FX rate currency columns must not match multiple aliases."""
+    def test_explicit_schema_selects_one_fx_currency_heading(self) -> None:
+        """A generated explicit mapping selects one source heading."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -158,13 +161,16 @@ class TestFxRatesLoader(unittest.TestCase):
                     }
                 ).write_csv(directory / snapshot_name / "fx_rates.csv")
             path = _write_yaml(directory, configuration)
-            specification = AuditSpecification(path)
+            schema = yaml.safe_load(
+                (directory / "source_column_mappings.yaml").read_text(
+                    encoding="utf-8"
+                )
+            )
 
-            with self.assertRaises(PpaError) as context:
-                FxRatesLoader(specification).load("a")
-
-            self.assertTrue(str(context.exception).startswith("Error 502"))
-            self.assertIn("Ambiguous fx rates", str(context.exception))
+            self.assertEqual(
+                schema["fx_rates_columns"]["from_currency"],
+                "FROM_CURRENCY",
+            )
 
     def test_nonpositive_rate_raises_error_502(self) -> None:
         """FX rates must be finite and strictly positive."""
