@@ -236,8 +236,11 @@ Use these opt-in switches only when the intent is explicit:
   --write-packaged-assets
 ```
 
-`--build` regenerates `PPAR.pdf` from the current `README.md` before adding a
-package-build check, so a release artifact cannot retain stale overview text.
+`--build` regenerates `PPAR.pdf` from the current `README.md`, builds the wheel
+and sdist, installs the wheel into a temporary environment outside the source
+checkout, and runs `ppar setup`, the installed Analytics and Audit commands,
+and both Audit bundle validators. This prevents stale overview text and catches
+package-data or import failures that source-checkout tests cannot expose.
 `--refresh-images` regenerates the README PNG/JPG assets as well as `PPAR.pdf`.
 `--include-generic-data-generation` runs the Yahoo-dependent generic analytics
 candidate-data generator.
@@ -455,7 +458,8 @@ Use this pre-publish checklist after the maintainer decides to release:
    - Axys/APX Analytics and Audit starter files are included;
    - `_demo_output`, `scripts`, `tests`, `docs`, and obsolete demo paths are not
      present in the wheel.
-7. Install the wheel into a temporary environment and run:
+7. Confirm that the release-candidate `--build` check installed the wheel into
+   a temporary environment and successfully ran:
 
    ```bash
    ppar --help

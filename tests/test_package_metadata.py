@@ -335,6 +335,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("openpyxl", pyproject_dependencies)
         self.assertIn("matplotlib", pyproject_dependencies)
         self.assertIn("seaborn", pyproject_dependencies)
+        self.assertIn("polars>=1.24.0", pyproject["project"]["dependencies"])
         self.assertNotIn("charts", optional_dependencies)
         self.assertNotIn("excel", optional_dependencies)
         self.assertIn("pytest", dev_dependencies)
@@ -1159,7 +1160,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("**Archived implementation journal.**", archived_roadmap)
 
     def test_audit_mvp_authorities_agree_on_scope_and_sequence(self) -> None:
-        """Audit authorities retain one material MVP boundary and release gate."""
+        """Audit authorities retain one material MVP boundary and current gate."""
         constitution = " ".join(
             Path("docs/audit/product_constitution.md")
             .read_text(encoding=util.ENCODING)
@@ -1184,10 +1185,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys/APX transaction semantics and demo coverage", constitution)
         self.assertIn("Workstream D — Axys/APX Transaction Semantics", plan)
         self.assertIn(
-            "Slice 6 MVP release audit after founder-directed completion of "
-            "Workstream D's material scope",
+            "Founder MVP assessment after the completed Slice 6 technical "
+            "release audit",
             audit_roadmap,
         )
+        self.assertIn("Slice 6 technical release audit complete", plan)
+        self.assertIn("founder MVP assessment next", plan)
         self.assertIn(
             "Slice 5 — Exact case and optional missing-cost work — Complete",
             plan,

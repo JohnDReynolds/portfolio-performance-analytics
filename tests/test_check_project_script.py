@@ -1,7 +1,9 @@
 """Tests for the local project health-check script."""
 
 # Python Imports
+import os
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -97,6 +99,61 @@ class TestCheckProjectScript(unittest.TestCase):
         self.assertEqual(
             run.call_args.kwargs["env"]["XDG_CACHE_HOME"],
             str(check_project._CHECK_CACHE_DIR),
+        )
+        self.assertEqual(
+            run.call_args.kwargs["env"]["PIP_CACHE_DIR"],
+            str(check_project._CHECK_CACHE_DIR / "pip"),
+        )
+
+    def test_run_can_isolate_installed_package_checks(self) -> None:
+        """Installed-wheel commands cannot inherit a checkout import path."""
+        with (
+            patch.dict(os.environ, {"PYTHONPATH": "/unexpected/source"}),
+            patch("scripts.check_project.subprocess.run") as run,
+        ):
+            check_project._run(
+                [check_project._VENV_PYTHON, "-V"],
+                cwd=Path("/tmp"),
+                isolate_python_path=True,
+            )
+
+        self.assertEqual(run.call_args.kwargs["cwd"], Path("/tmp"))
+        self.assertNotIn("PYTHONPATH", run.call_args.kwargs["env"])
+
+    def test_installed_wheel_smoke_covers_setup_analytics_and_audit(self) -> None:
+        """The candidate wheel smoke exercises both products and validators."""
+        calls: list[tuple[tuple[str, ...], dict[str, object]]] = []
+
+        def record_run(
+            command: list[str | Path],
+            **kwargs: object,
+        ) -> None:
+            calls.append((tuple(str(part) for part in command), kwargs))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            wheel_path = root / "ppar-0.0.0-py3-none-any.whl"
+            with patch.object(check_project, "_run", side_effect=record_run):
+                check_project._run_installed_wheel_smoke(
+                    wheel_path,
+                    root / "smoke",
+                )
+
+        command_texts = [_command_text(command) for command, _ in calls]
+        self.assertTrue(any("-m venv" in text for text in command_texts))
+        self.assertTrue(any("-m pip install" in text for text in command_texts))
+        self.assertTrue(any("-m pip check" in text for text in command_texts))
+        self.assertTrue(any("ppar setup" in text for text in command_texts))
+        self.assertTrue(any("ppar analytics" in text for text in command_texts))
+        self.assertTrue(any("ppar audit" in text for text in command_texts))
+        validator_calls = [
+            text for text in command_texts if "ppar.audit.cli.validate_bundle" in text
+        ]
+        self.assertEqual(len(validator_calls), 2)
+        self.assertTrue(any(text.endswith("output/portfolio") for text in validator_calls))
+        self.assertTrue(any(text.endswith("output/security") for text in validator_calls))
+        self.assertTrue(
+            all(kwargs["isolate_python_path"] is True for _, kwargs in calls)
         )
 
 

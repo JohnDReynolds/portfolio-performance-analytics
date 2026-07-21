@@ -9,10 +9,10 @@ acceptance criteria, and slice status for the active phase.
 | Document field | Value |
 |---|---|
 | Status | Active product roadmap — MVP completion is the current phase |
-| Date | 2026-07-19 |
+| Date | 2026-07-21 |
 | Governing product authority | [`product_constitution.md`](product_constitution.md) |
 | Active implementation plan | [`mvp_plan.md`](mvp_plan.md) |
-| Next gate | Slice 6 MVP release audit after founder-directed completion of Workstream D's material scope |
+| Next gate | Founder MVP assessment after the completed Slice 6 technical release audit |
 
 ## Roadmap Doctrine
 
@@ -119,13 +119,12 @@ workflow, and a broad speculative rules catalog are not part of MVP completion.
 
 ## Immediate Priorities
 
-1. Retain Slice 5B original-cost/date support as an optional, non-MVP-blocking
+1. Review the final representative portfolio and security bundles and decide
+   whether the founder considers the resulting product an MVP.
+2. If accepted, begin validation-partner planning without adding APX Mark-to-
+   Market or Trade Blotter product contracts absent partner evidence.
+3. Retain Slice 5B original-cost/date support as an optional, non-MVP-blocking
    Data Issues capability.
-2. Begin the Slice 6 MVP release audit; do not add APX Mark-to-Market or Trade
-   Blotter product contracts without validation-partner evidence.
-3. Re-run report parity, determinism, financial invariants, demo coverage, and
-   the 500x release-candidate scale check after the cross-cutting MVP changes.
-4. Only then decide whether the product is ready for validation-partner planning.
 
 ## Material Open Questions
 

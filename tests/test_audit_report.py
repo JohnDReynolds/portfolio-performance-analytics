@@ -2,6 +2,7 @@
 
 # Python imports
 from collections.abc import Mapping
+import hashlib
 import importlib
 import json
 from pathlib import Path
@@ -71,6 +72,10 @@ _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
+_EXPECTED_REPORT_TABLE_SCHEMA_FINGERPRINTS = {
+    "portfolio": "5c4f6d1e1d95361eb861185e086cc7cbcf4556c7f33c3c2ef625ceb73b96a64c",
+    "security": "82d0e34a35ade8659fe3664da2b1279cbcc0bf34a2c69351ae9ee4fe2cdfae1f",
+}
 _original_import = __import__
 
 
@@ -1012,6 +1017,7 @@ class TestAuditReport(unittest.TestCase):
                 review_summary["transaction_semantics"],
                 manifest["transaction_semantics"],
             )
+
             for vocabulary_key in review_vocabulary_keys:
                 self.assertIn(vocabulary_key, review_vocabulary)
             self.assertEqual(
@@ -1155,6 +1161,46 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
+    def test_all_persisted_report_table_columns_remain_locked(self) -> None:
+        """Every default or diagnostic CSV table retains its ordered schema."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for comparison_level, expected_fingerprint in (
+                _EXPECTED_REPORT_TABLE_SCHEMA_FINGERPRINTS.items()
+            ):
+                with self.subTest(comparison_level=comparison_level):
+                    findings = compare_snapshots(
+                        _PORTFOLIO_COMPARISON_PATH,
+                        comparison_level=comparison_level,
+                    )
+                    paths = write_audit_report_bundle(
+                        findings,
+                        root / comparison_level,
+                        comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                        comparison_level=comparison_level,
+                        include_reconstruction_diagnostics=True,
+                    )
+                    manifest = json.loads(
+                        paths["manifest"].read_text(encoding="utf-8")
+                    )
+                    table_columns = {
+                        table_name: metadata["columns"]
+                        for table_name, metadata in manifest["tables"].items()
+                    }
+                    serialized_schema = json.dumps(
+                        table_columns,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                    actual_fingerprint = hashlib.sha256(
+                        serialized_schema
+                    ).hexdigest()
+                    self.assertEqual(
+                        actual_fingerprint,
+                        expected_fingerprint,
+                        "Output table columns changed. Review every added, removed, "
+                        "renamed, or reordered column before updating this contract.",
+                    )
 
     def test_write_report_bundle_reuses_workbook_sheets_for_html_and_xlsx(self) -> None:
         """Bundle generation avoids rebuilding workbook-style tables twice."""

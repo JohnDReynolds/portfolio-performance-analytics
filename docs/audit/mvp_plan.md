@@ -4,9 +4,9 @@
 
 | Document field | Value |
 |---|---|
-| Status | Active MVP implementation plan — pre-release output simplification complete; Slice 6 release audit next |
-| Version | 1.8 |
-| Date | 2026-07-19 |
+| Status | Active MVP implementation plan — Slice 6 technical release audit complete; founder MVP assessment next |
+| Version | 1.9 |
+| Date | 2026-07-21 |
 | Governing document | [`product_constitution.md`](product_constitution.md) |
 | Product roadmap | [`roadmap.md`](roadmap.md) |
 | Historical specifications index | [`product_specifications_index.md`](product_specifications_index.md) |
@@ -797,6 +797,20 @@ financial method, or tolerance changed.
 - run the full relevant suite and release-candidate checks;
 - generate final representative portfolio/security bundles; and
 - assess whether the founder considers the resulting product an MVP.
+
+The technical release audit completed on 2026-07-21. A clean baseline passed
+before a bounded stabilization review examined installed-package behavior,
+output schemas, configuration/CLI consistency, starter coherence, transaction
+safety, and explanation contracts. Existing coverage was already strong in the
+latter five areas. The review added a built-wheel installation and end-to-end
+smoke gate, froze the ordered columns of every persisted default or diagnostic
+Audit table, and corrected the declared Polars minimum from 1.16 to 1.24 because
+PPAR uses the `nulls_equal` API introduced by that rename. The strengthened
+release-candidate sequence then passed 931 tests, static checks, wheel/sdist
+builds, installed Analytics and Audit execution, both installed bundle
+validators, representative portfolio/security bundles, determinism/parity
+validation, and the unchanged 500x scale gate. The founder MVP assessment
+remains outstanding.
 
 ---
 
