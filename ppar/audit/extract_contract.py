@@ -30,6 +30,7 @@ _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
 _PATH_KEY: Final[str] = "path"
 _ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY: Final[str] = "enforce_ambiguous_axys_flows"
 _TRANSACTION_SEMANTICS_CASE_KEY: Final[str] = "transaction_semantics_case"
+_DEFAULT_ENFORCE_AMBIGUOUS_AXYS_FLOWS: Final[bool] = True
 _TRANSACTION_SEMANTICS_CASE_EXACT: Final[str] = "exact"
 _TRANSACTION_SEMANTICS_CASE_LEGACY: Final[str] = "legacy_case_insensitive"
 _TRANSACTION_SEMANTICS_CASE_VALUES: Final[frozenset[str]] = frozenset(
@@ -136,26 +137,25 @@ def extract_contract_settings(
             paths and report validation errors.
 
     Returns:
-        Resolved extract-contract settings. The safety and case-matching choices
-        must be explicit; omitting ``path`` selects the packaged contract.
+        Resolved extract-contract settings. Omitted safety and case-matching
+        choices use the fail-closed defaults; omitting ``path`` selects the
+        packaged contract.
 
     Raises:
-        PpaError: If ``extract_contract`` has an invalid shape, omits a required
-            safety choice, or references a missing/unreadable contract file.
+        PpaError: If ``extract_contract`` has an invalid shape, contains an
+            invalid override, or references a missing/unreadable contract file.
     """
-    raw_settings = values.get(_EXTRACT_CONTRACT_KEY)
-    if raw_settings is None:
-        raise PpaError(
-            f"{specification_path}: extract_contract must be a mapping.",
-            504,
-        )
+    raw_settings = values.get(_EXTRACT_CONTRACT_KEY, {})
     if not isinstance(raw_settings, dict):
         raise PpaError(
             f"{specification_path}: extract_contract must be a mapping.",
             504,
         )
 
-    enforce_value = raw_settings.get(_ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY)
+    enforce_value = raw_settings.get(
+        _ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY,
+        _DEFAULT_ENFORCE_AMBIGUOUS_AXYS_FLOWS,
+    )
     if not isinstance(enforce_value, bool):
         raise PpaError(
             (
@@ -167,6 +167,7 @@ def extract_contract_settings(
 
     case_value = raw_settings.get(
         _TRANSACTION_SEMANTICS_CASE_KEY,
+        _TRANSACTION_SEMANTICS_CASE_EXACT,
     )
     if (
         not isinstance(case_value, str)
@@ -498,8 +499,8 @@ def _normalized_transaction_column(demo_column: str) -> str:
         "Security Type": pc_cols.SECURITY_ID,
         "Transaction Code": pc_cols.TRANSACTION_CODE,
         "TRAN": pc_cols.TRANSACTION_CODE,
-        "Transaction Security Type": pc_cols.SECURITY_TYPE,
-        "SEC_TYPE": pc_cols.SECURITY_TYPE,
+        "Transaction Security Type": pc_cols.TRANSACTION_SECURITY_TYPE,
+        "SEC_TYPE": pc_cols.TRANSACTION_SECURITY_TYPE,
         "Source/Destination Type": pc_cols.SOURCE_DESTINATION_TYPE,
         "SRC_DEST_TYPE": pc_cols.SOURCE_DESTINATION_TYPE,
         "Source/Destination Symbol": pc_cols.SOURCE_DESTINATION_SYMBOL,

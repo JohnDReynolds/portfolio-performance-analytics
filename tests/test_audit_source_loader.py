@@ -14,6 +14,7 @@ import yaml
 from ppar.errors import PpaError
 from ppar.axys_apx.security_identity import (
     SecurityIdConstruction,
+    security_id_construction,
     with_constructed_security_id,
 )
 from ppar.audit import aliases
@@ -112,7 +113,7 @@ class TestSourceLoader(unittest.TestCase):
             )
 
     def test_schema_mapping_overrides_default_aliases(self) -> None:
-        """Referenced schema mappings are honored before built-in defaults."""
+        """Referenced schema mappings override common mappings and defaults."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             schema_path = directory / "axys_column_mappings.yaml"
@@ -120,9 +121,13 @@ class TestSourceLoader(unittest.TestCase):
             schema_path.write_text(
                 yaml.safe_dump(
                     {
-                        "portfolio_performance_columns": {
-                            "portfolio_code": "ACCT_CODE",
-                            "portfolio_return": "GROSS_RETURN",
+                        "files": {
+                            "portfolio_performance": {
+                                "columns": {
+                                    "portfolio_code": "ACCT_CODE",
+                                    "portfolio_return": "GROSS_RETURN",
+                                }
+                            }
                         }
                     }
                 ),
@@ -153,6 +158,16 @@ class TestSourceLoader(unittest.TestCase):
                     aliases.PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES,
                     snapshot,
                     directory / "comparison.yaml",
+                    {
+                        "files": {
+                            "portfolio_performance": {
+                                "columns": {
+                                    "portfolio_code": "COMMON_PORTFOLIO_CODE",
+                                    "portfolio_return": "COMMON_PORTFOLIO_RETURN",
+                                }
+                            }
+                        }
+                    },
                 ),
                 aliases.PORTFOLIO_PERFORMANCE_OPTIONAL_ALIASES,
                 directory / "comparison.yaml",
@@ -163,6 +178,74 @@ class TestSourceLoader(unittest.TestCase):
                 frame.get_column(pc_cols.PORTFOLIO_RETURN).to_list(),
                 [0.01],
             )
+
+    def test_referenced_schema_rejects_retired_mapping_sections(self) -> None:
+        """A referenced schema cannot silently ignore former top-level keys."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            schema_path = directory / "legacy_schema.yaml"
+            schema_path.write_text(
+                yaml.safe_dump(
+                    {
+                        "portfolio_performance_columns": {
+                            "portfolio_code": "ACCT_CODE"
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            snapshot = ComparisonSnapshot(
+                key="a",
+                label="snapshot_a",
+                path=directory,
+                schema_path=schema_path,
+            )
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "Referenced schema uses retired source mappings",
+            ):
+                source_loader.aliases_with_schema_overrides(
+                    pc_cols.PORTFOLIO_PERFORMANCE,
+                    aliases.PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES,
+                    snapshot,
+                    directory / "comparison.yaml",
+                )
+
+    def test_common_audit_mapping_overrides_default_aliases(self) -> None:
+        """Nested Audit mappings apply when a snapshot has no schema path."""
+        snapshot = ComparisonSnapshot(
+            key="a",
+            label="snapshot_a",
+            path=Path("snapshot_a"),
+            schema_path=None,
+        )
+
+        resolved_aliases = source_loader.aliases_with_schema_overrides(
+            pc_cols.PORTFOLIO_PERFORMANCE,
+            aliases.PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES,
+            snapshot,
+            Path("comparison.yaml"),
+            {
+                "files": {
+                    "portfolio_performance": {
+                        "columns": {
+                            "portfolio_code": "Portfolio Code",
+                            "portfolio_return": "Portfolio Return",
+                        }
+                    }
+                }
+            },
+        )
+
+        self.assertEqual(
+            resolved_aliases[pc_cols.PORTFOLIO_ID],
+            ("Portfolio Code",),
+        )
+        self.assertEqual(
+            resolved_aliases[pc_cols.PORTFOLIO_RETURN],
+            ("Portfolio Return",),
+        )
 
     def test_default_source_names_reject_legacy_uppercase_headings(self) -> None:
         """Audit does not guess vendor headings without a schema mapping."""
@@ -196,9 +279,13 @@ class TestSourceLoader(unittest.TestCase):
             schema_path.write_text(
                 yaml.safe_dump(
                     {
-                        "security_performance_columns": {
-                            "identifier": "CUSTOM_SEC",
-                            "return": "CUSTOM_RETURN",
+                        "files": {
+                            "security_performance": {
+                                "columns": {
+                                    "identifier": "CUSTOM_SEC",
+                                    "security_return": "CUSTOM_RETURN",
+                                }
+                            }
                         }
                     }
                 ),
@@ -237,13 +324,19 @@ class TestSourceLoader(unittest.TestCase):
                 yaml.safe_dump(
                     {
                         "security_id": {
-                            "components": ["Security Type", "Security Symbol"],
+                            "components": ["security_type", "security_symbol"],
                         },
-                        "security_performance_columns": {
-                            "portfolio_code": "Portfolio Code",
-                            "from_date": "From Date",
-                            "thru_date": "Thru Date",
-                            "return": "Security Return",
+                        "files": {
+                            "security_performance": {
+                                "columns": {
+                                    "portfolio_code": "Portfolio Code",
+                                    "security_symbol": "Security Symbol",
+                                    "security_type": "Security Type",
+                                    "from_date": "From Date",
+                                    "thru_date": "Thru Date",
+                                    "security_return": "Security Return",
+                                }
+                            }
                         },
                     }
                 ),
@@ -285,6 +378,8 @@ class TestSourceLoader(unittest.TestCase):
                 frame.get_column(pc_cols.SECURITY_ID).to_list(),
                 ["csusAAPL", "amusAAPL"],
             )
+            self.assertNotIn("security_symbol", frame.columns)
+            self.assertNotIn("security_type", frame.columns)
 
     def test_compact_security_id_rejects_ambiguous_component_pairs(self) -> None:
         """Separator-free keys stop when distinct source pairs would collide."""
@@ -295,7 +390,8 @@ class TestSourceLoader(unittest.TestCase):
             }
         )
         construction = SecurityIdConstruction(
-            components=("Security Type", "Security Symbol"),
+            components=("security_type", "security_symbol"),
+            source_columns=("Security Type", "Security Symbol"),
             separator="",
         )
 
@@ -308,6 +404,84 @@ class TestSourceLoader(unittest.TestCase):
                 source_path="secmast.csv",
                 error_message=lambda message: message,
             )
+
+    def test_security_id_components_reject_source_column_captions(self) -> None:
+        """Identity components use normalized mapping keys, not CSV captions."""
+        with self.assertRaisesRegex(PpaError, "normalized field names"):
+            security_id_construction(
+                {
+                    "security_id": {
+                        "components": ["Security Type", "Security Symbol"],
+                    }
+                },
+                "security_performance",
+                lambda message: message,
+            )
+
+    def test_security_id_defaults_from_axys_apx_file_layout(self) -> None:
+        """Mapped type and symbol fields imply the compact Axys/APX identity."""
+        construction = security_id_construction(
+            {
+                "files": {
+                    "security_performance": {
+                        "columns": {
+                            "security_symbol": "Security Symbol",
+                            "security_type": "Security Type",
+                        }
+                    }
+                }
+            },
+            "security_performance",
+            lambda message: message,
+        )
+
+        self.assertIsNotNone(construction)
+        assert construction is not None
+        self.assertEqual(
+            construction.components,
+            ("security_type", "security_symbol"),
+        )
+        self.assertEqual(
+            construction.source_columns,
+            ("Security Type", "Security Symbol"),
+        )
+        self.assertEqual(construction.separator, "")
+
+    def test_security_id_is_not_inferred_from_an_incomplete_layout(self) -> None:
+        """Generic layouts still use their existing security_id field."""
+        construction = security_id_construction(
+            {
+                "files": {
+                    "security_performance": {
+                        "columns": {"security_symbol": "Security Symbol"}
+                    }
+                }
+            },
+            "security_performance",
+            lambda message: message,
+        )
+
+        self.assertIsNone(construction)
+
+    def test_explicit_file_security_id_mapping_precedes_inferred_identity(self) -> None:
+        """A direct source ID wins even when type and symbol are also mapped."""
+        construction = security_id_construction(
+            {
+                "files": {
+                    "security_performance": {
+                        "columns": {
+                            "security_id": "source_symbol",
+                            "security_symbol": "source_symbol",
+                            "security_type": "source_type",
+                        }
+                    }
+                }
+            },
+            "security_performance",
+            lambda message: message,
+        )
+
+        self.assertIsNone(construction)
 
     def test_read_mapped_csv_raises_error_502_for_missing_required_column(self) -> None:
         """Missing required aliases fail with a clear source resolution error."""

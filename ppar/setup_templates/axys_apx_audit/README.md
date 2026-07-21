@@ -95,8 +95,9 @@ therefore does not contain a misleading single `comparison.level`. Lower-level
 single-view tools must select their level explicitly. Required datasets use
 their standard filenames when their `files.*` keys are omitted. Genuinely
 optional evidence remains explicitly configured so file presence alone cannot
-expand the findings or accounting-policy surface. Audit YAML still requires both
-extract-contract safety choices and all eight comparison tolerances. Configuring
+expand the findings or accounting-policy surface. Audit YAML still requires all
+eight comparison tolerances. Omitted extract-contract settings use the packaged
+contract, ambiguous-flow enforcement, and exact-case matching. Configuring
 `transactions`, `holdings`, or `fx_rates` requires the complete corresponding
 transaction, holding/price, or FX impact-policy block.
 The opt-in `large_price_variation` check instead uses a strict nonempty list of
@@ -105,8 +106,8 @@ an explicitly configured inclusive-period calendar-day minimum, and an explicitl
 configured decimal minimum variation. It
 combines linked boundary holdings with inclusive trade-date transaction prices
 and uses optional `splits.csv` factors to put prices on the period-ending share
-basis. The packaged AVGO rule uses real dated observations without injecting a
-price or market value.
+basis. The packaged common-stock rule uses a 30 percent tolerance and real dated
+observations without injecting a price or market value.
 The opt-in `deliver_in_original_cost_incomplete` check reviews only an explicit
 transaction-code, security-type, and source/destination population. It requires
 both original-cost source columns in both snapshots, treats zero cost as
@@ -120,10 +121,12 @@ Optional `secmast.csv` fields can qualify Data Issues populations through
 case and fail closed when required reference evidence is missing; they do not
 change performance calculations. The starter includes only `Security Symbol`,
 `Security Type`, and `Asset Class Code`, because those are the only reference
-fields used by its active rules. PPAR constructs compact normalized identifiers
-such as `csusAAPL` from type followed by symbol. The YAML defaults to no
-separator, matching common Axys/APX usage, while an optional `separator: "_"`
-setting supports site-preferred values such as `csus_AAPL`. Axys/APX security
+fields used by its active rules. A direct `files.*.columns.security_id` mapping
+takes precedence over automatic inference. Otherwise, mapping both
+`security_type` and `security_symbol`
+constructs compact normalized identifiers such as `csusAAPL` from type followed
+by symbol. An advanced `security_id` section can set a separator such as `_` to
+produce `csus_AAPL`. Axys/APX security
 types are typically four characters; PPAR preserves the configured source value
 and rejects any observed component pairs that would construct the same key. Site
 extracts may add other supported reference qualifiers when the YAML explicitly
@@ -470,18 +473,16 @@ performance rows.
 
 Current public YAML targets are intentionally narrow:
 
-- `extract_contract`: selects the packaged or site-specific extract contract
-  used by runtime guards. YAML must explicitly set
-  `enforce_ambiguous_axys_flows` and `transaction_semantics_case`; omitting only
-  `path` selects the packaged contract. That packaged contract can enforce
+- `extract_contract`: optionally overrides the packaged extract contract and
+  fail-closed runtime guards. When the section is omitted, PPAR uses the
+  packaged contract, enforces ambiguous Axys/APX flow context, and matches
+  transaction semantics by exact case. That packaged contract can enforce
   context-field presence before ambiguous Axys/APX `li`, `lo`, `ti`, `dp`, or
   `wd` rows can be classified by YAML rules. Use
   `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starter
-  when a real site needs a local contract. A versioned contract can set
-  `transaction_semantics_case: exact` so transaction-rule keys and native
-  context values match by exact case. In exact mode, unmatched uppercase codes
-  remain unknown and do not acquire cancellation meaning. Existing behavior is
-  preserved explicitly with
+  when a real site needs a local contract. In exact mode, unmatched uppercase
+  codes remain unknown and do not acquire cancellation meaning. Legacy
+  case-insensitive behavior can be requested explicitly with
   `transaction_semantics_case: legacy_case_insensitive`.
 - `transaction_rules`: authoritatively classifies matching transaction rows for
   amount attribution. A complete matching rule overrides any recognized

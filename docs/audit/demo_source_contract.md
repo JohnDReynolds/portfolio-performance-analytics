@@ -71,13 +71,10 @@ equity variation gate retains its 28-day threshold and requires exactly this
 one named ALPHA/GOOGL exception in each snapshot; every other long unchanged
 equity-price run still fails.
 
-The packaged `common_stock_20_percent` named rule uses unmodified real AVGO
-holding prices. It reports six rows across the two snapshots: ALPHA and INCOME
-each show the full April 309.51-to-417.43 movement, while BALANCED's segmented
-April 1–10 period shows 309.51-to-371.55, or 20.04 percent under the implemented
-minimum-price denominator. This executable result supersedes the earlier rough
-20.4 percent description. No AVGO price or market value is injected for this
-scenario.
+The packaged `common_stock_30_percent` named rule uses unmodified real common-
+stock prices. Its 30 percent tolerance excludes AVGO's segmented 20.04 percent
+April movement while retaining larger observed variations. No price or market
+value is injected for this rule.
 
 ## Extraction Requirement Labels
 

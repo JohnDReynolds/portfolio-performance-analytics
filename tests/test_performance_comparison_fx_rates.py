@@ -168,7 +168,7 @@ class TestFxRatesLoader(unittest.TestCase):
             )
 
             self.assertEqual(
-                schema["fx_rates_columns"]["from_currency"],
+                schema["files"]["fx_rates"]["columns"]["from_currency"],
                 "FROM_CURRENCY",
             )
 

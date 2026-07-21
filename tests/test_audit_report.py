@@ -377,15 +377,13 @@ def _assert_workbook_explained_row_actions(
                 or "changed holdings.market_value" in str(required_setup)
                 or "Input for changed" in str(required_setup)
                 or "Helped explain" in str(required_setup)
-                or "transactions.amount to" in str(required_setup)
-                or "holdings.quantity to" in str(required_setup)
+                or "performance calculation through" in str(required_setup)
                 or "split factor" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
             if (
-                "Caused transactions.amount" in str(required_setup)
-                or "Caused cash-balance" in str(required_setup)
+                "Caused cash-balance" in str(required_setup)
             ):
                 test_case.assertIn(
                     row.get("impact_status"),
@@ -1367,17 +1365,17 @@ class TestAuditReport(unittest.TestCase):
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
             (
-                "BUY: Caused AAPL transactions.amount to increase and "
-                "AAPL holdings.quantity to increase."
+                "BUY: AAPL transactions.quantity increased by 1.00. This affects "
+                "the performance calculation through transactions.amount and "
+                "holdings.market_value."
             ),
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],
-            "BUY: Caused AAPL transactions.amount to increase.",
-        )
-        self.assertNotIn(
-            "by 0.50",
-            rules_transaction_price["review_guidance"][0],
+            (
+                "BUY: AAPL transactions.price increased by 0.50. This affects the "
+                "performance calculation through transactions.amount."
+            ),
         )
         self.assertNotIn(
             "Helped explain the changed transactions.amount",
@@ -1456,7 +1454,10 @@ class TestAuditReport(unittest.TestCase):
         self.assertIsNone(commission["estimated_impact"][0])
         self.assertEqual(
             commission["review_note"][0],
-            "BUY: Caused AAPL transactions.amount to increase by 2.50.",
+            (
+                "BUY: AAPL transactions.commission increased by 2.50. This affects "
+                "the performance calculation through transactions.amount."
+            ),
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -1581,14 +1582,20 @@ class TestAuditReport(unittest.TestCase):
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
             plain_quantity["review_guidance"][0],
-            "AAPL ending holdings.quantity increased by 1.00.",
+            (
+                "AAPL ending holdings.quantity increased by 1.00. This affects the "
+                "performance calculation through holdings.market_value."
+            ),
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
         self.assertIsNone(configured_quantity["estimated_impact"][0])
         self.assertEqual(
             configured_quantity["review_note"][0],
-            "AAPL ending holdings.quantity increased by 1.00.",
+            (
+                "AAPL ending holdings.quantity increased by 1.00. This affects the "
+                "performance calculation through holdings.market_value."
+            ),
         )
 
     def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:

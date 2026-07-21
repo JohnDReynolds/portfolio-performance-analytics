@@ -70,7 +70,7 @@ data_issues:
   dividend_rate:
     enabled: true
     only:
-      transactions.security_type: csus
+      transactions.transaction_security_type: csus
       security_reference.asset_class_code: EQ
     exclude:
       portfolio_id:
@@ -81,18 +81,18 @@ data_issues:
   large_price_variation:
     enabled: true
     rules:
-      - rule_id: common_stock_20_percent
+      - rule_id: common_stock_30_percent
         only:
           transactions.transaction_code: [by, sl]
           security_reference.security_type: csus
         minimum_calendar_days: 1
-        minimum_tolerance: 0.20
+        minimum_tolerance: 0.30
 
   deliver_in_original_cost_incomplete:
     enabled: true
     only:
       transaction_code: ti
-      security_type: csus
+      transaction_security_type: csus
       source_destination_type: $pty
       source_destination_symbol: external_delivery
 ```
@@ -113,7 +113,8 @@ Interpretation:
   `holdings_stale_price` also requires that reference population plus an
   explicit positive integer `minimum_calendar_days` threshold.
   `deliver_in_original_cost_incomplete` requires transaction code, security
-  type, source/destination type, and source/destination symbol in `only`, plus
+  transaction security type, source/destination type, and source/destination
+  symbol in `only`, plus
   both original-cost source columns in each snapshot. Its native filters honor
   an exact-case transaction source contract.
 - `large_price_variation` is off by default and uses an issue-specific nonempty
@@ -125,8 +126,9 @@ Interpretation:
 - `exclude`: optional exact-match exclude filters. A row is dropped when it
   matches any listed field.
 - Filter values can be scalars or lists. Field names may be common normalized
-  names such as `security_id`, `security_type`, and `portfolio_id`, or
-  dataset-qualified names such as `holdings.security_type` and
+  names such as `security_id`, `transaction_security_type`, and `portfolio_id`,
+  or dataset-qualified names such as
+  `transactions.transaction_security_type` and
   `transactions.transaction_code`. Optional security-master qualifiers use the
   explicit `security_reference.*` namespace.
 - Within one `large_price_variation` rule, values in a filter list are OR,
@@ -153,7 +155,8 @@ rejected before source loading or report generation when:
   a nonpositive calendar-day minimum, or an invalid decimal tolerance.
 
 Supported native filter fields are `snapshot`, `portfolio`/`portfolio_id`,
-`security`/`security_id`, `security_type`, `asset_class`, `transaction_code`,
+`security`/`security_id`, `transaction_security_type`, `asset_class`,
+`transaction_code`,
 `source_destination_type`, and `source_destination_symbol`. Dataset-qualified
 forms continue to resolve by the name after the final dot. Scalar and list
 values retain the established case-insensitive comparison behavior except when
@@ -164,8 +167,9 @@ When `files.security_reference` is configured, a Data Issues filter may also
 use `security_reference.security_name`, `ticker`, `cusip`, `isin`,
 `security_type`, `asset_class_code`, `asset_class_name`, `sector_code`,
 `sector`, `country_code`, `country`, or `currency`. These fields are a separate
-reference namespace: `transactions.security_type` means the value carried by a
-transaction row, while `security_reference.security_type` means the value
+reference namespace: `transactions.transaction_security_type` means the
+transaction-context value carried by a transaction row, while
+`security_reference.security_type` means the identity/classification value
 joined from `secmast.csv` for the same snapshot.
 
 Reference joins and reference-filter values preserve exact source case. This is
@@ -179,11 +183,11 @@ change performance findings, or create source-detail explanations.
 
 The normalized `security_id` is the join key and must be unique within each
 reference snapshot. This is a PPAR input contract, not a claim that symbol alone
-is the native Axys/APX key. Axys/APX YAML can declare exact source components;
-the starter uses `Security Type` followed by `Security Symbol` and constructs
-compact values such as `csusAAPL`. Sites may configure an optional separator
-such as `_`. PPAR rejects blank or whitespace-padded components and ambiguous
-constructed values rather than guessing between duplicate symbols. Axys/APX
+is the native Axys/APX key. A layout that maps both `security_type` and
+`security_symbol` constructs the identity in that order, so the starter produces
+compact values such as `csusAAPL`. An advanced `security_id` section may set a
+separator such as `_`. PPAR rejects blank or whitespace-padded components and
+ambiguous constructed values rather than guessing between duplicate symbols. Axys/APX
 types are typically four characters, but PPAR preserves the source value instead
 of enforcing an unverified fixed length.
 

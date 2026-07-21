@@ -23,10 +23,37 @@ _DEFAULT_FROM_DATE_KEY: _DefaultDateKey = "from_date"
 _DEFAULT_THRU_DATE_KEY: _DefaultDateKey = "thru_date"
 _DEFAULT_CLASSIFICATION_KEY = "classification"
 _AXYS_PORTFOLIO_NAME_SEPARATOR = " - "
-_DEFAULT_PERFORMANCE_PATHS: dict[str, str] = {
-    "portfolio_performance_path": "portperf.csv",
-    "security_performance_path": "secperf.csv",
+_FILES_KEY = "files"
+_PATH_KEY = "path"
+_COLUMNS_KEY = "columns"
+_SUPPORTED_FILE_KEYS = frozenset(
+    {
+        "portfolio_performance",
+        "security_performance",
+        "security_master",
+        "security_reference",
+        "holdings",
+        "transactions",
+        "fx_rates",
+        "splits",
+    }
+)
+_SUPPORTED_FILE_FIELDS = frozenset({_PATH_KEY, _COLUMNS_KEY})
+_DEFAULT_FILE_PATHS: dict[str, str] = {
+    "portfolio_performance": "portperf.csv",
+    "security_performance": "secperf.csv",
+    "security_master": "secmast.csv",
 }
+_RETIRED_SOURCE_KEYS = frozenset(
+    {
+        "portfolio_performance_path",
+        "security_performance_path",
+        "security_master_path",
+        "portfolio_performance_columns",
+        "security_performance_columns",
+        "security_master_columns",
+    }
+)
 
 
 class AxysSpecification:
@@ -67,6 +94,8 @@ class AxysSpecification:
                 ),
                 504,
             )
+        self._validate_retired_source_keys()
+        self._validate_files()
 
     def resolve_path(self, file_path: util.PathLike) -> Path:
         """Return an absolute or specifications-relative source path.
@@ -85,8 +114,8 @@ class AxysSpecification:
         self,
         argument_path: util.PathLike | None,
         specification_key: Literal[
-            "portfolio_performance_path",
-            "security_performance_path",
+            "portfolio_performance",
+            "security_performance",
         ],
     ) -> Path:
         """Resolve an explicit, configured, or conventional performance path.
@@ -94,17 +123,37 @@ class AxysSpecification:
         Args:
             argument_path: Explicit source path provided to ``AxysData``, if
                 any.
-            specification_key: Specification setting holding a path override.
+            specification_key: Dataset key inside the ``files`` section.
 
         Returns:
             Resolved portfolio- or security-performance source path.
         """
-        file_path = (
-            argument_path
-            or self.values.get(specification_key)
-            or _DEFAULT_PERFORMANCE_PATHS[specification_key]
-        )
+        file_path = argument_path or self.file_path(specification_key)
         return self.resolve_path(file_path)
+
+    def file_path(self, file_name: str) -> str:
+        """Return a configured or conventional source-file path.
+
+        Args:
+            file_name: Dataset key inside the ``files`` section.
+
+        Returns:
+            Configured relative or absolute path, or the dataset default.
+        """
+        definition = self._file_definition(file_name)
+        return cast(str, definition.get(_PATH_KEY, _DEFAULT_FILE_PATHS[file_name]))
+
+    def file_columns(self, file_name: str) -> dict[str, Any]:
+        """Return configured source-column mappings for one dataset.
+
+        Args:
+            file_name: Dataset key inside the ``files`` section.
+
+        Returns:
+            Column mappings keyed by normalized field name.
+        """
+        definition = self._file_definition(file_name)
+        return cast(dict[str, Any], definition.get(_COLUMNS_KEY, {}))
 
     @property
     def prefix_portfolio_code(self) -> str | None:
@@ -239,3 +288,67 @@ class AxysSpecification:
             ),
             504,
         )
+
+    def _validate_files(self) -> None:
+        """Validate the shared nested source-file configuration shape."""
+        files = self.values.get(_FILES_KEY, {})
+        if not isinstance(files, dict):
+            raise PpaError(self._error_message("files must be a mapping."), 504)
+        unsupported_files = sorted(str(key) for key in files if key not in _SUPPORTED_FILE_KEYS)
+        if unsupported_files:
+            raise PpaError(
+                self._error_message(
+                    "files has unsupported datasets: " + ", ".join(unsupported_files) + "."
+                ),
+                504,
+            )
+        for file_name, raw_definition in files.items():
+            if not isinstance(raw_definition, dict):
+                raise PpaError(
+                    self._error_message(f"files.{file_name} must be a mapping."),
+                    504,
+                )
+            unsupported_fields = sorted(
+                str(key) for key in raw_definition if key not in _SUPPORTED_FILE_FIELDS
+            )
+            if unsupported_fields:
+                raise PpaError(
+                    self._error_message(
+                        f"files.{file_name} has unsupported keys: "
+                        + ", ".join(unsupported_fields)
+                        + "."
+                    ),
+                    504,
+                )
+            path = raw_definition.get(_PATH_KEY)
+            if path is not None and (not isinstance(path, str) or not path):
+                raise PpaError(
+                    self._error_message(f"files.{file_name}.path must be a string."),
+                    504,
+                )
+            columns = raw_definition.get(_COLUMNS_KEY, {})
+            if not isinstance(columns, dict):
+                raise PpaError(
+                    self._error_message(f"files.{file_name}.columns must be a mapping."),
+                    504,
+                )
+
+    def _validate_retired_source_keys(self) -> None:
+        """Reject source settings retired by the nested ``files`` grammar."""
+        retired_keys = sorted(_RETIRED_SOURCE_KEYS.intersection(self.values))
+        if not retired_keys:
+            return
+        raise PpaError(
+            self._error_message(
+                "Retired source settings must move under files.<dataset>.path or "
+                "files.<dataset>.columns: "
+                + ", ".join(retired_keys)
+                + "."
+            ),
+            504,
+        )
+
+    def _file_definition(self, file_name: str) -> dict[str, Any]:
+        """Return one previously validated source-file definition."""
+        files = cast(dict[str, dict[str, Any]], self.values.get(_FILES_KEY, {}))
+        return files.get(file_name, {})

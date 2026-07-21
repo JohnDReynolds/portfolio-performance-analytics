@@ -58,9 +58,10 @@ _SECURITY_MASTER_CONFIG_KEYS: Final[dict[str, str]] = {
     "identifier_column": "identifier_column",
     "name_column": "security_name",
 }
-_SECURITY_MASTER_COLUMNS_KEY: Final[str] = "security_master_columns"
-_SECURITY_MASTER_PATH_KEY: Final[str] = "security_master_path"
-_DEFAULT_SECURITY_MASTER_PATH: Final[str] = "secmast.csv"
+_SECURITY_MASTER_IDENTITY_KEYS: Final[frozenset[str]] = frozenset(
+    {"security_symbol", "security_type"}
+)
+_SECURITY_MASTER_FILE_KEY: Final[str] = "security_master"
 _SECURITY_CLASSIFICATION_NAME: Final[str] = "Security"
 _FILTER_TO_SECURITY_IDS: Final[str] = "_filter_to_security_ids"
 _SOURCE_FILE_PATH: Final[str] = "_source_file_path"
@@ -535,35 +536,37 @@ class AxysClassificationSourceLoader:
             PpaError: If the security master path or required columns are not
                 configured.
         """
-        security_master_path = self._specification.values.get(
-            _SECURITY_MASTER_PATH_KEY,
-            _DEFAULT_SECURITY_MASTER_PATH,
+        security_master_path = self._specification.file_path(
+            _SECURITY_MASTER_FILE_KEY
         )
-        configured_columns_value = self._specification.values.get(
-            _SECURITY_MASTER_COLUMNS_KEY,
-            {},
+        configured_columns_value = self._specification.file_columns(
+            _SECURITY_MASTER_FILE_KEY
         )
         if not security_master_path:
             raise PpaError(
                 self._error_message(
-                    f"{_SECURITY_MASTER_PATH_KEY} is required for source {source_name!r}."
+                    "files.security_master.path is required for source "
+                    f"{source_name!r}."
                 ),
                 504,
             )
         if not isinstance(configured_columns_value, dict):
             raise PpaError(
-                self._error_message(f"{_SECURITY_MASTER_COLUMNS_KEY} must be a mapping."),
+                self._error_message("files.security_master.columns must be a mapping."),
                 504,
             )
-        configured_columns = cast(dict[str, Any], configured_columns_value)
-        supported_config_keys = set(_SECURITY_MASTER_CONFIG_KEYS.values())
+        configured_columns = configured_columns_value
+        supported_config_keys = (
+            set(_SECURITY_MASTER_CONFIG_KEYS.values())
+            | set(_SECURITY_MASTER_IDENTITY_KEYS)
+        )
         unsupported_config_keys = sorted(
             str(key) for key in configured_columns if key not in supported_config_keys
         )
         if unsupported_config_keys:
             raise PpaError(
                 self._error_message(
-                    f"{_SECURITY_MASTER_COLUMNS_KEY} has unsupported keys: "
+                    "files.security_master.columns has unsupported keys: "
                     + ", ".join(unsupported_config_keys)
                     + "."
                 ),
@@ -573,6 +576,7 @@ class AxysClassificationSourceLoader:
             self._specification.values,
             "security_reference",
             self._error_message,
+            file_name=_SECURITY_MASTER_FILE_KEY,
         )
 
         security_master_columns = self._resolve_security_master_columns(
@@ -656,7 +660,8 @@ class AxysClassificationSourceLoader:
         if missing_fields:
             raise PpaError(
                 self._error_message(
-                    f"Missing {missing_fields} for {_SECURITY_MASTER_COLUMNS_KEY}. "
+                    "Missing "
+                    f"{missing_fields} for files.security_master.columns. "
                     f"CSV columns available are: {sorted(available_columns)}. "
                     f"Source requiring security master: {source_name!r}"
                 ),

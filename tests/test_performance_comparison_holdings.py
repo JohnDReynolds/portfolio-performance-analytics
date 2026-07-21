@@ -336,7 +336,7 @@ class TestHoldingsLoader(unittest.TestCase):
             )
 
             self.assertEqual(
-                schema["holdings_columns"]["portfolio_id"],
+                schema["files"]["holdings"]["columns"]["portfolio_id"],
                 "PORTFOLIO_ID",
             )
 

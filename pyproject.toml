@@ -78,7 +78,11 @@ ppar = "ppar.cli:main"
 
 [tool.mypy]
 python_version = "3.12"
-files = ["ppar"]
+files = [
+    "ppar",
+    "scripts/demo_support",
+    "scripts/operational_demo_data/holdings.py",
+]
 strict = true
 show_error_codes = true
 warn_unused_configs = true

@@ -42,7 +42,6 @@ _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
 )
 _AUDIT_SETUP_FILES: Final[tuple[str, ...]] = (
     "run_audit.py",
-    "column_mappings.yaml",
 )
 
 

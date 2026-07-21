@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
@@ -24,6 +24,7 @@ from ppar.axys_apx.security_identity import (
     with_constructed_security_id,
 )
 from ppar.errors import PpaError
+from ppar.source_files import source_file_columns
 import ppar.utilities as util
 
 ColumnAliases: TypeAlias = dict[str, tuple[str, ...]]
@@ -44,15 +45,17 @@ _FINANCIAL_VALIDATION_CACHE: ContextVar[set[Path] | None] = ContextVar(
     default=None,
 )
 
-_SCHEMA_COLUMN_SECTIONS = {
-    pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance_columns",
-    pc_cols.SECURITY_PERFORMANCE: "security_performance_columns",
-    pc_cols.SECURITY_REFERENCE: "security_reference_columns",
-    pc_cols.HOLDINGS: "holdings_columns",
-    pc_cols.TRANSACTIONS: "transactions_columns",
-    pc_cols.SPLITS: "splits_columns",
-    pc_cols.FX_RATES: "fx_rates_columns",
+_SCHEMA_FILE_KEYS = {
+    pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance",
+    pc_cols.SECURITY_PERFORMANCE: "security_performance",
+    pc_cols.SECURITY_REFERENCE: "security_reference",
+    pc_cols.HOLDINGS: "holdings",
+    pc_cols.TRANSACTIONS: "transactions",
+    pc_cols.SPLITS: "splits",
+    pc_cols.FX_RATES: "fx_rates",
 }
+_IDENTITY_SECURITY_SYMBOL_COLUMN = "__ppar_identity_security_symbol"
+_IDENTITY_SECURITY_TYPE_COLUMN = "__ppar_identity_security_type"
 _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
     pc_cols.PORTFOLIO_PERFORMANCE: {
         "portfolio_code": pc_cols.PORTFOLIO_ID,
@@ -75,6 +78,8 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "portfolio_id": pc_cols.PORTFOLIO_ID,
         "identifier": pc_cols.SECURITY_ID,
         "security_id": pc_cols.SECURITY_ID,
+        "security_symbol": _IDENTITY_SECURITY_SYMBOL_COLUMN,
+        "security_type": _IDENTITY_SECURITY_TYPE_COLUMN,
         "security_name": pc_cols.SECURITY_NAME,
         "from_date": pc_cols.FROM_DATE,
         "thru_date": pc_cols.THRU_DATE,
@@ -93,6 +98,7 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
     pc_cols.SECURITY_REFERENCE: {
         "identifier": pc_cols.SECURITY_ID,
         "security_id": pc_cols.SECURITY_ID,
+        "security_symbol": _IDENTITY_SECURITY_SYMBOL_COLUMN,
         "security_name": pc_cols.SECURITY_NAME,
         "ticker": pc_cols.TICKER,
         "cusip": pc_cols.CUSIP,
@@ -111,6 +117,8 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "portfolio_id": pc_cols.PORTFOLIO_ID,
         "identifier": pc_cols.SECURITY_ID,
         "security_id": pc_cols.SECURITY_ID,
+        "security_symbol": _IDENTITY_SECURITY_SYMBOL_COLUMN,
+        "security_type": _IDENTITY_SECURITY_TYPE_COLUMN,
         "holding_date": pc_cols.HOLDING_DATE,
         "quantity": pc_cols.QUANTITY,
         "price": pc_cols.PRICE,
@@ -127,12 +135,14 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "portfolio_id": pc_cols.PORTFOLIO_ID,
         "identifier": pc_cols.SECURITY_ID,
         "security_id": pc_cols.SECURITY_ID,
+        "security_symbol": _IDENTITY_SECURITY_SYMBOL_COLUMN,
+        "security_type": _IDENTITY_SECURITY_TYPE_COLUMN,
         "transaction_id": pc_cols.TRANSACTION_ID,
         "transaction_date": pc_cols.TRANSACTION_DATE,
         "settlement_date": pc_cols.SETTLEMENT_DATE,
         "transaction_code": pc_cols.TRANSACTION_CODE,
         "original_cost_date": pc_cols.ORIGINAL_COST_DATE,
-        "security_type": pc_cols.SECURITY_TYPE,
+        "transaction_security_type": pc_cols.TRANSACTION_SECURITY_TYPE,
         "source_destination_type": pc_cols.SOURCE_DESTINATION_TYPE,
         "source_destination_symbol": pc_cols.SOURCE_DESTINATION_SYMBOL,
         "special_security_type": pc_cols.SPECIAL_SECURITY_TYPE,
@@ -153,6 +163,8 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
     pc_cols.SPLITS: {
         "identifier": pc_cols.SECURITY_ID,
         "security_id": pc_cols.SECURITY_ID,
+        "security_symbol": _IDENTITY_SECURITY_SYMBOL_COLUMN,
+        "security_type": _IDENTITY_SECURITY_TYPE_COLUMN,
         "security_name": pc_cols.SECURITY_NAME,
         "ticker": pc_cols.TICKER,
         "split_date": pc_cols.SPLIT_DATE,
@@ -471,7 +483,7 @@ def read_schema_mapped_csv(
     specification: AuditSpecification,
     snapshot_key: str,
 ) -> pl.DataFrame:
-    """Read a CSV using exact defaults plus snapshot schema overrides.
+    """Read a CSV using exact defaults plus effective Audit schema mappings.
 
     Args:
         path: CSV source path.
@@ -491,21 +503,25 @@ def read_schema_mapped_csv(
         default_required_aliases,
         snapshot,
         specification.path,
+        specification.values,
     )
     optional_aliases = aliases_with_schema_overrides(
         dataset_name,
         default_optional_aliases,
         snapshot,
         specification.path,
+        specification.values,
     )
-    construction = None
-    if snapshot.schema_path is not None:
-        schema_values = _read_schema_yaml(snapshot.schema_path, specification.path)
-        construction = security_id_construction(
-            schema_values,
-            dataset_name,
-            lambda message: _error_message(message, specification.path),
-        )
+    schema_values = _schema_values(
+        snapshot,
+        specification.path,
+        specification.values,
+    )
+    construction = security_id_construction(
+        schema_values,
+        dataset_name,
+        lambda message: _error_message(message, specification.path),
+    )
     source_frame = _read_source_csv(
         path,
         schema_overrides=(
@@ -627,6 +643,7 @@ def aliases_with_schema_overrides(
     default_aliases: ColumnAliases,
     snapshot: ComparisonSnapshot,
     specification_path: util.PathLike,
+    common_schema_values: Mapping[str, object] | None = None,
 ) -> ColumnAliases:
     """Return source candidates with explicit schema mappings replacing defaults.
 
@@ -635,6 +652,8 @@ def aliases_with_schema_overrides(
         default_aliases: Exact normalized source names for the dataset.
         snapshot: Snapshot configuration that may reference a schema YAML.
         specification_path: Comparison specification path for error context.
+        common_schema_values: Optional common column mappings from the Audit
+            specification. A referenced snapshot schema remains authoritative.
 
     Returns:
         Alias mapping with configured source columns tried before built-in
@@ -644,7 +663,12 @@ def aliases_with_schema_overrides(
         PpaError: If a referenced schema YAML cannot be parsed or has invalid
             column mapping shapes.
     """
-    schema_aliases = _schema_aliases(dataset_name, snapshot, specification_path)
+    schema_aliases = _schema_aliases(
+        dataset_name,
+        snapshot,
+        specification_path,
+        common_schema_values,
+    )
     if not schema_aliases:
         return default_aliases
 
@@ -683,21 +707,24 @@ def _schema_aliases(
     dataset_name: str,
     snapshot: ComparisonSnapshot,
     specification_path: util.PathLike,
+    common_schema_values: Mapping[str, object] | None,
 ) -> ColumnAliases:
-    """Return aliases from a referenced schema YAML for one dataset."""
-    section_name = _SCHEMA_COLUMN_SECTIONS.get(dataset_name)
-    if section_name is None or snapshot.schema_path is None:
+    """Return aliases from the effective schema for one dataset."""
+    file_name = _SCHEMA_FILE_KEYS.get(dataset_name)
+    if file_name is None:
         return {}
 
-    schema_values = _read_schema_yaml(snapshot.schema_path, specification_path)
-    section = schema_values.get(section_name)
-    if section is None:
-        return {}
-    if not isinstance(section, dict):
-        raise PpaError(
-            _error_message(f"{section_name} must be a mapping.", specification_path),
-            504,
-        )
+    schema_values = _schema_values(
+        snapshot,
+        specification_path,
+        common_schema_values,
+    )
+    section = source_file_columns(
+        schema_values,
+        file_name,
+        lambda message: _error_message(message, specification_path),
+    )
+    section_name = f"files.{file_name}.columns"
 
     key_mappings = _SCHEMA_COLUMN_KEYS[dataset_name]
     unsupported_keys = sorted(
@@ -727,6 +754,22 @@ def _schema_aliases(
     return aliases
 
 
+def _schema_values(
+    snapshot: ComparisonSnapshot,
+    specification_path: util.PathLike,
+    common_schema_values: Mapping[str, object] | None,
+) -> Mapping[str, object]:
+    """Return a snapshot schema or the common Audit mappings.
+
+    A referenced snapshot schema is a complete authoritative schema, preserving
+    the established behavior for comparisons whose snapshots have different
+    layouts. Otherwise, nested mappings in the Audit YAML are used.
+    """
+    if snapshot.schema_path is not None:
+        return _read_schema_yaml(snapshot.schema_path, specification_path)
+    return common_schema_values or {}
+
+
 def _read_schema_yaml(
     schema_path: Path,
     specification_path: util.PathLike,
@@ -745,6 +788,22 @@ def _read_schema_yaml(
     if not isinstance(values, dict):
         raise PpaError(
             _error_message("Referenced schema YAML must be a mapping.", specification_path),
+            504,
+        )
+    retired_keys = sorted(
+        str(key)
+        for key in values
+        if isinstance(key, str) and key.endswith("_columns")
+    )
+    if retired_keys:
+        raise PpaError(
+            _error_message(
+                "Referenced schema uses retired source mappings; move them under "
+                "files.<dataset>.columns: "
+                + ", ".join(retired_keys)
+                + ".",
+                specification_path,
+            ),
             504,
         )
     return cast(dict[str, object], values)

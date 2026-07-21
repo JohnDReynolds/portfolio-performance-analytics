@@ -402,10 +402,9 @@ packaged demo adopted dated real-market prices, dividends, and splits:
    factors. The rule reports one maximum variation when
    `(maximum - minimum) / minimum` strictly exceeds `minimum_tolerance`.
    `minimum_calendar_days` uses inclusive day count
-   `(thru_date - from_date) + 1`. Defaults are one calendar day and decimal
-   tolerance `0.20`. The packaged rule reports real AVGO movements, including
-   the 20.04 percent BALANCED observation supported by the current dated source
-   values. A raw discontinuity remains visible when split evidence is missing.
+   `(thru_date - from_date) + 1`. Both thresholds are required in each rule.
+   The packaged common-stock rule uses one calendar day and a decimal tolerance
+   of `0.30`. A raw discontinuity remains visible when split evidence is missing.
 
 The following remain deferred without stronger source evidence:
 
@@ -457,8 +456,9 @@ The following additional demo scenarios are defensible with that boundary:
    or transaction meaning.
 3. **Transaction-versus-reference security-type mismatch — founder accepted.**
    The opt-in `transaction_security_type_mismatch` issue
-   compares the transaction row's exact-case `security_type` with the snapshot
-   security reference for the same exact-case security identifier. This is not
+   compares the transaction row's exact-case `transaction_security_type` with
+   the snapshot security reference for the same exact-case security identifier.
+   This is not
    expressible as a field-to-field comparison with today's filters and
    therefore requires a new issue type. It requires a nonempty population,
    reports both observed values in its explanation, distinguishes case-only
@@ -699,7 +699,7 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
 - **Slice 3E — founder accepted:** added split-normalized,
   period-level `large_price_variation` with uniquely identified overlapping
   rules, scalar-or-list source filters, inclusive period days, strict decimal
-  thresholds, deterministic evidence selection, and real AVGO demo findings.
+  thresholds, deterministic evidence selection, and real-market demo findings.
 
 ## Slice 4 — Required current-capability Axys/APX scenarios — Implemented for founder review
 
@@ -730,8 +730,9 @@ and `ti` scenarios.
 - **Slice 5A — complete:** added a versioned
   `extract_contract.transaction_semantics_case: exact` capability for exact
   transaction-rule keys and native context-condition values. Maintained
-  configurations preserve the established behavior explicitly with
-  `legacy_case_insensitive`; omission now fails closed. Exact mode disables
+  configurations can preserve legacy behavior explicitly with
+  `legacy_case_insensitive`; omission now uses the fail-closed exact mode and
+  packaged extract contract. Exact mode disables
   code-only compatibility inference, keeps
   lowercase and uppercase rules distinct, and leaves an unmatched uppercase
   posted-transaction code unknown rather than treating it as a cancellation.
@@ -774,6 +775,20 @@ and is never duplicated in `supporting_files/` or `audit_support.zip`, including
 expanded-support runs. Lower-level comparison-level APIs remain available, and
 this packaging change does not alter report columns, calculations, findings, or
 financial semantics.
+
+The founder also approved a bounded starter-configuration cleanup before the
+release audit. The Audit file mappings now describe only headings present in
+both supplied snapshots, and the checked-in CSVs use the same required-first,
+optional-alphabetical order shown in YAML. Most demo Data Issues rules now use
+business populations such as security type, asset class, and transaction code;
+the three remaining security-specific rules identify deliberate dividend or
+fixed-income review scenarios. Axys/APX layouts that map both `security_type`
+and `security_symbol` now default to the existing compact composite identity.
+The starter also omits `extract_contract` because the packaged contract,
+ambiguous-flow enforcement, and exact-case matching are the fail-closed defaults.
+Explicit identity overrides, local contract paths, safety opt-outs, and legacy
+case matching remain supported. No report column, transaction meaning,
+financial method, or tolerance changed.
 
 ## Slice 6 — MVP release audit
 

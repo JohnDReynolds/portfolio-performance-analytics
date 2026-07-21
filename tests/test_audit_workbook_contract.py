@@ -561,11 +561,9 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         or "External flow" in str(row[10])
                         or "Helped explain" in str(row[10])
                         or "Caused cash-balance" in str(row[10])
-                        or "Caused transactions.amount" in str(row[10])
+                        or "performance calculation through" in str(row[10])
                         or "split factor" in str(row[10])
                         or "Add YAML configuration to count it as explained" in str(row[10])
-                        or "transactions.amount to" in str(row[10])
-                        or "holdings.quantity to" in str(row[10])
                         or "ending holdings." in str(row[10])
                         or "beginning holdings." in str(row[10])
                         or "Review-only evidence" in str(row[10])
@@ -679,28 +677,21 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 )
                 self.assertFalse(
                     any(
-                        "transactions.amount to increase by 0.25" in guidance
-                        or "transactions.amount to increase by 0.15" in guidance
+                        guidance.startswith(("by: Caused ", "sl: Caused "))
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
-                        guidance.startswith("by: Helped explain")
-                        or (
-                            guidance.startswith("by: Caused ")
-                            and "transactions.amount to" in guidance
-                        )
+                        guidance.startswith("by: ")
+                        and "performance calculation through" in guidance
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
-                        guidance.startswith("sl: Helped explain")
-                        or (
-                            guidance.startswith("sl: Caused ")
-                            and "transactions.amount to" in guidance
-                        )
+                        guidance.startswith("sl: ")
+                        and "performance calculation through" in guidance
                         for guidance in transaction_component_guidance
                     )
                 )
@@ -724,15 +715,17 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 }
                 self.assertIn(
                     (
-                        "by: Caused fius91282Y5Y1 transactions.amount to increase "
-                        "and fius91282Y5Y1 holdings.quantity to increase."
+                        "by: fius91282Y5Y1 transactions.quantity increased by 5.00. "
+                        "This affects the performance calculation through "
+                        "transactions.amount and holdings.market_value."
                     ),
                     income_tnote_buy_quantity_guidance,
                 )
                 self.assertIn(
                     (
-                        "sl: Caused fius91282Y5Y1 transactions.amount to increase "
-                        "and fius91282Y5Y1 holdings.quantity to decrease."
+                        "sl: fius91282Y5Y1 transactions.quantity increased by 3.00. "
+                        "This affects the performance calculation through "
+                        "transactions.amount and holdings.market_value."
                     ),
                     income_tnote_sell_quantity_guidance,
                 )
@@ -794,10 +787,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     income_tnote_sell_accrued_guidance,
                     {
                         (
-                            "Inherited beginning-value difference from the preceding "
-                            "period: fius91282Y5Y1 beginning holdings.accrued increased by "
-                            "0.06. This value is retained because it is an input to "
-                            "Modified Dietz."
+                            "fius91282Y5Y1 beginning holdings.accrued increased by 0.06."
                         ),
                         "fius91282Y5Y1 ending holdings.accrued increased by 0.02.",
                     },

@@ -73,28 +73,36 @@ def _write_axys_inputs(directory: Path) -> Path:
         }
     ).write_csv(directory / "classifications.csv")
     specification: dict[str, object] = {
-        "portfolio_performance_path": "portperf.csv",
-        "portfolio_performance_columns": {
-            cols.FROM_DATE: "FROM_DATE",
-            cols.THRU_DATE: "THRU_DATE",
-            cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
-            cols.PORTFOLIO_NAME: "PORTFOLIO_NAME",
-            "portfolio_return": "PORT_RETURN",
-        },
-        "security_performance_path": "secperf.csv",
-        "security_performance_columns": {
-            cols.FROM_DATE: "FROM_DATE",
-            cols.THRU_DATE: "THRU_DATE",
-            cols.IDENTIFIER: "SECURITY_ID",
-            cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
-            cols.RETURN: "SEC_RETURN",
-            cols.WEIGHT: "BEGIN_WEIGHT",
-            cols.CONTRIBUTION: "CONTRIBUTION",
-        },
-        "security_master_path": "security_master.csv",
-        "security_master_columns": {
-            "identifier_column": "SECURITY_ID",
-            "security_name": "SECURITY_NAME",
+        "files": {
+            "portfolio_performance": {
+                "path": "portperf.csv",
+                "columns": {
+                    cols.FROM_DATE: "FROM_DATE",
+                    cols.THRU_DATE: "THRU_DATE",
+                    cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
+                    cols.PORTFOLIO_NAME: "PORTFOLIO_NAME",
+                    "portfolio_return": "PORT_RETURN",
+                },
+            },
+            "security_performance": {
+                "path": "secperf.csv",
+                "columns": {
+                    cols.FROM_DATE: "FROM_DATE",
+                    cols.THRU_DATE: "THRU_DATE",
+                    cols.IDENTIFIER: "SECURITY_ID",
+                    cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
+                    "security_return": "SEC_RETURN",
+                    cols.WEIGHT: "BEGIN_WEIGHT",
+                    cols.CONTRIBUTION: "CONTRIBUTION",
+                },
+            },
+            "security_master": {
+                "path": "security_master.csv",
+                "columns": {
+                    "identifier_column": "SECURITY_ID",
+                    "security_name": "SECURITY_NAME",
+                },
+            },
         },
         "classifications": {
             "SectorLookup": {
@@ -121,6 +129,28 @@ def _write_axys_inputs(directory: Path) -> Path:
     specification_path = directory / "ppar.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
+
+
+def _file_definition(
+    specification: dict[str, object],
+    file_name: str,
+) -> dict[str, object]:
+    """Return one mutable nested source-file definition from a test config."""
+    files = specification["files"]
+    assert isinstance(files, dict)
+    definition = files[file_name]
+    assert isinstance(definition, dict)
+    return definition
+
+
+def _file_columns(
+    specification: dict[str, object],
+    file_name: str,
+) -> dict[str, object]:
+    """Return mutable column mappings for one test source file."""
+    columns = _file_definition(specification, file_name)["columns"]
+    assert isinstance(columns, dict)
+    return columns
 
 
 class TestAxysPipeline(unittest.TestCase):
@@ -206,15 +236,15 @@ class TestAxysPipeline(unittest.TestCase):
                     "THRU_DATE": "thru_date",
                     "PORTFOLIO_CODE": "portfolio_code",
                     "SECURITY_ID": "identifier",
-                    "SEC_RETURN": "return",
+                    "SEC_RETURN": "security_return",
                     "BEGIN_WEIGHT": "weight",
                     "CONTRIBUTION": "contribution",
                 }
             ).write_csv(directory / "secperf.csv")
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
-            del specification["portfolio_performance_columns"]
-            del specification["security_performance_columns"]
+            del _file_definition(specification, "portfolio_performance")["columns"]
+            del _file_definition(specification, "security_performance")["columns"]
             specification_path.write_text(
                 yaml.safe_dump(specification),
                 encoding="utf-8",
@@ -247,11 +277,23 @@ class TestAxysPipeline(unittest.TestCase):
             )
             assert isinstance(specification, dict)
             specification["security_id"] = {
-                "components": ["Security Type", "Security Symbol"],
+                "components": ["security_type", "security_symbol"],
                 "separator": "_",
             }
-            del specification["security_performance_columns"][cols.IDENTIFIER]
-            del specification["security_master_columns"]["identifier_column"]
+            _file_columns(specification, "security_performance").update(
+                {
+                    "security_symbol": "Security Symbol",
+                    "security_type": "Security Type",
+                }
+            )
+            _file_columns(specification, "security_master").update(
+                {
+                    "security_symbol": "Security Symbol",
+                    "security_type": "Security Type",
+                }
+            )
+            del _file_columns(specification, "security_performance")[cols.IDENTIFIER]
+            del _file_columns(specification, "security_master")["identifier_column"]
             specification_path.write_text(
                 yaml.safe_dump(specification),
                 encoding="utf-8",
@@ -304,7 +346,7 @@ class TestAxysPipeline(unittest.TestCase):
             ).write_csv(directory / "security_master.csv")
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
-            del specification["security_master_columns"]
+            del _file_definition(specification, "security_master")["columns"]
             specification_path.write_text(
                 yaml.safe_dump(specification),
                 encoding="utf-8",
@@ -331,7 +373,7 @@ class TestAxysPipeline(unittest.TestCase):
             (directory / "security_master.csv").rename(directory / "secmast.csv")
             specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             assert isinstance(specification, dict)
-            del specification["security_master_path"]
+            del _file_definition(specification, "security_master")["path"]
             specification_path.write_text(
                 yaml.safe_dump(specification),
                 encoding="utf-8",

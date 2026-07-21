@@ -117,23 +117,23 @@ _TEST_ONLY_TRANSACTION_CODES: set[str] = set()
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 _PACKAGED_TRANSACTION_COLUMNS = [
     "Portfolio Code",
-    "Transaction Date",
-    "Settlement Date",
     "Security Symbol",
     "Security Type",
-    "Transaction Code",
-    "Transaction Security Type",
-    "Source/Destination Type",
-    "Source/Destination Symbol",
-    "Special Security Type",
-    "Special Security Symbol",
-    "Currency Code",
-    "Base Currency",
-    "Quantity",
-    "Price",
+    "Transaction Date",
     "Amount",
     "Base Amount",
+    "Base Currency",
     "Commission",
+    "Currency Code",
+    "Price",
+    "Quantity",
+    "Settlement Date",
+    "Source/Destination Symbol",
+    "Source/Destination Type",
+    "Special Security Symbol",
+    "Special Security Type",
+    "Transaction Code",
+    "Transaction Security Type",
 ]
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
@@ -849,7 +849,7 @@ class TestAuditDemoData(unittest.TestCase):
             transaction_code="ai",
         )
 
-        self.assertEqual(row[pc_cols.SECURITY_TYPE], "caus")
+        self.assertEqual(row[pc_cols.TRANSACTION_SECURITY_TYPE], "caus")
         self.assertEqual(row[pc_cols.SOURCE_DESTINATION_TYPE], "$pth")
         self.assertEqual(row[pc_cols.SOURCE_DESTINATION_SYMBOL], "$cash")
         self.assertEqual(row[pc_cols.SPECIAL_SECURITY_TYPE], "caus")
@@ -924,7 +924,7 @@ class TestAuditDemoData(unittest.TestCase):
             transaction_code="ti",
         )
 
-        self.assertEqual(row[pc_cols.SECURITY_TYPE], "csus")
+        self.assertEqual(row[pc_cols.TRANSACTION_SECURITY_TYPE], "csus")
         self.assertEqual(row[pc_cols.SOURCE_DESTINATION_TYPE], "$pty")
         self.assertEqual(
             row[pc_cols.SOURCE_DESTINATION_SYMBOL],
@@ -1506,7 +1506,8 @@ class TestAuditDemoData(unittest.TestCase):
                 pl.col("as_of_date") < pl.col("from_date")
             )
             for guidance in inherited_rows["review_guidance"]:
-                self.assertIn("Inherited beginning-value difference", guidance)
+                self.assertIn("beginning holdings.", guidance)
+                self.assertNotIn("Modified Dietz", guidance)
 
     def test_march_contribution_is_standalone_and_fully_explained(self) -> None:
         """The restored contribution remains visible without affecting April."""
@@ -1568,7 +1569,8 @@ class TestAuditDemoData(unittest.TestCase):
         for guidance in inherited.filter(pl.col("dataset") == pc_cols.HOLDINGS)[
             "review_guidance"
         ]:
-            self.assertIn("input to Modified Dietz", guidance)
+            self.assertIn("beginning holdings.", guidance)
+            self.assertNotIn("Modified Dietz", guidance)
         self.assertEqual(
             set(aapl_march["security_id"]),
             {"csusAAPL", "csusJPM"},

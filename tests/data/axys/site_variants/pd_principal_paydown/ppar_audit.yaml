@@ -46,7 +46,7 @@ transaction_impact_methods:
 transaction_rules:
   pd:
     - when:
-        security_type: fius
+        transaction_security_type: fius
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: income

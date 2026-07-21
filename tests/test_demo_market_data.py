@@ -6,7 +6,7 @@ import tempfile
 import pandas as pd
 import pytest
 
-from ppar._demo_market_data import (
+from scripts.demo_support.market_data import (
     RETURN_FAILURE_TOLERANCE,
     RETURN_WARNING_TOLERANCE,
     adjusted_period_return,

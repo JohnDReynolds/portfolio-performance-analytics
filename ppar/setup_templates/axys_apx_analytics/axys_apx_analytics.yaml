@@ -1,7 +1,7 @@
-# =====================================
+# ==============================================================================
 # PPAR Axys/APX Analytics Configuration
-# =====================================
-# This file has been copied to your setup folder as analytics/ppar.yaml.
+# ==============================================================================
+# This file has been copied to your setup directory as analytics/ppar.yaml.
 #
 # The default command to run Analytics is:
 #   ppar analytics ./my_ppar_data/analytics
@@ -9,15 +9,18 @@
 # To customize with your own data:
 # 1. Replace portperf.csv, secperf.csv, and secmast.csv with your own IMEX/REP
 #    CSV files.
-# 2. If paths or filenames differ, edit the "*_path" settings below.
-# 3. If column names differ, edit the "*_columns" mappings below.
-# 4. Set analytics.portfolio and analytics.benchmark below to actual portfolio
+# 2. If paths, filenames, or column names differ, edit files.*.path or
+#    files.*.columns below.
+# 3. Set analytics.portfolio and analytics.benchmark below to actual portfolio
 #    codes contained in your CSV files.
-# 5. Run ppar analytics ./my_ppar_data/analytics again and review the outputs.
+# 4. Run ppar analytics ./my_ppar_data/analytics again and review the outputs.
 
+# ==============================================================================
+# Analytics Runtime Parameters
+# ==============================================================================
 analytics:
-  # Command-line values override YAML values. Settings with documented defaults
-  # may be omitted.
+  # Command-line values override the YAML values below. Settings with
+  # documented defaults may be omitted.
 
   # Axys/APX account code for the portfolio being reviewed.
   # Default: None (must be supplied here or on the command line)
@@ -36,7 +39,7 @@ analytics:
   frequency: quarterly
 
   # Directory where the output files are written. A relative path is anchored
-  # to this analytics folder; PPAR creates it when needed.
+  # to this analytics directory; PPAR creates it when needed.
   # Default: output
   # Command-line override: --output-directory ./review_output
   output_directory: output
@@ -81,61 +84,56 @@ analytics:
   # Command-line override: --currency-symbol "$"
   currency_symbol: "$"
 
-# Required CSVs for Analytics.
-#
-# portfolio_performance_path:
-#   The path for the portfolio-level performance CSV file.
-#   Default: portperf.csv
-#   Required columns: From Date, Thru Date, Portfolio Code, Portfolio Name,
-#     Portfolio Return.
-portfolio_performance_path: portperf.csv
+# ==============================================================================
+# Analytics Source CSV Files
+# ==============================================================================
+files:
+  portfolio_performance:
+    # Portfolio-level performance CSV file.
+    # Default: portperf.csv
+    # Required columns: From Date, Thru Date, Portfolio Code, Portfolio Name,
+    #   Portfolio Return.
+    path: portperf.csv
+    columns:
+      from_date: "From Date"
+      thru_date: "Thru Date"
+      portfolio_code: "Portfolio Code"
+      portfolio_name: "Portfolio Name"
+      portfolio_return: "Portfolio Return"
 
-# security_performance_path:
-#   The path for the security-level performance CSV file.
-#   Default: secperf.csv
-#   Required columns: From Date, Thru Date, Portfolio Code, Security Symbol,
-#     Security Type, Beginning Weight, Security Return, Contribution.
-security_performance_path: secperf.csv
+  security_performance:
+    # Security-level performance CSV file.
+    # Default: secperf.csv
+    # Required columns: From Date, Thru Date, Portfolio Code, Security Symbol,
+    #   Security Type, Beginning Weight, Security Return, Contribution.
+    path: secperf.csv
+    columns:
+      from_date: "From Date"
+      thru_date: "Thru Date"
+      portfolio_code: "Portfolio Code"
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      security_return: "Security Return"
+      weight: "Beginning Weight"
+      contribution: "Contribution"
 
-# security_master_path:
-#   The path for the security master CSV file.
-#   Default: secmast.csv
-#   Required columns: Security Symbol, Security Type, Security Name.
-#   Optional classification columns: Asset Class Code, Asset Class Name,
-#     Sector Code, Sector Name, Country Code, Country Name, Currency Code,
-#     Currency Name, or any other columns you want to use in the mappings below.
-security_master_path: secmast.csv
+  security_master:
+    # Security master CSV file.
+    # Default: secmast.csv
+    # Required columns: Security Symbol, Security Type, Security Name.
+    # Optional classification columns: Asset Class Code, Asset Class Name,
+    #   Sector Code, Sector Name, Country Code, Country Name, Currency Code,
+    #   Currency Name, or any other columns used in the mappings below.
+    path: secmast.csv
+    columns:
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      security_name: "Security Name"
 
-# Axys/APX security identity is the security-type/symbol pair.
-# Examples: csusAAPL, causCASHUSD
-security_id:
-  components:
-    - "Security Type"
-    - "Security Symbol"
-  # Optional separator example:
-  # separator: "_"  # Produces csus_AAPL and caus_CASHUSD.
 
-# Portfolio-performance source-column mappings.
-portfolio_performance_columns:
-  from_date: "From Date"
-  thru_date: "Thru Date"
-  portfolio_code: "Portfolio Code"
-  portfolio_name: "Portfolio Name"
-  portfolio_return: "Portfolio Return"
-
-# Security-performance source-column mappings.
-security_performance_columns:
-  from_date: "From Date"
-  thru_date: "Thru Date"
-  portfolio_code: "Portfolio Code"
-  return: "Security Return"
-  weight: "Beginning Weight"
-  contribution: "Contribution"
-
-# Security-master source-column mappings.
-security_master_columns:
-  security_name: "Security Name"
-
+# ==============================================================================
+# Reporting Classification Mappings
+# ==============================================================================
 mappings:
   # Each mapping names source columns in secmast.csv that classify a security.
   #

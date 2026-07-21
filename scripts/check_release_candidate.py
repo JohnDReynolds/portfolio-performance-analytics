@@ -189,15 +189,15 @@ def _run_generic_data_generation(runner: ReleaseCandidateRunner) -> None:
     runner.run(
         [
             _VENV_PYTHON,
-            "scripts/generic_analytics_demo_data/"
-            "generate_mega_cap_analytics_demo_data.py",
+            "-m",
+            "scripts.generic_analytics_demo_data.generate_mega_cap_analytics_demo_data",
         ]
     )
     runner.run(
         [
             _VENV_PYTHON,
-            "scripts/generic_analytics_demo_data/"
-            "validate_generated_analytics_demo_data.py",
+            "-m",
+            "scripts.generic_analytics_demo_data.validate_generated_analytics_demo_data",
         ]
     )
 

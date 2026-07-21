@@ -122,7 +122,9 @@ lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 
 | File | Owns |
 | --- | --- |
+| `scripts/demo_support/market_data.py` | Shared cached market-history loading, refresh, price lookup, and total-return reconciliation for maintained Analytics and Audit demos. |
 | `scripts/operational_demo_data/derive_operational_demo_data.py` | Base portfolios, selected securities, baseline holdings, baseline transactions, and synthetic Axys/APX-style performance rows. |
+| `scripts/operational_demo_data/holdings.py` | Operational-demo holding construction plus trade, split, cash, and price roll-forward validation. |
 | `scripts/operational_demo_data/refresh_audit_market_baseline.py` | Shared-cache market marks, transaction-led Snapshot A quantity/cash roll-forwards, and market-sensitive scenario calibration. |
 | `scripts/operational_demo_data/audit_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
 | `scripts/operational_demo_data/audit_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and maintainer-only cost context. |
@@ -138,8 +140,8 @@ When changing packaged demo behavior, edit the generator/scenario source first,
 then run:
 
 ```bash
-./.venv/bin/python scripts/operational_demo_data/derive_operational_demo_data.py
-./.venv/bin/python scripts/operational_demo_data/refresh_audit_market_baseline.py
+./.venv/bin/python -m scripts.operational_demo_data.derive_operational_demo_data
+./.venv/bin/python -m scripts.operational_demo_data.refresh_audit_market_baseline
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py --write
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
 ./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix

@@ -85,9 +85,9 @@ an unrelated top-level setting:
 ```yaml
 security_id:
   components:
-    - "Security Type"
-    - "Security Symbol"
-  display_component: "Security Symbol"
+    - security_type
+    - security_symbol
+  display_component: security_symbol
 ```
 
 Omitting `display_component` must preserve current behavior exactly by showing

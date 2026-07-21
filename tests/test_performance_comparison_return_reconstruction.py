@@ -402,7 +402,6 @@ def _comparison_path_with_reconstruction_method(
         if not isinstance(snapshot, dict):
             raise AssertionError("Expected snapshot to be a mapping.")
         snapshot["path"] = str((_DEMO_AXYS_APX_DIRECTORY / str(snapshot["path"])).resolve())
-        snapshot["schema"] = str((_DEMO_AXYS_APX_DIRECTORY / str(snapshot["schema"])).resolve())
 
     for section_name in (
         "portfolio_return_reconstruction",

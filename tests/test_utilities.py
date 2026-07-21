@@ -92,7 +92,7 @@ _AUDIT_TEST_SOURCE_COLUMNS: dict[str, dict[str, tuple[str, ...]]] = {
         "settlement_date": ("SETTLEMENT_DATE", "SETTLE_DATE"),
         "transaction_code": ("TRANSACTION_CODE", "TRAN"),
         "original_cost_date": ("ORIGINAL_COST_DATE", "ORIG_COST_DATE"),
-        "security_type": ("SECURITY_TYPE", "SEC_TYPE"),
+        "transaction_security_type": ("SECURITY_TYPE", "SEC_TYPE"),
         "source_destination_type": ("SOURCE_DESTINATION_TYPE", "SRC_DEST_TYPE"),
         "source_destination_symbol": (
             "SOURCE_DESTINATION_SYMBOL",
@@ -150,12 +150,6 @@ _AUDIT_TEST_SOURCE_COLUMNS: dict[str, dict[str, tuple[str, ...]]] = {
         "currency": ("CURRENCY", "CURRENCY_CODE"),
     },
 }
-_AUDIT_TEST_SCHEMA_SECTIONS = {
-    dataset_name: f"{dataset_name}_columns"
-    for dataset_name in _AUDIT_TEST_SOURCE_COLUMNS
-}
-
-
 def make_performance_df(
     periods: Sequence[Period],
     assets: Mapping[str, AssetValues],
@@ -232,7 +226,7 @@ def write_audit_test_yaml(path: Path, contents: object) -> None:
         path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
         return
 
-    schema: dict[str, dict[str, str]] = {}
+    schema_files: dict[str, dict[str, dict[str, str]]] = {}
     for dataset_name, file_definition in files.items():
         candidates_by_field = _AUDIT_TEST_SOURCE_COLUMNS.get(str(dataset_name))
         if candidates_by_field is None:
@@ -265,9 +259,10 @@ def write_audit_test_yaml(path: Path, contents: object) -> None:
             if source_name is not None:
                 mappings[normalized_field] = source_name
         if mappings:
-            schema[_AUDIT_TEST_SCHEMA_SECTIONS[str(dataset_name)]] = mappings
+            schema_files[str(dataset_name)] = {"columns": mappings}
 
-    if schema:
+    if schema_files:
+        schema = {"files": schema_files}
         schema_name = "source_column_mappings.yaml"
         (path.parent / schema_name).write_text(
             yaml.safe_dump(schema, sort_keys=False),

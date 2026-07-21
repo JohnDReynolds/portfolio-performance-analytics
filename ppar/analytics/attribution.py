@@ -1095,7 +1095,7 @@ class Attribution:
             )
 
         # Keep chart rendering code out of normal imports until chart output is requested.
-        from ppar._chart_console import prepare_chart_rendering
+        from ppar.analytics._chart_rendering import prepare_chart_rendering
 
         prepare_chart_rendering()
         try:

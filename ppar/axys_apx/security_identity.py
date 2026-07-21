@@ -12,6 +12,7 @@ import polars as pl
 
 # Project imports
 from ppar.errors import PpaError
+from ppar.source_files import source_file_columns
 import ppar.utilities as util
 
 _SECURITY_ID_KEY: Final = "security_id"
@@ -19,6 +20,7 @@ _COMPONENTS_KEY: Final = "components"
 _SEPARATOR_KEY: Final = "separator"
 _DATASETS_KEY: Final = "datasets"
 _DEFAULT_SEPARATOR: Final = ""
+_DEFAULT_COMPONENTS: Final = ("security_type", "security_symbol")
 _CONFIGURATION_FIELDS: Final = {
     _COMPONENTS_KEY,
     _SEPARATOR_KEY,
@@ -39,20 +41,22 @@ _SECURITY_DATASETS: Final = {
 
 @dataclass(frozen=True)
 class SecurityIdConstruction:
-    """Describe ordered Axys/APX fields used to construct a security key.
+    """Describe normalized and source fields used to construct a security key.
 
     Attributes:
-        components: Exact-case source CSV columns, in concatenation order.
+        components: Normalized mapping keys, in concatenation order.
+        source_columns: Exact-case source CSV columns resolved for the dataset.
         separator: Optional text inserted between adjacent component values.
     """
 
     components: tuple[str, ...]
+    source_columns: tuple[str, ...]
     separator: str
 
     @property
     def schema_overrides(self) -> dict[str, type[pl.DataType]]:
         """Return CSV schema overrides that preserve component text exactly."""
-        return {component: pl.String for component in self.components}
+        return {source_column: pl.String for source_column in self.source_columns}
 
 
 def security_id_construction(
@@ -60,6 +64,7 @@ def security_id_construction(
     dataset_name: str,
     error_message: Callable[[str], str],
     *,
+    file_name: str | None = None,
     error_code: int = 504,
 ) -> SecurityIdConstruction | None:
     """Return validated security-ID construction for one source dataset.
@@ -68,11 +73,15 @@ def security_id_construction(
         values: Parsed YAML root mapping.
         dataset_name: Normalized source dataset name.
         error_message: Callback that adds product-specific error context.
+        file_name: Optional ``files`` dataset-name override. Analytics uses
+            ``security_master`` for its security-reference source.
         error_code: PPAR error code used for invalid configuration.
 
     Returns:
-        Construction settings for a security-bearing dataset, or ``None``
-        when the YAML does not configure composite security identity.
+        Construction settings for a security-bearing dataset. When
+        ``security_id`` is omitted, layouts that do not map ``security_id``
+        directly and do map both ``security_type`` and ``security_symbol`` use
+        the Axys/APX defaults. Other layouts return ``None``.
 
     Raises:
         PpaError: If the configuration shape, component names, or separator is
@@ -80,9 +89,30 @@ def security_id_construction(
     """
     if dataset_name not in _SECURITY_DATASETS:
         return None
+    configured_file_name = file_name or dataset_name
     raw_configuration = values.get(_SECURITY_ID_KEY)
     if raw_configuration is None:
-        return None
+        columns = source_file_columns(
+            values,
+            configured_file_name,
+            error_message,
+            error_code=error_code,
+        )
+        if _SECURITY_ID_KEY in columns:
+            return None
+        if not all(component in columns for component in _DEFAULT_COMPONENTS):
+            return None
+        return SecurityIdConstruction(
+            components=_DEFAULT_COMPONENTS,
+            source_columns=_source_columns(
+                values,
+                configured_file_name,
+                _DEFAULT_COMPONENTS,
+                error_message,
+                error_code,
+            ),
+            separator=_DEFAULT_SEPARATOR,
+        )
     configuration = _require_mapping(
         raw_configuration,
         _SECURITY_ID_KEY,
@@ -148,7 +178,18 @@ def security_id_construction(
         error_message,
         error_code,
     )
-    return SecurityIdConstruction(components=components, separator=separator)
+    source_columns = _source_columns(
+        values,
+        configured_file_name,
+        components,
+        error_message,
+        error_code,
+    )
+    return SecurityIdConstruction(
+        components=components,
+        source_columns=source_columns,
+        separator=separator,
+    )
 
 
 def with_constructed_security_id(
@@ -184,7 +225,7 @@ def with_constructed_security_id(
         the observed component tuples for ambiguous concatenation instead of
         rejecting legitimate Axys/APX symbols such as ``MARGIN_USD``.
     """
-    missing_columns = set(construction.components) - set(frame.columns)
+    missing_columns = set(construction.source_columns) - set(frame.columns)
     if missing_columns:
         raise PpaError(
             error_message(
@@ -196,10 +237,19 @@ def with_constructed_security_id(
         )
 
     string_expressions = {
-        component: pl.col(component).cast(pl.String, strict=False)
-        for component in construction.components
+        component: pl.col(source_column).cast(pl.String, strict=False)
+        for component, source_column in zip(
+            construction.components,
+            construction.source_columns,
+            strict=True,
+        )
     }
-    for component, string_expression in string_expressions.items():
+    for component, source_column in zip(
+        construction.components,
+        construction.source_columns,
+        strict=True,
+    ):
+        string_expression = string_expressions[component]
         stripped_expression = string_expression.str.strip_chars()
         invalid_rows = frame.filter(
             string_expression.is_null()
@@ -207,11 +257,12 @@ def with_constructed_security_id(
             | string_expression.ne(stripped_expression)
         )
         if not invalid_rows.is_empty():
-            value = invalid_rows.get_column(component)[0]
+            value = invalid_rows.get_column(source_column)[0]
             raise PpaError(
                 error_message(
-                    f"security_id component {component!r} contains a blank, null, "
-                    f"or whitespace-padded value {value!r} in {str(source_path)!r} "
+                    f"security_id component {component!r}, mapped to source column "
+                    f"{source_column!r}, contains a blank, null, or "
+                    f"whitespace-padded value {value!r} in {str(source_path)!r} "
                     f"for {dataset_name}."
                 ),
                 error_code,
@@ -223,7 +274,7 @@ def with_constructed_security_id(
         ).alias(output_column)
     )
     collisions = (
-        result.select((*construction.components, output_column))
+        result.select((*construction.source_columns, output_column))
         .unique()
         .group_by(output_column)
         .len()
@@ -279,12 +330,12 @@ def _validate_components(
     error_message: Callable[[str], str],
     error_code: int,
 ) -> tuple[str, ...]:
-    """Return validated ordered security-ID component column names."""
+    """Return validated ordered normalized security-ID component names."""
     if not isinstance(value, list) or len(value) < 2:
         raise PpaError(
             error_message(
                 f"security_id components for {dataset_name} must be a list of "
-                "at least two source column names."
+                "at least two normalized field names."
             ),
             error_code,
         )
@@ -304,7 +355,57 @@ def _validate_components(
             ),
             error_code,
         )
+    invalid_components = [
+        component
+        for component in components
+        if not component.isidentifier() or component.lower() != component
+    ]
+    if invalid_components:
+        raise PpaError(
+            error_message(
+                f"security_id components for {dataset_name} must use normalized "
+                f"field names: {invalid_components}"
+            ),
+            error_code,
+        )
     return components
+
+
+def _source_columns(
+    values: Mapping[str, object],
+    file_name: str,
+    components: tuple[str, ...],
+    error_message: Callable[[str], str],
+    error_code: int,
+) -> tuple[str, ...]:
+    """Resolve normalized identity components through one file layout."""
+    section = source_file_columns(
+        values,
+        file_name,
+        error_message,
+        error_code=error_code,
+    )
+    source_columns: list[str] = []
+    for component in components:
+        source_column = section.get(component, component)
+        if not isinstance(source_column, str) or not source_column:
+            raise PpaError(
+                error_message(
+                    f"files.{file_name}.columns.{component} must be a nonempty "
+                    "source column name."
+                ),
+                error_code,
+            )
+        source_columns.append(source_column)
+    if len(set(source_columns)) != len(source_columns):
+        raise PpaError(
+            error_message(
+                f"security_id components for files.{file_name}.columns must map "
+                f"to distinct source columns: {source_columns}"
+            ),
+            error_code,
+        )
+    return tuple(source_columns)
 
 
 def _validate_separator(

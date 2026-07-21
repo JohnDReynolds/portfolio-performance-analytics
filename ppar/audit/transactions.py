@@ -611,7 +611,7 @@ def _transaction_semantics_error_samples(frame: pl.DataFrame) -> str:
             pc_cols.SECURITY_ID,
             pc_cols.TRANSACTION_DATE,
             pc_cols.TRANSACTION_CODE,
-            pc_cols.SECURITY_TYPE,
+            pc_cols.TRANSACTION_SECURITY_TYPE,
             pc_cols.SOURCE_DESTINATION_TYPE,
             pc_cols.SOURCE_DESTINATION_SYMBOL,
             pc_cols.SPECIAL_SECURITY_TYPE,

@@ -11,6 +11,7 @@ import yaml
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import AuditSpecification
+from ppar.audit.extract_contract import extract_contract_settings
 
 _AXYS_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
@@ -66,7 +67,7 @@ class TestAuditSpecification(unittest.TestCase):
     """Verify comparison specification parsing and file preflight behavior."""
 
     def test_financially_material_root_settings_are_required(self) -> None:
-        """Omitted comparison, tolerance, and source-safety choices fail closed."""
+        """Omitted comparison and tolerance choices fail closed."""
         scenarios = (
             (("comparison",), "comparison must be a mapping"),
             (("comparison", "level"), "comparison.level is required"),
@@ -74,17 +75,6 @@ class TestAuditSpecification(unittest.TestCase):
             (
                 ("tolerances", "return"),
                 "tolerances is missing required keys: return",
-            ),
-            (("extract_contract",), "extract_contract must be a mapping"),
-            (
-                ("extract_contract", "enforce_ambiguous_axys_flows"),
-                "extract_contract is missing required keys: "
-                "enforce_ambiguous_axys_flows",
-            ),
-            (
-                ("extract_contract", "transaction_semantics_case"),
-                "extract_contract is missing required keys: "
-                "transaction_semantics_case",
             ),
         )
         for key_path, expected_message in scenarios:
@@ -104,6 +94,55 @@ class TestAuditSpecification(unittest.TestCase):
                         AuditSpecification(path)
 
                 self.assertIn(expected_message, str(context.exception))
+
+    def test_extract_contract_omission_uses_fail_closed_defaults(self) -> None:
+        """The packaged contract, enforcement, and exact matching are defaults."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            del configuration["extract_contract"]
+            path = _write_yaml(directory, configuration)
+
+            specification = AuditSpecification(path)
+            settings = extract_contract_settings(
+                specification.values,
+                specification_path=path,
+            )
+
+        self.assertTrue(settings.enforce_ambiguous_axys_flows)
+        self.assertEqual(settings.transaction_semantics_case, "exact")
+        self.assertIn("demo_extract_availability.yaml", settings.path)
+
+    def test_extract_contract_override_must_be_a_mapping(self) -> None:
+        """A malformed explicit extract-contract override still fails closed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["extract_contract"] = "unsafe"
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "extract_contract must be a mapping"):
+                AuditSpecification(path)
+
+    def test_partial_extract_contract_overrides_retain_other_safe_defaults(self) -> None:
+        """Each advanced override leaves the other fail-closed default intact."""
+        legacy = extract_contract_settings(
+            {
+                "extract_contract": {
+                    "transaction_semantics_case": "legacy_case_insensitive"
+                }
+            },
+            specification_path="comparison.yaml",
+        )
+        local_opt_out = extract_contract_settings(
+            {"extract_contract": {"enforce_ambiguous_axys_flows": False}},
+            specification_path="comparison.yaml",
+        )
+
+        self.assertTrue(legacy.enforce_ambiguous_axys_flows)
+        self.assertEqual(legacy.transaction_semantics_case, "legacy_case_insensitive")
+        self.assertFalse(local_opt_out.enforce_ambiguous_axys_flows)
+        self.assertEqual(local_opt_out.transaction_semantics_case, "exact")
 
     def test_comparison_tolerances_require_finite_nonnegative_numbers(self) -> None:
         """Invalid explicit comparison tolerances never acquire a fallback."""
@@ -190,6 +229,30 @@ class TestAuditSpecification(unittest.TestCase):
             specification.files["transactions"].snapshot_b_path.resolve(),
             (_AXYS_SNAPSHOT_PATH / "axys_b" / "transactions.csv").resolve(),
         )
+
+    def test_inline_snapshot_schema_mapping_is_rejected(self) -> None:
+        """A syntactically accepted but ignored inline schema fails closed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            snapshots = configuration["snapshots"]
+            assert isinstance(snapshots, dict)
+            snapshot_a = snapshots["a"]
+            assert isinstance(snapshot_a, dict)
+            snapshot_a["schema"] = {
+                "files": {
+                    "portfolio_performance": {
+                        "columns": {"portfolio_code": "Portfolio Code"}
+                    }
+                }
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "inline mappings are not supported",
+            ):
+                AuditSpecification(path)
 
     def test_optional_missing_file_does_not_raise(self) -> None:
         """Missing optional files do not block specification loading."""
@@ -529,6 +592,21 @@ transaction_impact_methods:
             ):
                 AuditSpecification(path)
 
+    def test_retired_source_mapping_key_fails_closed(self) -> None:
+        """The former top-level column mappings are not silently ignored."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["holdings_columns"] = {"portfolio_code": "PORT"}
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "Retired source mappings must move under "
+                r"files\.<dataset>\.columns: holdings_columns",
+            ):
+                AuditSpecification(path)
+
     def test_non_mapping_yaml_root_raises_error_504(self) -> None:
         """The comparison YAML root must be a mapping."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -579,7 +657,7 @@ transaction_impact_methods:
                     "enabled": True,
                     "only": {
                         "transaction_code": ["ti", "si"],
-                        "security_type": "csus",
+                        "transaction_security_type": "csus",
                         "source_destination_type": "$pty",
                         "source_destination_symbol": "external_delivery",
                     },
@@ -983,7 +1061,8 @@ transaction_impact_methods:
                     }
                 },
                 "data_issues.deliver_in_original_cost_incomplete.only must include "
-                "security_type, source_destination_symbol, source_destination_type",
+                "source_destination_symbol, source_destination_type, "
+                "transaction_security_type",
             ),
             (
                 {
@@ -991,7 +1070,7 @@ transaction_impact_methods:
                         "enabled": True,
                         "only": {
                             "transaction_code": "ti",
-                            "security_type": "csus",
+                            "transaction_security_type": "csus",
                             "source_destination_type": "$pty",
                             "source_destination_symbol": "external_delivery",
                         },

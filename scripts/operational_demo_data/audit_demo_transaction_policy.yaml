@@ -26,7 +26,7 @@ holding_effects:
     effect: cash
   pd:
     when:
-      security_type: fius
+      transaction_security_type: fius
       source_destination_type: $pty
       source_destination_symbol: $cash
     effect: principal_and_cash
@@ -43,7 +43,7 @@ holding_effects:
     effect: cash
   rc:
     when:
-      security_type: csus
+      transaction_security_type: csus
       source_destination_type: $pty
       source_destination_symbol: $cash
     effect: cash
@@ -78,7 +78,7 @@ reconstruction_roles:
         source_destination_type: $pty
     ti:
       when:
-        security_type: csus
+        transaction_security_type: csus
         source_destination_type: $pty
         source_destination_symbol: external_delivery
     wd:

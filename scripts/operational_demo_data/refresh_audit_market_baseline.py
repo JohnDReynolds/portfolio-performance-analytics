@@ -14,7 +14,7 @@ from typing import Final
 
 import pandas as pd
 
-from ppar._demo_market_data import ensure_market_history, price_on_or_before
+from scripts.demo_support.market_data import ensure_market_history, price_on_or_before
 
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]

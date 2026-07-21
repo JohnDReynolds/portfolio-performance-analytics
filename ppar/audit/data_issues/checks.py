@@ -120,7 +120,7 @@ _FILTER_FIELD_ALIASES: Final[dict[str, str]] = {
     "portfolio_id": pc_cols.PORTFOLIO_ID,
     "security": pc_cols.SECURITY_ID,
     "security_id": pc_cols.SECURITY_ID,
-    "security_type": pc_cols.SECURITY_TYPE,
+    "transaction_security_type": pc_cols.TRANSACTION_SECURITY_TYPE,
     "asset_class": pc_cols.ASSET_CLASS,
     "transaction_code": pc_cols.TRANSACTION_CODE,
     "source_destination_type": pc_cols.SOURCE_DESTINATION_TYPE,
@@ -1737,7 +1737,7 @@ def _transaction_security_type_mismatch_issues(
             continue
         transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
         security_id = _text(row.get(pc_cols.SECURITY_ID))
-        transaction_type = _text(row.get(pc_cols.SECURITY_TYPE))
+        transaction_type = _text(row.get(pc_cols.TRANSACTION_SECURITY_TYPE))
         reference_type = _text(row.get(reference_field))
         if (
             transaction_date is None
@@ -1747,18 +1747,20 @@ def _transaction_security_type_mismatch_issues(
             continue
         if not transaction_type:
             comparison = (
-                "has a blank transactions.security_type while "
+                "has a blank transactions.transaction_security_type while "
                 f"security_reference.security_type is {reference_type!r}"
             )
         elif transaction_type.casefold() == reference_type.casefold():
             comparison = (
-                f"has transactions.security_type {transaction_type!r}, which differs "
+                "has transactions.transaction_security_type "
+                f"{transaction_type!r}, which differs "
                 "only by case from security_reference.security_type "
                 f"{reference_type!r}"
             )
         else:
             comparison = (
-                f"has transactions.security_type {transaction_type!r} and "
+                "has transactions.transaction_security_type "
+                f"{transaction_type!r} and "
                 f"security_reference.security_type {reference_type!r}"
             )
         rows.append(
@@ -1767,7 +1769,7 @@ def _transaction_security_type_mismatch_issues(
                 portfolio_id=_text(row.get(pc_cols.PORTFOLIO_ID)),
                 as_of_date=transaction_date,
                 dataset_field=(
-                    "transactions.security_type -> "
+                    "transactions.transaction_security_type -> "
                     "security_reference.security_type"
                 ),
                 security_id=security_id,

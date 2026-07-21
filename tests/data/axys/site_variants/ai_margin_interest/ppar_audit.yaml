@@ -46,7 +46,7 @@ transaction_impact_methods:
 transaction_rules:
   ai:
     - when:
-        security_type: caus
+        transaction_security_type: caus
         source_destination_type: $pth
         source_destination_symbol: $cash
         special_security_type: caus

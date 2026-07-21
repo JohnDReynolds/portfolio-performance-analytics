@@ -95,13 +95,13 @@ def _fixture_specification() -> dict[str, object]:
     specification: object = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(specification, dict)
     mutable_specification = cast(dict[str, object], specification)
-    mutable_specification["portfolio_performance_path"] = str(
+    _file_definition(mutable_specification, "portfolio_performance")["path"] = str(
         test_util.axys_data_path("portperf.csv")
     )
-    mutable_specification["security_performance_path"] = str(
+    _file_definition(mutable_specification, "security_performance")["path"] = str(
         test_util.axys_data_path("secperf.csv")
     )
-    mutable_specification["security_master_path"] = str(
+    _file_definition(mutable_specification, "security_master")["path"] = str(
         test_util.axys_data_path("secmast.csv")
     )
     classifications = _classification_definitions(mutable_specification)
@@ -112,6 +112,18 @@ def _fixture_specification() -> dict[str, object]:
             if isinstance(file_path, str):
                 classification_source["file_path"] = str(test_util.axys_data_path(file_path))
     return mutable_specification
+
+
+def _file_definition(
+    specification: dict[str, object],
+    file_name: str,
+) -> dict[str, object]:
+    """Return one mutable nested source-file definition from a test config."""
+    files = specification["files"]
+    assert isinstance(files, dict)
+    definition = files[file_name]
+    assert isinstance(definition, dict)
+    return definition
 
 
 def _classification_definitions(specification: dict[str, object]) -> dict[str, object]:
@@ -165,7 +177,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_unconfigured_legacy_performance_columns_raise_error_502(self) -> None:
         """Legacy headings are not guessed when a mapping is omitted."""
         specification = _fixture_specification()
-        specification["portfolio_performance_columns"] = {
+        _file_definition(specification, "portfolio_performance")["columns"] = {
             "from_date": "FROM_DATE",
             "thru_date": "THRU_DATE",
             "portfolio_code": "PORTFOLIO_CODE",
@@ -338,6 +350,20 @@ class TestAxysValidation(unittest.TestCase):
                 "classification under analytics",
             )
 
+    def test_retired_source_settings_raise_error_504(self) -> None:
+        """The former top-level source settings fail with migration guidance."""
+        specification = _fixture_specification()
+        specification["portfolio_performance_path"] = "legacy.csv"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path),
+                "Retired source settings must move under files.<dataset>.path",
+            )
+
     def test_missing_portfolio_error_includes_requested_dates(self) -> None:
         """Portfolio-loading errors report the requested date window."""
         data = AxysData(
@@ -426,7 +452,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_unconfigured_legacy_security_master_columns_raise_error_504(self) -> None:
         """Legacy security-master headings are not guessed without mappings."""
         specification = _fixture_specification()
-        specification.pop("security_master_columns", None)
+        _file_definition(specification, "security_master").pop("columns", None)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
@@ -438,7 +464,9 @@ class TestAxysValidation(unittest.TestCase):
                     "S001,Security Name,Alias Name\n"
                 ),
             )
-            specification["security_master_path"] = str(security_master_path)
+            _file_definition(specification, "security_master")["path"] = str(
+                security_master_path
+            )
             specifications_path = _write_yaml(directory, specification)
 
             _assert_axys_error(
@@ -454,7 +482,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_retired_security_master_name_column_is_rejected(self) -> None:
         """The security-master name mapping uses the normalized key."""
         specification = _fixture_specification()
-        specification["security_master_columns"] = {
+        _file_definition(specification, "security_master")["columns"] = {
             "identifier_column": "SECURITY_ID",
             "name_column": "SECURITY_NAME",
         }
@@ -468,7 +496,7 @@ class TestAxysValidation(unittest.TestCase):
                     specifications_path=specifications_path,
                     classification_name="Security",
                 ),
-                "security_master_columns has unsupported keys: name_column",
+                "files.security_master.columns has unsupported keys: name_column",
             )
 
     def test_mapping_without_display_name_column_cannot_be_classification(self) -> None:

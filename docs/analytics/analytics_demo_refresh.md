@@ -46,13 +46,13 @@ Installed setup users do not need this refresh path.
 Use the maintained data-refresh helper for candidate generation:
 
 ```bash
-./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
+./.venv/bin/python -m scripts.generic_analytics_demo_data.generate_mega_cap_analytics_demo_data
 ```
 
 Useful options:
 
 ```bash
-./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py \
+./.venv/bin/python -m scripts.generic_analytics_demo_data.generate_mega_cap_analytics_demo_data \
   --years 5 \
   --alpha-tilt 0.8
 ```
@@ -87,7 +87,7 @@ Before promotion, inspect at least:
 Run or update the candidate validation helper if it still exists:
 
 ```bash
-./.venv/bin/python scripts/generic_analytics_demo_data/validate_generated_analytics_demo_data.py
+./.venv/bin/python -m scripts.generic_analytics_demo_data.validate_generated_analytics_demo_data
 ```
 
 ### 3. Promote Packaged CSVs
@@ -209,7 +209,9 @@ Before committing, check:
 
 ## Refresh Helper Location
 
-Reusable refresh helpers live in `scripts/generic_analytics_demo_data/`.
+Analytics-specific refresh helpers live in
+`scripts/generic_analytics_demo_data/`. Shared Analytics/Audit market-history
+loading and reconciliation live in `scripts/demo_support/market_data.py`.
 Generated candidates and downloaded holdings stay under
 `_demo_output/generic_analytics_data_generation/`; the cross-product market
 cache stays under `_demo_output/demo_market_data/`. Neither location is

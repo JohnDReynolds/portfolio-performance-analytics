@@ -134,29 +134,29 @@ _COMMON_AXYS_HEADERS_TO_INTERNAL: Final[dict[str, dict[str, str]]] = {
 _PERIOD_KEY: Final = ["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"]
 _SECURITY_PERIOD_KEY: Final = [*_PERIOD_KEY, "SECURITY_ID"]
 _PORTPERF_COLUMNS: Final = [
-    "END_MV",
-    "FLOW",
-    "INCOME",
-    "GAIN_LOSS",
     "PORTFOLIO_CODE",
     "FROM_DATE",
     "THRU_DATE",
-    "BEGIN_MV",
     "PORT_RETURN",
     "BASE_CURRENCY",
+    "BEGIN_MV",
+    "END_MV",
+    "GAIN_LOSS",
+    "INCOME",
+    "FLOW",
 ]
 _SECPERF_COLUMNS: Final = [
-    "END_MV",
-    "INCOME",
-    "GAIN_LOSS",
     "PORTFOLIO_CODE",
     "SECURITY_ID",
     "FROM_DATE",
     "THRU_DATE",
-    "BEGIN_WEIGHT",
-    "BEGIN_MV",
     "SEC_RETURN",
+    "BEGIN_MV",
+    "BEGIN_WEIGHT",
     "CONTRIBUTION",
+    "END_MV",
+    "GAIN_LOSS",
+    "INCOME",
 ]
 _SECPERF_NUMERIC_COLUMNS: Final = [
     "END_MV",
@@ -194,9 +194,13 @@ _PACKAGED_HOLDINGS_COLUMNS: Final = [
     "PORT",
     "SEC",
     "HOLDING_DATE",
-    "CURRENCY",
+    "ACCRUED",
     "BASE_CURRENCY",
-    *_PACKAGED_HOLDINGS_NUMERIC_COLUMNS,
+    "BASE_MKT_VAL",
+    "CURRENCY",
+    "MKT_VAL",
+    "PRICE",
+    "QTY",
 ]
 _HOLDING_SCENARIO_COLUMNS: Final = [
     "snapshot",
@@ -250,8 +254,23 @@ _TRANSACTION_SOURCE_COLUMNS: Final = [
     "BASE_CURRENCY",
 ]
 _PACKAGED_TRANSACTION_COLUMNS: Final = [
-    *_TRANSACTION_SOURCE_COLUMNS,
-    *_TRANSACTION_NUMERIC_COLUMNS,
+    "PORT",
+    "SEC",
+    "TRANSACTION_DATE",
+    "AMOUNT",
+    "BASE_AMOUNT",
+    "BASE_CURRENCY",
+    "COMMISSION",
+    "CURRENCY",
+    "PRICE",
+    "QTY",
+    "SETTLE_DATE",
+    "SRC_DEST_SYMBOL",
+    "SRC_DEST_TYPE",
+    "SPECIAL_SEC_SYMBOL",
+    "SPECIAL_SEC_TYPE",
+    "TRAN",
+    "SEC_TYPE",
 ]
 _TRANSACTION_SCENARIO_COLUMNS: Final = [
     "snapshot",
@@ -423,7 +442,7 @@ _CASH_SECURITY_IDS: Final = {
 }
 _DEMO_CONTEXT_COLUMNS: Final[Mapping[str, str]] = {
     "security_id": "SEC",
-    "security_type": "SEC_TYPE",
+    "transaction_security_type": "SEC_TYPE",
     "source_destination_type": "SRC_DEST_TYPE",
     "source_destination_symbol": "SRC_DEST_SYMBOL",
     "special_security_type": "SPECIAL_SEC_TYPE",

@@ -39,7 +39,7 @@ _PERFORMANCE_COLUMN_KEYS: Final[dict[PerformanceSourceType, dict[str, str]]] = {
         cols.THRU_DATE: "thru_date",
         cols.IDENTIFIER: "identifier",
         cols.PORTFOLIO_CODE: "portfolio_code",
-        cols.RETURN: "return",
+        cols.RETURN: "security_return",
         cols.WEIGHT: "weight",
     },
 }
@@ -59,7 +59,8 @@ _SHARED_AUDIT_COLUMN_KEYS: Final[dict[PerformanceSourceType, frozenset[str]]] = 
     "security_performance_columns": frozenset(
         {
             "security_name",
-            "security_return",
+            "security_symbol",
+            "security_type",
             "begin_market_value",
             "end_market_value",
             "income",
@@ -182,7 +183,7 @@ class AxysPerformanceSourceLoader:
 
         selected_columns = set(mapped_required_columns)
         if construction is not None:
-            selected_columns.update(construction.components)
+            selected_columns.update(construction.source_columns)
         lazy_frame = (
             pl.scan_csv(
                 path,
@@ -240,9 +241,8 @@ class AxysPerformanceSourceLoader:
             PpaError: If required mapped columns are missing from either the
                 specification or the CSV header.
         """
-        configured_column_mappings = self._specification.values.get(
-            column_name_mappings_name, {}
-        )
+        file_name = column_name_mappings_name.removesuffix("_columns")
+        configured_column_mappings = self._specification.file_columns(file_name)
         column_mappings = self._normalize_column_mapping_keys(
             configured_column_mappings,
             column_name_mappings_name,
@@ -309,7 +309,8 @@ class AxysPerformanceSourceLoader:
         if not isinstance(column_mappings, dict):
             raise PpaError(
                 self._error_message(
-                    f"{column_name_mappings_name} must be a mapping."
+                    f"files.{column_name_mappings_name.removesuffix('_columns')}."
+                    "columns must be a mapping."
                 ),
                 504,
             )
@@ -322,7 +323,9 @@ class AxysPerformanceSourceLoader:
         if unsupported_keys:
             raise PpaError(
                 self._error_message(
-                    f"{column_name_mappings_name} has unsupported keys: "
+                    "files."
+                    f"{column_name_mappings_name.removesuffix('_columns')}.columns "
+                    "has unsupported keys: "
                     + ", ".join(unsupported_keys)
                     + "."
                 ),
@@ -336,7 +339,9 @@ class AxysPerformanceSourceLoader:
         if invalid_values:
             raise PpaError(
                 self._error_message(
-                    f"{column_name_mappings_name} values must be non-empty strings: "
+                    "files."
+                    f"{column_name_mappings_name.removesuffix('_columns')}.columns "
+                    "values must be non-empty strings: "
                     + ", ".join(invalid_values)
                     + "."
                 ),

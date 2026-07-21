@@ -35,9 +35,10 @@ code-only compatibility inference is disabled, so an unmatched uppercase code
 remains unknown; uppercase does not mean cancellation. The referenced extract
 contract must contain `version: 1` or another positive integer.
 
-Existing comparison YAML that omits `transaction_semantics_case` retains its
-established case-insensitive rule behavior. This compatibility default does not
-establish a source contract for cancellation or for new site mappings.
+When `extract_contract` or `transaction_semantics_case` is omitted, PPAR uses
+the packaged contract and exact-case matching. A maintained site that needs
+legacy case-insensitive rule behavior must request it explicitly; that override
+does not establish a source contract for cancellation or new site mappings.
 
 ## IMEX With Context Fields
 

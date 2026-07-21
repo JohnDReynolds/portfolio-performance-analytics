@@ -46,13 +46,13 @@ transaction_impact_methods:
 transaction_rules:
   pa:
     - when:
-        security_type: bond
+        transaction_security_type: bond
       transaction_category: fee_expense
       cash_flow_sign: negative
       performance_flow_sign: performance
   sa:
     - when:
-        security_type: bond
+        transaction_security_type: bond
       transaction_category: income
       cash_flow_sign: positive
       performance_flow_sign: performance

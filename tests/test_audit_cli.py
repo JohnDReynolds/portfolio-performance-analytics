@@ -567,14 +567,20 @@ class TestAuditCli(unittest.TestCase):
             for snapshot_name in ("a", "b"):
                 snapshot = config["snapshots"][snapshot_name]
                 self.assertNotIn("vendor", snapshot)
-                self.assertEqual(
-                    snapshot["schema"],
-                    "column_mappings.yaml",
-                )
+                self.assertNotIn("schema", snapshot)
+            for file_name in (
+                "portfolio_performance",
+                "security_performance",
+                "security_reference",
+                "holdings",
+                "transactions",
+                "splits",
+                "fx_rates",
+            ):
+                self.assertIn("columns", config["files"][file_name])
+            self.assertNotIn("security_id", config)
             self.assertIn("security_return_reconstruction", config)
-            self.assertTrue(
-                (comparison_path / "column_mappings.yaml").exists()
-            )
+            self.assertFalse((comparison_path / "column_mappings.yaml").exists())
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 self.assertTrue(
                     (comparison_path / snapshot_name / "secmast.csv").exists()
@@ -2035,9 +2041,9 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Extract contract: packaged:", result.stdout)
         self.assertIn("Enforce ambiguous Axys/APX flows: True", result.stdout)
         self.assertIn(
-            "Required transaction context columns: security_type, "
-            "source_destination_symbol, source_destination_type, "
-            "special_security_symbol, special_security_type",
+            "Required transaction context columns: source_destination_symbol, "
+            "source_destination_type, special_security_symbol, "
+            "special_security_type, transaction_security_type",
             result.stdout,
         )
         self.assertIn("Report-bundle source context:", result.stdout)
@@ -2172,13 +2178,24 @@ def _absolute_restatement_configuration() -> dict[str, object]:
     configuration["snapshots"]["b"]["path"] = str(
         fixture_directory / "axys_b_restatement"
     )
-    schema_path = _PACKAGED_AXYS_APX_DATA_PATH.resolve() / "column_mappings.yaml"
-    configuration["snapshots"]["a"]["schema"] = str(
-        schema_path
+    packaged_configuration = yaml.safe_load(
+        _PORTFOLIO_COMPARISON_PATH.read_text(encoding="utf-8")
     )
-    configuration["snapshots"]["b"]["schema"] = str(
-        schema_path
-    )
+    for file_name, packaged_definition in packaged_configuration["files"].items():
+        if file_name not in configuration["files"]:
+            continue
+        current_definition = configuration["files"][file_name]
+        current_path = (
+            current_definition
+            if isinstance(current_definition, str)
+            else current_definition["path"]
+        )
+        configuration["files"][file_name] = {
+            "path": current_path,
+            "columns": packaged_definition["columns"],
+        }
+    configuration["snapshots"]["a"].pop("schema", None)
+    configuration["snapshots"]["b"].pop("schema", None)
     return configuration
 
 

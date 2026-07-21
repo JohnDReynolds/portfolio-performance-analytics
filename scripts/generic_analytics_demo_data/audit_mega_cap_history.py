@@ -9,7 +9,9 @@ from typing import Final
 import pandas as pd
 from pandas.tseries.offsets import BMonthEnd
 
-import generate_mega_cap_analytics_demo_data as generator
+from scripts.generic_analytics_demo_data import (
+    generate_mega_cap_analytics_demo_data as generator,
+)
 
 
 WORKSPACE: Final = Path("_demo_output") / "generic_analytics_data_generation"

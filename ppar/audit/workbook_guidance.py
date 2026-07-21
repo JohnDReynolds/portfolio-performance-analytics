@@ -53,6 +53,7 @@ __all__ = [
 ]
 
 _POSSIBLE_CAUSE_CONFIGURATION_NOTE = "Add YAML configuration to count it as explained."
+_REVIEW_ONLY_EVIDENCE_NOTE = "Review-only evidence."
 _POSSIBLE_CAUSE_FIELDS = {
     (audit_schema.HOLDINGS, audit_schema.MARKET_VALUE),
     (audit_schema.TRANSACTIONS, audit_schema.AMOUNT),
@@ -90,19 +91,26 @@ def review_note(
         audit_schema.SECURITY_PERFORMANCE,
     }:
         return _performance_dataset_review_note(source_column)
-    source_explanation = _source_row_explanation(
+    review_only_holding_explanation = _review_only_holding_explanation(
         row,
         dataset,
         source_column,
-        exact_case=_comparison_uses_exact_transaction_case(comparison_path),
+        impact_status,
+    )
+    source_explanation = (
+        review_only_holding_explanation
+        if review_only_holding_explanation
+        else _source_row_explanation(
+            row,
+            dataset,
+            source_column,
+            exact_case=_comparison_uses_exact_transaction_case(comparison_path),
+        )
     )
     if source_explanation:
         return source_explanation
     if rows.has_evidence_only_policy(row):
-        return (
-            "Review-only evidence; this row is not counted in "
-            '"Performance Differences" or "Explained Difference".'
-        )
+        return _REVIEW_ONLY_EVIDENCE_NOTE
     if row.get(rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return "Supporting evidence for Modified Dietz flow rows; not counted separately."
     if row.get(rows.TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW):
@@ -219,11 +227,14 @@ def review_guidance(
             source_column,
             exact_case=exact_case,
         )
-    if rows.has_evidence_only_policy(row):
-        return (
-            "Review-only evidence; this row is not counted in "
-            '"Performance Differences" or "Explained Difference".'
-        )
+    review_only_holding_explanation = _review_only_holding_explanation(
+        row,
+        dataset,
+        source_column,
+        impact_status,
+    )
+    if review_only_holding_explanation or rows.has_evidence_only_policy(row):
+        return review_only_holding_explanation or _REVIEW_ONLY_EVIDENCE_NOTE
     if row_kind in {
         rows.ROW_KIND_CONTEXT,
         rows.ROW_KIND_REPORTED_DIAGNOSTIC,
@@ -381,13 +392,19 @@ def _related_input_guidance(
     exact_case: bool,
 ) -> str:
     """Return guidance for an input component's related performance field."""
+    if dataset == audit_schema.HOLDINGS and source_column == audit_schema.QUANTITY:
+        return _review_only_holding_explanation(
+            row,
+            dataset,
+            source_column,
+            IMPACT_STATUS_REVIEW_ONLY,
+        )
     if dataset == audit_schema.HOLDINGS and source_column in {
         audit_schema.ACCRUED,
         audit_schema.BASE_ACCRUED,
         audit_schema.MARKET_VALUE,
         audit_schema.BASE_MARKET_VALUE,
         audit_schema.PRICE,
-        audit_schema.QUANTITY,
     }:
         return _holding_detail_explanation(row, source_column)
     if dataset == audit_schema.TRANSACTIONS:
@@ -499,18 +516,34 @@ def _holding_detail_explanation(
     timing_label = _holding_timing_label(row)
     holdings_label = f"{timing_label} holdings" if timing_label else "holdings"
     change_value = rows.row_change_value(row)
-    change_text = rows.change_amount_text(change_value)
-    if timing_label == "beginning":
-        return (
-            "Inherited beginning-value difference from the preceding period: "
-            f"{security_prefix}{holdings_label}.{source_column} "
-            f"{rows.increased_or_decreased(change_value)} by {change_text}. "
-            "This value is retained because it is an input to Modified Dietz."
-        )
+    change_text = _field_change_text(change_value, source_column)
     return (
         f"{security_prefix}{holdings_label}.{source_column} "
         f"{rows.increased_or_decreased(change_value)} by {change_text}."
     )
+
+
+def _review_only_holding_explanation(
+    row: Mapping[str, object],
+    dataset: str,
+    source_column: str,
+    impact_status: str,
+) -> str:
+    """Return specific guidance for review-only holding input components."""
+    if dataset != audit_schema.HOLDINGS or impact_status != IMPACT_STATUS_REVIEW_ONLY:
+        return ""
+    detail = _holding_detail_explanation(row, source_column)
+    if source_column == audit_schema.QUANTITY:
+        return (
+            f"{detail} This affects the performance calculation through "
+            "holdings.market_value."
+        )
+    if source_column == audit_schema.BASE_MARKET_VALUE:
+        return (
+            f"{detail} This change is also reflected in the performance calculation "
+            "through holdings.market_value."
+        )
+    return ""
 
 
 def _fx_rate_support_explanation(row: Mapping[str, object]) -> str:
@@ -594,50 +627,36 @@ def _transaction_component_explanation(
     security_id = format_value(row.get(findings.SECURITY_ID))
     security_text = f" for {security_id}" if security_id else ""
     field_text = f"transactions.{source_column}"
-    if source_column == audit_schema.COMMISSION:
+    if source_column in {
+        audit_schema.COMMISSION,
+        audit_schema.PRICE,
+        audit_schema.QUANTITY,
+    }:
         change_value = rows.row_change_value(row)
         change_number = rows.number_or_none(change_value)
         change_verb = (
-            "decrease" if change_number is not None and change_number < 0 else "increase"
+            "decreased" if change_number is not None and change_number < 0 else "increased"
         )
-        transaction_amount = (
-            f"{security_id} transactions.amount"
-            if security_id
-            else "transactions.amount"
+        security_prefix = f"{security_id} " if security_id else ""
+        explanation = (
+            f"{_transaction_code_prefix(row)}{security_prefix}{field_text} "
+            f"{change_verb} by "
+            f"{_field_change_text(change_value, source_column)}."
         )
-        return (
-            f"{_transaction_code_prefix(row)}Caused {transaction_amount} "
-            f"to {change_verb} by {rows.change_amount_text(change_value)}."
-        )
-    if source_column in {audit_schema.PRICE, audit_schema.QUANTITY}:
-        change_value = rows.row_change_value(row)
-        change_number = rows.number_or_none(change_value)
-        change_verb = (
-            "decrease" if change_number is not None and change_number < 0 else "increase"
-        )
-        transaction_amount = (
-            f"{security_id} transactions.amount"
-            if security_id
-            else "transactions.amount"
-        )
-        if source_column == audit_schema.QUANTITY:
-            quantity_effect = _transaction_quantity_holding_effect(
+        if (
+            source_column == audit_schema.QUANTITY
+            and _transaction_quantity_affects_holding_value(
                 row,
                 exact_case=exact_case,
             )
-            if quantity_effect:
-                holdings_quantity = (
-                    f"{security_id} holdings.quantity"
-                    if security_id
-                    else "holdings.quantity"
-                )
-                return (
-                    f"{_transaction_code_prefix(row)}Caused {transaction_amount} "
-                    f"to {change_verb} and {holdings_quantity} to {quantity_effect}."
-                )
+        ):
+            return (
+                f"{explanation} This affects the performance calculation through "
+                "transactions.amount and holdings.market_value."
+            )
         return (
-            f"{_transaction_code_prefix(row)}Caused {transaction_amount} "
-            f"to {change_verb}."
+            f"{explanation} This affects the performance calculation through "
+            "transactions.amount."
         )
     if (
         source_column == audit_schema.AMOUNT
@@ -660,27 +679,38 @@ def _transaction_component_explanation(
     )
 
 
-def _transaction_quantity_holding_effect(
+def _field_change_text(value: object, source_column: str) -> str:
+    """Return a field-aware change amount for reviewer explanations."""
+    if source_column != audit_schema.QUANTITY:
+        return rows.change_amount_text(value)
+    number = rows.number_or_none(value)
+    if number is None:
+        return "the changed amount"
+    whole, fraction = f"{abs(number):,.6f}".rsplit(".", maxsplit=1)
+    fraction = fraction.rstrip("0").ljust(2, "0")
+    return f"{whole}.{fraction}"
+
+
+def _transaction_quantity_affects_holding_value(
     row: Mapping[str, object],
     *,
     exact_case: bool,
-) -> str:
-    """Return buy/sell holding direction for a transaction quantity row."""
+) -> bool:
+    """Return whether transaction quantity affects a long-position holding value."""
     change_number = rows.number_or_none(rows.row_change_value(row))
     if change_number is None:
-        return ""
+        return False
     transaction_code = transaction_code_matching_key(
         row.get(findings.TRANSACTION_CODE),
         exact_case=exact_case,
     )
     if transaction_code in transaction_boundary_codes("quantity_holding_neutral"):
-        return ""
+        return False
     transaction_category = row.get(findings.TRANSACTION_CATEGORY)
-    if transaction_category == TRANSACTION_CATEGORY_BUY:
-        return "decrease" if change_number < 0 else "increase"
-    if transaction_category == TRANSACTION_CATEGORY_SELL:
-        return "increase" if change_number < 0 else "decrease"
-    return ""
+    return transaction_category in {
+        TRANSACTION_CATEGORY_BUY,
+        TRANSACTION_CATEGORY_SELL,
+    }
 
 
 @cache

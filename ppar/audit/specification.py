@@ -35,12 +35,16 @@ _SNAPSHOT_B_KEY: Final[str] = "b"
 _SNAPSHOTS_KEY: Final[str] = "snapshots"
 _FILES_KEY: Final[str] = "files"
 _PATH_KEY: Final[str] = "path"
+_COLUMNS_KEY: Final[str] = "columns"
 _LABEL_KEY: Final[str] = "label"
 _SCHEMA_KEY: Final[str] = "schema"
 _SUPPORTED_SNAPSHOT_KEYS: Final[frozenset[str]] = frozenset(
     {_LABEL_KEY, _PATH_KEY, _SCHEMA_KEY}
 )
 _REQUIRED_KEY: Final[str] = "required"
+_SUPPORTED_FILE_FIELDS: Final[frozenset[str]] = frozenset(
+    {_PATH_KEY, _COLUMNS_KEY, _REQUIRED_KEY}
+)
 _COMPARISON_KEY: Final[str] = "comparison"
 _LEVEL_KEY: Final[str] = "level"
 _TOLERANCES_KEY: Final[str] = "tolerances"
@@ -57,14 +61,12 @@ _REQUIRED_TOLERANCE_KEYS: Final[frozenset[str]] = frozenset(
     }
 )
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
-_EXTRACT_CONTRACT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+_EXTRACT_CONTRACT_SUPPORTED_KEYS: Final[frozenset[str]] = frozenset(
     {
         "enforce_ambiguous_axys_flows",
         "transaction_semantics_case",
+        "path",
     }
-)
-_EXTRACT_CONTRACT_SUPPORTED_KEYS: Final[frozenset[str]] = frozenset(
-    {*_EXTRACT_CONTRACT_REQUIRED_KEYS, "path"}
 )
 _PORTFOLIO_RETURN_RECONSTRUCTION_KEY: Final[str] = "portfolio_return_reconstruction"
 _SECURITY_RETURN_RECONSTRUCTION_KEY: Final[str] = "security_return_reconstruction"
@@ -90,6 +92,9 @@ _DEFAULT_FILE_PATHS: Final[dict[str, str]] = {
     _SECURITY_REFERENCE_KEY: "secmast.csv",
 }
 _REMOVED_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
+_RETIRED_SOURCE_MAPPING_KEYS: Final[frozenset[str]] = frozenset(
+    f"{file_name}_columns" for file_name in _SUPPORTED_FILE_KEYS
+)
 PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
 SECURITY_COMPARISON_LEVEL: Final[str] = "security"
 COMPARISON_LEVELS: Final[frozenset[str]] = frozenset(
@@ -271,6 +276,7 @@ class AuditSpecification:
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
+        self._validate_retired_source_mapping_keys()
         audit_settings(self.values, required=False)
         self._validate_comparison_configuration(comparison_level)
         self._validate_tolerances_configuration()
@@ -300,6 +306,23 @@ class AuditSpecification:
             validate_data_issues_config(self.values)
         except ValueError as error:
             raise PpaError(self._error_message(str(error)), 504) from error
+
+    def _validate_retired_source_mapping_keys(self) -> None:
+        """Reject mappings retired by the nested ``files`` grammar."""
+        retired_keys = sorted(
+            _RETIRED_SOURCE_MAPPING_KEYS.intersection(self.values)
+        )
+        if not retired_keys:
+            return
+        raise PpaError(
+            self._error_message(
+                "Retired source mappings must move under "
+                "files.<dataset>.columns: "
+                + ", ".join(retired_keys)
+                + "."
+            ),
+            504,
+        )
 
     def _validate_removed_cash_configuration(self) -> None:
         """Reject the retired standalone cash-dataset policy section.
@@ -375,8 +398,10 @@ class AuditSpecification:
                 )
 
     def _validate_extract_contract_configuration(self) -> None:
-        """Require explicit source-semantics safety choices."""
+        """Validate any explicit extract-contract overrides."""
         contract = self.values.get(_EXTRACT_CONTRACT_KEY)
+        if contract is None:
+            return
         if not isinstance(contract, dict):
             raise PpaError(
                 self._error_message("extract_contract must be a mapping."),
@@ -394,17 +419,6 @@ class AuditSpecification:
                 ),
                 504,
             )
-        missing = sorted(_EXTRACT_CONTRACT_REQUIRED_KEYS - set(contract))
-        if missing:
-            raise PpaError(
-                self._error_message(
-                    "extract_contract is missing required keys: "
-                    + ", ".join(missing)
-                    + "."
-                ),
-                504,
-            )
-
     def resolve_path(self, file_path: util.PathLike) -> Path:
         """Return an absolute or comparison-YAML-relative path.
 
@@ -470,13 +484,14 @@ class AuditSpecification:
         )
 
     def _schema_path(self, key: str, schema_value: object) -> Path | None:
-        """Return a resolved schema path or ``None`` for inline schema mappings."""
-        if schema_value is None or isinstance(schema_value, dict):
+        """Return a resolved external schema path or ``None`` when omitted."""
+        if schema_value is None:
             return None
         if not isinstance(schema_value, str) or not schema_value:
             raise PpaError(
                 self._error_message(
-                    f"snapshots.{key}.schema must be a string or mapping."
+                    f"snapshots.{key}.schema must be a nonempty string path; "
+                    "inline mappings are not supported."
                 ),
                 504,
             )
@@ -745,6 +760,18 @@ class AuditSpecification:
         if isinstance(file_value, str):
             relative_path = Path(file_value)
         elif isinstance(file_value, dict):
+            unsupported_keys = sorted(
+                str(key) for key in file_value if key not in _SUPPORTED_FILE_FIELDS
+            )
+            if unsupported_keys:
+                raise PpaError(
+                    self._error_message(
+                        f"files.{file_name} has unsupported keys: "
+                        + ", ".join(unsupported_keys)
+                        + "."
+                    ),
+                    504,
+                )
             path_value = file_value.get(_PATH_KEY)
             if not isinstance(path_value, str) or not path_value:
                 raise PpaError(
@@ -769,6 +796,14 @@ class AuditSpecification:
                         504,
                     )
                 required = required_value
+            columns_value = file_value.get(_COLUMNS_KEY, {})
+            if not isinstance(columns_value, dict):
+                raise PpaError(
+                    self._error_message(
+                        f"files.{file_name}.columns must be a mapping."
+                    ),
+                    504,
+                )
             relative_path = Path(path_value)
         else:
             raise PpaError(

@@ -184,7 +184,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
             )
 
             self.assertEqual(
-                schema["security_performance_columns"]["security_id"],
+                schema["files"]["security_performance"]["columns"]["security_id"],
                 "SECURITY_ID",
             )
 

@@ -374,14 +374,13 @@ normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
 `corporate_action`. The normalized category is an explanation label and a rule
 selector; it does not replace the source transaction code in the audit trail.
 Transaction-code normalization is limited to semantic classification and
-rule-coverage checks for legacy configurations. A versioned site extract contract
-may set `extract_contract.transaction_semantics_case: exact`; transaction-rule
-keys and native `when` values then match stripped source text by exact case,
+rule-coverage checks for legacy configurations. By default, transaction-rule
+keys and native `when` values match stripped source text by exact case,
 compatibility inference from code alone is disabled, and unmatched uppercase
-codes remain unknown. Omitting the setting preserves the established
-case-insensitive behavior of existing valid configurations. Neither mode assigns
-cancellation meaning to uppercase codes. Reviewer handoff artifacts preserve
-native transaction-code case.
+codes remain unknown. A maintained site may explicitly request
+`legacy_case_insensitive` behavior. Neither mode assigns cancellation meaning to
+uppercase codes. Reviewer handoff artifacts preserve native transaction-code
+case.
 
 `cash_flow_sign` and `performance_flow_sign` are optional source-supplied
 semantics. They should not be inferred from transaction code in the first pass.
@@ -902,26 +901,34 @@ values to uppercase at the boundary.
 
 ## Configuration
 
-The existing Axys/APX column mapping configuration and the new comparison
-configuration serve different purposes and should have distinct names:
+The user-facing Audit starter keeps its shared source-column mappings and Audit
+run settings together in `ppar.yaml`. One file points at both snapshot
+directories, maps their common CSV layout, and defines the comparison policies.
+This follows the same discoverable configuration pattern as Analytics and avoids
+making ordinary users coordinate a second mapping file.
 
-- `column_mappings.yaml`: Describes how Axys/APX source columns map to
-  normalized internal column names for reusable Axys/APX datasets.
-- `performance_comparison.yaml`: Describes which snapshots and files to
-  compare, plus comparison tolerances, materiality, and suppressions.
+An advanced comparison whose snapshots use different source layouts can still
+reference a separate schema YAML from each `snapshots.*.schema` path. A
+referenced snapshot schema is a complete override for that snapshot rather than
+a partial overlay on the common mappings in `ppar.yaml`.
 
-A comparison probably needs one YAML file for the comparison run, not a separate
-YAML file inside each snapshot. The comparison YAML can point at both snapshot
-directories, define shared rules, and optionally reference vendor schema files
-such as `column_mappings.yaml`.
+Audit retains its own exact normalization layer and is not Axys/APX-only.
+Mappings can describe any supported source layout, including FX rates,
+transactions, holdings, and splits.
 
-The performance comparison feature has its own normalization/default alias
-layer. Referencing `column_mappings.yaml` is a reuse mechanism for shared
-Axys/APX datasets, not a requirement that performance comparison become
-Axys/APX-only.
-Comparison-only datasets such as FX rates, transactions, holdings,
-and cash can use performance-comparison mappings even when the referenced Axys/APX
-mapping file does not define them.
+Composite Axys/APX security identity uses normalized mapping keys, not literal
+CSV captions. A direct `files.*.columns.security_id` mapping takes precedence
+over automatic inference. When there is no direct mapping and a dataset layout
+maps both `security_type` and `security_symbol`, PPAR constructs the compact
+identity from those fields in that order with no separator. An advanced
+`security_id` section may override
+the components or separator. The component columns are temporary normalization
+inputs: PPAR constructs the existing `security_id` and does not add the
+components to reports or supporting CSV schemas. In
+`files.transactions.columns`, identity `security_type` remains distinct from
+transaction-context
+`transaction_security_type`, which is the field available to conditional
+transaction rules and native Data Issues filters.
 
 The comparison YAML should keep vendor-specific parameters minimal. Prefer
 shared, source-agnostic sections for files, tolerances, materiality, and
@@ -933,15 +940,18 @@ from Python. The user-facing `ppar audit` orchestrator explicitly selects
 `portfolio` and then `security` when the required security-performance files are
 available; the starter YAML therefore does not choose one primary level.
 Lower-level single-view calls must supply a comparison level directly or retain
-an explicit `comparison.level` in their specialized YAML. Both extract-contract
-safety choices and all eight comparison tolerances remain mandatory. When
+an explicit `comparison.level` in their specialized YAML. Extract-contract
+omission uses the packaged contract, ambiguous-flow enforcement, and exact-case
+matching. All eight comparison tolerances remain mandatory. When
 `transactions`, `holdings`, or `fx_rates` is configured, the corresponding
 transaction, holding/price, or FX impact-policy block must be complete.
 
-Snapshot mappings support `label`, `path`, and `schema`. The former snapshot
-`vendor` setting was removed because it selected no adapter or behavior;
-source-column interpretation comes from `schema`, while financial meaning comes
-from the explicit extract contract and policy sections.
+Snapshot mappings support `label`, `path`, and an optional external `schema`
+path. The former snapshot `vendor` setting was removed because it selected no
+adapter or behavior. Source-column interpretation comes from the shared mapping
+sections or an explicit external snapshot schema, while financial meaning comes
+from the extract contract and policy sections. Inline `snapshots.*.schema`
+mappings are rejected; they were never an executable mapping surface.
 
 Standard Audit filenames are defaults for datasets required by the explicitly
 selected report or configured feature. They retain normal missing-file
@@ -964,25 +974,20 @@ or anywhere else convenient.
 Path resolution should be predictable:
 
 1. Absolute paths are accepted as-is.
-2. Relative paths in `performance_comparison.yaml` resolve relative to
-   that comparison YAML file.
+2. Relative paths in `ppar.yaml` resolve relative to that Audit YAML file.
 3. Snapshot data files resolve relative to the configured snapshot directory.
-4. Relative paths inside a referenced schema YAML, such as
-   `column_mappings.yaml`, resolve relative to that schema YAML file.
+4. Relative paths inside a referenced external schema resolve relative to that
+   schema YAML file.
 
-A suggested project layout is:
+A typical project layout is:
 
 ```text
-comparisons/
-  performance_comparison.yaml
-  column_mappings.yaml
-
-snapshots/
-  2026-05-01/
+audit/
+  ppar.yaml
+  snapshot_a/
     portperf.csv
     secperf.csv
-
-  2026-05-15/
+  snapshot_b/
     portperf.csv
     secperf.csv
 ```
@@ -998,21 +1003,35 @@ snapshots:
   a:
     label: run_2026_05_01
     path: snapshots/2026-05-01
-    schema: column_mappings.yaml
 
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
-    schema: column_mappings.yaml
 
 files:
-  portfolio_performance: portperf.csv
-  security_performance: secperf.csv
-  fx_rates: fx_rates.csv
+  portfolio_performance:
+    path: portperf.csv
+    columns:
+      portfolio_code: Portfolio Code
+      from_date: From Date
+      thru_date: Thru Date
+      portfolio_return: Portfolio Return
+  security_performance:
+    path: secperf.csv
+    columns:
+      portfolio_code: Portfolio Code
+      security_symbol: Security Symbol
+      security_type: Security Type
+      from_date: From Date
+      thru_date: Thru Date
+      security_return: Security Return
+  fx_rates:
+    path: fx_rates.csv
   transactions:
     path: transactions.csv
     required: true
-  holdings: holdings.csv
+  holdings:
+    path: holdings.csv
 
 extract_contract:
   enforce_ambiguous_axys_flows: true
@@ -1075,27 +1094,23 @@ suppressions:
     reason: Known cash restatement below audit scope.
 ```
 
-If each snapshot has its own schema, the comparison YAML should allow
-snapshot-specific mappings:
+If each snapshot has its own layout, use separate external schema files:
 
 ```yaml
 snapshots:
   a:
     label: run_2026_05_01
     path: snapshots/2026-05-01
-    schema:
-      portfolio_performance_columns:
-        portfolio_code: PORT
-        portfolio_return: RETURN
+    schema: schemas/snapshot_a.yaml
 
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
-    schema:
-      portfolio_performance_columns:
-        portfolio_code: PORTFOLIO_CODE
-        portfolio_return: PORT_RETURN
+    schema: schemas/snapshot_b.yaml
 ```
+
+Each referenced file uses the same nested `files.<dataset>.columns` mappings as
+the common Audit configuration.
 
 ### Vendor Preset Design
 
@@ -1173,21 +1188,19 @@ normalized name, including case; PPAR does not guess vendor aliases.
 
 Column mappings should resolve in this order:
 
-1. Referenced source-column mapping file, such as `column_mappings.yaml`.
-2. Exact normalized field name when that schema field is omitted.
-3. Error when a required column is missing.
+1. Complete external schema referenced by that snapshot, when configured.
+2. Common `files.<dataset>.columns` mapping in the Audit `ppar.yaml` when no
+   external snapshot schema is configured.
+3. Exact normalized field name when the effective mapping omits that field.
+4. Error when a required column is missing.
 
 This makes a source contract reviewable and prevents generic headings such as
 `DATE`, `ID`, `TYPE`, or `VALUE` from being assigned a meaning implicitly.
 
-The current implementation honors explicit mappings from referenced schema YAML
-files for every supported dataset. For mapped columns, the explicit schema
-mapping is authoritative. Exact normalized names are the only fallback for
-columns not mapped in the schema file.
-
-Inline snapshot-specific schema mappings remain a future step. The current
-test fixtures use referenced source-column mapping files or exact normalized
-headers.
+The current implementation honors both common Audit mappings and explicitly
+referenced external schemas for every supported dataset. A mapped source caption
+is authoritative. Exact normalized names are the only fallback for fields not
+listed in the effective mapping.
 
 ## Suppression And Filtering
 

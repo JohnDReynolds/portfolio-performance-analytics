@@ -46,7 +46,7 @@ transaction_impact_methods:
 transaction_rules:
   rc:
     - when:
-        security_type: csus
+        transaction_security_type: csus
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: income

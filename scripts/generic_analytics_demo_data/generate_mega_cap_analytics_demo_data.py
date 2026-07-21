@@ -13,7 +13,7 @@ import pandas as pd
 from pandas.tseries.offsets import BMonthEnd
 import requests
 
-from ppar._demo_market_data import ensure_market_history
+from scripts.demo_support.market_data import ensure_market_history
 
 
 WORKSPACE: Final = Path("_demo_output") / "generic_analytics_data_generation"

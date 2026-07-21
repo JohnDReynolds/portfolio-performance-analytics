@@ -14,6 +14,9 @@ Analytics and Audit share normalized yFinance observations at
 `_demo_output/demo_market_data/yfinance_market_history.csv`. The cache retains
 Yahoo's source `Close`, a reconstructed contemporaneous close for holdings,
 adjusted close for returns, dividends, stock splits, and repair provenance.
+Shared cache loading and return reconciliation live in
+`scripts/demo_support/market_data.py`; they are checkout-maintainer tools, not
+installed PPAR runtime modules.
 Once coverage is present, ordinary demo construction is offline and does not
 download the same observations again.
 
@@ -36,19 +39,19 @@ not PPAR runtime dependencies.
 Generate candidate files:
 
 ```bash
-./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
+./.venv/bin/python -m scripts.generic_analytics_demo_data.generate_mega_cap_analytics_demo_data
 ```
 
 Validate the generated files:
 
 ```bash
-./.venv/bin/python scripts/generic_analytics_demo_data/validate_generated_analytics_demo_data.py
+./.venv/bin/python -m scripts.generic_analytics_demo_data.validate_generated_analytics_demo_data
 ```
 
 Audit longer source history when investigating coverage:
 
 ```bash
-./.venv/bin/python scripts/generic_analytics_demo_data/audit_mega_cap_history.py
+./.venv/bin/python -m scripts.generic_analytics_demo_data.audit_mega_cap_history
 ```
 
 The helpers write to:

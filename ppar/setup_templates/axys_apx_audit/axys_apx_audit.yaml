@@ -1,53 +1,49 @@
-# =================================
+# ==============================================================================
 # PPAR Axys/APX Audit Configuration
-# =================================
-# This file has been copied to your setup folder as audit/ppar.yaml.
+# ==============================================================================
+# This file has been copied to your setup directory as audit/ppar.yaml.
 #
 # The default command to run Audit is:
 #   ppar audit ./my_ppar_data/audit
 #
-# Audit has two complementary results:
-# - Performance Comparison answers: "Why did my reported performance change?"
-# - Data Issues answers: "Are there suspicious source-data inconsistencies?"
-# PPAR writes both
-# portfolio and security reports when secperf.csv is available in both snapshots.
-#
 # To customize with your own data:
 # 1. Replace the CSV files in the snapshot_a directory with your own
-#    older/original IMEX/REP files.
+#    older/original source files.
 # 2. Replace the CSV files in the snapshot_b directory with your own
-#    newer/restated IMEX/REP files.
-# 3. If snapshot folder names or filenames differ, edit snapshots.*.path or
-#    files.* below.
-# 4. If column names differ, edit column_mappings.yaml.
+#    newer/restated source files.
+# 3. If snapshot directory names differ, edit snapshots.*.path below.
+# 4. If CSV filenames or column names differ, edit files.*.path or
+#    files.*.columns below.
 # 5. Run ppar audit ./my_ppar_data/audit again and review the outputs.
 # 6. Ambiguous transaction codes must not become external flows or other
-#    financial meanings without reviewed local evidence.
-#    Leave the starter transaction rules and impact methods unchanged unless that
-#    evidence supports an override.
+#    financial meanings without reviewed local evidence. Leave the transaction
+#    rules and impact methods below unchanged unless that evidence supports an
+#    override.
 
+# ==============================================================================
+# Audit Runtime Parameters
+# ==============================================================================
 audit:
-  # Command-line values override YAML values. Every setting below has a default
-  # and may be omitted.
+  # Command-line values override the YAML values below. Every setting has a
+  # documented default and may be omitted.
 
-  # Folder that receives both portfolio and security report bundles. A YAML
-  # relative path is anchored to this audit folder; PPAR creates it when needed.
+  # Directory where the output files are written. A relative path is anchored
+  # to this audit directory; PPAR creates it when needed.
   # Default: output
   # Command-line override: --output-directory ./review_output
   output_directory: output
 
-  # Shared visible report title. Keep this null to use the standard Portfolio
-  # Audit Report and Security Audit Report titles.
-  # Default: None (use the standard level-specific titles)
+  # Optional title used for both portfolio and security reports.
+  # Default: "Portfolio Audit Report" and "Security Audit Report", respectively
   # Command-line override: --title "Quarter-end Audit"
   title: null
 
-  # Whether to write each level-specific XLSX workbook.
+  # Whether to write XLSX workbooks.
   # Default: true
   # Command-line override: --no-xlsx-output
   xlsx_output: true
 
-  # Whether to write each level-specific browser review report.
+  # Whether to write HTML reports.
   # Default: true
   # Command-line override: --no-html-output
   html_output: true
@@ -65,7 +61,8 @@ audit:
   reconstruction_diagnostics: false
 
   # Whether supporting CSV and JSON files are written individually instead of
-  # in audit_support.zip. source_detail.csv always remains at the report root.
+  # in audit_support.zip. source_detail.csv is always written at the report
+  #   root.
   # Default: false
   # Command-line override: --expand-all-supporting-files
   expand_all_supporting_files: false
@@ -77,8 +74,11 @@ audit:
   # Command-line override: --require-causal-attribution
   require_causal_attribution: false
 
+# ==============================================================================
+# Audit Snapshots
+# ==============================================================================
 snapshots:
-  # Required. A snapshot is one complete set of source CSVs.
+  # Required. A snapshot is one complete set of source CSV files.
   #
   # snapshot_a:
   #   Usually the original/older source-data extract.
@@ -90,284 +90,245 @@ snapshots:
   #   User-facing label used in reports.
   #
   # path:
-  #   Folder containing the snapshot IMEX/REP CSV files. Keep paths relative to
-  #   this YAML so the setup folder can move as one unit.
-  #
-  # schema:
-  #   Points to the explicit source-column mapping file copied with this setup.
+  #   Directory containing the snapshot CSV files. Keep paths relative to this
+  #   YAML so the setup directory can move as one unit.
   a:
     label: snapshot_a
     path: snapshot_a
-    schema: column_mappings.yaml
 
   b:
     label: snapshot_b
     path: snapshot_b
-    schema: column_mappings.yaml
 
+# ==============================================================================
+# Audit Source CSV Files
+# ==============================================================================
 files:
-  # The three labels below are deliberately narrow:
-  #   Required: needed to make Fully Explained possible in the ordinary
-  #     portfolio comparison.
-  #   Required only when applicable: needed only for the named feature or data
-  #     condition, such as security comparison, multi-currency, separately
-  #     stated accrued income, or ambiguous transaction codes.
-  #   Optional: safe to omit; its absence alone does not prevent Fully
-  #     Explained.
-  #
-  # Required datasets use the standard filenames below when their key is
-  # omitted. Genuinely optional evidence remains explicit so merely placing a
-  # file in a snapshot cannot change comparison findings or accounting policy.
-  # Override only the filenames that differ at your site.
-  #
-  # Currency naming rule:
-  #   In holdings and transactions, an unqualified monetary field is in
-  #   the row CURRENCY. A BASE_ field is the translated value in portfolio
-  #   BASE_CURRENCY. Portfolio/security performance monetary fields are
-  #   inherently in portfolio BASE_CURRENCY and therefore stay unprefixed.
-  #   FX_RATE is TO_CURRENCY units per one FROM_CURRENCY unit. Do not introduce
-  #   LOCAL_ duplicates; row currency is already the detailed-data default.
-  #   Currency codes must be three letters. Foreign countable values require
-  #   their BASE_ counterpart, and portfolio FX quotes must target the portfolio
-  #   BASE_CURRENCY.
-  #   Cash is represented only as holdings such as CASHUSD, CASHEUR, or
-  #   CASHGBP; there is no separate cash dataset.
-  #
-  # portfolio_performance:
-  #   Required fields: PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN.
-  #   Required only when applicable: BASE_CURRENCY for multi-currency work. It
-  #   is authoritative when supplied; PPAR fills missing holdings/transaction
-  #   base currency from it and rejects contradictory row values.
-  #   Optional fields: BEGIN_MV, END_MV, FLOW, INCOME, GAIN_LOSS. They are
-  #   compared when present but are not needed for Fully Explained.
-  #   Likely source: REP performance report. The current evidence does not
-  #   verify a native performance IMEX object.
-  #   Default: portperf.csv
-  portfolio_performance: portperf.csv
+  # Paths are relative to each snapshot directory. Column mappings must match
+  # the CSV headings exactly.
+  portfolio_performance:
+    # Portfolio performance CSV; required for every Audit run.
+    # Default: portperf.csv
+    # Required columns: Portfolio Code, From Date, Thru Date, Portfolio Return.
+    # Optional columns: Base Currency, Beginning Market Value, Ending Market
+    #   Value, Gain/Loss, Income, Net Flow.
+    path: portperf.csv
+    columns:
+      portfolio_code: "Portfolio Code"
+      from_date: "From Date"
+      thru_date: "Thru Date"
+      portfolio_return: "Portfolio Return"
+      base_currency: "Base Currency"
+      begin_market_value: "Beginning Market Value"
+      end_market_value: "Ending Market Value"
+      gain_loss: "Gain/Loss"
+      income: "Income"
+      flow: "Net Flow"
 
-  # security_performance:
-  #   Required only when applicable: the file is needed for security-level
-  #   comparison, with Portfolio Code, Security Symbol, Security Type, From
-  #   Date, Thru Date, and Security Return. It is not needed for portfolio-only
-  #   audit. PPAR constructs security_id by concatenating Security Type and
-  #   Security Symbol, for example csusAAPL.
-  #   Optional fields: BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, and
-  #   CONTRIBUTION. They are compared when present.
-  #   Likely source: REP security-performance or attribution report. The
-  #   current evidence does not verify a native performance IMEX object.
-  #   Default for the security report: secperf.csv. Security reporting is
-  #   skipped when it is unavailable in either snapshot.
-  security_performance: secperf.csv
+  security_performance:
+    # Security performance CSV; required for security-level Audit reports.
+    # Default: secperf.csv
+    # Required columns: Portfolio Code, Security Symbol, Security Type,
+    #   From Date, Thru Date, Security Return.
+    # Optional columns: Beginning Market Value, Beginning Weight, Contribution,
+    #   Ending Market Value, Gain/Loss, Income.
+    path: secperf.csv
+    columns:
+      portfolio_code: "Portfolio Code"
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      from_date: "From Date"
+      thru_date: "Thru Date"
+      security_return: "Security Return"
+      begin_market_value: "Beginning Market Value"
+      weight: "Beginning Weight"
+      contribution: "Contribution"
+      end_market_value: "Ending Market Value"
+      gain_loss: "Gain/Loss"
+      income: "Income"
 
-  # holdings:
-  #   Required fields: Portfolio Code, Security Symbol, Security Type, Holding
-  #   Date, and Market Value, with rows for the beginning and ending dates of
-  #   every comparison period.
-  #   Required only when applicable: CURRENCY, BASE_CURRENCY, and BASE_MKT_VAL
-  #   for multi-currency holdings; ACCRUED when it is stated separately from
-  #   MKT_VAL and affects valuation; BASE_ACCRUED when a nonzero foreign
-  #   ACCRUED value participates in Modified Dietz.
-  #   Optional fields: QTY and PRICE.
-  #   Likely source: IMEX positions/holdings export or REP appraisal report.
-  #   Default when required by configured reconstruction: holdings.csv.
-  holdings: holdings.csv
+  holdings:
+    # Holdings CSV; required for the starter's return reconstruction.
+    # Default when required by configured reconstruction: holdings.csv
+    # Required columns: Portfolio Code, Security Symbol, Security Type,
+    #   Holding Date.
+    # Optional columns: Accrued Income, Base Currency, Base Market Value,
+    #   Currency Code, Market Value, Price, Quantity.
+    path: holdings.csv
+    columns:
+      portfolio_code: "Portfolio Code"
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      holding_date: "Holding Date"
+      accrued: "Accrued Income"
+      base_currency: "Base Currency"
+      base_market_value: "Base Market Value"
+      currency: "Currency Code"
+      market_value: "Market Value"
+      price: "Price"
+      quantity: "Quantity"
 
-  # transactions:
-  #   Required fields: Portfolio Code, Transaction Date, Security Symbol,
-  #   Security Type, Transaction Code, and Amount.
-  #   Required only when applicable: Transaction Security Type,
-  #   Source/Destination Type, Source/Destination Symbol, Special Security Type,
-  #   and Special Security Symbol when ambiguous DP, LI, LO, TI, or WD codes can
-  #   appear; Currency Code, Base Currency, and Base Amount for foreign amounts.
-  #   Optional fields: SETTLE_DATE, QTY, PRICE, COMMISSION.
-  #   Likely source: IMEX transaction export. Use REP/custom output or another
-  #   reviewed source if IMEX omits the context needed for ambiguous codes.
-  #   Default when required by configured reconstruction: transactions.csv.
-  transactions: transactions.csv
+  transactions:
+    # Transactions CSV; required for the starter's return reconstruction.
+    # Default when required by configured reconstruction: transactions.csv
+    # Required columns: Portfolio Code, Security Symbol, Security Type,
+    #   Transaction Date.
+    # Optional columns: Amount, Base Amount, Base Currency, Commission, Currency
+    #   Code, Price, Quantity, Settlement Date, Source/Destination Symbol,
+    #   Source/Destination Type, Special Security Symbol, Special Security Type,
+    #   Transaction Code, Transaction Security Type.
+    path: transactions.csv
+    columns:
+      portfolio_code: "Portfolio Code"
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      transaction_date: "Transaction Date"
+      amount: "Amount"
+      base_amount: "Base Amount"
+      base_currency: "Base Currency"
+      commission: "Commission"
+      currency: "Currency Code"
+      price: "Price"
+      quantity: "Quantity"
+      settlement_date: "Settlement Date"
+      source_destination_symbol: "Source/Destination Symbol"
+      source_destination_type: "Source/Destination Type"
+      special_security_symbol: "Special Security Symbol"
+      special_security_type: "Special Security Type"
+      transaction_code: "Transaction Code"
+      transaction_security_type: "Transaction Security Type"
 
-  # security_reference:
-  #   Required only when applicable: configure this file when a Data Issues
-  #   only/exclude filter uses a security_reference.* qualifier. Security Symbol
-  #   and Security Type are required; their constructed security_id must be
-  #   unique with exact source case. Classification fields such as Asset Class
-  #   Code are optional until referenced.
-  #   Likely source: IMEX security-information export, a security-master report,
-  #   or another reviewed security-reference extract.
-  #   Default when required by a configured reference filter: secmast.csv.
-  security_reference: secmast.csv
+  security_reference:
+    # Security master CSV; required when Data Issues use reference fields.
+    # Default when required by a configured reference filter: secmast.csv
+    # Required columns: Security Symbol, Security Type.
+    # Optional columns: Asset Class Code.
+    path: secmast.csv
+    columns:
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      asset_class_code: "Asset Class Code"
 
-  # fx_rates:
-  #   Required only when applicable: to explain a changed FX rate itself, use
-  #   PORT, FROM_CURRENCY, TO_CURRENCY, RATE_DATE, FX_RATE, and LOCAL_EXPOSURE.
-  #   RATE_SOURCE and RATE_TYPE are required only when pair/date alone does not
-  #   identify one controlled series. Otherwise this entire file is optional.
-  #   Likely source: local discovery is required; use a validated REP extract,
-  #   FX/price source, or other controlled rate source.
-  #   Default: None (optional evidence must be configured explicitly).
-  fx_rates: fx_rates.csv
+  fx_rates:
+    # FX-rate CSV; optional evidence for multi-currency data.
+    # Default: None; this starter uses fx_rates.csv.
+    # Required columns: From Currency, To Currency, Rate Date, FX Rate.
+    # Optional columns: Local Exposure, Portfolio Code, Rate Source, Rate Type.
+    path: fx_rates.csv
+    columns:
+      from_currency: "From Currency"
+      to_currency: "To Currency"
+      rate_date: "Rate Date"
+      fx_rate: "FX Rate"
+      local_exposure: "Local Exposure"
+      portfolio_code: "Portfolio Code"
+      rate_source: "Rate Source"
+      rate_type: "Rate Type"
 
-  # splits:
-  #   Optional fields: Security Symbol, Security Type, Split Date, and Split
-  #   Factor. Split factors can explain a quantity change, but they do not
-  #   directly enter the current Modified Dietz explanation formula.
-  #   Likely source: split.inf or a local split-factor export; REP/custom output
-  #   only if it exposes equivalent factors.
-  #   Default: None (optional evidence must be configured explicitly).
-  splits: splits.csv
+  splits:
+    # Security-split CSV; optional evidence for split-adjusted prices.
+    # Default: None; this starter uses splits.csv.
+    # Required columns: Security Symbol, Security Type, Split Date,
+    #   Split Factor.
+    path: splits.csv
+    columns:
+      security_symbol: "Security Symbol"
+      security_type: "Security Type"
+      split_date: "Split Date"
+      split_factor: "Split Factor"
 
-# The packaged source contract is versioned and the demo rules intentionally
-# match transaction codes and native context identifiers by exact case. Existing
-# site configurations that omit this setting retain legacy case-insensitive
-# semantics until their source contract is reviewed and versioned.
-extract_contract:
-  enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: exact
 
+# ==============================================================================
+# Data Issues
+# ==============================================================================
 data_issues:
-  # Purpose:
-  #   Writes the "Data Issues" worksheet. These checks are independent
-  #   consistency checks across the union of Snapshot A and Snapshot B. They do
-  #   not change Performance Difference Explained and they are not Source Detail
-  #   rows.
-  #   Prior-ending/next-beginning market-value continuity is a mandatory safety
-  #   check and remains visible even if optional checks below are disabled.
-  #
-  # Review philosophy:
-  #   Start narrow. Add only/exclude filters and tolerances before using broad
-  #   checks on production extracts. The demo below intentionally focuses on a
-  #   few securities so the worksheet remains readable.
-  #
-  # Filtering:
-  #   Established issue types are on by default. Conservative opt-in checks
-  #   explicitly say so below and require a narrow only population. Set
-  #   enabled: false under an established check to turn it off. Use only/exclude
-  #   for simple exact-match filters. Field names may be common names such as
-  #   security_id and portfolio_id, or dataset.field names such as
-  #   holdings.security_type and transactions.transaction_code.
+  # Whether to report optional Data Issues checks.
+  # Default: true. Mandatory continuity checks always run.
   enabled: true
 
   holdings_nonpositive_price:
-    # Flags a nonzero holding with a zero or negative price. Product default:
-    # disabled. This starter enables a narrowly scoped demo population.
-    # Worthless securities, cash, accrued-only rows, shorts, derivatives, and
-    # site-specific valuation conventions can be legitimate exclusions. The
-    # fixed condition does not accept tolerance settings.
+    # Flags a nonzero holding with a zero or negative price.
+    # Default: disabled. This starter enables a filtered example.
     enabled: true
     only:
-      security_id:
-        - csusMSFT
-      security_reference.asset_class_code: EQ
+      security_reference.security_type: csus
 
   holdings_price_range:
-    # Checks same-day same-security holdings.price values across portfolios.
-    # Closing/as-of holdings prices should usually match tightly unless the
-    # extract intentionally includes portfolio-specific valuation overrides.
+    # Flags same-day holding prices that differ across portfolios.
+    # Default: enabled. This starter limits the check to common stock.
     enabled: true
     only:
-      security_id:
-        - csusAAPL
+      security_reference.security_type: csus
     absolute_tolerance: 0.01
     percent_tolerance: 0.05
 
   holdings_stale_price:
-    # Flags the same positive price observed across supplied holding dates for
-    # at least the configured number of calendar days. It does not claim PPAR
-    # observed every intervening market day. The demo preserves the real GOOGL
-    # market-value baseline but injects its 2025-12-31 price into ALPHA's
-    # 2026-01-30 PRICE field in both snapshots as an isolated source anomaly.
+    # Flags a positive holding price repeated for the configured number of days.
+    # Default: disabled. This starter enables a common-stock example.
     enabled: true
     only:
-      security_id:
-        - csusGOOGL
       security_reference.security_type: csus
     minimum_calendar_days: 28
 
   large_price_variation:
-    # Combines beginning/end boundary holdings prices with eligible intra-period
-    # transaction prices, split-normalizes them to the period-ending share
-    # basis, and reports one maximum variation per rule/security/period. Rules
-    # are independently identified so overlapping populations remain visible.
-    # This demo rule uses the real AVGO observations and a configured 20 percent
-    # decimal tolerance. Transaction-code filtering applies only to transaction
-    # observations; the two boundary holdings observations remain eligible.
+    # Flags split-adjusted price variation within one portfolio period.
+    # Default: disabled. This starter enables a common-stock example.
     enabled: true
     rules:
-      - rule_id: common_stock_20_percent
+      - rule_id: common_stock_30_percent
         only:
-          security_id:
-            - csusAVGO
           transactions.transaction_code:
             - by
             - sl
           security_reference.security_type: csus
         minimum_calendar_days: 1
-        minimum_tolerance: 0.20
+        minimum_tolerance: 0.30
 
   transactions_price_range:
-    # Checks same-day same-security transactions.price values across
-    # portfolios. Intraday trades can naturally occur at different prices, so
-    # this tolerance is normally wider than the holdings.price tolerance.
+    # Flags same-day transaction prices that differ across portfolios.
+    # Default: enabled. This starter limits the check to common-stock purchases.
     enabled: true
     only:
-      security_id:
-        - csusAAPL
       transactions.transaction_code:
         - by
+      security_reference.security_type: csus
     absolute_tolerance: 0.01
     percent_tolerance: 0.05
 
   transactions_nonpositive_price:
-    # Flags a nonzero-quantity transaction with a zero or negative price.
-    # Product default: disabled. This starter enables a narrowly scoped demo
-    # population. It does not infer that a transaction code is universally
-    # price-bearing. The fixed condition does not accept tolerance settings.
+    # Flags a nonzero-quantity transaction with a nonpositive price.
+    # Default: disabled. This starter enables a filtered purchase example.
     enabled: true
     only:
-      security_id:
-        - csusKO
       transactions.transaction_code:
         - by
       security_reference.security_type: csus
 
   transaction_security_type_mismatch:
-    # Compares the transaction row's exact-case security type with the reviewed
-    # snapshot security reference. The demo's uppercase CSUS value differs only
-    # by case; PPAR reports both values without choosing which one is correct.
-    # Product default: disabled. This starter enables an explicit reference-type
-    # demo population. The check does not accept tolerance settings.
+    # Flags a transaction security type that differs from the security master.
+    # Default: disabled. This starter enables a common-stock example.
     enabled: true
     only:
-      security_id:
-        - csusKO
       security_reference.security_type: csus
 
   deliver_in_original_cost_incomplete:
-    # Optional site-specific example. The primary demo deliberately omits the
-    # original-cost amount/date input columns because Performance Comparison
-    # does not require them. Before enabling this check, add both columns to
-    # both snapshot transaction extracts. The check does not classify ti from
-    # code alone, calculate cost basis, or conclude that Axys used a fallback.
+    # Flags missing original cost or cost date in a deliver-in population.
+    # Default: disabled. Both original-cost columns are needed when enabled.
     enabled: false
     only:
       transactions.transaction_code: ti
-      transactions.security_type: csus
+      transactions.transaction_security_type: csus
       transactions.source_destination_type: $pty
       transactions.source_destination_symbol: external_delivery
 
   duplicate_transactions:
-    # Checks exact duplicate transaction rows. This is a simple source-data
-    # hygiene check: the same portfolio, date, security, code, amount,
-    # quantity, and price should not usually appear more than once unless the
-    # extract has another durable identifier proving they are separate events.
+    # Flags exact duplicate transaction rows within a snapshot.
+    # Default: enabled.
     enabled: true
-    only:
-      security_id:
-        - csusKO
 
   dividend_rate:
-    # Checks same-day same-security dividend amount per share across
-    # portfolios. When transactions.quantity is blank or zero, PPAR uses the
-    # next same-portfolio holdings.quantity on or after the dividend date.
+    # Flags same-day dividend rates that differ across portfolios.
+    # Default: enabled. This starter targets its JPM dividend scenario.
     enabled: true
     only:
       security_id:
@@ -376,32 +337,25 @@ data_issues:
     percent_tolerance: 0.5
 
   missing_dividend:
-    # Flags a portfolio that appears to hold a stock through a dividend date
-    # while another portfolio has a same-day dividend for that stock. The rule
-    # is intentionally conservative: the portfolio must have a positive
-    # beginning-period quantity or positive buy activity before the dividend
-    # date, and it must have no pre-dividend transaction activity other than
-    # buys.
+    # Flags an eligible holding that may be missing a dividend transaction.
+    # Default: enabled. This starter targets its AAPL dividend scenario.
     enabled: true
     only:
       security_id:
         - csusAAPL
 
   pa_sa_rate:
-    # Checks same-day same-security purchase-accrued/sale-accrued rates across
-    # portfolios. As with dividends, PPAR uses transaction quantity when
-    # available and otherwise falls back to holdings quantity.
+    # Flags purchase/sale accrued rates that differ across portfolios.
+    # Default: enabled. This starter limits the check to fixed income.
     enabled: true
     only:
-      security_id:
-        - fius91282Y5Y1
       security_reference.asset_class_code: FI
     absolute_tolerance: 0.000001
     percent_tolerance: 0.5
 
   holdings_accrued_rate:
-    # Checks same-day same-security holdings.accrued per unit. Use a small
-    # tolerance because real extracts often carry harmless fractional rounding.
+    # Flags same-day accrued-income rates that differ across portfolios.
+    # Default: enabled. This starter targets one reviewed fixed-income issue.
     enabled: true
     only:
       security_id:
@@ -410,126 +364,119 @@ data_issues:
     absolute_tolerance: 0.00001
     percent_tolerance: 0.5
 
+# ==============================================================================
+# Portfolio Return Reconstruction
+# ==============================================================================
 portfolio_return_reconstruction:
-  # Purpose:
-  #   Defines how PPAR reconstructs portfolio returns from source data. This is
-  #   the mathematical basis for deciding whether a source-data change explains
-  #   a reported portfolio return change.
-  #
-  # Method:
-  #   modified_dietz is the supported onboarding method. It uses beginning
-  #   value, ending value, and weighted external flows.
-  #
-  # Source choices:
-  #   beginning_value_source and ending_value_source normally stay holdings.
-  #   flow_source normally stays transactions.
-  #
-  # Timing:
-  #   flow_timing names the transaction date field used to weight external
-  #   flows. day_count actual_days means calendar-day weighting. inclusion_rule
-  #   beginning_of_day means a flow on the first day receives full-period
-  #   weighting.
-  #
-  # Categories:
-  #   flow_categories are transaction categories treated as investor external
-  #   flows. income_categories are performance-impacting but not investor
-  #   external flows.
-  #
-  # Sign convention:
-  #   signed_amount means cash-flow direction is expressed by the signed
-  #   transaction amount after transaction_rules are applied.
+  # Return formula used to reconstruct portfolio performance.
+  # Required. Supported value: modified_dietz.
   method: modified_dietz
+
+  # Dataset supplying beginning values.
+  # Required. Supported value: holdings.
   beginning_value_source: holdings
+
+  # Dataset supplying ending values.
+  # Required. Supported value: holdings.
   ending_value_source: holdings
+
+  # Dataset supplying external flows and income.
+  # Required. Supported value: transactions.
   flow_source: transactions
+
+  # Transaction date used for flow weighting.
+  # Required. Supported value: transaction_date.
   flow_timing: transaction_date
+
+  # Day-count convention used for flow weighting.
+  # Required. Supported value: actual_days.
   day_count: actual_days
+
+  # Timing assigned to a flow on its transaction date.
+  # Required. Supported value: beginning_of_day.
   inclusion_rule: beginning_of_day
+
+  # Transaction categories treated as portfolio external flows.
+  # Required. Supported starter value: external_flow.
   flow_categories:
     - external_flow
+
+  # Transaction categories treated as portfolio income or expense.
+  # Required. Supported starter values: income, fee_expense.
   income_categories:
     - income
     - fee_expense
+
+  # Whether reconstructed returns are net or gross.
+  # Required. Supported starter value: net.
   return_basis: net
+
+  # How transaction amounts express cash-flow direction.
+  # Required. Supported value: signed_amount.
   sign_convention: signed_amount
 
+
+# ==============================================================================
+# Security Return Reconstruction
+# ==============================================================================
 security_return_reconstruction:
-  # Purpose:
-  #   Defines security-level return reconstruction when secperf.csv is present.
-  #
-  # Important distinction:
-  #   Buys and sells are security-level flows because they change capital
-  #   allocated to a security. They are not portfolio-level investor external
-  #   flows.
-  #
-  # Keep this section aligned with portfolio_return_reconstruction unless your
-  # site has reviewed evidence that security-level reporting uses different
-  # timing or day-count rules.
+  # Return formula used to reconstruct security performance.
+  # Required for security reconstruction. Supported value: modified_dietz.
   method: modified_dietz
+
+  # Dataset supplying beginning values.
+  # Required. Supported value: holdings.
   beginning_value_source: holdings
+
+  # Dataset supplying ending values.
+  # Required. Supported value: holdings.
   ending_value_source: holdings
+
+  # Dataset supplying security flows and income.
+  # Required. Supported value: transactions.
   flow_source: transactions
+
+  # Transaction date used for flow weighting.
+  # Required. Supported value: transaction_date.
   flow_timing: transaction_date
+
+  # Day-count convention used for flow weighting.
+  # Required. Supported value: actual_days.
   day_count: actual_days
+
+  # Timing assigned to a flow on its transaction date.
+  # Required. Supported value: beginning_of_day.
   inclusion_rule: beginning_of_day
+
+  # Transaction categories treated as security-level flows.
+  # Required. Supported starter values: buy, sell.
   flow_categories:
     - buy
     - sell
+
+  # Transaction categories treated as security income or expense.
+  # Required. Supported starter values: income, fee_expense.
   income_categories:
     - income
     - fee_expense
+
+  # Whether reconstructed returns are net or gross.
+  # Required. Supported starter value: net.
   return_basis: net
+
+  # How transaction amounts express cash-flow direction.
+  # Required. Supported value: signed_amount.
   sign_convention: signed_amount
 
+# ==============================================================================
+# Transaction Rules
+# ==============================================================================
 transaction_rules:
-  # Purpose:
-  #   Maps Axys/APX transaction codes to performance-comparison categories.
-  #   This is usually the most site-specific part of onboarding.
-  #
-  # How to read one rule:
-  #   transaction_category tells PPAR what the row means.
-  #   cash_flow_sign tells PPAR whether the amount is positive, negative, none,
-  #   or already signed.
-  #   performance_flow_sign tells PPAR whether the row is an external flow,
-  #   performance-impacting activity, or neutral context.
-  #
-  # Common transaction_category values:
-  #   buy, sell, income, fee_expense, external_flow, transfer,
-  #   corporate_action.
-  #
-  # Common cash_flow_sign values:
-  #   positive, negative, none.
-  #
-  # Common performance_flow_sign values:
-  #   external, performance, neutral.
-  #
-  # Conditional rules:
-  #   A code can have multiple rules with when: clauses. PPAR uses context such
-  #   as security type, special-security fields, source/destination type, or
-  #   cash security identifiers to avoid overclassifying ambiguous codes.
-  #
-  # Site onboarding rule:
-  #   Add site overrides only after validation shows an observed code that needs
-  #   treatment and the source data proves how that code affects Modified Dietz
-  #   inputs.
-  #
-  # Starter transaction coverage:
-  #   by, sl, dv, and in are the common first-pass rules. dp, li, lo, and wd
-  #   require the context shown below before PPAR treats them as fees,
-  #   transfers, or external flows. pa and sa require fixed-income context. rc
-  #   requires explicit return-of-capital context. pd requires amortizing
-  #   fixed-income/MBS/ABS principal-paydown context and is modeled as a
-  #   security-level principal flow, not an investor external flow.
-  #   ai requires the packaged margin/security context. ti requires the cited
-  #   deliver-in workflow plus external-party and equity-security context.
-  #   ss and cs are included only for the controlled synthetic short-side demo.
-  #   The demo assumes lowercase ss/cs, real equity prices, no client external
-  #   flow, and cash/proceeds treatment visible in the source rows. Production
-  #   sites should confirm local short-cash and position-sign conventions before
-  #   relying on these rules.
-  #   Keep ";" as a defensive corporate-action/journal guardrail.
-  #   Override it only when a real event and reviewed local policy support a
-  #   more specific treatment.
+  # Maps exact transaction codes to reviewed financial meanings.
+  # Default: no internal code meanings; every supported meaning appears here.
+  # Each rule specifies category, cash-flow sign, and performance-flow sign.
+  # A conditional rule applies only when every field under when: matches.
+  # Do not add or broaden a rule without reviewed local source evidence.
   by:
     transaction_category: buy
     cash_flow_sign: negative
@@ -540,7 +487,7 @@ transaction_rules:
     performance_flow_sign: performance
   ss:
     - when:
-        security_type: csus
+        transaction_security_type: csus
         source_destination_type: awus
         source_destination_symbol: none
       transaction_category: sell
@@ -548,7 +495,7 @@ transaction_rules:
       performance_flow_sign: performance
   cs:
     - when:
-        security_type: csus
+        transaction_security_type: csus
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: buy
@@ -558,9 +505,7 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
-  # Net-of-fees assumption: fee changes are performance-impacting only when the
-  # reported returns are net of fees. If your site reports gross-of-fees returns,
-  # review this rule before relying on fee_expense treatment.
+  # Fee expense; appropriate when reported returns are net of fees.
   dp:
     - when:
         special_security_type: exus
@@ -575,11 +520,9 @@ transaction_rules:
       cash_flow_sign: negative
       performance_flow_sign: performance
   ai:
-    # Margin interest is performance expense only with the reviewed margin
-    # security and source context used by this site-scoped demo. Code-only ai
-    # remains unknown.
+    # Margin interest; code-only ai remains unsupported.
     - when:
-        security_type: caus
+        transaction_security_type: caus
         source_destination_type: $pth
         source_destination_symbol: $cash
         special_security_type: caus
@@ -592,57 +535,44 @@ transaction_rules:
     cash_flow_sign: positive
     performance_flow_sign: performance
   rc:
-    # Return of capital is included only with an equity security type and the
-    # documented portfolio-cash destination context. The public translation
-    # row leaves Special Security Type / Symbol blank. Do not promote code-only
-    # rc rows; native cost-basis handling remains outside Modified Dietz.
+    # Return of capital; code-only rc remains unsupported.
     - when:
-        security_type: csus
+        transaction_security_type: csus
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: income
       cash_flow_sign: positive
       performance_flow_sign: performance
     - when:
-        security_type: csus
+        transaction_security_type: csus
       transaction_category: corporate_action
       cash_flow_sign: none
       performance_flow_sign: neutral
   pd:
-    # Principal paydown is included only with amortizing security context and
-    # portfolio cash destination evidence. The public translation row leaves
-    # Special Security Type / Symbol blank. The existing security-level
-    # reconstruction engine treats this as a sell-like principal flow because
-    # principal leaves the security and cash returns to the portfolio. Do not
-    # promote code-only pd rows; quantity may be zero or unchanged.
+    # Principal paydown; code-only pd remains unsupported.
     - when:
-        security_type: fius
+        transaction_security_type: fius
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: sell
       cash_flow_sign: positive
       performance_flow_sign: performance
   pa:
-    # Purchase accrued interest is a fixed-income trade adjunct, not an
-    # investor external flow. Use this only when the transaction row has
-    # explicit bond/fixed-income context.
+    # Purchase accrued interest; requires fixed-income context.
     - when:
-        security_type: fius
+        transaction_security_type: fius
       transaction_category: fee_expense
       cash_flow_sign: negative
       performance_flow_sign: performance
   sa:
-    # Sale accrued interest is a fixed-income trade adjunct, not an investor
-    # external flow. Use this only when the transaction row has explicit
-    # bond/fixed-income context.
+    # Sale accrued interest; requires fixed-income context.
     - when:
-        security_type: fius
+        transaction_security_type: fius
       transaction_category: income
       cash_flow_sign: positive
       performance_flow_sign: performance
   li:
-    # Long-in is external only with reviewed external-party context; internal
-    # account movement remains neutral transfer.
+    # Long-in; external-party and internal-account contexts remain distinct.
     - when:
         source_destination_type: $pty
       transaction_category: external_flow
@@ -654,19 +584,16 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
   ti:
-    # This rule models one cited deliver-in workflow, not universal ti
-    # semantics. External treatment requires both external-party and equity
-    # security context; other ti rows remain unknown pending local review.
+    # Deliver-in; code-only ti remains unsupported.
     - when:
-        security_type: csus
+        transaction_security_type: csus
         source_destination_type: $pty
         source_destination_symbol: external_delivery
       transaction_category: external_flow
       cash_flow_sign: positive
       performance_flow_sign: external
   lo:
-    # Long-out is external only with reviewed external-party context; internal
-    # account movement remains neutral transfer.
+    # Long-out; external-party and internal-account contexts remain distinct.
     - when:
         source_destination_type: $pty
       transaction_category: external_flow
@@ -678,16 +605,12 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
   ";":
-    # Reserved corporate-action/journal marker. Normal Axys split evidence is
-    # better modeled through the separate splits.csv factor extract. Use this
-    # only when a local site or conversion process materializes corporate-action
-    # markers in transaction rows.
+    # Reserved corporate-action or journal marker.
     transaction_category: corporate_action
     cash_flow_sign: none
     performance_flow_sign: neutral
   wd:
-    # Withdrawal is external only for a cash row with reviewed external-party
-    # context; sweep-like rows remain neutral transfer.
+    # Withdrawal; external cash and internal sweep contexts remain distinct.
     - when:
         security_id: causCASHUSD
         source_destination_type: $pty
@@ -701,22 +624,12 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
 
+# ==============================================================================
+# Transaction Impact Methods
+# ==============================================================================
 transaction_impact_methods:
-  # Purpose:
-  #   Explains how changed transaction rows are converted into basis-point
-  #   performance impact rows in the report.
-  #
-  # external_flow:
-  #   Uses Modified Dietz weighting because investor external flows change the
-  #   return denominator.
-  #
-  # performance:
-  #   Uses transaction amount delta over the return denominator for items such
-  #   as income and fee expense.
-  #
-  # double_count_policy cross_check_only:
-  #   Keeps flow rows available for review without double-counting the same
-  #   source-data change as multiple additive causes.
+  # Converts changed external flows into estimated performance impact.
+  # Required when transactions are configured.
   external_flow:
     method: modified_dietz
     flow_timing: trade_date
@@ -724,57 +637,93 @@ transaction_impact_methods:
     inclusion_rule: beginning_of_day
     denominator_source: begin_market_value
     double_count_policy: cross_check_only
+
+  # Converts changed income and expense amounts into performance impact.
+  # Required when transactions are configured.
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value
+
+  # Keeps changed transaction quantities as review evidence.
+  # Required when transactions are configured.
   quantity:
     method: evidence_only
+
+  # Keeps changed transaction prices as review evidence.
+  # Required when transactions are configured.
   price:
     method: evidence_only
+
+  # Keeps changed commissions as review evidence.
+  # Required when transactions are configured.
   commission:
     method: evidence_only
 
+
+# ==============================================================================
+# Security Return Impact Methods
+# ==============================================================================
 security_return_impact_methods:
-  # Purpose:
-  #   Explains changed security-level transaction rows when security reports are
-  #   generated. For security Modified Dietz, buys and sells are treated as
-  #   security-level flows using transaction dates.
+  # Converts changed security transactions into estimated return impact.
+  # Required for transaction-based security explanations.
   transactions:
     method: modified_dietz
     flow_timing: transaction_date
     day_count: actual_days
     inclusion_rule: beginning_of_day
 
+
+# ==============================================================================
+# Holding Impact Methods
+# ==============================================================================
 holding_impact_methods:
-  # Explicit policies replace formerly implicit calculation defaults.
+  # Converts changed holding values into estimated performance impact.
+  # Required when holdings are configured.
   market_value:
     method: market_value_delta_over_return_denominator
     denominator_source: begin_market_value
+
+  # Converts changed accrued income into estimated performance impact.
+  # Required when holdings are configured.
   accrued:
     method: accrued_delta_over_return_denominator
     denominator_source: begin_market_value
+
+  # Converts changed quantity into estimated performance impact.
+  # Required when holdings are configured.
   quantity:
     method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
     denominator_source: begin_market_value
+
+  # Keeps changed cost as review evidence.
+  # Required when holdings are configured.
   cost:
     method: evidence_only
 
+
+# ==============================================================================
+# Price Impact Methods
+# ==============================================================================
 price_impact_methods:
+  # Converts changed holding prices into estimated performance impact.
+  # Required when holdings are configured.
   price:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
 
+
+# ==============================================================================
+# Supporting-Evidence Impact Methods
+# ==============================================================================
 fx_rate_impact_methods:
+  # Keeps changed FX rates as review evidence.
+  # Required when FX rates are configured.
   fx_rate:
     method: evidence_only
 
 evidence_only_impact_methods:
-  # Purpose:
-  #   Names source-data fields that are intentionally review context, not
-  #   additive Modified Dietz causes. Split factors explain why holdings
-  #   quantities changed, but the actual performance input remains the ending
-  #   holding value. FX rates support changed base-currency values; the changed
-  #   holdings.base_market_value or transactions.base_amount row is counted.
+  # Source fields shown as evidence without adding estimated performance impact.
+  # Required for each configured evidence-only dataset.
   splits:
     method: evidence_only
     source_fields:
@@ -784,13 +733,14 @@ evidence_only_impact_methods:
     source_fields:
       - fx_rate
 
+
+# ==============================================================================
+# Comparison Tolerances
+# ==============================================================================
 tolerances:
-  # Purpose:
-  #   Suppresses immaterial rounding noise. Tighten only if your extracts are
-  #   consistently more precise; loosen only when source-system rounding creates
-  #   harmless noise.
-  #
-  # return/contribution/weight are decimal units. market_value is currency units.
+  # Minimum differences reported by Audit.
+  # All values are required. Return, contribution, and weight use decimals;
+  #   market value uses currency units.
   return: 0.000001
   contribution: 0.000001
   weight: 0.000001

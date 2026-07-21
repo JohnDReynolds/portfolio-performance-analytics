@@ -75,10 +75,10 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         self._specification = AxysSpecification(self.specifications_path, self._error_message)
         self.specifications: dict[str, Any] = self._specification.values
         self.portfolio_performance_path = self._specification.performance_path(
-            portfolio_performance_path, "portfolio_performance_path"
+            portfolio_performance_path, "portfolio_performance"
         )
         self.security_performance_path = self._specification.performance_path(
-            security_performance_path, "security_performance_path"
+            security_performance_path, "security_performance"
         )
         self._classification_loader = AxysClassificationSourceLoader(
             self._specification,

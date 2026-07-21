@@ -46,13 +46,13 @@ transaction_impact_methods:
 transaction_rules:
   ss:
     - when:
-        security_type: short
+        transaction_security_type: short
       transaction_category: sell
       cash_flow_sign: positive
       performance_flow_sign: performance
   cs:
     - when:
-        security_type: short
+        transaction_security_type: short
       transaction_category: buy
       cash_flow_sign: negative
       performance_flow_sign: performance

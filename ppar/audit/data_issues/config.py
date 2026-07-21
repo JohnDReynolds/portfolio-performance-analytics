@@ -39,7 +39,7 @@ _FILTER_FIELD_ALIASES: Final[frozenset[str]] = frozenset(
         "portfolio_id",
         "security",
         "security_id",
-        "security_type",
+        "transaction_security_type",
         "asset_class",
         "transaction_code",
         "source_destination_type",
@@ -49,7 +49,7 @@ _FILTER_FIELD_ALIASES: Final[frozenset[str]] = frozenset(
 _DELIVER_IN_POPULATION_FIELDS: Final[frozenset[str]] = frozenset(
     {
         "transaction_code",
-        "security_type",
+        "transaction_security_type",
         "source_destination_type",
         "source_destination_symbol",
     }

@@ -10,7 +10,7 @@ from typing import Final
 
 import pandas as pd
 
-from ppar._demo_market_data import price_on_or_before
+from scripts.demo_support.market_data import price_on_or_before
 
 
 _BASE_MARKET_VALUE: Final = 1_000_000.0

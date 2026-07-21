@@ -13,8 +13,9 @@ from pathlib import Path
 from typing import Final
 
 import pandas as pd
+import yaml
 
-from ppar._demo_market_data import (
+from scripts.demo_support.market_data import (
     RETURN_FAILURE_TOLERANCE,
     RETURN_WARNING_TOLERANCE,
     adjusted_period_return,
@@ -22,7 +23,7 @@ from ppar._demo_market_data import (
     price_on_or_before,
     reconcile_total_returns,
 )
-from ppar._demo_operational_holdings import build_operational_holdings
+from scripts.operational_demo_data.holdings import build_operational_holdings
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_SOURCE_PATH: Final = (
@@ -47,12 +48,21 @@ _DEFAULT_OUTPUT_DIRECTORY: Final = (
 _DEFAULT_MARKET_HISTORY_PATH: Final = (
     _REPO_ROOT / "_demo_output" / "demo_market_data" / "yfinance_market_history.csv"
 )
-_AXYS_SCHEMA_PATH: Final = (
+_AXYS_AUDIT_CONFIGURATION_PATH: Final = (
     _REPO_ROOT
     / "ppar"
     / "setup_templates"
     / "axys_apx_audit"
-    / "column_mappings.yaml"
+    / "axys_apx_audit.yaml"
+)
+_AXYS_SCHEMA_KEYS: Final = (
+    "portfolio_performance",
+    "security_performance",
+    "security_reference",
+    "holdings",
+    "transactions",
+    "splits",
+    "fx_rates",
 )
 _PORTFOLIOS: Final = (
     ("ALPHA", "Mega-Cap Alpha", 0.04),
@@ -711,7 +721,7 @@ def write_outputs(
     performance.to_csv(source_path, index=False)
     paths["source_performance"] = str(source_path)
     schema_path = output_directory / "column_mappings.yaml"
-    schema_path.write_text(_AXYS_SCHEMA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    schema_path.write_text(_packaged_axys_schema_text(), encoding="utf-8")
     paths["axys_schema"] = str(schema_path)
     for snapshot_name, frames in (("axys_a", snapshot_a), ("axys_b", snapshot_b)):
         snapshot_directory = output_directory / snapshot_name
@@ -724,6 +734,33 @@ def write_outputs(
     comparison_yaml_path.write_text(_comparison_yaml(), encoding="utf-8")
     paths["comparison_yaml"] = str(comparison_yaml_path)
     return paths
+
+
+def _packaged_axys_schema_text() -> str:
+    """Return reusable schema sections from the packaged Audit starter."""
+    values = yaml.safe_load(
+        _AXYS_AUDIT_CONFIGURATION_PATH.read_text(encoding="utf-8")
+    )
+    if not isinstance(values, dict):
+        raise ValueError("Packaged Audit configuration must be a mapping.")
+    files = values.get("files")
+    if not isinstance(files, dict):
+        raise ValueError("Packaged Audit configuration files must be a mapping.")
+    missing_keys = [key for key in _AXYS_SCHEMA_KEYS if key not in files]
+    if missing_keys:
+        raise ValueError(
+            f"Packaged Audit configuration is missing schema keys: {missing_keys}"
+        )
+    schema_files: dict[str, object] = {}
+    for key in _AXYS_SCHEMA_KEYS:
+        definition = files[key]
+        if not isinstance(definition, dict) or "columns" not in definition:
+            raise ValueError(
+                f"Packaged Audit configuration files.{key}.columns is required."
+            )
+        schema_files[key] = {"columns": definition["columns"]}
+    schema = {"files": schema_files}
+    return yaml.safe_dump(schema, sort_keys=False)
 
 
 def _with_common_axys_headers(name: str, frame: pd.DataFrame) -> pd.DataFrame:

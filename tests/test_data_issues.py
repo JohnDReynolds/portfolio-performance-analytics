@@ -235,8 +235,8 @@ class TestDataIssues(unittest.TestCase):
             {dt.date(2026, 1, 30)},
         )
 
-    def test_packaged_demo_reports_real_avgo_large_price_variations(self) -> None:
-        """The packaged named rule reports real AVGO period observations."""
+    def test_packaged_demo_reports_common_stock_large_price_variations(self) -> None:
+        """The packaged population rule includes real AVGO observations."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
@@ -250,32 +250,41 @@ class TestDataIssues(unittest.TestCase):
             == data_issues.ISSUE_LARGE_PRICE_VARIATION
         )
 
-        self.assertEqual(issues.height, 6)
+        self.assertEqual(issues.height, 15)
+        self.assertTrue(
+            all(
+                security_id.startswith("csus")
+                for security_id in issues.get_column(pc_cols.SECURITY_ID)
+            )
+        )
+        avgo = issues.filter(pl.col(pc_cols.SECURITY_ID) == "csusAVGO")
+        self.assertEqual(avgo.height, 4)
         self.assertEqual(
-            set(issues.get_column(data_issues.SNAPSHOT).to_list()),
+            set(avgo.get_column(data_issues.SNAPSHOT).to_list()),
             {"Snapshot A", "Snapshot B"},
         )
         self.assertEqual(
-            set(issues.get_column(pc_cols.SECURITY_ID).to_list()),
+            set(avgo.get_column(pc_cols.SECURITY_ID).to_list()),
             {"csusAVGO"},
         )
-        balanced = issues.filter(
-            pl.col(pc_cols.PORTFOLIO_ID) == "BALANCED"
-        )
-        self.assertEqual(balanced.height, 2)
         self.assertEqual(
-            set(balanced.get_column(data_issues.VALUE_A).to_list()),
+            set(avgo.get_column(pc_cols.PORTFOLIO_ID).to_list()),
+            {"ALPHA", "INCOME"},
+        )
+        self.assertEqual(
+            set(avgo.get_column(data_issues.VALUE_A).to_list()),
             {309.51},
         )
         self.assertEqual(
-            set(balanced.get_column(data_issues.VALUE_B).to_list()),
-            {371.55},
+            set(avgo.get_column(data_issues.VALUE_B).to_list()),
+            {417.43},
         )
         self.assertTrue(
             all(
-                "20.04% maximum price variation" in explanation
-                and "10 calendar days" in explanation
-                for explanation in balanced.get_column(data_issues.EXPLANATION)
+                "common_stock_30_percent" in explanation
+                and "34.87% maximum price variation" in explanation
+                and "30 calendar days" in explanation
+                for explanation in avgo.get_column(data_issues.EXPLANATION)
             )
         )
 
@@ -386,7 +395,7 @@ class TestDataIssues(unittest.TestCase):
                 transaction_rules:
                   pa:
                     - when:
-                        security_type: fius
+                        transaction_security_type: fius
                       transaction_category: fee_expense
                       cash_flow_sign: negative
                       performance_flow_sign: performance
@@ -898,7 +907,7 @@ class TestDataIssues(unittest.TestCase):
                 transaction_rules:
                   ti:
                     when:
-                      security_type: csus
+                      transaction_security_type: csus
                       source_destination_type: $pty
                       source_destination_symbol: external_delivery
                     transaction_category: external_flow
@@ -911,7 +920,7 @@ class TestDataIssues(unittest.TestCase):
                     enabled: true
                     only:
                       transaction_code: ti
-                      security_type: csus
+                      transaction_security_type: csus
                       source_destination_type: $pty
                       source_destination_symbol: external_delivery
                 """,
@@ -989,7 +998,7 @@ class TestDataIssues(unittest.TestCase):
                 transaction_rules:
                   ti:
                     when:
-                      security_type: csus
+                      transaction_security_type: csus
                       source_destination_type: $pty
                       source_destination_symbol: external_delivery
                     transaction_category: external_flow
@@ -1002,7 +1011,7 @@ class TestDataIssues(unittest.TestCase):
                     enabled: true
                     only:
                       transaction_code: ti
-                      security_type: csus
+                      transaction_security_type: csus
                       source_destination_type: $pty
                       source_destination_symbol: external_delivery
                 """,
@@ -1027,7 +1036,7 @@ class TestDataIssues(unittest.TestCase):
                 "enabled": True,
                 "only": {
                     "transaction_code": "ti",
-                    "security_type": "csus",
+                    "transaction_security_type": "csus",
                     "source_destination_type": "$pty",
                     "source_destination_symbol": "external_delivery",
                 },
@@ -1039,7 +1048,7 @@ class TestDataIssues(unittest.TestCase):
             pc_cols.TRANSACTION_DATE: dt.date(2026, 2, 15),
             pc_cols.SECURITY_ID: "ABC",
             pc_cols.TRANSACTION_CODE: "ti",
-            pc_cols.SECURITY_TYPE: "csus",
+            pc_cols.TRANSACTION_SECURITY_TYPE: "csus",
             pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
             pc_cols.SOURCE_DESTINATION_SYMBOL: "external_delivery",
             pc_cols.ORIGINAL_COST: None,
@@ -1068,7 +1077,7 @@ class TestDataIssues(unittest.TestCase):
                 "enabled": True,
                 "only": {
                     "transaction_code": "ti",
-                    "security_type": "csus",
+                    "transaction_security_type": "csus",
                     "source_destination_type": "$pty",
                     "source_destination_symbol": "external_delivery",
                 },
@@ -1080,7 +1089,7 @@ class TestDataIssues(unittest.TestCase):
             pc_cols.TRANSACTION_DATE: dt.date(2026, 2, 15),
             pc_cols.SECURITY_ID: "ABC",
             pc_cols.TRANSACTION_CODE: "ti",
-            pc_cols.SECURITY_TYPE: "csus",
+            pc_cols.TRANSACTION_SECURITY_TYPE: "csus",
             pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
             pc_cols.SOURCE_DESTINATION_SYMBOL: "external_delivery",
             pc_cols.ORIGINAL_COST: None,
@@ -1283,7 +1292,7 @@ class TestDataIssues(unittest.TestCase):
                 transaction_rules:
                   pa:
                     - when:
-                        security_type: fius
+                        transaction_security_type: fius
                       transaction_category: fee_expense
                       cash_flow_sign: negative
                       performance_flow_sign: performance
@@ -1315,7 +1324,7 @@ class TestDataIssues(unittest.TestCase):
                 data_issues:
                   dividend_rate:
                     only:
-                      transactions.security_type: stock
+                      transactions.transaction_security_type: stock
                       security_id: ABC
                     exclude:
                       portfolio_id: P2
@@ -1490,44 +1499,50 @@ def _write_site(
     (root / "source_column_mappings.yaml").write_text(
         textwrap.dedent(
             """
-            portfolio_performance_columns:
-              portfolio_code: PORTFOLIO_CODE
-              from_date: FROM_DATE
-              thru_date: THRU_DATE
-              portfolio_return: PORT_RETURN
-            holdings_columns:
-              portfolio_code: PORT
-              identifier: SEC
-              holding_date: HOLDING_DATE
-              quantity: QTY
-              price: PRICE
-              market_value: MKT_VAL
-              accrued: ACCRUED
-            transactions_columns:
-              portfolio_code: PORT
-              identifier: SEC
-              transaction_date: TRANSACTION_DATE
-              settlement_date: SETTLE_DATE
-              transaction_code: TRAN
-              original_cost_date: ORIGINAL_COST_DATE
-              security_type: SEC_TYPE
-              source_destination_type: SRC_DEST_TYPE
-              source_destination_symbol: SRC_DEST_SYMBOL
-              special_security_type: SPECIAL_SEC_TYPE
-              special_security_symbol: SPECIAL_SEC_SYMBOL
-              quantity: QTY
-              price: PRICE
-              amount: AMOUNT
-              commission: COMMISSION
-              original_cost: ORIGINAL_COST
-            security_reference_columns:
-              identifier: SECURITY_ID
-              security_type: SECURITY_TYPE
-              asset_class_code: ASSET_CLASS_CODE
-            splits_columns:
-              identifier: SEC
-              split_date: SPLIT_DATE
-              split_factor: SPLIT_FACTOR
+            files:
+              portfolio_performance:
+                columns:
+                  portfolio_code: PORTFOLIO_CODE
+                  from_date: FROM_DATE
+                  thru_date: THRU_DATE
+                  portfolio_return: PORT_RETURN
+              holdings:
+                columns:
+                  portfolio_code: PORT
+                  identifier: SEC
+                  holding_date: HOLDING_DATE
+                  quantity: QTY
+                  price: PRICE
+                  market_value: MKT_VAL
+                  accrued: ACCRUED
+              transactions:
+                columns:
+                  portfolio_code: PORT
+                  identifier: SEC
+                  transaction_date: TRANSACTION_DATE
+                  settlement_date: SETTLE_DATE
+                  transaction_code: TRAN
+                  original_cost_date: ORIGINAL_COST_DATE
+                  transaction_security_type: SEC_TYPE
+                  source_destination_type: SRC_DEST_TYPE
+                  source_destination_symbol: SRC_DEST_SYMBOL
+                  special_security_type: SPECIAL_SEC_TYPE
+                  special_security_symbol: SPECIAL_SEC_SYMBOL
+                  quantity: QTY
+                  price: PRICE
+                  amount: AMOUNT
+                  commission: COMMISSION
+                  original_cost: ORIGINAL_COST
+              security_reference:
+                columns:
+                  identifier: SECURITY_ID
+                  security_type: SECURITY_TYPE
+                  asset_class_code: ASSET_CLASS_CODE
+              splits:
+                columns:
+                  identifier: SEC
+                  split_date: SPLIT_DATE
+                  split_factor: SPLIT_FACTOR
             """
         ).strip()
         + "\n",

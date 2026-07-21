@@ -91,7 +91,10 @@ class TestCashRepresentationContract(unittest.TestCase):
         configuration = yaml.safe_load(_AXYS_APX_STARTER.read_text(encoding="utf-8"))
 
         self.assertNotIn("cash", configuration["files"])
-        self.assertEqual(configuration["files"]["holdings"], "holdings.csv")
+        self.assertEqual(
+            configuration["files"]["holdings"]["path"],
+            "holdings.csv",
+        )
 
     def test_legacy_cash_impact_methods_are_rejected(self) -> None:
         """Legacy cash impact policy cannot survive as ignored configuration."""

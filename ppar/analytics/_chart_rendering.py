@@ -1,4 +1,4 @@
-"""Console hygiene helpers for chart-rendering entry points."""
+"""Prepare quiet, writable chart rendering for Analytics entry points."""
 
 from __future__ import annotations
 

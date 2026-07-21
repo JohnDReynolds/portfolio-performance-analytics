@@ -53,6 +53,9 @@ Begin only after pilot evidence.
 Potential work includes:
 
 - repeatable onboarding and approved starter contracts;
+- an installed user-facing `TECHNICAL_REFERENCE.md`, informed by validation-
+  partner questions, that explains advanced configuration, packaged defaults,
+  and fixed safety behavior without becoming another product specification;
 - better operator-facing readiness and remediation;
 - validation-driven refinement of the current Executive Summary;
 - prioritized, reusable high-value rules;

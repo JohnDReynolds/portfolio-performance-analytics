@@ -149,7 +149,9 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
             )
 
             self.assertEqual(
-                schema["portfolio_performance_columns"]["portfolio_id"],
+                schema["files"]["portfolio_performance"]["columns"][
+                    "portfolio_id"
+                ],
                 "PORTFOLIO_CODE",
             )
 

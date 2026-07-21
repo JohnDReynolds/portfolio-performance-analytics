@@ -1131,7 +1131,7 @@ class TestTransactionsLoader(unittest.TestCase):
             frame.sort(pc_cols.TRANSACTION_CODE)
             .select(
                 pc_cols.TRANSACTION_CODE,
-                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_SECURITY_TYPE,
                 pc_cols.TRANSACTION_CATEGORY,
                 pc_cols.CASH_FLOW_SIGN,
                 pc_cols.PERFORMANCE_FLOW_SIGN,
@@ -1141,7 +1141,7 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "pa",
-                    pc_cols.SECURITY_TYPE: "bond",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "bond",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1153,7 +1153,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 },
                 {
                     pc_cols.TRANSACTION_CODE: "sa",
-                    pc_cols.SECURITY_TYPE: "bond",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "bond",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1181,7 +1181,7 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
-                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_SECURITY_TYPE,
                 pc_cols.SOURCE_DESTINATION_TYPE,
                 pc_cols.SOURCE_DESTINATION_SYMBOL,
                 pc_cols.SPECIAL_SECURITY_TYPE,
@@ -1194,7 +1194,7 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "ai",
-                    pc_cols.SECURITY_TYPE: "caus",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "caus",
                     pc_cols.SOURCE_DESTINATION_TYPE: "$pth",
                     pc_cols.SOURCE_DESTINATION_SYMBOL: "$cash",
                     pc_cols.SPECIAL_SECURITY_TYPE: "caus",
@@ -1265,7 +1265,7 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
-                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_SECURITY_TYPE,
                 pc_cols.SOURCE_DESTINATION_TYPE,
                 pc_cols.SOURCE_DESTINATION_SYMBOL,
                 pc_cols.TRANSACTION_CATEGORY,
@@ -1276,7 +1276,7 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "rc",
-                    pc_cols.SECURITY_TYPE: "csus",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "csus",
                     pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
                     pc_cols.SOURCE_DESTINATION_SYMBOL: "$cash",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
@@ -1306,7 +1306,7 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
-                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_SECURITY_TYPE,
                 pc_cols.SOURCE_DESTINATION_TYPE,
                 pc_cols.SOURCE_DESTINATION_SYMBOL,
                 pc_cols.TRANSACTION_CATEGORY,
@@ -1317,7 +1317,7 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "pd",
-                    pc_cols.SECURITY_TYPE: "fius",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "fius",
                     pc_cols.SOURCE_DESTINATION_TYPE: "$pty",
                     pc_cols.SOURCE_DESTINATION_SYMBOL: "$cash",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
@@ -1349,7 +1349,7 @@ class TestTransactionsLoader(unittest.TestCase):
             frame.sort(pc_cols.TRANSACTION_CODE, descending=True)
             .select(
                 pc_cols.TRANSACTION_CODE,
-                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_SECURITY_TYPE,
                 pc_cols.TRANSACTION_CATEGORY,
                 pc_cols.CASH_FLOW_SIGN,
                 pc_cols.PERFORMANCE_FLOW_SIGN,
@@ -1359,7 +1359,7 @@ class TestTransactionsLoader(unittest.TestCase):
             [
                 {
                     pc_cols.TRANSACTION_CODE: "ss",
-                    pc_cols.SECURITY_TYPE: "short",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "short",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_SELL,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1371,7 +1371,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 },
                 {
                     pc_cols.TRANSACTION_CODE: "cs",
-                    pc_cols.SECURITY_TYPE: "short",
+                    pc_cols.TRANSACTION_SECURITY_TYPE: "short",
                     pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_BUY,
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
@@ -1970,7 +1970,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["transaction_rules"] = {
                 "by": {
-                    "when": {"security_type": "csus"},
+                    "when": {"transaction_security_type": "csus"},
                     "transaction_category": "fee_expense",
                     "cash_flow_sign": "negative",
                     "performance_flow_sign": "performance",
@@ -2017,13 +2017,13 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["transaction_rules"] = {
                 "by": {
-                    "when": {"security_type": "csus"},
+                    "when": {"transaction_security_type": "csus"},
                     "transaction_category": "buy",
                     "cash_flow_sign": "negative",
                     "performance_flow_sign": "performance",
                 },
                 "BY": {
-                    "when": {"security_type": "CSUS"},
+                    "when": {"transaction_security_type": "CSUS"},
                     "transaction_category": "sell",
                     "cash_flow_sign": "positive",
                     "performance_flow_sign": "performance",
@@ -2077,7 +2077,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["transaction_rules"] = {
                 "by": {
-                    "when": {"security_type": "csus"},
+                    "when": {"transaction_security_type": "csus"},
                     "transaction_category": "buy",
                     "cash_flow_sign": "negative",
                     "performance_flow_sign": "performance",
@@ -2119,7 +2119,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["transaction_rules"] = {
                 "by": {
-                    "when": {"security_type": "csus"},
+                    "when": {"transaction_security_type": "csus"},
                     "transaction_category": "buy",
                     "cash_flow_sign": "negative",
                     "performance_flow_sign": "performance",
@@ -2137,7 +2137,10 @@ class TestTransactionsLoader(unittest.TestCase):
                 ).write_csv(directory / snapshot_name / "transactions.csv")
             path = _write_yaml(directory, configuration)
 
-            with self.assertRaisesRegex(PpaError, "security_type=CSUS"):
+            with self.assertRaisesRegex(
+                PpaError,
+                "transaction_security_type=CSUS",
+            ):
                 TransactionsLoader(AuditSpecification(path)).load("a")
 
     def test_exact_case_requires_versioned_extract_contract(self) -> None:
@@ -2317,6 +2320,38 @@ class TestTransactionsLoader(unittest.TestCase):
 
             self.assertIn("transaction_rules must be a mapping", str(context.exception))
 
+    def test_transaction_rules_reject_identity_security_type_condition(self) -> None:
+        """Rules must name transaction context, not the identity component."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "when": {"security_type": "csus"},
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["by"],
+                        "SEC_TYPE": ["csus"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "unsupported key 'security_type'"):
+                TransactionsLoader(AuditSpecification(path)).load("a")
+
     def test_omitted_transactions_returns_none(self) -> None:
         """Transactions are optional when omitted from YAML."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2392,7 +2427,7 @@ class TestTransactionsLoader(unittest.TestCase):
             )
 
             self.assertEqual(
-                schema["transactions_columns"]["portfolio_id"],
+                schema["files"]["transactions"]["columns"]["portfolio_id"],
                 "PORTFOLIO_ID",
             )
 
