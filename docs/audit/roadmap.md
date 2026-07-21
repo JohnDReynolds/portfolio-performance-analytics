@@ -53,6 +53,9 @@ Begin only after pilot evidence.
 Potential work includes:
 
 - repeatable onboarding and approved starter contracts;
+- a versioned Axys/APX Audit configuration profile that reduces the starter to
+  the decisions most clients actually need to make while preserving a complete,
+  inspectable effective configuration;
 - an installed user-facing `TECHNICAL_REFERENCE.md`, informed by validation-
   partner questions, that explains advanced configuration, packaged defaults,
   and fixed safety behavior without becoming another product specification;
@@ -62,6 +65,35 @@ Potential work includes:
 - accepted client regression cases;
 - packaging, deployment, update, and support hardening; and
 - measured claims and pilot-to-product conversion.
+
+### Post-validation Axys/APX configuration profile
+
+After the first validation partner, classify the current Audit configuration as
+universal safety invariants, broadly reusable Axys/APX defaults, client-required
+choices, and optional advanced settings. Use the observed classification to
+evaluate a narrow profile such as `profile: axys_apx_audit_v1`; do not revive the
+former ambiguous `vendor` switch or build a generic include/inheritance system.
+
+The profile may encapsulate validated, broadly stable behavior such as exact-case
+transaction matching, fail-closed ambiguous-flow handling, common security-
+identity conventions, fixed evidence-only split and FX-rate treatment, field
+roles and impact methods, standard tolerances, and common file or normalized-
+column conventions. The starter should continue to expose snapshot directories,
+source paths and mappings, locally supported transaction meanings, client-
+specific Data Issues filters and suppressions, and any choice that validation
+shows a user must make deliberately. Transaction meanings must not become
+universal merely because they appeared in the demo or at one client.
+
+Any implemented profile must have an immutable versioned name, strict and
+documented override precedence, fail-closed handling of unknown profiles, and a
+resolved configuration retained in the evidence bundle. Users and support staff
+must be able to inspect or export that expanded configuration. Prefer packaged,
+declarative YAML over profile-specific Python branches.
+
+Success means a materially shorter and less intimidating starter—likely a
+95/5 simplification rather than a literal 99/1 abstraction—without hiding
+client decisions, weakening safety behavior, or making a run harder to
+reproduce and explain.
 
 Exit evidence: a second and subsequent client can be implemented without a
 client-specific code fork or founder-dependent interpretation.

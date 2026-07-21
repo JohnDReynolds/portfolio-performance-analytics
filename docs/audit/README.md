@@ -25,6 +25,12 @@ is not current implementation authority.
 | [Demo Source Contract](demo_source_contract.md) | Defines the packaged Audit demo source and fixture boundary. |
 | [Site Extract Readiness Checklist](site_extract_readiness_checklist.md) | Guides site-specific Axys/APX source-contract review before report generation. |
 
+## Product Validation
+
+| Document | Purpose |
+| --- | --- |
+| [Validation Partner Strategy](validation_partner_strategy.md) | Assesses potential technical, operational, end-user, and methodology-review partners for private validation of PPAR Audit. |
+
 The machine-readable transaction authority is
 [`../axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml).
 Its maintained human-readable companion is
