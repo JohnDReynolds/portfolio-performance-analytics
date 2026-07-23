@@ -258,6 +258,30 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 formula_rows,
             )
 
+    def test_visible_explanation_invariant_rejects_missing_source_facts(self) -> None:
+        """Final cause rows retain their field, direction, and transaction code."""
+        causes = pl.DataFrame(
+            [
+                {
+                    "portfolio_id": "TEST",
+                    "from_date": dt.date(2026, 1, 1),
+                    "thru_date": dt.date(2026, 1, 31),
+                    "dataset": "transactions",
+                    "dataset_field": "transactions.amount",
+                    "transaction_code": "dv",
+                    "change": 10.0,
+                    "review_guidance": "Cash balance increased by 10.00.",
+                }
+            ]
+        )
+
+        with self.assertRaisesRegex(PpaError, "visible explanation invariant"):
+            # pylint: disable=protected-access
+            _pc_workbook_tables._assert_visible_explanation_contract(
+                causes,
+                comparison_level="portfolio",
+            )
+
     def test_review_workbook_contract_remains_reviewer_oriented(self) -> None:
         """Generated workbook uses stable, action-oriented sheets and columns."""
         openpyxl: Any = importlib.import_module("openpyxl")
@@ -290,6 +314,31 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     f"{row['transaction_code']}:"
                 )
                 for row in transaction_rows.iter_rows(named=True)
+            )
+        )
+        balanced_msft_rows = cause_table.filter(
+            (pl.col("portfolio_id") == "BALANCED")
+            & (pl.col("from_date") == dt.date(2026, 5, 9))
+            & (pl.col("thru_date") == dt.date(2026, 5, 14))
+            & (pl.col("security_id") == "csusMSFT")
+        )
+        self.assertIn(
+            "holdings.market_value",
+            balanced_msft_rows["dataset_field"].to_list(),
+        )
+        self.assertNotIn(
+            "holdings.base_market_value",
+            balanced_msft_rows["dataset_field"].to_list(),
+        )
+        foreign_base_rows = cause_table.filter(
+            (pl.col("dataset_field") == "holdings.base_market_value")
+            & (pl.col("security_id") == "csgbSHEL.L")
+        )
+        self.assertFalse(foreign_base_rows.is_empty())
+        self.assertTrue(
+            all(
+                value is not None
+                for value in foreign_base_rows["estimated_impact"].to_list()
             )
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -343,6 +392,19 @@ class TestAuditWorkbookContract(unittest.TestCase):
             self.assertIn("pc-fill-explained-cause", html_report)
             self.assertIn("pc-fill-possible-cause", html_report)
             self.assertIn("pc-fill-review-needed", html_report)
+
+            source_detail = pl.read_csv(
+                paths["source_detail"],
+                infer_schema_length=None,
+            )
+            retained_msft_base_value = source_detail.filter(
+                (pl.col("portfolio_id") == "BALANCED")
+                & (pl.col("from_date") == "2026-05-09")
+                & (pl.col("thru_date") == "2026-05-14")
+                & (pl.col("dataset_field") == "holdings.base_market_value")
+                & (pl.col("security_id") == "csusMSFT")
+            )
+            self.assertFalse(retained_msft_base_value.is_empty())
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             review_summary = json.loads(paths["review_summary"].read_text(encoding="utf-8"))
@@ -586,6 +648,27 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     "Row Type",
                     _header_values(workbook["Performance Difference Causes"]),
                 )
+                balanced_msft_cause_fields = {
+                    row[4]
+                    for row in underlying_rows
+                    if row[0] == "BALANCED"
+                    and _workbook_date_text(row[1]) == "2026-05-09"
+                    and _workbook_date_text(row[2]) == "2026-05-14"
+                    and row[5] == "csusMSFT"
+                }
+                self.assertIn("holdings.market_value", balanced_msft_cause_fields)
+                self.assertNotIn(
+                    "holdings.base_market_value",
+                    balanced_msft_cause_fields,
+                )
+                self.assertTrue(
+                    any(
+                        row[4] == "holdings.base_market_value"
+                        and row[5] == "csgbSHEL.L"
+                        and row[9] is not None
+                        for row in underlying_rows
+                    )
+                )
                 ai_row = next(
                     row
                     for row in underlying_rows
@@ -618,9 +701,76 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     jpm_dividend_row[10],
                     (
-                        "dv: Caused cash-balance ending holdings.market_value "
-                        "to increase by 117.07."
+                        "dv: csusJPM transactions.amount increased by 10.58. This "
+                        "affects the performance calculation through cash-balance "
+                        "ending holdings.market_value."
                     ),
+                )
+                sap_base_dividend_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "BALANCED"
+                    and row[4] == "transactions.base_amount"
+                    and row[5] == "cseuSAP.DE"
+                    and str(row[1])[:10] == "2026-04-11"
+                    and str(row[2])[:10] == "2026-04-16"
+                )
+                self.assertEqual(
+                    sap_base_dividend_row[10],
+                    (
+                        "dv: cseuSAP.DE transactions.base_amount increased by 32.40. "
+                        "This affects the performance calculation through "
+                        "cash-balance ending holdings.base_market_value."
+                    ),
+                )
+                eur_cash_quantity_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "BALANCED"
+                    and row[4] == "holdings.quantity"
+                    and row[5] == "causCASHEUR"
+                    and str(row[1])[:10] == "2026-04-11"
+                    and str(row[2])[:10] == "2026-04-16"
+                )
+                self.assertAlmostEqual(_numeric_value(eur_cash_quantity_row[8]), 30.0)
+                self.assertEqual(
+                    eur_cash_quantity_row[10],
+                    (
+                        "causCASHEUR ending holdings.quantity increased by 30.00. "
+                        "This affects the performance calculation through "
+                        "holdings.base_market_value."
+                    ),
+                )
+                eur_base_change_fields = {
+                    row[4]
+                    for row in underlying_rows
+                    if row[0] == "BALANCED"
+                    and str(row[1])[:10] == "2026-04-11"
+                    and str(row[2])[:10] == "2026-04-16"
+                    and row[8] is not None
+                    and abs(_numeric_value(row[8]) - 32.4) <= 0.005
+                }
+                self.assertEqual(
+                    eur_base_change_fields,
+                    {
+                        "holdings.base_market_value",
+                        "transactions.base_amount",
+                    },
+                )
+                price_rows = [
+                    row
+                    for row in underlying_rows
+                    if row[4] == "holdings.price"
+                ]
+                self.assertTrue(price_rows)
+                self.assertTrue(
+                    all(
+                        str(row[10]).endswith(
+                            "This affects the performance calculation through "
+                            "holdings.market_value."
+                        )
+                        for row in price_rows
+                    )
                 )
                 income_fee_row = next(
                     row
@@ -634,8 +784,9 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     income_fee_row[10],
                     (
-                        "dp: Caused cash-balance ending holdings.market_value "
-                        "to decrease by 50.00."
+                        "dp: causCASHUSD transactions.amount decreased by 50.00. This "
+                        "affects the performance calculation through cash-balance "
+                        "ending holdings.market_value."
                     ),
                 )
                 alpha_withdrawal_row = next(
@@ -650,8 +801,9 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     alpha_withdrawal_row[10],
                     (
-                        "lo: External flow decreased by 2,000.00; weighted "
-                        "external flow decreased by 785.71."
+                        "lo: causCASHUSD transactions.amount decreased by 2,000.00. "
+                        "This affects the performance calculation through weighted "
+                        "external flow, which decreased by 785.71."
                     ),
                 )
                 transaction_component_guidance = [
@@ -749,15 +901,17 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 }
                 self.assertIn(
                     (
-                        "pa: Caused cash-balance ending holdings.market_value "
-                        "to decrease by 42.50."
+                        "pa: fius91282Y5Y1 transactions.amount decreased by 42.50. "
+                        "This affects the performance calculation through "
+                        "cash-balance ending holdings.market_value."
                     ),
                     income_tnote_buy_amount_guidance,
                 )
                 self.assertIn(
                     (
-                        "sa: Caused cash-balance ending holdings.market_value "
-                        "to increase by 37.25."
+                        "sa: fius91282Y5Y1 transactions.amount increased by 37.25. "
+                        "This affects the performance calculation through "
+                        "cash-balance ending holdings.market_value."
                     ),
                     income_tnote_sell_amount_guidance,
                 )
@@ -781,15 +935,15 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 }
                 self.assertEqual(
                     income_tnote_buy_accrued_guidance,
-                    {"fius91282Y5Y1 ending holdings.accrued increased by 0.06."},
+                    {"fius91282Y5Y1 ending holdings.accrued increased by 0.48."},
                 )
                 self.assertEqual(
                     income_tnote_sell_accrued_guidance,
                     {
                         (
-                            "fius91282Y5Y1 beginning holdings.accrued increased by 0.06."
+                            "fius91282Y5Y1 beginning holdings.accrued increased by 0.48."
                         ),
-                        "fius91282Y5Y1 ending holdings.accrued increased by 0.02.",
+                        "fius91282Y5Y1 ending holdings.accrued increased by 0.19.",
                     },
                 )
                 self.assertFalse(
@@ -825,8 +979,9 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         and row[5] == "csusJPM"
                         and row[9]
                         == (
-                            "rc: Caused cash-balance ending holdings.market_value "
-                            "to decrease by 200.00."
+                            "rc: csusJPM transactions.amount increased by 200.00. "
+                            "This affects the performance calculation through "
+                            "cash-balance ending holdings.market_value."
                         )
                         for row in raw_rows
                     )
@@ -1016,7 +1171,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(tnote_row[7], "Fully Explained")
                 self.assertAlmostEqual(
                     _numeric_value(tnote_row[4]),
-                    0.005418,
+                    0.005414,
                     places=6,
                 )
                 self.assertAlmostEqual(
@@ -1045,6 +1200,19 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 ]
                 self.assertEqual(raw_sort_keys, sorted(raw_sort_keys))
                 underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
+                balanced_msft_cause_fields = {
+                    row[4]
+                    for row in underlying_rows
+                    if row[0] == "BALANCED"
+                    and _workbook_date_text(row[1]) == "2026-05-09"
+                    and _workbook_date_text(row[2]) == "2026-05-14"
+                    and row[5] == "csusMSFT"
+                }
+                self.assertIn("holdings.market_value", balanced_msft_cause_fields)
+                self.assertNotIn(
+                    "holdings.base_market_value",
+                    balanced_msft_cause_fields,
+                )
                 underlying_sort_keys = [
                     (
                         row[0],
@@ -1082,7 +1250,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
                 self.assertEqual(
                     tnote_interest_row[10],
-                    "in: The income for fius91282Y2Y1 changed by 80.00.",
+                    (
+                        "in: fius91282Y2Y1 transactions.amount increased by 80.00. "
+                        "This affects the performance calculation through income."
+                    ),
                 )
                 cash_fee_row = next(
                     row
@@ -1096,7 +1267,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     cash_fee_row[10],
-                    "dp: The fee/expense for causCASHUSD changed by 50.00.",
+                    (
+                        "dp: causCASHUSD transactions.amount decreased by 50.00. "
+                        "This affects the performance calculation through income."
+                    ),
                 )
                 jpm_dividend_row = next(
                     row
@@ -1110,7 +1284,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     jpm_dividend_row[10],
-                    "dv: The income for csusJPM changed by 117.07.",
+                    (
+                        "dv: csusJPM transactions.amount increased by 10.58. This "
+                        "affects the performance calculation through income."
+                    ),
                 )
             finally:
                 workbook.close()

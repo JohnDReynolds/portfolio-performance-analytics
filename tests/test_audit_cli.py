@@ -187,7 +187,7 @@ class TestAuditCli(unittest.TestCase):
                     "axys_apx_analytics.yaml"
                 ).read_text(encoding="utf-8")
             )
-            del configuration["analytics"]["confidence_level"]
+            self.assertNotIn("confidence_level", configuration["analytics"])
             (site_directory / "ppar.yaml").write_text(
                 yaml.safe_dump(configuration, sort_keys=False),
                 encoding="utf-8",
@@ -1823,7 +1823,7 @@ class TestAuditCli(unittest.TestCase):
                 manifest = json.loads(
                     archive.read("supporting_files/manifest.json").decode("utf-8")
                 )
-            self.assertEqual(manifest["counts"]["findings"], 13)
+            self.assertEqual(manifest["counts"]["findings"], 11)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
@@ -1982,7 +1982,7 @@ class TestAuditCli(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertEqual(result.stdout, "")
             self.assertIn("Bundle validation failed:", result.stderr)
-            self.assertIn("table 'top_evidence' row count is 0, expected 10", result.stderr)
+        self.assertIn("table 'top_evidence' row count is 0, expected 9", result.stderr)
 
     def test_validate_config_cli_module_accepts_valid_yaml(self) -> None:
         """The CLI config validator accepts a valid comparison YAML file."""
@@ -2015,19 +2015,14 @@ class TestAuditCli(unittest.TestCase):
             result.stdout,
         )
         self.assertIn("Missing optional files: none", result.stdout)
-        self.assertIn("Contribution impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: fx_rate", result.stdout)
         self.assertIn("Evidence-only impact methods: fx_rates, splits", result.stdout)
         self.assertIn("Data Issues optional checks enabled:", result.stdout)
         self.assertIn("duplicate_transactions", result.stdout)
+        self.assertIn("Data Issues mandatory checks: none", result.stdout)
         self.assertIn(
-            "Data Issues mandatory checks: portfolio_market_value_continuity, "
-            "security_market_value_continuity",
-            result.stdout,
-        )
-        self.assertIn(
-                "Data Issues policy: mandatory continuity checks remain active; "
-                "established optional checks are enabled by default; conservative "
+                "Data Issues policy: established checks use their configured "
+                "defaults; conservative "
                 "checks require explicit enablement and issue-specific scope",
                 result.stdout,
             )

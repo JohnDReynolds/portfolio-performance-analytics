@@ -73,11 +73,6 @@ The current code has thirteen optional issue-type strings:
 - `transactions_nonpositive_price`
 - `transactions_price_range`
 
-It also has two mandatory continuity types:
-
-- `portfolio_market_value_continuity`
-- `security_market_value_continuity`
-
 These values now serialize through public `DataIssueType` members without
 changing their strings. `DATA_ISSUE_REGISTRY` carries the category,
 mandatory/default enablement, required datasets, tolerance applicability, and
@@ -143,8 +138,8 @@ Data Issues configuration is now a strict, enumerated, fail-closed product
 contract. Malformed sections/checks/filters, unknown issue types or fields,
 unsupported per-check controls, non-Boolean enablement, and nonfinite, negative,
 or nonnumeric tolerances fail during comparison-specification construction with
-an actionable YAML path. `validate_config` reports effective optional checks
-and the mandatory continuity policy.
+an actionable YAML path. `validate_config` reports the effective optional
+checks and master-switch policy.
 
 ---
 
@@ -223,8 +218,6 @@ The MVP YAML contract should:
 - require finite, nonnegative numbers for tolerances;
 - validate `only` and `exclude` as mappings with supported filter fields and
   scalar/list values;
-- keep mandatory continuity checks active even if optional checks are disabled;
-  and
 - report actionable paths such as
   `data_issues.holdings_price_range.percent_tolerance`.
 
@@ -780,9 +773,11 @@ The founder also approved a bounded starter-configuration cleanup before the
 release audit. The Audit file mappings now describe only headings present in
 both supplied snapshots, and the checked-in CSVs use the same required-first,
 optional-alphabetical order shown in YAML. Most demo Data Issues rules now use
-business populations such as security type, asset class, and transaction code;
-the three remaining security-specific rules identify deliberate dividend or
-fixed-income review scenarios. Axys/APX layouts that map both `security_type`
+business populations such as security type, asset class, and transaction code.
+The dividend, missing-dividend, and accrued-rate rules were broadened after the
+demo baseline stopped inventing AMZN dividends and adopted consistent
+fixed-income accrued income per unit; only the named JPM, AAPL, and 91282Y5Y1
+review scenarios remain visible. Axys/APX layouts that map both `security_type`
 and `security_symbol` now default to the existing compact composite identity.
 The starter also omits `extract_contract` because the packaged contract,
 ambiguous-flow enforcement, and exact-case matching are the fail-closed defaults.
@@ -811,6 +806,15 @@ builds, installed Analytics and Audit execution, both installed bundle
 validators, representative portfolio/security bundles, determinism/parity
 validation, and the unchanged 500x scale gate. The founder MVP assessment
 remains outstanding.
+
+Post-audit explanation hardening now treats reviewer wording as a structured
+runtime contract. Each source-data explanation begins with the exact
+`dataset.field`, direction, and absolute change; transaction explanations begin
+with the source transaction code. Supporting rows name the selected downstream
+Modified Dietz field, and local- versus base-currency wording is derived from the
+same impact policy used by the calculation. Report generation fails the SN-03
+explanation invariant when these facts disagree. The checks add no report
+columns and do not change financial methods, tolerances, or impact ownership.
 
 ---
 

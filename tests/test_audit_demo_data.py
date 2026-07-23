@@ -472,13 +472,7 @@ class TestAuditDemoData(unittest.TestCase):
 
         self.assertEqual(
             datasets["portperf.csv"]["extraction_requirements"]["optional"],
-            [
-                "Beginning Market Value",
-                "Ending Market Value",
-                "Net Flow",
-                "Income",
-                "Gain/Loss",
-            ],
+            [],
         )
         self.assertEqual(
             datasets["holdings.csv"]["extraction_requirements"]["required"],
@@ -495,27 +489,32 @@ class TestAuditDemoData(unittest.TestCase):
             "required_only_when_applicable",
         )
 
-    def test_packaged_demo_gain_loss_metadata_stays_report_style_context(self) -> None:
-        """GAIN_LOSS remains report-style performance context, not a native claim."""
+    def test_packaged_demo_performance_metadata_omits_retired_fields(self) -> None:
+        """Performance metadata lists only fields consumed by Audit."""
         availability = yaml.safe_load(_DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8"))
         datasets = availability["datasets"]
 
-        for file_name in ("portperf.csv", "secperf.csv"):
-            with self.subTest(file_name=file_name):
-                metadata = datasets[file_name]["columns"]["Gain/Loss"]
-
-                self.assertEqual(metadata["name_confidence"], "report_label_inferred")
-                self.assertEqual(metadata["preferred_source"], "rep_preferred")
-                self.assertEqual(
-                    metadata["fallback_source"],
-                    "local_discovery_required",
-                )
-                self.assertIn(
-                    "does not prove a native IMEX performance object/field",
-                    metadata["basis"],
-                )
-                self.assertIn("report-dependent", metadata["comments"])
-                self.assertIn("Report-style label", metadata["name_notes"])
+        self.assertEqual(
+            list(datasets["portperf.csv"]["columns"]),
+            [
+                "Portfolio Code",
+                "From Date",
+                "Thru Date",
+                "Portfolio Return",
+                "Base Currency",
+            ],
+        )
+        self.assertEqual(
+            list(datasets["secperf.csv"]["columns"]),
+            [
+                "Portfolio Code",
+                "Security Symbol",
+                "Security Type",
+                "From Date",
+                "Thru Date",
+                "Security Return",
+            ],
+        )
 
     def test_packaged_demo_extract_availability_contract_is_current(self) -> None:
         """The human-readable contract is rendered from the YAML contract."""
@@ -991,8 +990,9 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertEqual(
             split_causes["review_guidance"][0],
             (
-                "split: Caused csusCVNA holdings.quantity and related "
-                "holdings.market_value to increase using a 5.0 split factor."
+                "csusCVNA splits.split_factor increased by 5.00. This affects the "
+                "performance calculation through holdings.market_value; "
+                "holdings.quantity is supporting evidence."
             ),
         )
 
@@ -1014,7 +1014,11 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertEqual(rc_causes.height, 1)
         self.assertEqual(
             rc_causes["review_guidance"][0],
-            ("rc: Caused cash-balance ending holdings.market_value " "to increase by 240.00."),
+            (
+                "rc: csusJPM transactions.amount increased by 240.00. This affects "
+                "the performance calculation through cash-balance ending "
+                "holdings.market_value."
+            ),
         )
 
     def test_packaged_demo_pd_row_explains_principal_paydown_cash_effect(self) -> None:
@@ -1034,7 +1038,11 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertEqual(pd_causes.height, 1)
         self.assertEqual(
             pd_causes["review_guidance"][0],
-            ("pd: Caused cash-balance ending holdings.market_value " "to increase by 320.00."),
+            (
+                "pd: fius36225MBS1 transactions.amount increased by 320.00. This "
+                "affects the performance calculation through cash-balance ending "
+                "holdings.market_value."
+            ),
         )
 
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
@@ -1763,7 +1771,7 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="BALANCED",
             security="CASHUSD",
             holding_date="2026-04-10",
-            deltas={"QTY": -17.56, "MKT_VAL": -17.56, "COST": -17.56},
+            deltas={"QTY": -1.59, "MKT_VAL": -1.59, "COST": -1.59},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0304 pa transaction changes cash balance."],
@@ -1777,7 +1785,26 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="BALANCED",
             security="CASHUSD",
             holding_date="2026-04-30",
-            deltas={"QTY": 117.07, "MKT_VAL": 117.07, "COST": 117.07},
+            deltas={"QTY": 10.58, "MKT_VAL": 10.58, "COST": 10.58},
+        )
+        eur_dividend_cash_adjustment = next(
+            adjustment
+            for adjustment in adjustments
+            if adjustment.portfolio == "BALANCED"
+            and adjustment.security == "CASHEUR"
+            and adjustment.holding_date == "2026-04-16"
+        )
+        self._assert_adjustment(
+            eur_dividend_cash_adjustment,
+            portfolio="BALANCED",
+            security="CASHEUR",
+            holding_date="2026-04-16",
+            deltas={
+                "QTY": 30.0,
+                "MKT_VAL": 30.0,
+                "BASE_MKT_VAL": 32.4,
+                "COST": 30.0,
+            },
         )
         self._assert_adjustment(
             by_scenario["BALANCED0503 rc transaction changes cash balance."],
@@ -1839,8 +1866,8 @@ class TestAuditDemoData(unittest.TestCase):
             & base_holdings["SEC"].eq("91282Y5Y1")
             & base_holdings["HOLDING_DATE"].eq("2026-02-27")
         ].iloc[0]
-        income_bond_accrued_rate = float(income_bond["ACCRUED"]) / float(
-            income_bond["MKT_VAL"]
+        income_bond_accrued_per_unit = float(income_bond["ACCRUED"]) / float(
+            income_bond["QTY"]
         )
         self._assert_adjustment(
             by_scenario["INCOME0303 by transaction changes ending holding."],
@@ -1851,7 +1878,7 @@ class TestAuditDemoData(unittest.TestCase):
                 "QTY": 5.0,
                 "MKT_VAL": 603.6,
                 "COST": 603.6,
-                "ACCRUED": 603.6 * income_bond_accrued_rate,
+                "ACCRUED": 5.0 * income_bond_accrued_per_unit,
             },
         )
         self._assert_adjustment(
@@ -1877,7 +1904,7 @@ class TestAuditDemoData(unittest.TestCase):
                 "QTY": -3.0,
                 "MKT_VAL": -362.16,
                 "COST": -362.16001103987406,
-                "ACCRUED": -362.16 * income_bond_accrued_rate,
+                "ACCRUED": -3.0 * income_bond_accrued_per_unit,
             },
         )
         self._assert_adjustment(
@@ -1913,7 +1940,7 @@ class TestAuditDemoData(unittest.TestCase):
             portfolio="ALPHA",
             security="CASHUSD",
             holding_date="2026-04-30",
-            deltas={"QTY": 537.01, "MKT_VAL": 537.01, "COST": 537.01},
+            deltas={"QTY": 12.09, "MKT_VAL": 12.09, "COST": 12.09},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0203 sl transaction changes ending holding."],
@@ -2323,11 +2350,13 @@ reconstruction_roles:
         )
         for guidance in fx_support["review_guidance"]:
             self.assertIn(
-                "GBP-to-USD FX rate changed from 1.268 to 1.288 USD per GBP",
+                "GBP-to-USD fx_rates.fx_rate increased by 0.02, from 1.268 to "
+                "1.288 USD per GBP",
                 guidance,
             )
             self.assertIn(
-                "SHEL.L holdings.base_market_value shows the counted USD effect",
+                "through holdings.base_market_value; the counted USD effect for "
+                "csgbSHEL.L is 320.00",
                 guidance,
             )
 

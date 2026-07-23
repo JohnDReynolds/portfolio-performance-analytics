@@ -17,7 +17,6 @@ import polars as pl
 
 # Project imports
 from ppar.audit.performance_comparison.methods import (
-    ContributionImpactMethod,
     FxRateImpactMethod,
     HoldingImpactMethod,
     PriceImpactMethod,
@@ -66,13 +65,10 @@ __all__ = [
     "IMPACT_POLICY",
     "IMPACT_POLICY_EVIDENCE_ONLY_PREFIX",
     "IMPACT_POLICY_HOLDING_ACCRUED",
-    "IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD",
     "IMPACT_POLICY_HOLDING_MARKET_VALUE",
     "IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE",
     "IMPACT_POLICY_PRICE_WEIGHTED",
     "IMPACT_POLICY_FX_RATE_EXPOSURE",
-    "IMPACT_POLICY_SECURITY_CONTRIBUTION",
-    "IMPACT_POLICY_SECURITY_RETURN_WEIGHTED",
     "TRANSACTION_IMPACT_POLICY",
     "TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY",
     "TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA",
@@ -149,10 +145,6 @@ TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 TRANSACTION_MATCH_STATUS = "transaction_match_status"
 IMPACT_POLICY = "impact_policy"
 IMPACT_POLICY_EVIDENCE_ONLY_PREFIX = "evidence_only:"
-IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD = (
-    "portfolio_source_field:"
-    f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
-)
 IMPACT_POLICY_HOLDING_MARKET_VALUE = (
     "holding_market_value:"
     f"{HoldingImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value}"
@@ -174,13 +166,6 @@ IMPACT_POLICY_PRICE_WEIGHTED = (
 IMPACT_POLICY_FX_RATE_EXPOSURE = (
     "fx_rate:"
     f"{FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value}"
-)
-IMPACT_POLICY_SECURITY_CONTRIBUTION = (
-    f"security_contribution:{ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value}"
-)
-IMPACT_POLICY_SECURITY_RETURN_WEIGHTED = (
-    "security_return:"
-    f"{ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value}"
 )
 TRANSACTION_IMPACT_POLICY = "transaction_impact_policy"
 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = (
@@ -416,6 +401,8 @@ class Finding:
     impact_input_value: float | None = None
     message: str = ""
     suppressed: bool = False
+    _transaction_date: object | None = None
+    _settlement_date: object | None = None
 
     def to_dict(self) -> dict[str, object | None]:
         """Return this finding as a column-aligned dictionary."""

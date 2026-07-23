@@ -210,15 +210,12 @@ def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object
     return {
         "optional_master_enabled": optional_master_enabled,
         "optional_checks_enabled": ", ".join(optional_checks) or "none",
-        "mandatory_checks": ", ".join(mandatory_checks),
+        "mandatory_checks": ", ".join(mandatory_checks) or "none",
         "policy": (
-            "mandatory continuity checks remain active; "
-            + (
-                "established optional checks are enabled by default; conservative "
-                "checks require explicit enablement and issue-specific scope"
-                if optional_master_enabled
-                else "optional checks are disabled"
-            )
+            "established checks use their configured defaults; conservative "
+            "checks require explicit enablement and issue-specific scope"
+            if optional_master_enabled
+            else "optional checks are disabled"
         ),
     }
 

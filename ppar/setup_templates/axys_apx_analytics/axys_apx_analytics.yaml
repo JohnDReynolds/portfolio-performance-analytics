@@ -45,12 +45,12 @@ analytics:
   output_directory: output
 
   # Inclusive first date of performance history to load, in YYYY-MM-DD form.
-  # Default: None (use the earliest available date)
+  # Default: None (use the earliest available date in the source files)
   # Command-line override: --from-date 2022-01-01
   from_date: 2021-06-01
 
   # Inclusive last date of performance history to load, in YYYY-MM-DD form.
-  # Default: None (use the latest available date)
+  # Default: None (use the latest available date in the source files)
   # Command-line override: --thru-date 2025-12-31
   thru_date: 2026-05-29
 
@@ -59,30 +59,10 @@ analytics:
   # Command-line override: --classification "Asset Class"
   classification: Economic Sector
 
-  # Annual target used by downside-risk statistics, expressed as a decimal.
-  # Default: 0.00
-  # Command-line override: --annual-minimum-acceptable-return 0.01
-  annual_minimum_acceptable_return: 0.00
-
   # Annual risk-free rate used by risk-adjusted statistics, as a decimal.
   # Default: 0.03
   # Command-line override: --annual-risk-free-rate 0.04
   annual_risk_free_rate: 0.03
-
-  # Confidence level used for value-at-risk calculations, as a decimal.
-  # Default: 0.95
-  # Command-line override: --confidence-level 0.99
-  confidence_level: 0.95
-
-  # Portfolio value used to express value at risk as a monetary amount.
-  # Default: 100000
-  # Command-line override: --portfolio-value 1000000
-  portfolio_value: 100000
-
-  # Currency symbol shown with the value-at-risk amount.
-  # Default: "$"
-  # Command-line override: --currency-symbol "$"
-  currency_symbol: "$"
 
 # ==============================================================================
 # Analytics Source CSV Files
@@ -113,8 +93,8 @@ files:
       portfolio_code: "Portfolio Code"
       security_symbol: "Security Symbol"
       security_type: "Security Type"
-      security_return: "Security Return"
       weight: "Beginning Weight"
+      security_return: "Security Return"
       contribution: "Contribution"
 
   security_master:
@@ -161,3 +141,34 @@ mappings:
   Currency:
     classification_column: "Currency Code"
     display_name_column: "Currency Name"
+
+# ==============================================================================
+# Appendix — Additional Supported Parameters
+# ==============================================================================
+# The settings below use their documented defaults when omitted. To override a
+# setting, copy its commented parameter line into the existing analytics:
+# section above, preserve its indentation, and remove the comment marker.
+
+# Parameter: analytics.annual_minimum_acceptable_return
+# Annual target used by downside-risk statistics, expressed as a decimal.
+# Default: 0.00
+# Command-line override: --annual-minimum-acceptable-return 0.01
+#   annual_minimum_acceptable_return: 0.00
+
+# Parameter: analytics.confidence_level
+# Confidence level used for value-at-risk calculations, as a decimal.
+# Default: 0.95
+# Command-line override: --confidence-level 0.99
+#   confidence_level: 0.95
+
+# Parameter: analytics.portfolio_value
+# Portfolio value used to express value at risk as a monetary amount.
+# Default: 100000
+# Command-line override: --portfolio-value 1000000
+#   portfolio_value: 100000
+
+# Parameter: analytics.currency_symbol
+# Currency symbol shown with the value-at-risk amount.
+# Default: "$"
+# Command-line override: --currency-symbol "$"
+#   currency_symbol: "$"

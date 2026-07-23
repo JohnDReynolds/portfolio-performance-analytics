@@ -34,9 +34,6 @@ from ppar.audit.performance_comparison.findings import (
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
-    IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
-    IMPACT_POLICY_SECURITY_CONTRIBUTION,
-    IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
     INPUT_DATE,
     MESSAGE,
     PC_PORT_RET,
@@ -69,7 +66,6 @@ from ppar.audit.performance_comparison.findings import (
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.audit.performance_comparison.methods import (
-    ContributionImpactMethod,
     FxRateImpactMethod,
     ModifiedDietzDoubleCountPolicy,
     HoldingImpactMethod,
@@ -164,7 +160,6 @@ IMPACT_CONFIDENCE = "impact_confidence"
 IMPACT_METHOD = "impact_method"
 IMPACT_MESSAGE = "impact_message"
 IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
-IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
 IMPACT_BASIS_HOLDING_ACCRUED = "holding_accrued"
 IMPACT_BASIS_HOLDING_MARKET_VALUE = "holding_market_value"
 IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE = "holding_quantity_unit_market_value"
@@ -174,20 +169,11 @@ IMPACT_BASIS_SECURITY_HOLDING_MARKET_VALUE = "security_holding_market_value"
 IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
     "security_holding_quantity_unit_market_value"
 )
-IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
-IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
 IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE = "fx_rate_local_exposure"
 IMPACT_BASIS_SECURITY_TRANSACTION_FLOW = "security_transaction_flow"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
-IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT = (
-    ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value
-)
-IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV = (
-    ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value
-)
-IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
 )
@@ -243,15 +229,6 @@ TRANSACTION_MATCH_STATUSES = "transaction_match_statuses"
 TRANSACTION_MATCH_CONFIDENCE = "transaction_match_confidence"
 TRANSACTION_MATCH_INTERPRETATION = "transaction_match_interpretation"
 TRANSACTION_MATCH_REVIEW_NOTE = "transaction_match_review_note"
-PORTFOLIO_FLOW_DELTA = "portfolio_flow_delta"
-PORTFOLIO_FLOW_IMPACT_ESTIMATE = "portfolio_flow_impact_estimate"
-CROSS_CHECK_MINUS_FLOW_IMPACT = "cross_check_minus_flow_impact"
-RECONCILIATION_STATUS = "reconciliation_status"
-RECONCILIATION_STATUS_ALIGNED = "aligned"
-RECONCILIATION_STATUS_DIFFERENT = "different"
-RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA = "missing_portfolio_flow_delta"
-RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK = "missing_transaction_cross_check"
-_CROSS_CHECK_RECONCILIATION_TOLERANCE = 1e-12
 PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PORTFOLIO_ID,
     FROM_DATE,
@@ -387,18 +364,6 @@ PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS = (
     CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL,
     CHANGED_FIELDS,
     TRANSACTION_IMPACT_DIAGNOSTICS,
-    IMPACT_MESSAGE,
-)
-PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS = (
-    PORTFOLIO_ID,
-    FROM_DATE,
-    THRU_DATE,
-    PORTFOLIO_FLOW_DELTA,
-    PORTFOLIO_FLOW_IMPACT_ESTIMATE,
-    CROSS_CHECK_ESTIMATE_TOTAL,
-    CROSS_CHECK_MINUS_FLOW_IMPACT,
-    TRANSACTION_IMPACT_POLICIES,
-    RECONCILIATION_STATUS,
     IMPACT_MESSAGE,
 )
 
@@ -1301,57 +1266,6 @@ def portfolio_period_transaction_cross_checks(
     return pl.DataFrame(sorted_rows).select(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS)
 
 
-def portfolio_period_flow_cross_check_reconciliation(
-    findings: pl.DataFrame,
-    *,
-    include_suppressed: bool = False,
-) -> pl.DataFrame:
-    """Return review-only reconciliation between flow deltas and cross-checks.
-
-    Args:
-        findings: Findings table returned by ``compare_snapshots`` or
-            ``findings_to_polars``.
-        include_suppressed: Whether suppressed findings should be included in
-            the reconciliation.
-
-    Returns:
-        One row per portfolio period that has either a portfolio-level flow
-        delta or transaction cross-check estimate. The comparison is a
-        diagnostic double-counting review aid and is not an impact total.
-    """
-    if findings.is_empty():
-        return _empty_portfolio_period_flow_cross_check_reconciliation()
-
-    active_findings = _active_findings(findings, include_suppressed)
-    flow_rows = _portfolio_flow_reconciliation_rows(active_findings)
-    cross_check_rows = portfolio_period_transaction_cross_checks(
-        active_findings,
-        include_suppressed=True,
-    )
-    cross_checks = {
-        (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE]): row
-        for row in cross_check_rows.iter_rows(named=True)
-    }
-    period_keys = sorted(
-        set(flow_rows) | set(cross_checks),
-        key=lambda key: tuple(str(value) for value in key),
-    )
-    if not period_keys:
-        return _empty_portfolio_period_flow_cross_check_reconciliation()
-
-    rows = [
-        _portfolio_period_flow_cross_check_reconciliation_row(
-            key,
-            flow_rows.get(key),
-            cross_checks.get(key),
-        )
-        for key in period_keys
-    ]
-    return pl.DataFrame(rows, infer_schema_length=None).select(
-        PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS
-    )
-
-
 def transaction_activity_summary(
     findings: pl.DataFrame,
     *,
@@ -2065,51 +1979,13 @@ def _security_return_candidate_key(row: dict[str, object]) -> tuple[object, ...]
 def _security_return_denominators(
     rows: Iterable[dict[str, object]],
 ) -> dict[tuple[object, ...], float]:
-    """Return security beginning market values keyed by security period.
-
-    Notes:
-        Security-return explanations use the affected security's own beginning
-        value, not the portfolio-level return denominator. Prefer a changed
-        snapshot A ``holdings.market_value`` row when available. If the holding
-        value did not itself change, derive the beginning value from the
-        portfolio period denominator and snapshot A security weight.
-    """
-    row_list = list(rows)
+    """Return reconstruction-derived denominators keyed by security period."""
     denominators: dict[tuple[object, ...], float] = {}
-    period_denominators: dict[tuple[object, ...], float] = {}
-    security_weights: dict[tuple[object, ...], float] = {}
-    for row in row_list:
-        period_key = (
-            row.get(PORTFOLIO_ID),
-            row.get(FROM_DATE),
-            row.get(THRU_DATE),
-        )
-        period_denominator = _number_value(row.get(RETURN_DENOMINATOR))
-        if period_denominator is not None and period_denominator != 0.0:
-            period_denominators[period_key] = period_denominator
-        security_weight = _number_value(row.get(RETURN_WEIGHT))
-        if security_weight is not None:
-            security_weights[_security_return_candidate_key(row)] = security_weight
-
-    for row in row_list:
-        if row.get(DATASET) != pc_cols.HOLDINGS:
+    for row in rows:
+        denominator = _number_value(row.get(RETURN_DENOMINATOR))
+        if denominator is None or denominator == 0.0:
             continue
-        if row.get(SOURCE_COLUMN) != pc_cols.MARKET_VALUE:
-            continue
-        snapshot_a_value = _number_value(row.get(SNAPSHOT_A_VALUE))
-        if snapshot_a_value is None or snapshot_a_value == 0.0:
-            continue
-        denominators[_security_return_candidate_key(row)] = snapshot_a_value
-
-    for security_key, security_weight in security_weights.items():
-        if security_key in denominators:
-            continue
-        portfolio_id, _security_id, from_date, thru_date = security_key
-        period_key = (portfolio_id, from_date, thru_date)
-        period_denominator = period_denominators.get(period_key)
-        if period_denominator is None:
-            continue
-        denominators[security_key] = period_denominator * security_weight
+        denominators[_security_return_candidate_key(row)] = denominator
     return denominators
 
 
@@ -2275,51 +2151,6 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "mechanics."
             ),
         }
-    contribution_delta = _number_value(delta)
-    if (
-        row[DATASET] == pc_cols.SECURITY_PERFORMANCE
-        and row[SOURCE_COLUMN] == pc_cols.CONTRIBUTION
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_SECURITY_CONTRIBUTION
-        and contribution_delta is not None
-    ):
-        return {
-            ESTIMATED_RETURN_IMPACT: contribution_delta,
-            IMPACT_BASIS: IMPACT_BASIS_SECURITY_CONTRIBUTION,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_MEDIUM,
-            IMPACT_METHOD: IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
-            IMPACT_MESSAGE: (
-                "Uses the vendor-provided security contribution delta as a "
-                "related-output impact estimate, not as root-cause attribution."
-            ),
-        }
-    if _is_portfolio_source_field_impact_candidate(row):
-        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
-        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
-        return {
-            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
-            IMPACT_BASIS: IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
-            IMPACT_MESSAGE: (
-                "Approximate impact uses the portfolio source-field delta "
-                "divided by beginning market value. Treat as a low-confidence "
-                "screening estimate."
-            ),
-        }
-    if _is_security_return_weighted_impact_candidate(row):
-        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
-        weight = _required_impact_number(row[RETURN_WEIGHT], RETURN_WEIGHT)
-        return {
-            ESTIMATED_RETURN_IMPACT: delta_float * weight,
-            IMPACT_BASIS: IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
-            IMPACT_MESSAGE: (
-                "Approximate impact uses the security return delta multiplied "
-                "by snapshot A portfolio weight. Prefer vendor contribution "
-                "deltas when available."
-            ),
-        }
     if _is_transaction_performance_amount_impact_candidate(row):
         delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
         denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
@@ -2417,32 +2248,6 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             "No defensible return-impact estimate is available for this " "finding yet."
         ),
     }
-
-
-def _is_portfolio_source_field_impact_candidate(row: dict[str, object]) -> bool:
-    """Return whether a portfolio source-field row supports a rough estimate."""
-    delta = row[DELTA_B_MINUS_A]
-    denominator = row[RETURN_DENOMINATOR]
-    return (
-        row[DATASET] == pc_cols.PORTFOLIO_PERFORMANCE
-        and row[SOURCE_COLUMN] in {pc_cols.INCOME, pc_cols.GAIN_LOSS}
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD
-        and _number_value(delta) is not None
-        and _number_value(denominator) not in (None, 0.0)
-    )
-
-
-def _is_security_return_weighted_impact_candidate(row: dict[str, object]) -> bool:
-    """Return whether a security return row supports a weighted estimate."""
-    delta = row[DELTA_B_MINUS_A]
-    weight = row[RETURN_WEIGHT]
-    return (
-        row[DATASET] == pc_cols.SECURITY_PERFORMANCE
-        and row[SOURCE_COLUMN] == pc_cols.SECURITY_RETURN
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_SECURITY_RETURN_WEIGHTED
-        and _number_value(delta) is not None
-        and _number_value(weight) not in (None, 0.0)
-    )
 
 
 def _is_transaction_performance_amount_impact_candidate(
@@ -2883,8 +2688,6 @@ def _preferred_estimate_rows(rows: list[dict[str, object]]) -> list[dict[str, ob
         should not also be summed when a related performance input is already
         available for the same cause bucket.
     """
-    if any(row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION for row in rows):
-        return [row for row in rows if row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION]
     performance_input_rows = [
         row
         for row in rows
@@ -2907,12 +2710,6 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
     bases = {
         str(row[IMPACT_BASIS]) for row in rows if row[IMPACT_BASIS] != IMPACT_BASIS_NO_ESTIMATE
     }
-    if IMPACT_BASIS_SECURITY_CONTRIBUTION in bases:
-        return IMPACT_BASIS_SECURITY_CONTRIBUTION
-    if IMPACT_BASIS_SECURITY_RETURN_WEIGHTED in bases:
-        return IMPACT_BASIS_SECURITY_RETURN_WEIGHTED
-    if IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD in bases:
-        return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
     if IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE in bases:
         return IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
@@ -2953,13 +2750,6 @@ def _summary_impact_message(
     rows: list[dict[str, object]],
 ) -> str:
     """Return a short explanation for a cause-area summary row."""
-    if _has_vendor_contribution_and_weighted_return(rows):
-        return (
-            "Estimated impact uses vendor contribution deltas. Weighted "
-            "security return estimates are available as review cross-checks "
-            "but are not summed to avoid double-counting. Representative "
-            f"codes: {top_codes}."
-        )
     if estimated_impact is not None:
         return (
             "Estimated impact is based on currently supported contribution "
@@ -2978,15 +2768,6 @@ def _summary_impact_message(
     return (
         "Grouped evidence only; no defensible return-impact estimate is "
         f"available yet. Representative codes: {top_codes}."
-    )
-
-
-def _has_vendor_contribution_and_weighted_return(rows: list[dict[str, object]]) -> bool:
-    """Return whether a security bucket has both preferred and cross-check estimates."""
-    bases = {row[IMPACT_BASIS] for row in rows}
-    return (
-        IMPACT_BASIS_SECURITY_CONTRIBUTION in bases
-        and IMPACT_BASIS_SECURITY_RETURN_WEIGHTED in bases
     )
 
 
@@ -3147,122 +2928,6 @@ def _portfolio_period_transaction_cross_check_sort_key(
         -absolute_estimate_sort,
         str(row[TRANSACTION_IMPACT_POLICIES]),
     )
-
-
-def _portfolio_flow_reconciliation_rows(
-    findings: pl.DataFrame,
-) -> dict[tuple[object, object, object], dict[str, object]]:
-    """Return portfolio flow delta rows keyed by portfolio period."""
-    if SOURCE_COLUMN not in findings.columns:
-        return {}
-    flow_findings = findings.filter(
-        (pl.col(DATASET) == pc_cols.PORTFOLIO_PERFORMANCE)
-        & (pl.col(SOURCE_COLUMN) == pc_cols.FLOW)
-    )
-    rows: dict[tuple[object, object, object], dict[str, object]] = {}
-    for row in flow_findings.iter_rows(named=True):
-        key = (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE])
-        rows[key] = row
-    return rows
-
-
-def _portfolio_period_flow_cross_check_reconciliation_row(
-    key: tuple[object, object, object],
-    flow_row: dict[str, object] | None,
-    cross_check_row: dict[str, object] | None,
-) -> dict[str, object]:
-    """Return one flow/cross-check reconciliation row."""
-    portfolio_id, from_date, thru_date = key
-    flow_delta = _flow_delta(flow_row)
-    flow_impact = _flow_impact_estimate(flow_row)
-    cross_check_total = _cross_check_estimate_total(cross_check_row)
-    difference = (
-        cross_check_total - flow_impact
-        if cross_check_total is not None and flow_impact is not None
-        else None
-    )
-    status = _flow_cross_check_reconciliation_status(
-        flow_impact,
-        cross_check_total,
-        difference,
-    )
-    return {
-        PORTFOLIO_ID: portfolio_id,
-        FROM_DATE: from_date,
-        THRU_DATE: thru_date,
-        PORTFOLIO_FLOW_DELTA: flow_delta,
-        PORTFOLIO_FLOW_IMPACT_ESTIMATE: flow_impact,
-        CROSS_CHECK_ESTIMATE_TOTAL: cross_check_total,
-        CROSS_CHECK_MINUS_FLOW_IMPACT: difference,
-        TRANSACTION_IMPACT_POLICIES: (
-            None if cross_check_row is None else cross_check_row[TRANSACTION_IMPACT_POLICIES]
-        ),
-        RECONCILIATION_STATUS: status,
-        IMPACT_MESSAGE: _flow_cross_check_reconciliation_message(status),
-    }
-
-
-def _flow_delta(flow_row: dict[str, object] | None) -> float | None:
-    """Return portfolio flow delta from a finding row."""
-    if flow_row is None:
-        return None
-    value = flow_row.get(DELTA_B_MINUS_A)
-    return _number_value(value)
-
-
-def _flow_impact_estimate(flow_row: dict[str, object] | None) -> float | None:
-    """Return review-only flow delta over return denominator estimate."""
-    if flow_row is None:
-        return None
-    delta = flow_row.get(DELTA_B_MINUS_A)
-    denominator = flow_row.get(RETURN_DENOMINATOR)
-    delta_float = _number_value(delta)
-    denominator_float = _number_value(denominator)
-    if delta_float is not None and denominator_float is not None and denominator_float != 0.0:
-        return delta_float / denominator_float
-    return None
-
-
-def _cross_check_estimate_total(
-    cross_check_row: dict[str, object] | None,
-) -> float | None:
-    """Return transaction cross-check estimate total from a summary row."""
-    if cross_check_row is None:
-        return None
-    value = cross_check_row.get(CROSS_CHECK_ESTIMATE_TOTAL)
-    return _number_value(value)
-
-
-def _flow_cross_check_reconciliation_status(
-    flow_impact: float | None,
-    cross_check_total: float | None,
-    difference: float | None,
-) -> str:
-    """Return reconciliation status for one portfolio period."""
-    if flow_impact is None:
-        return RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA
-    if cross_check_total is None:
-        return RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK
-    if difference is not None and abs(difference) <= _CROSS_CHECK_RECONCILIATION_TOLERANCE:
-        return RECONCILIATION_STATUS_ALIGNED
-    return RECONCILIATION_STATUS_DIFFERENT
-
-
-def _flow_cross_check_reconciliation_message(status: str) -> str:
-    """Return reviewer-facing reconciliation status text."""
-    if status == RECONCILIATION_STATUS_ALIGNED:
-        return (
-            "Transaction cross-check total aligns with the portfolio flow "
-            "delta impact estimate."
-        )
-    if status == RECONCILIATION_STATUS_DIFFERENT:
-        return (
-            "Transaction cross-check total differs from the portfolio flow "
-            "delta impact estimate; review before aggregating either value."
-        )
-    if status == RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA:
-        return "No usable portfolio flow delta impact estimate is available."
-    return "No transaction cross-check estimate is available for this period."
 
 
 def _transaction_activity_impact_message(missing_impact_inputs: str) -> str:
@@ -3726,24 +3391,6 @@ def _empty_portfolio_period_transaction_cross_checks() -> pl.DataFrame:
             CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL: pl.Float64,
             CHANGED_FIELDS: pl.String,
             TRANSACTION_IMPACT_DIAGNOSTICS: pl.String,
-            IMPACT_MESSAGE: pl.String,
-        }
-    )
-
-
-def _empty_portfolio_period_flow_cross_check_reconciliation() -> pl.DataFrame:
-    """Return empty flow/cross-check reconciliation with stable columns."""
-    return pl.DataFrame(
-        schema={
-            PORTFOLIO_ID: pl.String,
-            FROM_DATE: pl.Date,
-            THRU_DATE: pl.Date,
-            PORTFOLIO_FLOW_DELTA: pl.Float64,
-            PORTFOLIO_FLOW_IMPACT_ESTIMATE: pl.Float64,
-            CROSS_CHECK_ESTIMATE_TOTAL: pl.Float64,
-            CROSS_CHECK_MINUS_FLOW_IMPACT: pl.Float64,
-            TRANSACTION_IMPACT_POLICIES: pl.String,
-            RECONCILIATION_STATUS: pl.String,
             IMPACT_MESSAGE: pl.String,
         }
     )

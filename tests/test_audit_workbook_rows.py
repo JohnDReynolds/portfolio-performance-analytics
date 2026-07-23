@@ -64,6 +64,84 @@ class TestAuditWorkbookRows(unittest.TestCase):
         self.assertEqual(classify_spy.call_count, 1)
         self.assertEqual(changed_item["portfolio_id"], row["portfolio_id"])
 
+    def test_visible_causes_hide_only_exact_redundant_base_values(self) -> None:
+        """Cause presentation retains every non-exact or impact-bearing base value."""
+        common = {
+            "review_key": "BALANCED::2026-05-09::2026-05-14",
+            "portfolio_id": "BALANCED",
+            "security_id": "csusMSFT",
+            "input_date": "2026-05-14",
+            "as_of_date": "2026-05-14",
+            "dataset": "holdings",
+            "source_record_locator": "source:holdings:msft",
+            "snapshot_a_value": 104657.59,
+            "snapshot_b_value": 105797.53,
+            "estimated_impact": None,
+        }
+        redundant_source = {
+            **common,
+            "source_column": "base_market_value",
+            "impact_policy": "evidence_only:holdings.base_market_value_redundant",
+        }
+        local_value = {**common, "source_column": "market_value"}
+        redundant_value = {**common, "source_column": "base_market_value"}
+        # pylint: disable=protected-access
+        duplicate_keys = (
+            workbook_tables._workbook_redundant_base_market_value_keys(
+                [redundant_source]
+            )
+        )
+
+        # pylint: disable=protected-access
+        visible = workbook_tables._workbook_without_duplicate_base_market_values(
+            [local_value, redundant_value],
+            duplicate_keys,
+        )
+        self.assertEqual(visible, [local_value])
+
+        nonmatching_value = {
+            **redundant_value,
+            "snapshot_b_value": 105797.54,
+        }
+        impact_bearing_value = {
+            **redundant_value,
+            "estimated_impact": 0.001,
+        }
+        foreign_base_value = {
+            **redundant_value,
+            "security_id": "csgbSHEL.L",
+            "source_record_locator": "source:holdings:shell",
+        }
+        # pylint: disable=protected-access
+        visible = workbook_tables._workbook_without_duplicate_base_market_values(
+            [
+                local_value,
+                nonmatching_value,
+                impact_bearing_value,
+                foreign_base_value,
+            ],
+            duplicate_keys,
+        )
+        self.assertEqual(
+            visible,
+            [
+                local_value,
+                nonmatching_value,
+                impact_bearing_value,
+                foreign_base_value,
+            ],
+        )
+
+        # A redundant base value remains visible when its local counterpart is absent.
+        # pylint: disable=protected-access
+        self.assertEqual(
+            workbook_tables._workbook_without_duplicate_base_market_values(
+                [redundant_value],
+                duplicate_keys,
+            ),
+            [redundant_value],
+        )
+
     def test_raw_audit_trail_reuses_wording_without_losing_identity(self) -> None:
         """Repeated presentation inputs retain row-specific audit identities."""
         source = compare_snapshots(_RESTATEMENT_AUDIT_PATH).head(1)

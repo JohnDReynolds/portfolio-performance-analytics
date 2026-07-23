@@ -812,9 +812,6 @@ def _report_bundle_tables(
             comparison_level=comparison_level,
         ),
         "transaction_cross_checks": transaction_cross_checks,
-        "flow_cross_check_reconciliation": (
-            _pc_explain.portfolio_period_flow_cross_check_reconciliation(active_findings)
-        ),
         "residual_status": residual_status,
         "transaction_activity": _pc_explain.transaction_activity_summary(active_findings),
         "transaction_matching_diagnostics": (
@@ -1109,12 +1106,7 @@ def _review_detail_artifacts(
     if _coverage_points_to_transaction_activity(coverage_row):
         artifacts.append("transaction_activity.csv")
     if cross_checks:
-        artifacts.extend(
-            [
-                "transaction_cross_checks.csv",
-                "flow_cross_check_reconciliation.csv",
-            ]
-        )
+        artifacts.append("transaction_cross_checks.csv")
     if residual:
         artifacts.append("residual_status.csv")
     if context:

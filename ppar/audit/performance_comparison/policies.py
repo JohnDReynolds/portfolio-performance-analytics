@@ -18,15 +18,11 @@ from ppar.audit.performance_comparison.findings import (
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
-    IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
-    IMPACT_POLICY_SECURITY_CONTRIBUTION,
-    IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
 )
 from ppar.audit.performance_comparison.methods import (
-    ContributionImpactMethod,
     FxRateImpactMethod,
     ModifiedDietzDayCount,
     ModifiedDietzDoubleCountPolicy,
@@ -51,14 +47,11 @@ from ppar.audit.transactions import (
 )
 
 _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
-_CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
 _HOLDING_IMPACT_METHODS_KEY: Final[str] = "holding_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
 _FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _SECURITY_RETURN_IMPACT_METHODS_KEY: Final[str] = "security_return_impact_methods"
-_PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
-_SECURITY_CONTRIBUTION_KEY: Final[str] = "security_contribution"
 _SECURITY_RETURN_KEY: Final[str] = "security_return"
 _MARKET_VALUE_KEY: Final[str] = "market_value"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
@@ -70,15 +63,6 @@ _METHOD_KEY: Final[str] = "method"
 _SOURCE_FIELDS_KEY: Final[str] = "source_fields"
 _WEIGHT_SOURCE_KEY: Final[str] = "weight_source"
 _EVIDENCE_ONLY_METHOD: Final[str] = TransactionImpactMethod.EVIDENCE_ONLY.value
-_VENDOR_CONTRIBUTION_DELTA_METHOD: Final[str] = (
-    ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value
-)
-_SECURITY_RETURN_DELTA_TIMES_WEIGHT_METHOD: Final[str] = (
-    ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value
-)
-_SOURCE_FIELD_DELTA_OVER_BEGIN_MV_METHOD: Final[str] = (
-    ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value
-)
 _MODIFIED_DIETZ_METHOD: Final[str] = TransactionImpactMethod.MODIFIED_DIETZ.value
 _TRANSACTION_AMOUNT_DELTA_METHOD: Final[str] = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
@@ -243,32 +227,6 @@ _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
         {pc_cols.AMOUNT, pc_cols.QUANTITY, pc_cols.PRICE, pc_cols.COMMISSION}
     ),
 }
-_PORTFOLIO_SOURCE_FIELD_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        _METHOD_KEY,
-        _DENOMINATOR_SOURCE_KEY,
-        _SOURCE_FIELDS_KEY,
-    }
-)
-_SECURITY_CONTRIBUTION_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({_METHOD_KEY})
-_SECURITY_RETURN_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        _METHOD_KEY,
-        _WEIGHT_SOURCE_KEY,
-    }
-)
-_PORTFOLIO_SOURCE_FIELD_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
-    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
-}
-_SECURITY_RETURN_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
-    _WEIGHT_SOURCE_KEY: frozenset({"snapshot_a_weight"}),
-}
-_PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS: Final[frozenset[str]] = frozenset(
-    {
-        pc_cols.INCOME,
-        pc_cols.GAIN_LOSS,
-    }
-)
 
 
 @dataclass(frozen=True)
@@ -501,78 +459,6 @@ def _security_return_impact_policies(
             transactions_value,
         )
     }
-
-
-def _contribution_impact_policies(
-    specification: AuditSpecification,
-) -> dict[tuple[str, str], str]:
-    """Return validated YAML-selected contribution impact policies.
-
-    Args:
-        specification: Parsed comparison specification.
-
-    Returns:
-        Policy labels keyed by ``(dataset, source_column)``. Missing
-        configuration returns an empty mapping, which leaves candidate rows as
-        evidence-only.
-
-    Raises:
-        PpaError: If contribution impact method configuration is malformed or
-            names an unsupported method.
-    """
-    methods_value = specification.values.get(_CONTRIBUTION_IMPACT_METHODS_KEY, {})
-    if methods_value is None:
-        return {}
-    if not isinstance(methods_value, dict):
-        raise PpaError(
-            (f"{specification.path}: {_CONTRIBUTION_IMPACT_METHODS_KEY} " "must be a mapping."),
-            504,
-        )
-
-    supported_keys = {
-        _PORTFOLIO_SOURCE_FIELD_KEY,
-        _SECURITY_CONTRIBUTION_KEY,
-        _SECURITY_RETURN_KEY,
-    }
-    unsupported_keys = set(methods_value) - supported_keys
-    if unsupported_keys:
-        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
-        raise PpaError(
-            (
-                f"{specification.path}: unsupported "
-                f"{_CONTRIBUTION_IMPACT_METHODS_KEY} keys: {unsupported}."
-            ),
-            504,
-        )
-
-    policies: dict[tuple[str, str], str] = {}
-    portfolio_source_field_value = methods_value.get(_PORTFOLIO_SOURCE_FIELD_KEY)
-    if portfolio_source_field_value is not None:
-        policies.update(
-            _validated_portfolio_source_field_policy(
-                specification,
-                portfolio_source_field_value,
-            )
-        )
-
-    security_contribution_value = methods_value.get(_SECURITY_CONTRIBUTION_KEY)
-    if security_contribution_value is not None:
-        policies.update(
-            _validated_security_contribution_policy(
-                specification,
-                security_contribution_value,
-            )
-        )
-
-    security_return_value = methods_value.get(_SECURITY_RETURN_KEY)
-    if security_return_value is not None:
-        policies.update(
-            _validated_security_return_policy(
-                specification,
-                security_return_value,
-            )
-        )
-    return policies
 
 
 def _holding_impact_policies(
@@ -1058,76 +944,6 @@ def _evidence_only_impact_policies(
     return policies
 
 
-def _validated_portfolio_source_field_policy(
-    specification: AuditSpecification,
-    policy_value: object,
-) -> dict[tuple[str, str], str]:
-    """Validate portfolio source-field contribution policy configuration."""
-    policy = _require_policy_mapping(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _PORTFOLIO_SOURCE_FIELD_KEY,
-        policy_value,
-    )
-    _validate_policy_keys(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _PORTFOLIO_SOURCE_FIELD_KEY,
-        policy,
-        _PORTFOLIO_SOURCE_FIELD_REQUIRED_KEYS,
-    )
-    _validate_policy_method(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _PORTFOLIO_SOURCE_FIELD_KEY,
-        policy,
-        _SOURCE_FIELD_DELTA_OVER_BEGIN_MV_METHOD,
-    )
-    _validate_allowed_policy_values(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _PORTFOLIO_SOURCE_FIELD_KEY,
-        policy,
-        _PORTFOLIO_SOURCE_FIELD_ALLOWED_VALUES,
-    )
-    source_fields = policy[_SOURCE_FIELDS_KEY]
-    if not isinstance(source_fields, list) or not source_fields:
-        raise PpaError(
-            (
-                f"{specification.path}: "
-                f"{_CONTRIBUTION_IMPACT_METHODS_KEY}.{_PORTFOLIO_SOURCE_FIELD_KEY}."
-                f"{_SOURCE_FIELDS_KEY} must be a non-empty list."
-            ),
-            504,
-        )
-    if any(not isinstance(field, str) for field in source_fields):
-        raise PpaError(
-            (
-                f"{specification.path}: "
-                f"{_CONTRIBUTION_IMPACT_METHODS_KEY}.{_PORTFOLIO_SOURCE_FIELD_KEY}."
-                f"{_SOURCE_FIELDS_KEY} values must be strings."
-            ),
-            504,
-        )
-    unsupported_fields = set(source_fields) - _PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS
-    if unsupported_fields:
-        unsupported = ", ".join(sorted(str(field) for field in unsupported_fields))
-        allowed = ", ".join(sorted(_PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS))
-        raise PpaError(
-            (
-                f"{specification.path}: "
-                f"{_CONTRIBUTION_IMPACT_METHODS_KEY}.{_PORTFOLIO_SOURCE_FIELD_KEY}."
-                f"{_SOURCE_FIELDS_KEY} contains unsupported fields: {unsupported}. "
-                f"Allowed fields: {allowed}."
-            ),
-            504,
-        )
-    return {
-        (pc_cols.PORTFOLIO_PERFORMANCE, str(field)): IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD
-        for field in source_fields
-    }
-
-
 def _validated_evidence_only_source_fields(
     specification: AuditSpecification,
     dataset: str,
@@ -1175,36 +991,6 @@ def _validated_evidence_only_source_fields(
     }
 
 
-def _validated_security_contribution_policy(
-    specification: AuditSpecification,
-    policy_value: object,
-) -> dict[tuple[str, str], str]:
-    """Validate vendor contribution-delta policy configuration."""
-    policy = _require_policy_mapping(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_CONTRIBUTION_KEY,
-        policy_value,
-    )
-    _validate_policy_keys(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_CONTRIBUTION_KEY,
-        policy,
-        _SECURITY_CONTRIBUTION_REQUIRED_KEYS,
-    )
-    _validate_policy_method(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_CONTRIBUTION_KEY,
-        policy,
-        _VENDOR_CONTRIBUTION_DELTA_METHOD,
-    )
-    return {
-        (pc_cols.SECURITY_PERFORMANCE, pc_cols.CONTRIBUTION): (IMPACT_POLICY_SECURITY_CONTRIBUTION)
-    }
-
-
 def _evidence_only_impact_policy_label(dataset: str, source_column: str) -> str:
     """Return a stable evidence-only impact policy label."""
     return f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}{dataset}.{source_column}"
@@ -1213,45 +999,6 @@ def _evidence_only_impact_policy_label(dataset: str, source_column: str) -> str:
 def _is_evidence_only_policy_label(value: object) -> bool:
     """Return whether a policy label represents explicit evidence-only setup."""
     return isinstance(value, str) and value.startswith(IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
-
-
-def _validated_security_return_policy(
-    specification: AuditSpecification,
-    policy_value: object,
-) -> dict[tuple[str, str], str]:
-    """Validate weighted security-return policy configuration."""
-    policy = _require_policy_mapping(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_RETURN_KEY,
-        policy_value,
-    )
-    _validate_policy_keys(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_RETURN_KEY,
-        policy,
-        _SECURITY_RETURN_REQUIRED_KEYS,
-    )
-    _validate_policy_method(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_RETURN_KEY,
-        policy,
-        _SECURITY_RETURN_DELTA_TIMES_WEIGHT_METHOD,
-    )
-    _validate_allowed_policy_values(
-        specification,
-        _CONTRIBUTION_IMPACT_METHODS_KEY,
-        _SECURITY_RETURN_KEY,
-        policy,
-        _SECURITY_RETURN_ALLOWED_VALUES,
-    )
-    return {
-        (pc_cols.SECURITY_PERFORMANCE, pc_cols.SECURITY_RETURN): (
-            IMPACT_POLICY_SECURITY_RETURN_WEIGHTED
-        )
-    }
 
 
 def _require_policy_mapping(

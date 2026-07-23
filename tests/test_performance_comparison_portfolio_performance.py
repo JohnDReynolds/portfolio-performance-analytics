@@ -60,10 +60,10 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
         specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = PortfolioPerformanceLoader(specification).load("a")
 
-        self.assertTrue(
-            set(pc_cols.PORTFOLIO_PERFORMANCE_REQUIRED_COLUMNS).issubset(frame.columns)
+        self.assertEqual(
+            frame.columns,
+            list(pc_cols.PORTFOLIO_PERFORMANCE_REQUIRED_COLUMNS),
         )
-        self.assertIn(pc_cols.BEGIN_MARKET_VALUE, frame.columns)
         self.assertEqual(frame.schema[pc_cols.FROM_DATE], pl.Date)
 
         target_row = frame.filter(
@@ -82,7 +82,6 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
             & (pl.col(pc_cols.FROM_DATE) == pl.date(2025, 5, 30))
         ).row(0, named=True)
         self.assertEqual(target_row[pc_cols.PORTFOLIO_RETURN], 0.00903281)
-        self.assertEqual(target_row[pc_cols.END_MARKET_VALUE], 996300.47)
 
     def test_missing_required_column_raises_error_502(self) -> None:
         """Portfolio performance cannot load without required normalized fields."""

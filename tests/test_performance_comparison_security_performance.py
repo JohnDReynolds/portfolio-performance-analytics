@@ -79,10 +79,7 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
         frame = SecurityPerformanceLoader(specification).load("a")
         assert frame is not None
 
-        self.assertTrue(
-            set(pc_cols.SECURITY_PERFORMANCE_REQUIRED_COLUMNS).issubset(frame.columns)
-        )
-        self.assertIn(pc_cols.WEIGHT, frame.columns)
+        self.assertEqual(frame.columns, list(pc_cols.SECURITY_PERFORMANCE_REQUIRED_COLUMNS))
         self.assertEqual(frame.schema[pc_cols.FROM_DATE], pl.Date)
 
         target_row = frame.filter(
@@ -104,7 +101,6 @@ class TestSecurityPerformanceLoader(unittest.TestCase):
             & (pl.col(pc_cols.FROM_DATE) == pl.date(2025, 5, 30))
         ).row(0, named=True)
         self.assertEqual(target_row[pc_cols.SECURITY_RETURN], 0.05234740)
-        self.assertEqual(target_row[pc_cols.WEIGHT], 0.05419463)
 
     def test_omitted_security_performance_returns_none(self) -> None:
         """Security performance is optional when omitted from YAML."""

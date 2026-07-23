@@ -73,8 +73,12 @@ yFinance cache: adjusted closes support total returns, reconstructed
 contemporaneous closes support holdings and trades, and reported dividends and
 splits provide independent reconciliation evidence. Cash remains at 1.00. The
 CUSIP-like fixed-income examples are synthetic and use disclosed BIL, SHY, IEI,
-and MBB market proxies. Intentional Snapshot A errors remain clearly bounded
-Audit/Data Issues scenarios rather than claims about the public-market source.
+and MBB market proxies. Their accrued-income balances use consistent synthetic
+per-unit rates, with one explicit 91282Y5Y1 mismatch retained for review. The
+common-stock baseline does not invent dividends for non-dividend-paying
+securities; the JPM and AAPL examples use the documented real dates and rates.
+Intentional Snapshot A errors remain clearly bounded Audit/Data Issues scenarios
+rather than claims about the public-market source.
 
 Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
 Each file keeps its normal run settings in one named section: `analytics:` or
@@ -133,8 +137,8 @@ extracts may add other supported reference qualifiers when the YAML explicitly
 uses them.
 The same validation is available through
 `ppar.audit.cli.validate_config` when maintainers need to
-check a YAML file without writing reports; its success summary lists effective optional
-checks and mandatory continuity policy.
+check a YAML file without writing reports; its success summary lists effective
+Data Issues checks and the master-switch policy.
 
 | Role | YAML |
 | --- | --- |
@@ -418,7 +422,7 @@ The workbook uses a small field-role model:
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.base_market_value`, `holdings.accrued`, `holdings.base_accrued`, `transactions.amount`, `transactions.base_amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. An unqualified detailed value is counted only when its row currency equals base currency; otherwise its explicit `base_` counterpart is counted. |
 | `input_component` | `holdings.quantity`, `holdings.price`, `fx_rates.fx_rate`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `source_detail.csv` as support for the related performance input. |
-| `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Compared and kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
+| `reported_performance_component` | portfolio return and security return | Compared as the reported results being explained; not treated as root-cause input differences. |
 | `context` | explicitly classified fields such as holding cost | Kept in `source_detail.csv` as review context. |
 
 An unknown compared field does not silently become context. PPAR stops until

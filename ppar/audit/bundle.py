@@ -68,7 +68,6 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "context_evidence_summary",
     "context_evidence",
     "transaction_cross_checks",
-    "flow_cross_check_reconciliation",
     "residual_status",
     "transaction_activity",
     "transaction_matching_diagnostics",
@@ -81,7 +80,7 @@ _CSV_PRIMARY_REVIEW_ARTIFACTS = (
     _pc_review_model.DATA_ISSUES_ARTIFACT,
 )
 _REPORT_BUNDLE_TYPE = "audit_report"
-_REPORT_BUNDLE_MANIFEST_VERSION = 8
+_REPORT_BUNDLE_MANIFEST_VERSION = 9
 _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "bundle_type",
     "manifest_version",
@@ -441,10 +440,9 @@ def _expanded_supporting_files_readme_lines(
     return [
         f"5. Use the `review_key` column to follow a {review_unit} across the "
         f"`{SUPPORTING_FILES_DIRECTORY}/` CSV artifacts.",
-        f"6. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv`, "
-        f"`{SUPPORTING_FILES_DIRECTORY}/transaction_cross_checks.csv`, and "
-        f"`{SUPPORTING_FILES_DIRECTORY}/flow_cross_check_reconciliation.csv` for "
-        "supplementary transaction and external-flow diagnostics.",
+        f"6. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv` and "
+        f"`{SUPPORTING_FILES_DIRECTORY}/transaction_cross_checks.csv` for "
+        "supplementary transaction diagnostics.",
         f"   Use `{SUPPORTING_FILES_DIRECTORY}/transaction_matching_diagnostics.csv` "
         "only when auditing transaction row-identity evidence; it reports "
         "conservative matching status and does not imply fuzzy transaction linkage.",
@@ -792,7 +790,6 @@ def _report_bundle_review_entrypoints(
         for name in (
             "transaction_activity",
             "transaction_cross_checks",
-            "flow_cross_check_reconciliation",
             "transaction_matching_diagnostics",
         )
         if name in artifacts
@@ -1025,7 +1022,6 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
             "row-level context evidence, reviewer priority, and no-impact treatment"
         ),
         "transaction_cross_checks": "transaction impact diagnostics",
-        "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
         "reconstruction_summary": "return reconstruction diagnostic summary",
         "return_reconstruction_checks": "portfolio return reconstruction diagnostics",
         "security_return_reconstruction_checks": (

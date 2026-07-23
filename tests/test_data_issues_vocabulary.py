@@ -31,8 +31,6 @@ class TestDataIssuesVocabulary(unittest.TestCase):
                 "large_price_variation",
                 "missing_dividend",
                 "pa_sa_rate",
-                "portfolio_market_value_continuity",
-                "security_market_value_continuity",
                 "transaction_security_type_mismatch",
                 "transactions_nonpositive_price",
                 "transactions_price_range",
@@ -45,10 +43,6 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertEqual(
             data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
             DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE.value,
-        )
-        self.assertEqual(
-            data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY,
-            DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY.value,
         )
         self.assertEqual(
             data_issues.ISSUE_HOLDINGS_NONPOSITIVE_PRICE,
@@ -176,13 +170,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             for issue_type, definition in DATA_ISSUE_REGISTRY.items()
             if definition.mandatory
         }
-        self.assertEqual(
-            mandatory,
-            {
-                DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY,
-                DataIssueType.SECURITY_MARKET_VALUE_CONTINUITY,
-            },
-        )
+        self.assertEqual(mandatory, set())
 
 
 if __name__ == "__main__":

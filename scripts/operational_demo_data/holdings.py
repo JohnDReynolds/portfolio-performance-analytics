@@ -15,10 +15,10 @@ from scripts.demo_support.market_data import price_on_or_before
 
 _BASE_MARKET_VALUE: Final = 1_000_000.0
 _CASH_IDENTIFIER: Final = "CASHUSD"
-_ACCRUED_PER_MILLION: Final = {
-    "91282Y2Y1": 65.0,
-    "91282Y5Y1": 95.0,
-    "36225MBS1": 120.0,
+_ACCRUED_PER_UNIT: Final = {
+    "91282Y2Y1": 0.065,
+    "91282Y5Y1": 0.095,
+    "36225MBS1": 0.120,
 }
 
 
@@ -118,7 +118,10 @@ def _positions(
                         "PRICE": round(price, 4),
                         "MKT_VAL": round(market_value, 2),
                         "COST": round(market_value * 0.985, 2),
-                        "ACCRUED": round(_accrued_for(identifier, market_value), 2),
+                        "ACCRUED": round(
+                            accrued_income_for(identifier, quantity),
+                            2,
+                        ),
                     }
                 )
                 previous_date = holding_date
@@ -260,9 +263,23 @@ def _validate_equity_price_variation(
         raise ValueError(f"Unexplained multi-period constant equity prices: {failures}")
 
 
-def _accrued_for(identifier: str, market_value: float) -> float:
-    """Return synthetic accrued income for one fixed-income holding."""
-    return market_value / 1_000_000.0 * _ACCRUED_PER_MILLION.get(identifier, 0.0)
+def accrued_income_for(identifier: str, quantity: float) -> float:
+    """Return consistent accrued income for one fixed-income holding.
+
+    Args:
+        identifier: Demo security identifier.
+        quantity: Holding units on the observation date.
+
+    Returns:
+        Accrued income based on the security's synthetic per-unit accrual rate.
+
+    Notes:
+        The Data Issues contract compares accrued income per unit across
+        portfolios. A per-unit fixture therefore represents that contract more
+        faithfully than the former market-value percentage, which changed with
+        the proxy price and produced false cross-portfolio findings.
+    """
+    return quantity * _ACCRUED_PER_UNIT.get(identifier, 0.0)
 
 
 def _timestamp(value: object) -> pd.Timestamp:

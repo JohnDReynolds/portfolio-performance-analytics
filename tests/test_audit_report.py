@@ -73,8 +73,8 @@ _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
 _EXPECTED_REPORT_TABLE_SCHEMA_FINGERPRINTS = {
-    "portfolio": "5c4f6d1e1d95361eb861185e086cc7cbcf4556c7f33c3c2ef625ceb73b96a64c",
-    "security": "82d0e34a35ade8659fe3664da2b1279cbcc0bf34a2c69351ae9ee4fe2cdfae1f",
+    "portfolio": "0c28a285026d867fe2b778ce1a47eec54c809da69eb87dace81b3ad0d08faa7e",
+    "security": "c1d556de1c6276a646265702d960fefcb692c02c59e2dd94d95289842ae22389",
 }
 _original_import = __import__
 
@@ -253,13 +253,20 @@ def _write_holding_estimate_specification(
         snapshot_path = directory / snapshot_name
         snapshot_path.mkdir(parents=True)
         (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
-            f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            f"PORT_A,2025-05-01,2025-05-31,{portfolio_return}\n",
             encoding="utf-8",
         )
         (snapshot_path / "holdings.csv").write_text(
             "PORT,SEC,HOLDING_DATE,QTY,MKT_VAL,ACCRUED\n"
+            "PORT_A,AAPL,2025-04-30,10,1000.00,25.00\n"
             f"PORT_A,AAPL,2025-05-31,10,{market_value},{accrued}\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "PORT,SEC,TRANSACTION_DATE,TRAN,AMOUNT,TRANSACTION_CATEGORY,"
+            "CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            "PORT_A,AAPL,2025-04-01,noop,0.00,transfer,none,neutral\n",
             encoding="utf-8",
         )
 
@@ -275,7 +282,24 @@ def _write_holding_estimate_specification(
                 "files": {
                     "portfolio_performance": "portperf.csv",
                     "holdings": "holdings.csv",
+                    "transactions": "transactions.csv",
                 },
+                "portfolio_return_reconstruction": {
+                    "method": "modified_dietz",
+                    "beginning_value_source": "holdings",
+                    "ending_value_source": "holdings",
+                    "flow_source": "transactions",
+                    "flow_timing": "transaction_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "flow_categories": ["external_flow"],
+                    "income_categories": ["income"],
+                    "return_basis": "net",
+                    "sign_convention": "signed_amount",
+                },
+                "transaction_impact_methods": (
+                    _standard_transaction_impact_methods()
+                ),
                 "holding_impact_methods": _standard_holding_impact_methods(
                     quantity_evidence_only=quantity_evidence_only,
                 ),
@@ -371,6 +395,12 @@ def _assert_workbook_explained_row_actions(
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 test_case.assertIn("No identifiable cause", str(required_setup))
                 continue
+            if "cash-balance ending" in str(required_setup):
+                test_case.assertIn(
+                    row.get("impact_status"),
+                    {"Review only", "Missing impact input", "Missing impact method"},
+                )
+                continue
             if (
                 "configured as evidence-only" in str(required_setup)
                 or (
@@ -385,14 +415,9 @@ def _assert_workbook_explained_row_actions(
                 or "performance calculation through" in str(required_setup)
                 or "split factor" in str(required_setup)
             ):
-                test_case.assertEqual(row.get("impact_status"), "Review only")
-                continue
-            if (
-                "Caused cash-balance" in str(required_setup)
-            ):
                 test_case.assertIn(
                     row.get("impact_status"),
-                    {"Review only", "Missing impact method"},
+                    {"Review only", "Missing impact input"},
                 )
                 continue
             if (
@@ -643,7 +668,7 @@ class TestAuditReport(unittest.TestCase):
                     "expanded_directory": "supporting_files",
                     "expand_option": "--expand-all-supporting-files",
                 },
-                "manifest_version": 8,
+                "manifest_version": 9,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -670,7 +695,6 @@ class TestAuditReport(unittest.TestCase):
                     "context_evidence_summary",
                     "context_evidence",
                     "transaction_cross_checks",
-                    "flow_cross_check_reconciliation",
                     "residual_status",
                     "transaction_activity",
                     "transaction_matching_diagnostics",
@@ -828,14 +852,10 @@ class TestAuditReport(unittest.TestCase):
                 "CSV artifacts",
                 readme,
             )
+            self.assertIn("`supporting_files/transaction_activity.csv`", readme)
+            self.assertIn("`supporting_files/transaction_cross_checks.csv`", readme)
             self.assertIn(
-                "`supporting_files/transaction_activity.csv`, "
-                "`supporting_files/transaction_cross_checks.csv`, and "
-                "`supporting_files/flow_cross_check_reconciliation.csv`",
-                readme,
-            )
-            self.assertIn(
-                "supplementary transaction and external-flow diagnostics",
+                "supplementary transaction diagnostics",
                 readme,
             )
             self.assertIn(
@@ -880,8 +900,8 @@ class TestAuditReport(unittest.TestCase):
                 set(manifest),
                 set(required_manifest_keys),
             )
-            self.assertEqual(manifest["counts"]["findings"], 13)
-            self.assertEqual(manifest["counts"]["active_findings"], 13)
+            self.assertEqual(manifest["counts"]["findings"], 11)
+            self.assertEqual(manifest["counts"]["active_findings"], 11)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertFalse(
                 manifest["options"]["include_reconstruction_diagnostics"]
@@ -929,7 +949,6 @@ class TestAuditReport(unittest.TestCase):
                 [
                     "supporting_files/transaction_activity.csv",
                     "supporting_files/transaction_cross_checks.csv",
-                    "supporting_files/flow_cross_check_reconciliation.csv",
                     "supporting_files/transaction_matching_diagnostics.csv",
                 ],
             )
@@ -1109,8 +1128,8 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertIn("impact_coverage_status", impact_coverage.columns)
             self.assertIn("impact_coverage_review_note", impact_coverage.columns)
-            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 1)
-            self.assertEqual(impact_coverage["impact_coverage_status"][0], "partial_estimates")
+            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 0)
+            self.assertEqual(impact_coverage["impact_coverage_status"][0], "evidence_only")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
             self.assertEqual(context_evidence.height, 2)
@@ -1382,8 +1401,9 @@ class TestAuditReport(unittest.TestCase):
         self.assertEqual(
             plain_transaction_amount["review_guidance"][0],
             (
-                "BUY: Caused cash-balance ending holdings.market_value "
-                "to decrease by 100.00. "
+                "BUY: AAPL transactions.amount decreased by 100.00. This affects "
+                "the performance calculation through cash-balance ending "
+                "holdings.market_value. "
                 "Add YAML configuration to count it as explained."
             ),
         )
@@ -1398,38 +1418,12 @@ class TestAuditReport(unittest.TestCase):
         self.assertIsNone(rules_transaction_amount["estimated_impact"][0])
         self.assertEqual(
             rules_transaction_amount["review_guidance"][0],
-            "BUY: Caused cash-balance ending holdings.market_value to decrease by 100.00.",
-        )
-        rules_transaction_quantity = rules_causes.filter(
-            (pl.col("dataset") == "transactions")
-            & (pl.col("source_column") == "quantity")
-        )
-        rules_transaction_price = rules_causes.filter(
-            (pl.col("dataset") == "transactions")
-            & (pl.col("source_column") == "price")
-        )
-        self.assertEqual(
-            rules_transaction_quantity["review_guidance"][0],
             (
-                "BUY: AAPL transactions.quantity increased by 1.00. This affects "
-                "the performance calculation through transactions.amount and "
-                "holdings.market_value."
+                "BUY: AAPL transactions.amount decreased by 100.00. Configured "
+                "transaction impact method is present, but this row still cannot "
+                "be estimated. Review return denominator, transaction sign/flow "
+                "semantics, and transaction date inputs."
             ),
-        )
-        self.assertEqual(
-            rules_transaction_price["review_guidance"][0],
-            (
-                "BUY: AAPL transactions.price increased by 0.50. This affects the "
-                "performance calculation through transactions.amount."
-            ),
-        )
-        self.assertNotIn(
-            "Helped explain the changed transactions.amount",
-            rules_transaction_quantity["review_guidance"][0],
-        )
-        self.assertNotIn(
-            "Helped explain the changed transactions.amount",
-            rules_transaction_price["review_guidance"][0],
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -1475,7 +1469,11 @@ class TestAuditReport(unittest.TestCase):
         )
         self.assertEqual(
             transaction_amount["review_note"][0],
-            "BUY: Caused cash-balance ending holdings.market_value to decrease by 10.00.",
+            (
+                "BUY: AAPL transactions.amount decreased by 10.00. This affects the "
+                "performance calculation through cash-balance ending "
+                "holdings.market_value."
+            ),
         )
 
     def test_transaction_commission_policy_marks_commission_review_only(
@@ -1564,7 +1562,7 @@ class TestAuditReport(unittest.TestCase):
         )
 
         self.assertEqual(holding.height, 1)
-        self.assertAlmostEqual(holding["estimated_impact"][0], 0.01)
+        self.assertAlmostEqual(holding["estimated_impact"][0], 10.0 / 1025.0)
         self.assertEqual(
             holding["review_guidance"][0],
             "AAPL ending holdings.market_value increased by 10.00.",
@@ -1585,7 +1583,7 @@ class TestAuditReport(unittest.TestCase):
         )
 
         self.assertEqual(accrued.height, 1)
-        self.assertAlmostEqual(accrued["estimated_impact"][0], 0.005)
+        self.assertAlmostEqual(accrued["estimated_impact"][0], 5.0 / 1025.0)
         self.assertEqual(
             accrued["review_guidance"][0],
             "AAPL ending holdings.accrued increased by 5.00.",
@@ -1735,7 +1733,7 @@ class TestAuditReport(unittest.TestCase):
                 "CSV artifacts",
                 readme,
             )
-            self.assertIn("supplementary transaction and external-flow diagnostics", readme)
+            self.assertIn("supplementary transaction diagnostics", readme)
             self.assertIn(
                 "`supporting_files/transaction_matching_diagnostics.csv` only "
                 "when auditing transaction row-identity evidence",
@@ -1919,18 +1917,19 @@ class TestAuditReport(unittest.TestCase):
                     cell.fill.fgColor.rgb,
                     "FFFFFF00",
                 )
-            fully_explained_row = next(
+            fully_explained_rows = [
                 row
                 for row in range(2, performance_change_sheet.max_row + 1)
                 if performance_change_sheet[f"G{row}"].value == "Fully Explained"
-            )
-            for column in ("F", "G", "H"):
-                self.assertNotEqual(
-                    performance_change_sheet[
-                        f"{column}{fully_explained_row}"
-                    ].fill.fgColor.rgb,
-                    "FFFFFF00",
-                )
+            ]
+            for fully_explained_row in fully_explained_rows:
+                for column in ("F", "G", "H"):
+                    self.assertNotEqual(
+                        performance_change_sheet[
+                            f"{column}{fully_explained_row}"
+                        ].fill.fgColor.rgb,
+                        "FFFFFF00",
+                    )
             self.assertIsNotNone(performance_change_sheet["A1"].comment)
             assert performance_change_sheet["A1"].comment is not None
             self.assertIn(
@@ -1983,28 +1982,30 @@ class TestAuditReport(unittest.TestCase):
                 underlying_causes_sheet[f"H{numeric_source_row}"].number_format,
                 "0.000000",
             )
-            numeric_explained_row = next(
+            numeric_explained_rows = [
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
                 if isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
-            )
-            self.assertEqual(
-                underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
-                "0.000000",
-            )
-            explained_cause_row = next(
-                row
-                for row in range(2, underlying_causes_sheet.max_row + 1)
-                if underlying_causes_sheet[f"J{row}"].value not in (None, "")
-            )
-            self.assertEqual(
-                underlying_causes_sheet[f"J{explained_cause_row}"].fill.fgColor.rgb,
-                "FFFFFF00",
-            )
-            self.assertEqual(
-                underlying_causes_sheet[f"K{explained_cause_row}"].fill.fgColor.rgb,
-                "FFFFFF00",
-            )
+            ]
+            for numeric_explained_row in numeric_explained_rows:
+                self.assertEqual(
+                    underlying_causes_sheet[
+                        f"J{numeric_explained_row}"
+                    ].number_format,
+                    "0.000000",
+                )
+                self.assertEqual(
+                    underlying_causes_sheet[
+                        f"J{numeric_explained_row}"
+                    ].fill.fgColor.rgb,
+                    "FFFFFF00",
+                )
+                self.assertEqual(
+                    underlying_causes_sheet[
+                        f"K{numeric_explained_row}"
+                    ].fill.fgColor.rgb,
+                    "FFFFFF00",
+                )
             possible_cause_rows = [
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
@@ -2262,10 +2263,6 @@ class TestAuditReport(unittest.TestCase):
                 manifest["tables"]["transaction_matching_diagnostics"]["rows"],
                 0,
             )
-            self.assertEqual(
-                manifest["tables"]["flow_cross_check_reconciliation"]["rows"],
-                0,
-            )
             self.assertIn(
                 "review_key,portfolio_id,from_date,thru_date",
                 paths["needs_review_summary"].read_text(encoding="utf-8"),
@@ -2285,10 +2282,6 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn(
                 "review_key,portfolio_id,from_date,thru_date",
                 paths["transaction_cross_checks"].read_text(encoding="utf-8"),
-            )
-            self.assertIn(
-                "review_key,portfolio_id,from_date,thru_date",
-                paths["flow_cross_check_reconciliation"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "residual_review_note",
@@ -2566,7 +2559,7 @@ class TestAuditReport(unittest.TestCase):
 
             issues = report_bundle_validation_issues(directory)
 
-        self.assertIn("table 'top_evidence' row count is 0, expected 10", issues)
+        self.assertIn("table 'top_evidence' row count is 0, expected 9", issues)
 
     def test_report_bundle_validation_catches_cross_format_content_drift(self) -> None:
         """Semantic validation fails closed when any review format is mutated."""

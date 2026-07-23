@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 # Third-party imports
+import polars as pl
 from polars.testing import assert_frame_equal
 
 # Project imports
@@ -31,11 +32,19 @@ from ppar.audit.performance_comparison.findings import (
     PC_TXN_PRICE,
     PC_TXN_QTY,
     PORTFOLIO_ID,
+    RETURN_DENOMINATOR,
+    RETURN_WEIGHT,
     SECURITY_ID,
     SOURCE_COLUMN,
     SOURCE_FILE,
     SUPPRESSED,
     THRU_DATE,
+)
+from ppar.audit.performance_comparison.return_reconstruction import (
+    BEGIN_VALUE_A,
+    DERIVED_DENOMINATOR_A,
+    portfolio_return_reconstruction_checks,
+    security_return_reconstruction_checks,
 )
 from ppar.audit.runner import AuditComparisonViews
 
@@ -126,6 +135,91 @@ class TestAuditRunner(unittest.TestCase):
                 _PACKAGED_COMPARISON_PATH,
                 comparison_level="portfolio",
             ),
+        )
+
+    def test_packaged_views_use_reconstructed_denominators_and_weights(self) -> None:
+        """Packaged explanations use holdings/transaction reconstruction inputs."""
+        views = AuditComparisonViews(_PACKAGED_COMPARISON_PATH)
+        portfolio_findings = views.findings("portfolio")
+        security_findings = views.findings("security")
+        portfolio_checks = portfolio_return_reconstruction_checks(
+            _PACKAGED_COMPARISON_PATH
+        )
+        security_checks = security_return_reconstruction_checks(
+            _PACKAGED_COMPARISON_PATH
+        )
+
+        portfolio_joined = portfolio_findings.filter(
+            pl.col(RETURN_DENOMINATOR).is_not_null()
+        ).join(
+            portfolio_checks.select(
+                PORTFOLIO_ID,
+                FROM_DATE,
+                THRU_DATE,
+                pl.col(DERIVED_DENOMINATOR_A).alias("expected_denominator"),
+            ),
+            on=[PORTFOLIO_ID, FROM_DATE, THRU_DATE],
+            how="inner",
+        )
+        self.assertGreater(portfolio_joined.height, 0)
+        self.assertTrue(
+            portfolio_joined.select(
+                pl.col(RETURN_DENOMINATOR).eq(pl.col("expected_denominator")).all()
+            ).item()
+        )
+
+        security_joined = security_findings.filter(
+            pl.col(RETURN_DENOMINATOR).is_not_null()
+        ).join(
+            security_checks.select(
+                PORTFOLIO_ID,
+                SECURITY_ID,
+                FROM_DATE,
+                THRU_DATE,
+                pl.col(DERIVED_DENOMINATOR_A).alias("expected_denominator"),
+            ),
+            on=[PORTFOLIO_ID, SECURITY_ID, FROM_DATE, THRU_DATE],
+            how="inner",
+        )
+        self.assertGreater(security_joined.height, 0)
+        self.assertTrue(
+            security_joined.select(
+                pl.col(RETURN_DENOMINATOR).eq(pl.col("expected_denominator")).all()
+            ).item()
+        )
+
+        expected_weights = security_checks.select(
+            PORTFOLIO_ID,
+            SECURITY_ID,
+            FROM_DATE,
+            THRU_DATE,
+            pl.col(BEGIN_VALUE_A).alias("security_begin_value"),
+        ).join(
+            portfolio_checks.select(
+                PORTFOLIO_ID,
+                FROM_DATE,
+                THRU_DATE,
+                pl.col(BEGIN_VALUE_A).alias("portfolio_begin_value"),
+            ),
+            on=[PORTFOLIO_ID, FROM_DATE, THRU_DATE],
+            how="inner",
+        ).with_columns(
+            (
+                pl.col("security_begin_value") / pl.col("portfolio_begin_value")
+            ).alias("expected_weight")
+        )
+        weight_joined = portfolio_findings.filter(
+            pl.col(RETURN_WEIGHT).is_not_null()
+        ).join(
+            expected_weights,
+            on=[PORTFOLIO_ID, SECURITY_ID, FROM_DATE, THRU_DATE],
+            how="inner",
+        )
+        self.assertGreater(weight_joined.height, 0)
+        self.assertTrue(
+            weight_joined.select(
+                pl.col(RETURN_WEIGHT).eq(pl.col("expected_weight")).all()
+            ).item()
         )
 
     def test_audit_views_preserve_level_specific_suppressions(self) -> None:

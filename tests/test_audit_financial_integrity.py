@@ -57,8 +57,8 @@ class TestAuditFinancialIntegrity(unittest.TestCase):
             [{"key": "A", "value": 1.0}, {"key": "C", "value": 3.0}],
         )
 
-    def test_continuity_mismatch_is_visible_even_when_data_issues_is_disabled(self) -> None:
-        """SN-04 cannot be hidden by disabling optional Data Issues checks."""
+    def test_retired_performance_values_are_ignored(self) -> None:
+        """Performance-file market values do not create findings or inputs."""
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             comparison_path = _write_site(
@@ -70,16 +70,18 @@ class TestAuditFinancialIntegrity(unittest.TestCase):
                 extra_config={"data_issues": {"enabled": False}},
             )
 
+            specification = AuditSpecification(comparison_path)
+            performance = PortfolioPerformanceLoader(specification).load("a")
             issues = data_issues.data_issues_table(comparison_path)
-            continuity = issues.filter(
-                pl.col(data_issues.ISSUE_TYPE) == data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY
-            )
 
-        self.assertEqual(continuity.height, 2)
-        self.assertEqual(set(continuity[data_issues.DIFFERENCE].to_list()), {-10.0})
-        self.assertTrue(
-            all("SN-04" in value for value in continuity[data_issues.EXPLANATION].to_list())
+        self.assertEqual(
+            performance.columns,
+            [
+                *pc_cols.PORTFOLIO_PERFORMANCE_REQUIRED_COLUMNS,
+                pc_cols.BASE_CURRENCY,
+            ],
         )
+        self.assertTrue(issues.is_empty())
 
     def test_overlapping_performance_periods_fail_source_contract(self) -> None:
         """SN-07 rejects periods that could multiply assign dated evidence."""

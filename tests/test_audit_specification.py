@@ -15,7 +15,7 @@ from ppar.audit.extract_contract import extract_contract_settings
 
 _AXYS_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
-_TEST_AXYS_SCHEMA_PATH = Path("tests/data/axys/axys_column_mappings.yaml")
+_TEST_AXYS_SCHEMA_PATH = Path("tests/data/axys/axys_audit_column_mappings.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
@@ -632,9 +632,6 @@ transaction_impact_methods:
                     "absolute_tolerance": 0.01,
                     "percent_tolerance": 0.5,
                 },
-                "portfolio_market_value_continuity": {
-                    "absolute_tolerance": 0.01,
-                },
                 "holdings_nonpositive_price": {
                     "enabled": True,
                     "only": {"security_id": ["ABC"]},
@@ -1081,9 +1078,9 @@ transaction_impact_methods:
                 "keys: absolute_tolerance",
             ),
             (
-                {"portfolio_market_value_continuity": {"enabled": False}},
-                "data_issues.portfolio_market_value_continuity has unsupported "
-                "keys: enabled",
+                {"portfolio_market_value_continuity": {}},
+                "data_issues has unknown issue types or unsupported keys: "
+                "portfolio_market_value_continuity",
             ),
         )
         for data_issues, expected_message in invalid_sections:

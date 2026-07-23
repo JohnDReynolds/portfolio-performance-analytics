@@ -99,6 +99,109 @@ class TestWorkbookGuidance(unittest.TestCase):
         self.assertEqual(guidance, expected)
         self.assertEqual(note, expected)
 
+    def test_review_only_holding_price_names_affected_input(self) -> None:
+        """Review-only holding prices name their market-value relationship."""
+        row = {
+            findings.DATASET: audit_schema.HOLDINGS,
+            findings.SOURCE_COLUMN: audit_schema.PRICE,
+            findings.SECURITY_ID: "AAPL",
+            findings.DELTA_B_MINUS_A: 3.12,
+            workbook_rows.UNSELECTED_RELATED_ESTIMATE: True,
+        }
+
+        guidance = workbook_guidance.review_guidance(
+            row,
+            None,
+            comparison_path=None,
+            impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+            row_kind=workbook_rows.ROW_KIND_UNDERLYING_CAUSE,
+        )
+        note = workbook_guidance.review_note(
+            row,
+            None,
+            workbook_rows.USE_EXPLAINS_CHANGE,
+            workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+        )
+
+        expected = (
+            "AAPL holdings.price increased by 3.12. This affects the performance "
+            "calculation through holdings.market_value."
+        )
+        self.assertEqual(guidance, expected)
+        self.assertEqual(note, expected)
+
+    def test_transaction_cash_balance_names_source_currency_field(self) -> None:
+        """Transaction cash effects name the value field matching their source basis."""
+        cases = (
+            (
+                audit_schema.AMOUNT,
+                "dv: transactions.amount increased by 32.40. This affects the "
+                "performance calculation through cash-balance ending "
+                "holdings.market_value.",
+            ),
+            (
+                audit_schema.BASE_AMOUNT,
+                "dv: transactions.base_amount increased by 32.40. This affects the "
+                "performance calculation through cash-balance ending "
+                "holdings.base_market_value.",
+            ),
+        )
+
+        for source_column, expected in cases:
+            with self.subTest(source_column=source_column):
+                row = {
+                    findings.DATASET: audit_schema.TRANSACTIONS,
+                    findings.SOURCE_COLUMN: source_column,
+                    findings.TRANSACTION_CODE: "dv",
+                    findings.CASH_FLOW_SIGN: "positive",
+                    findings.DELTA_B_MINUS_A: 32.4,
+                    workbook_rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION: True,
+                }
+
+                guidance = workbook_guidance.review_guidance(
+                    row,
+                    None,
+                    comparison_path=None,
+                    impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+                    row_kind=workbook_rows.ROW_KIND_CONTEXT,
+                )
+
+                self.assertEqual(guidance, expected)
+
+    def test_foreign_holding_components_name_base_currency_input(self) -> None:
+        """Foreign holding components name the counted base-currency value."""
+        for source_column, change in (
+            (audit_schema.PRICE, 0.25),
+            (audit_schema.QUANTITY, 30.0),
+        ):
+            with self.subTest(source_column=source_column):
+                row = {
+                    findings.DATASET: audit_schema.HOLDINGS,
+                    findings.SOURCE_COLUMN: source_column,
+                    findings.SECURITY_ID: "CASHEUR",
+                    findings.DELTA_B_MINUS_A: change,
+                    findings.IMPACT_POLICY: (
+                        f"{findings.IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
+                        f"holdings.{source_column}_row_currency"
+                    ),
+                    workbook_rows.UNSELECTED_RELATED_ESTIMATE: True,
+                }
+
+                guidance = workbook_guidance.review_guidance(
+                    row,
+                    None,
+                    comparison_path=None,
+                    impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+                    row_kind=workbook_rows.ROW_KIND_CONTEXT,
+                )
+
+                self.assertTrue(
+                    guidance.endswith(
+                        "This affects the performance calculation through "
+                        "holdings.base_market_value."
+                    )
+                )
+
     def test_review_only_base_market_value_names_reflected_input(self) -> None:
         """Redundant base values identify the counted market-value representation."""
         row = {
@@ -249,9 +352,63 @@ class TestWorkbookGuidance(unittest.TestCase):
         self.assertEqual(
             guidance,
             (
-                "EUR-to-USD FX rate changed from 1.1 to 1.2 USD per EUR; "
-                "SAP holdings.base_market_value shows the counted USD effect of 25.00."
+                "EUR-to-USD fx_rates.fx_rate increased by 0.10, from 1.1 to 1.2 "
+                "USD per EUR. This affects the performance calculation through "
+                "holdings.base_market_value; the counted USD effect for SAP is 25.00."
             ),
+        )
+
+    def test_explanation_contract_rejects_wrong_source_and_currency(self) -> None:
+        """The semantic contract flags omitted source facts and wrong value basis."""
+        row = {
+            findings.DATASET: audit_schema.TRANSACTIONS,
+            findings.SOURCE_COLUMN: audit_schema.BASE_AMOUNT,
+            findings.SECURITY_ID: "SAP",
+            findings.TRANSACTION_CODE: "dv",
+            findings.DELTA_B_MINUS_A: 32.4,
+            workbook_rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION: True,
+        }
+
+        issues = workbook_guidance.explanation_contract_issues(
+            row,
+            (
+                "dv: Caused cash-balance ending holdings.market_value to increase "
+                "by 32.40."
+            ),
+            impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+            comparison_path=None,
+        )
+
+        self.assertTrue(any("must begin" in issue for issue in issues))
+        self.assertTrue(any("holdings.base_market_value" in issue for issue in issues))
+        self.assertTrue(any("local-currency language" in issue for issue in issues))
+
+    def test_explanation_contract_accepts_canonical_transaction(self) -> None:
+        """Canonical transaction explanations satisfy every structured check."""
+        row = {
+            findings.DATASET: audit_schema.TRANSACTIONS,
+            findings.SOURCE_COLUMN: audit_schema.QUANTITY,
+            findings.SECURITY_ID: "AAPL",
+            findings.TRANSACTION_CODE: "by",
+            findings.TRANSACTION_CATEGORY: "buy",
+            findings.DELTA_B_MINUS_A: 1.1372,
+        }
+        explanation = workbook_guidance.review_guidance(
+            row,
+            None,
+            comparison_path=None,
+            impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+            row_kind=workbook_rows.ROW_KIND_CONTEXT,
+        )
+
+        self.assertEqual(
+            workbook_guidance.explanation_contract_issues(
+                row,
+                explanation,
+                impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
+                comparison_path=None,
+            ),
+            (),
         )
 
     def test_possible_cause_summary_preserves_configuration_instruction(self) -> None:

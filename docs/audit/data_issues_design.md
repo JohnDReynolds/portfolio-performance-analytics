@@ -195,10 +195,8 @@ Twelve row-level optional checks support `enabled`, `only`, and `exclude`. Numer
 range/rate checks additionally support both tolerance keys. Duplicate,
 missing-dividend, nonpositive-price, and classification-mismatch checks do not
 accept unused tolerance keys. Only `holdings_stale_price` accepts
-`minimum_calendar_days`; it must be a positive, non-Boolean integer. The two
-mandatory continuity blocks accept only absolute and percent tolerances; they
-cannot be disabled or filtered. `validate_config` prints the effective optional
-checks, mandatory continuity checks, and master-switch policy.
+`minimum_calendar_days`; it must be a positive, non-Boolean integer.
+`validate_config` prints the effective optional checks and master-switch policy.
 
 The thirteenth optional check, `large_price_variation`, accepts only top-level
 `enabled` and `rules`. Rule IDs are output provenance and part of the review

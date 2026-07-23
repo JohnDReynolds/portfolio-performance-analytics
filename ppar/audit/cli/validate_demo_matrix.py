@@ -365,7 +365,9 @@ def _check_transaction_rules_explain_amount(causes: pl.DataFrame) -> _ScenarioCh
         (pl.col("dataset") == "transactions")
         & (pl.col("source_column") == "amount")
         & pl.col("estimated_impact").is_null()
-        & pl.col("review_guidance").str.contains("Caused")
+        & pl.col("review_guidance").str.starts_with("BUY:")
+        & pl.col("review_guidance").str.contains("transactions.amount")
+        & pl.col("review_guidance").str.contains("Review return denominator")
     )
     if amount_rows.height == 1:
         return _ScenarioCheck(
@@ -548,7 +550,6 @@ def _check_security_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
     check_fields = _reported_performance_component_fields(findings)
     expected_check_fields = {
         ("security_performance", "security_return"),
-        ("security_performance", "contribution"),
     }
     if not expected_check_fields.issubset(check_fields):
         return _ScenarioCheck(
@@ -559,7 +560,7 @@ def _check_security_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
     return _ScenarioCheck(
         name,
         True,
-        "security review covered reported return and contribution diagnostics",
+        "security review covered the reported return diagnostic",
     )
 
 

@@ -87,29 +87,18 @@ _COMMON_AXYS_HEADERS_TO_INTERNAL: Final[dict[str, dict[str, str]]] = {
         "Accrued Income": "ACCRUED",
     },
     "portfolio_performance": {
-        "Ending Market Value": "END_MV",
-        "Net Flow": "FLOW",
-        "Income": "INCOME",
-        "Gain/Loss": "GAIN_LOSS",
         "Portfolio Code": "PORTFOLIO_CODE",
         "From Date": "FROM_DATE",
         "Thru Date": "THRU_DATE",
-        "Beginning Market Value": "BEGIN_MV",
         "Portfolio Return": "PORT_RETURN",
         "Base Currency": "BASE_CURRENCY",
     },
     "security_performance": {
-        "Ending Market Value": "END_MV",
-        "Income": "INCOME",
-        "Gain/Loss": "GAIN_LOSS",
         "Portfolio Code": "PORTFOLIO_CODE",
         "Security Symbol": "SECURITY_ID",
         "From Date": "FROM_DATE",
         "Thru Date": "THRU_DATE",
-        "Beginning Weight": "BEGIN_WEIGHT",
-        "Beginning Market Value": "BEGIN_MV",
         "Security Return": "SEC_RETURN",
-        "Contribution": "CONTRIBUTION",
     },
     "transactions": {
         "Portfolio Code": "PORT",
@@ -139,11 +128,6 @@ _PORTPERF_COLUMNS: Final = [
     "THRU_DATE",
     "PORT_RETURN",
     "BASE_CURRENCY",
-    "BEGIN_MV",
-    "END_MV",
-    "GAIN_LOSS",
-    "INCOME",
-    "FLOW",
 ]
 _SECPERF_COLUMNS: Final = [
     "PORTFOLIO_CODE",
@@ -151,30 +135,9 @@ _SECPERF_COLUMNS: Final = [
     "FROM_DATE",
     "THRU_DATE",
     "SEC_RETURN",
-    "BEGIN_MV",
-    "BEGIN_WEIGHT",
-    "CONTRIBUTION",
-    "END_MV",
-    "GAIN_LOSS",
-    "INCOME",
 ]
-_SECPERF_NUMERIC_COLUMNS: Final = [
-    "END_MV",
-    "INCOME",
-    "GAIN_LOSS",
-    "BEGIN_WEIGHT",
-    "BEGIN_MV",
-    "SEC_RETURN",
-    "CONTRIBUTION",
-]
-_PORTPERF_NUMERIC_COLUMNS: Final = [
-    "END_MV",
-    "FLOW",
-    "INCOME",
-    "GAIN_LOSS",
-    "BEGIN_MV",
-    "PORT_RETURN",
-]
+_SECPERF_NUMERIC_COLUMNS: Final = ["SEC_RETURN"]
+_PORTPERF_NUMERIC_COLUMNS: Final = ["PORT_RETURN"]
 _PACKAGED_HOLDINGS_NUMERIC_COLUMNS: Final = [
     "QTY",
     "PRICE",
@@ -1404,7 +1367,6 @@ def rebuild_demo_performance_files(
         rebuilt_secperf = _rebuild_security_performance(
             snapshot_name,
             current_secperf,
-            rebuilt_portperf,
             rebuilt_holdings,
             rebuilt_transactions,
             security_reconstruction,
@@ -1602,7 +1564,12 @@ def _read_packaged_axys_frame(path: Path, dataset_name: str) -> pd.DataFrame:
     frame = pd.read_csv(path)
     if "Security Type" in frame.columns:
         frame = frame.drop(columns="Security Type")
-    return frame.rename(columns=_COMMON_AXYS_HEADERS_TO_INTERNAL[dataset_name])
+    renamed = frame.rename(columns=_COMMON_AXYS_HEADERS_TO_INTERNAL[dataset_name])
+    if dataset_name == "portfolio_performance":
+        return renamed[_PORTPERF_COLUMNS]
+    if dataset_name == "security_performance":
+        return renamed[_SECPERF_COLUMNS]
+    return renamed
 
 
 def _security_types_for_symbols(path: Path, symbols: pd.Series) -> pd.Series:
@@ -1992,7 +1959,6 @@ def _with_contribution_demo_performance_rows(
                     else _PORTPERF_NUMERIC_COLUMNS
                 )
             },
-            "BEGIN_MV": 100_000.0,
         }
         if security_level:
             addition["SECURITY_ID"] = "CASHUSD"
@@ -2072,6 +2038,13 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
     rows = transactions.copy()
     rows.insert(0, _TRANSACTION_ID_COLUMN, _derived_transaction_ids(rows))
     scenario_ids = {
+        ("ALPHA", "2026-01-20", "CASHUSD", "wd"): "ALPHA0203",
+        ("ALPHA", "2026-04-06", "JPM", "dv"): "ALPHA0503",
+        ("BALANCED", "2026-01-15", "MSFT", "sl"): "BALANCED0203",
+        ("BALANCED", "2026-04-06", "JPM", "dv"): "BALANCED0502",
+        ("INCOME", "2026-01-20", "CASHUSD", "dp"): "INCOME0203",
+        ("INCOME", "2026-05-15", "91282Y2Y1", "in"): "INCOME0603",
+        ("INCOME", "2026-05-23", "AAPL", "dv"): "INCOME0604",
         (
             _CONTRIBUTION_DEMO_PORTFOLIO,
             "2026-03-20",
@@ -2417,6 +2390,11 @@ def _transaction_derived_holding_adjustments(
 
     base_prepared = _prepared_transactions(base_transactions)
     current_prepared = _prepared_transactions(current_transactions)
+    # Portfolio return reconstruction uses base-currency transaction amounts,
+    # while currency-specific cash holdings roll forward in their local currency.
+    # Restore the preserved local amounts only for deriving holding adjustments.
+    base_prepared["AMOUNT"] = base_prepared["LOCAL_AMOUNT"]
+    current_prepared["AMOUNT"] = current_prepared["LOCAL_AMOUNT"]
     transaction_diffs = _changed_transaction_rows(base_prepared, current_prepared)
     holdings = _holding_values(_with_internal_cost(base_holdings))
     adjustments: list[HoldingScenarioAdjustment] = []
@@ -3407,7 +3385,6 @@ def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
 def _rebuild_security_performance(
     snapshot_name: str,
     secperf: pd.DataFrame,
-    portperf: pd.DataFrame,
     holdings: pd.DataFrame,
     transactions: pd.DataFrame,
     reconstruction: SecurityReturnReconstruction,
@@ -3423,15 +3400,14 @@ def _rebuild_security_performance(
             pd.Timestamp(row.FROM_DATE),
         )
         end_date = pd.Timestamp(row.THRU_DATE)
-        begin_value = (
-            float(row.BEGIN_MV)
-            if begin_date is None
-            else _security_holding_value(
-                holding_values,
-                row.PORTFOLIO_CODE,
-                row.SECURITY_ID,
-                begin_date,
-            )
+        if begin_date is None:
+            rows.append(row._asdict())
+            continue
+        begin_value = _security_holding_value(
+            holding_values,
+            row.PORTFOLIO_CODE,
+            row.SECURITY_ID,
+            begin_date,
         )
         end_value = _security_holding_value(
             holding_values,
@@ -3459,71 +3435,13 @@ def _rebuild_security_performance(
         denominator = begin_value + weighted_flow
         sec_return = (gain_loss + income) / denominator if denominator else 0.0
         rebuilt_row = row._asdict()
-        rebuilt_row.update(
-            {
-                "END_MV": round(end_value, 2),
-                "INCOME": round(income, 2),
-                "GAIN_LOSS": round(gain_loss, 2),
-                "BEGIN_MV": round(begin_value, 2),
-                "SEC_RETURN": round(sec_return, 10),
-            }
-        )
+        rebuilt_row["SEC_RETURN"] = round(sec_return, 10)
         rows.append(rebuilt_row)
 
     rebuilt = pd.DataFrame(rows)
-    rebuilt = _align_security_begin_market_values(rebuilt, portperf)
-    period_begin_market_value = rebuilt.groupby(_PERIOD_KEY)["BEGIN_MV"].transform("sum")
-    rebuilt["BEGIN_WEIGHT"] = (rebuilt["BEGIN_MV"] / period_begin_market_value).round(10)
-    rebuilt["CONTRIBUTION"] = (rebuilt["BEGIN_WEIGHT"] * rebuilt["SEC_RETURN"]).round(12)
     if snapshot_name != _BASE_SNAPSHOT_DIRECTORY:
         rebuilt = _with_intentional_security_return_residuals(rebuilt)
     return rebuilt[secperf.columns]
-
-
-def _align_security_begin_market_values(
-    secperf: pd.DataFrame,
-    portperf: pd.DataFrame,
-) -> pd.DataFrame:
-    """Return security rows whose beginning values sum to portfolio rows.
-
-    Rounding each security-level beginning market value independently can leave
-    the package off by a penny versus the portfolio-level beginning value. The
-    report treats the portfolio value as the period-level control total, so the
-    rebuild applies penny residuals to one security row and recomputes that
-    row's synthetic return math.
-    """
-    aligned = secperf.copy()
-    target_begin_values = {
-        (row.PORTFOLIO_CODE, row.FROM_DATE, row.THRU_DATE): float(row.BEGIN_MV)
-        for row in portperf.itertuples(index=False)
-    }
-    for period_key, target_begin_value in target_begin_values.items():
-        portfolio_code, from_date, thru_date = period_key
-        mask = (
-            aligned["PORTFOLIO_CODE"].eq(portfolio_code)
-            & aligned["FROM_DATE"].astype(str).eq(str(from_date))
-            & aligned["THRU_DATE"].astype(str).eq(str(thru_date))
-        )
-        if not bool(mask.any()):
-            continue
-        residual = round(target_begin_value - float(aligned.loc[mask, "BEGIN_MV"].sum()), 2)
-        if abs(residual) < 0.005:
-            continue
-        if abs(residual) > 0.05:
-            raise ValueError(
-                "Security BEGIN_MV rows do not reconcile to portfolio BEGIN_MV "
-                f"for {period_key}: residual={residual}."
-            )
-        adjustment_index = aligned.index[mask][-1]
-        begin_value = round(float(aligned.loc[adjustment_index, "BEGIN_MV"]) + residual, 2)
-        end_value = float(aligned.loc[adjustment_index, "END_MV"])
-        income = float(aligned.loc[adjustment_index, "INCOME"])
-        gain_loss = round(end_value - begin_value - income, 2)
-        security_return = round((gain_loss + income) / begin_value if begin_value else 0.0, 10)
-        aligned.loc[adjustment_index, "BEGIN_MV"] = begin_value
-        aligned.loc[adjustment_index, "GAIN_LOSS"] = gain_loss
-        aligned.loc[adjustment_index, "SEC_RETURN"] = security_return
-    return aligned
 
 
 def _rebuild_portfolio_performance(
@@ -3544,14 +3462,13 @@ def _rebuild_portfolio_performance(
             pd.Timestamp(row.FROM_DATE),
         )
         end_date = pd.Timestamp(row.THRU_DATE)
-        begin_value = (
-            float(row.BEGIN_MV)
-            if begin_date is None
-            else _portfolio_holding_value(
-                holding_values,
-                row.PORTFOLIO_CODE,
-                begin_date,
-            )
+        if begin_date is None:
+            rows.append(row._asdict())
+            continue
+        begin_value = _portfolio_holding_value(
+            holding_values,
+            row.PORTFOLIO_CODE,
+            begin_date,
         )
         end_value = _portfolio_holding_value(
             holding_values,
@@ -3565,25 +3482,12 @@ def _rebuild_portfolio_performance(
             end_date,
             reconstruction,
         )
-        income = _portfolio_income(
-            transaction_rows,
-            row.PORTFOLIO_CODE,
-            pd.Timestamp(row.FROM_DATE),
-            end_date,
-            reconstruction,
-        )
         numerator = end_value - begin_value - flow
         denominator = begin_value + weighted_flow
         rebuilt_row = row._asdict()
-        rebuilt_row.update(
-            {
-                "END_MV": round(end_value, 2),
-                "FLOW": round(flow, 2),
-                "INCOME": round(income, 2),
-                "GAIN_LOSS": round(numerator - income, 2),
-                "BEGIN_MV": round(begin_value, 2),
-                "PORT_RETURN": round(numerator / denominator if denominator else 0.0, 10),
-            }
+        rebuilt_row["PORT_RETURN"] = round(
+            numerator / denominator if denominator else 0.0,
+            10,
         )
         rows.append(rebuilt_row)
     rebuilt = pd.DataFrame(rows)
@@ -3639,10 +3543,6 @@ def _with_intentional_security_return_residuals(secperf: pd.DataFrame) -> pd.Dat
         adjusted.loc[mask, "SEC_RETURN"] = (
             adjusted.loc[mask, "SEC_RETURN"].astype(float) + residual
         ).round(10)
-        adjusted.loc[mask, "CONTRIBUTION"] = (
-            adjusted.loc[mask, "BEGIN_WEIGHT"].astype(float)
-            * adjusted.loc[mask, "SEC_RETURN"].astype(float)
-        ).round(12)
     return adjusted
 
 

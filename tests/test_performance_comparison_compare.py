@@ -52,7 +52,6 @@ from ppar.audit.performance_comparison.findings import (
     IMPACT_INPUT_VALUE,
     PORTFOLIO_ID,
     PC_FX_RATE,
-    PC_PORT_MV,
     PC_HOLD_ACCR,
     PC_HOLD_COST,
     PC_PORT_RET,
@@ -60,12 +59,8 @@ from ppar.audit.performance_comparison.findings import (
     PC_HOLD_QTY,
     PC_PRICE,
     PC_SEC_ADD,
-    PC_SEC_CONTR,
     PC_SEC_DROP,
-    PC_SEC_FLOW,
-    PC_SEC_MV,
     PC_SEC_RET,
-    PC_SEC_WGT,
     PC_TXN_ADD,
     PC_TXN_AMBIG,
     PC_TXN_AMT,
@@ -835,18 +830,13 @@ class TestPerformanceComparison(unittest.TestCase):
             if finding[FINDING_CODE] == PC_PORT_RET
             and finding[SOURCE_COLUMN] == pc_cols.PORTFOLIO_RETURN
         ]
-        end_mv_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_PORT_MV
-            and finding[SOURCE_COLUMN] == pc_cols.END_MARKET_VALUE
-        ]
-
         self.assertEqual(len(return_findings), 1)
         self.assertEqual(return_findings[0][SOURCE_FILE], "portperf.csv")
         self.assertAlmostEqual(cast(float, return_findings[0][DELTA_B_MINUS_A]), 0.0005)
-        self.assertEqual(len(end_mv_findings), 1)
-        self.assertAlmostEqual(cast(float, end_mv_findings[0][DELTA_B_MINUS_A]), 500.0)
+        self.assertEqual(
+            {finding[SOURCE_COLUMN] for finding in finding_dicts},
+            {pc_cols.PORTFOLIO_RETURN},
+        )
 
     def test_changed_value_tolerances_are_resolved_once_per_column(self) -> None:
         """One comparison resolves each shared field tolerance only once."""
@@ -859,17 +849,12 @@ class TestPerformanceComparison(unittest.TestCase):
                 pc_cols.FROM_DATE: [from_date, from_date],
                 pc_cols.THRU_DATE: [thru_date, thru_date],
                 pc_cols.PORTFOLIO_RETURN: [0.01, 0.02],
-                pc_cols.END_MARKET_VALUE: [100.0, 200.0],
             }
         )
         snapshot_b = snapshot_a.with_columns(
             (pl.col(pc_cols.PORTFOLIO_RETURN) + 0.01),
-            (pl.col(pc_cols.END_MARKET_VALUE) + 10.0),
         )
-        compare_columns = {
-            pc_cols.PORTFOLIO_RETURN: PC_PORT_RET,
-            pc_cols.END_MARKET_VALUE: PC_PORT_MV,
-        }
+        compare_columns = {pc_cols.PORTFOLIO_RETURN: PC_PORT_RET}
 
         with mock.patch.object(
             comparison,
@@ -882,21 +867,18 @@ class TestPerformanceComparison(unittest.TestCase):
                 compare_columns=compare_columns,
             )
 
-        self.assertEqual(len(findings), 4)
+        self.assertEqual(len(findings), 2)
         self.assertEqual(
             [finding.source_column for finding in findings],
             [
                 pc_cols.PORTFOLIO_RETURN,
-                pc_cols.END_MARKET_VALUE,
                 pc_cols.PORTFOLIO_RETURN,
-                pc_cols.END_MARKET_VALUE,
             ],
         )
         self.assertEqual(
             tolerance.call_args_list,
             [
                 mock.call(pc_cols.PORTFOLIO_RETURN),
-                mock.call(pc_cols.END_MARKET_VALUE),
             ],
         )
 
@@ -981,32 +963,6 @@ class TestPerformanceComparison(unittest.TestCase):
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.SECURITY_RETURN
         ]
-        aapl_weight_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_SEC_WGT
-            and finding[SECURITY_ID] == "AAPL"
-            and finding[SOURCE_COLUMN] == pc_cols.WEIGHT
-        ]
-        aapl_contribution_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_SEC_CONTR
-            and finding[SECURITY_ID] == "AAPL"
-            and finding[SOURCE_COLUMN] == pc_cols.CONTRIBUTION
-        ]
-        aapl_market_value_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_SEC_MV
-            and finding[SECURITY_ID] == "AAPL"
-        ]
-        aapl_flow_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_SEC_FLOW
-            and finding[SECURITY_ID] == "AAPL"
-        ]
         add_findings = [
             finding
             for finding in finding_dicts
@@ -1025,18 +981,13 @@ class TestPerformanceComparison(unittest.TestCase):
             cast(float, aapl_return_findings[0][DELTA_B_MINUS_A]),
             0.01,
         )
-        self.assertEqual(len(aapl_weight_findings), 1)
-        self.assertAlmostEqual(
-            cast(float, aapl_weight_findings[0][DELTA_B_MINUS_A]),
-            0.001,
+        self.assertTrue(
+            all(
+                finding[SOURCE_COLUMN] == pc_cols.SECURITY_RETURN
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_SEC_RET
+            )
         )
-        self.assertEqual(len(aapl_contribution_findings), 1)
-        self.assertAlmostEqual(
-            cast(float, aapl_contribution_findings[0][DELTA_B_MINUS_A]),
-            0.00058425,
-        )
-        self.assertGreaterEqual(len(aapl_market_value_findings), 1)
-        self.assertGreaterEqual(len(aapl_flow_findings), 1)
         self.assertEqual(len(add_findings), 1)
         self.assertEqual(len(drop_findings), 1)
 
@@ -1066,7 +1017,7 @@ class TestPerformanceComparison(unittest.TestCase):
         value_change_findings = [
             finding
             for finding in findings
-            if finding[FINDING_CODE] in {PC_SEC_RET, PC_SEC_WGT, PC_SEC_CONTR}
+            if finding[FINDING_CODE] == PC_SEC_RET
         ]
 
         self.assertEqual(len(add_findings), 1)
@@ -1116,7 +1067,6 @@ class TestPerformanceComparison(unittest.TestCase):
         }
 
         self.assertEqual(role_by_code[PC_PORT_RET], TARGET_OUTPUT)
-        self.assertEqual(role_by_code[PC_PORT_MV], DIRECT_INPUT)
         self.assertNotIn(PC_SEC_RET, role_by_code)
         self.assertEqual(role_by_code[PC_HOLD_QTY], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_HOLD_COST], CONTEXT)
@@ -1249,8 +1199,8 @@ class TestPerformanceComparison(unittest.TestCase):
                 market_value_finding[IMPACT_POLICY],
                 IMPACT_POLICY_HOLDING_MARKET_VALUE,
             )
-            self.assertEqual(market_value_finding[RETURN_DENOMINATOR], 1000.0)
-            self.assertAlmostEqual(holding_candidate[ESTIMATED_RETURN_IMPACT], 0.01)
+            self.assertIsNone(market_value_finding[RETURN_DENOMINATOR])
+            self.assertIsNone(holding_candidate[ESTIMATED_RETURN_IMPACT])
             policies = _holding_impact_policies(specification)
             self.assertEqual(
                 policies[pc_cols.MARKET_VALUE],
@@ -1305,8 +1255,8 @@ class TestPerformanceComparison(unittest.TestCase):
                 accrued_finding[IMPACT_POLICY],
                 IMPACT_POLICY_HOLDING_ACCRUED,
             )
-            self.assertEqual(accrued_finding[RETURN_DENOMINATOR], 1000.0)
-            self.assertAlmostEqual(accrued_candidate[ESTIMATED_RETURN_IMPACT], 0.005)
+            self.assertIsNone(accrued_finding[RETURN_DENOMINATOR])
+            self.assertIsNone(accrued_candidate[ESTIMATED_RETURN_IMPACT])
 
     def test_evidence_only_policy_is_loaded_from_yaml(self) -> None:
         """Explicit evidence-only policy is carried into source-data findings."""
@@ -1433,9 +1383,9 @@ class TestPerformanceComparison(unittest.TestCase):
                 quantity_finding[IMPACT_POLICY],
                 IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
             )
-            self.assertEqual(quantity_finding[RETURN_DENOMINATOR], 1000.0)
+            self.assertIsNone(quantity_finding[RETURN_DENOMINATOR])
             self.assertEqual(quantity_finding[IMPACT_INPUT_VALUE], 100.0)
-            self.assertAlmostEqual(quantity_candidate[ESTIMATED_RETURN_IMPACT], 0.1)
+            self.assertIsNone(quantity_candidate[ESTIMATED_RETURN_IMPACT])
             policies = _holding_impact_policies(specification)
             self.assertEqual(
                 policies[pc_cols.QUANTITY],
@@ -1546,10 +1496,9 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             self.assertEqual(
                 {finding[RETURN_WEIGHT] for finding in price_findings},
-                {0.2, 0.5},
+                {None},
             )
-            self.assertAlmostEqual(impact_by_portfolio["PORT_A"], 0.002)
-            self.assertAlmostEqual(impact_by_portfolio["PORT_B"], 0.005)
+            self.assertEqual(impact_by_portfolio, {"PORT_A": None, "PORT_B": None})
             policies = _price_impact_policies(specification)
             self.assertEqual(policies[pc_cols.PRICE], IMPACT_POLICY_PRICE_WEIGHTED)
 
@@ -1640,7 +1589,7 @@ class TestPerformanceComparison(unittest.TestCase):
         )
         self.assertEqual(str(amount_findings[0][FROM_DATE]), "2025-05-30")
         self.assertEqual(str(amount_findings[0][THRU_DATE]), "2025-05-30")
-        self.assertEqual(amount_findings[0][RETURN_DENOMINATOR], 999915.0)
+        self.assertIsNone(amount_findings[0][RETURN_DENOMINATOR])
         self.assertAlmostEqual(
             cast(float, amount_findings[0][DELTA_B_MINUS_A]),
             -100.0,
@@ -2232,11 +2181,10 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             self.assertEqual(
                 amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC],
-                "modified_dietz cross-check estimate",
+                "modified_dietz missing inputs: nonzero begin_market_value denominator",
             )
-            self.assertAlmostEqual(
-                cast(float, amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
-                10.0 * (17.0 / 31.0) / 1000.0,
+            self.assertIsNone(
+                amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
             )
             policies = _transaction_impact_policies(specification)
             self.assertEqual(
@@ -2278,11 +2226,10 @@ class TestPerformanceComparison(unittest.TestCase):
 
             self.assertEqual(
                 amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC],
-                "modified_dietz cross-check estimate",
+                "modified_dietz missing inputs: nonzero begin_market_value denominator",
             )
-            self.assertAlmostEqual(
-                cast(float, amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
-                10.0 * (16.0 / 31.0) / 1000.0,
+            self.assertIsNone(
+                amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
             )
 
     def test_transaction_modified_dietz_out_of_period_stays_unestimated(self) -> None:
@@ -2378,7 +2325,7 @@ class TestPerformanceComparison(unittest.TestCase):
             ).row(0, named=True)
 
             self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
-            self.assertIsNotNone(
+            self.assertIsNone(
                 transaction_amount[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
             )
 
@@ -2601,92 +2548,29 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn(expected_message, str(context.exception))
 
-    def test_contribution_impact_methods_reject_malformed_yaml(self) -> None:
-        """Contribution impact method YAML must use the supported contract."""
-        scenarios = [
-            ("not-a-mapping", "contribution_impact_methods must be a mapping"),
-            ({"unsupported": {"method": "x"}}, "unsupported"),
-            (
-                {"portfolio_source_field": "estimate"},
-                "portfolio_source_field must be a mapping",
-            ),
-            (
-                {
-                    "portfolio_source_field": {
-                        "method": "source_field_delta_over_begin_market_value",
-                        "denominator_source": "begin_market_value",
-                    }
-                },
-                "portfolio_source_field is missing required keys",
-            ),
-            (
-                {
-                    "portfolio_source_field": {
-                        "method": "unsupported",
-                        "denominator_source": "begin_market_value",
-                        "source_fields": ["income"],
-                    }
-                },
-                "portfolio_source_field.method must be",
-            ),
-            (
-                {
-                    "portfolio_source_field": {
-                        "method": "source_field_delta_over_begin_market_value",
-                        "denominator_source": "ending_market_value",
-                        "source_fields": ["income"],
-                    }
-                },
-                "portfolio_source_field.denominator_source must be one of",
-            ),
-            (
-                {
-                    "portfolio_source_field": {
-                        "method": "source_field_delta_over_begin_market_value",
-                        "denominator_source": "begin_market_value",
-                        "source_fields": ["end_market_value"],
-                    }
-                },
-                "contains unsupported fields",
-            ),
-            (
-                {"security_contribution": {"method": "unsupported"}},
-                "security_contribution.method must be",
-            ),
-            (
-                {
-                    "security_return": {
-                        "method": "security_return_delta_times_weight",
-                        "weight_source": "ending_weight",
-                    }
-                },
-                "security_return.weight_source must be one of",
-            ),
-        ]
+    def test_contribution_impact_methods_are_rejected_as_retired(self) -> None:
+        """Policies for retired performance-output columns fail closed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(
+                Path(temp_dir)
+            )
+            configuration = yaml.safe_load(
+                specification_path.read_text(encoding="utf-8")
+            )
+            configuration["contribution_impact_methods"] = {
+                "security_contribution": {"method": "vendor_contribution_delta"}
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
 
-        for contribution_impact_methods, expected_message in scenarios:
-            with self.subTest(contribution_impact_methods=contribution_impact_methods):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    specification_path = _write_transaction_period_specification(
-                        Path(temp_dir)
-                    )
-                    configuration = yaml.safe_load(
-                        specification_path.read_text(encoding="utf-8")
-                    )
-                    configuration["contribution_impact_methods"] = (
-                        contribution_impact_methods
-                    )
-                    specification_path.write_text(
-                        yaml.safe_dump(configuration),
-                        encoding="utf-8",
-                    )
-
-                    with self.assertRaises(PpaError) as context:
-                        PerformanceComparison(
-                            AuditSpecification(specification_path)
-                        )
-
-                    self.assertIn(expected_message, str(context.exception))
+            with self.assertRaisesRegex(
+                PpaError,
+                "Retired optional performance-output configuration.*"
+                "contribution_impact_methods",
+            ):
+                AuditSpecification(specification_path)
 
     def test_holding_impact_methods_reject_malformed_yaml(self) -> None:
         """Holding impact method YAML must use the supported contract."""
@@ -3031,16 +2915,12 @@ class TestPerformanceComparison(unittest.TestCase):
 
             self.assertEqual(str(amount_finding[FROM_DATE]), "2025-05-30")
             self.assertEqual(str(amount_finding[THRU_DATE]), "2025-05-30")
-            self.assertEqual(amount_finding[RETURN_DENOMINATOR], 1000.0)
+            self.assertIsNone(amount_finding[RETURN_DENOMINATOR])
             self.assertEqual(
                 amount_finding[TRANSACTION_IMPACT_POLICY],
                 TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
             )
-            self.assertEqual(transaction_candidates.height, 1)
-            self.assertAlmostEqual(
-                transaction_candidates[ESTIMATED_RETURN_IMPACT][0],
-                0.01,
-            )
+            self.assertEqual(transaction_candidates.height, 0)
 
     def test_transaction_outside_period_does_not_guess_ambiguous_changed_period(
         self,
@@ -3136,21 +3016,22 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(str(added[FROM_DATE]), "2025-06-01")
             self.assertEqual(str(added[THRU_DATE]), "2025-06-30")
             self.assertEqual(str(added["input_date"]), "2025-06-01")
+            missing_denominator = (
+                "modified_dietz missing inputs: nonzero begin_market_value denominator"
+            )
             self.assertEqual(
                 dropped[TRANSACTION_IMPACT_DIAGNOSTIC],
-                "modified_dietz cross-check estimate",
+                missing_denominator,
             )
             self.assertEqual(
                 added[TRANSACTION_IMPACT_DIAGNOSTIC],
-                "modified_dietz cross-check estimate",
+                missing_denominator,
             )
-            self.assertAlmostEqual(
-                cast(float, dropped[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
-                1000.0 * (1.0 / 31.0) / 10000.0,
+            self.assertIsNone(
+                dropped[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
             )
-            self.assertAlmostEqual(
-                cast(float, added[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
-                -1000.0 / 10000.0,
+            self.assertIsNone(
+                added[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
             )
 
     def test_duplicate_singleton_candidates_are_not_fallback_matched(self) -> None:

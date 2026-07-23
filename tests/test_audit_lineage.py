@@ -189,7 +189,7 @@ class TestAuditLineage(unittest.TestCase):
         self.assertFalse(
             field_roles.requires_explicit_impact_policy(
                 pc_cols.PORTFOLIO_PERFORMANCE,
-                pc_cols.INCOME,
+                pc_cols.PORTFOLIO_RETURN,
             )
         )
         self.assertFalse(

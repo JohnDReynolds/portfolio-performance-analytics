@@ -77,14 +77,7 @@ class PortfolioPerformanceLoader:
         frame = normalize_currency_columns(
             source_loader.require_numeric_columns(
                 frame,
-                columns=(
-                    pc_cols.PORTFOLIO_RETURN,
-                    pc_cols.BEGIN_MARKET_VALUE,
-                    pc_cols.END_MARKET_VALUE,
-                    pc_cols.FLOW,
-                    pc_cols.INCOME,
-                    pc_cols.GAIN_LOSS,
-                ),
+                columns=(pc_cols.PORTFOLIO_RETURN,),
                 dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
                 path=path,
                 specification_path=self._specification.path,

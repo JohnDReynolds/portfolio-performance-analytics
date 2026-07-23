@@ -58,8 +58,6 @@ the enum members.
 
 Public YAML impact method values are centralized in:
 
-- `ContributionImpactMethod`: `source_field_delta_over_begin_market_value`,
-  `vendor_contribution_delta`, and `security_return_delta_times_weight`.
 - `TransactionImpactMethod`: `evidence_only`, `modified_dietz`, and
   `transaction_amount_delta_over_return_denominator`.
 - `HoldingImpactMethod`: `evidence_only`,
@@ -68,6 +66,10 @@ Public YAML impact method values are centralized in:
   `accrued_delta_over_return_denominator`.
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
 - `FxRateImpactMethod`: `evidence_only`.
+
+The retired `contribution_impact_methods` configuration is rejected. Audit no
+longer derives explanation inputs from optional portfolio- or
+security-performance output columns.
 Transaction sign/flow semantics are centralized in:
 
 - `TransactionCategory`: `external_flow`, `income`, `fee_expense`, `buy`,
@@ -230,8 +232,9 @@ optional datasets should reduce explanation depth, not fail the comparison,
 unless the user explicitly marks a file as required for preflight existence
 checking.
 
-Each normalized dataset should have a small required column set. All other
-columns should be optional and preserved when useful.
+Each normalized dataset has a deliberately small supported column set. Extra
+unmapped source columns are ignored unless a later product change gives them an
+explicit evidence contract.
 
 `portfolio_performance` required columns:
 
@@ -240,16 +243,9 @@ columns should be optional and preserved when useful.
 - `thru_date`
 - `portfolio_return`
 
-`portfolio_performance` useful optional columns:
-
-- `portfolio_name`
-- `begin_market_value`
-- `end_market_value`
-- `flow`
-- `income`
-- `gain_loss`
-- `period_id`
-- `currency`
+`portfolio_performance` may also provide `base_currency` as portfolio metadata.
+It does not supply separate valuation, flow, income, gain/loss, or contribution
+evidence.
 
 `security_performance` required columns:
 
@@ -259,25 +255,8 @@ columns should be optional and preserved when useful.
 - `thru_date`
 - `security_return`
 
-`security_performance` useful optional columns:
-
-- `security_name`
-- `weight`
-- `contribution`
-- `begin_market_value`
-- `end_market_value`
-- `income`
-- `gain_loss`
-- `ticker`
-- `currency`
-
-`weight` means the security weight used to explain or reconcile security
-contribution. It may come from beginning weight, average capital weight,
-modified-Dietz adjusted weight, or another vendor-provided effective weight.
-Method-specific source fields can still be preserved as optional explanatory
-columns when useful.
-
-- additional classification code/name pairs
+`security_performance` has no supported optional calculated-output columns.
+Holdings and transactions provide valuation, weight, flow, and income evidence.
 
 `fx_rates` required columns:
 
@@ -675,8 +654,8 @@ underlying-cause review rows without receiving return-impact estimates.
 
 Missing required columns should prevent that specific dataset from loading. If
 the dataset is optional, the comparison should continue with a finding or report
-note that explanation depth is limited. Missing optional columns should produce
-a less detailed explanation, not a failed comparison.
+note that explanation depth is limited. Missing optional evidence datasets may
+produce a less detailed explanation without invalidating the reported returns.
 
 ### File Presence Requirements
 
@@ -824,7 +803,7 @@ Evidence roles:
 - `target_output`: The performance delta being explained, such as a portfolio
   return change.
 - `related_output`: Calculated output deltas that help locate the change, such
-  as security return, weight, or contribution changes.
+  as security return changes.
 - `direct_input`: Source/input changes that can plausibly drive time-weighted
   return, such as holding price values, FX rates, flows, market values, holdings,
   accruals, transaction amounts, and cash balances.
@@ -839,17 +818,16 @@ The stored `evidence_role` is global and portfolio-period oriented. Because
 portfolio performance is the only required top-level target, security
 performance deltas are stored as `related_output` in the findings table. In the
 local `security_period_evidence_breakdown()` helper, a `PC-SEC-RET` finding is
-displayed as the security-period `target_output`, while security weight and
-contribution changes remain `related_output`. This is a presentation choice for
-the local security-period view, not a change to the underlying finding record.
+displayed as the security-period `target_output`. This is a presentation choice
+for the local security-period view, not a change to the underlying finding
+record.
 
 ### Dataset Roles
 
 The first-pass role model should remain intentionally small:
 
-- `portfolio_performance`: `target_output` for portfolio return changes, and
-  `direct_input` for source fields such as market value, flow, income, and
-  gain/loss changes.
+- `portfolio_performance`: `target_output` for portfolio return changes;
+  `base_currency` is metadata rather than a separately compared value.
 - `security_performance`: `related_output` in the global portfolio-period
   model. In a local security-period view, the security return change is the
   local `target_output`.
@@ -1301,8 +1279,8 @@ Current output layers:
 - Portfolio-period contribution candidates: A conservative helper returned by
   `portfolio_period_contribution_candidates()`. It adds stable impact columns
   to ranked evidence rows and may return `no_estimate` when a defensible impact
-  estimate is not available. The first supported estimate uses vendor security
-  contribution deltas as related-output impact estimates.
+  estimate is not available. Supported estimates use explicit YAML methods and
+  holdings-, transaction-, FX-, or reconstruction-derived inputs.
 - Portfolio-period cause summary: A coarse explanation-bucket helper returned
   by `portfolio_period_cause_summary()`. It rolls contribution candidates up
   to portfolio period plus root-cause area, preserving finding counts, top
@@ -1326,15 +1304,11 @@ Current output layers:
   returned by `security_period_evidence_breakdown()`. It reports role total
   rows and nonzero dataset rows for each security-period return delta. In this
   local security-period view, the security return finding is treated as the
-  `target_output`, while other security performance findings remain
-  `related_output`.
+  `target_output`.
 
 Portfolio performance is the authoritative source of portfolio base currency.
 When it is available, holdings and transactions inherit a missing row-level
 base currency from the portfolio and fail validation if they contradict it.
-Security-performance beginning/ending market value, income, and gain/loss are
-compared as related reported-output diagnostics alongside return, weight, and
-contribution.
 
 Normalized monetary names use one currency-basis rule:
 
@@ -1342,8 +1316,6 @@ Normalized monetary names use one currency-basis rule:
   `currency`;
 - `base_` monetary fields in those detailed datasets use portfolio
   `base_currency`;
-- monetary fields in portfolio/security performance datasets are inherently
-  in portfolio base currency and remain unprefixed; and
 - `fx_rates.fx_rate` is `to_currency` units per one `from_currency` unit.
 
 PPAR does not add `local_` duplicates because row currency is already the
@@ -1376,25 +1348,21 @@ Implemented period-linking rules:
   They support an estimate only when both snapshots provide the same explicit
   `local_exposure`; a rate row without that exposure remains review evidence.
 
-These rules are intentionally asymmetric. Price rows can be linked through
-security-period output because they share a security identifier and date. FX
-  rates need an explicit portfolio identifier and local exposure; ppar does not
-  infer either from `security_performance`.
+These rules are intentionally asymmetric. Holding price rows use reconstructed
+beginning holdings to derive a portfolio weight. FX rates need an explicit
+portfolio identifier and local exposure; PPAR does not infer either from a
+performance file.
 
 ## Current Limits
 
 The current evidence model is useful, but it should not be overstated.
 
-- Evidence counts are not contribution amounts. A portfolio-period summary can
-  say that related price, transaction, holding, or security-output
-  findings exist; it does not yet calculate how much each item explains of the
-  portfolio return delta.
+- Evidence counts are not contribution amounts. Supported YAML methods may
+  calculate an estimate, but unestimated evidence must remain visibly distinct.
 - Portfolio-period evidence rankings are review-priority heuristics. They help
   sort the audit trail but do not quantify causal contribution.
-- Prices often lack portfolio identifiers, but they can be linked through
-  security-performance periods when `security_performance` is available. FX
-  rates without explicit portfolio and exposure context remain unlinked and
-  unestimated.
+- Price estimates require holdings-derived beginning weights. FX rates without
+  explicit portfolio and exposure context remain unlinked and unestimated.
 - Transaction matching depends on stable keys. With `transaction_id`, changed
   amounts can be reported as changed transactions. Without it, conservative
   fallback matching may report one drop and one add rather than guessing two
@@ -1407,530 +1375,78 @@ The current evidence model is useful, but it should not be overstated.
   grouping, reporting, or identifier-resolution effect.
 - Security-period summaries are optional. The portfolio-period explanation path
   must continue to work when `security_performance` is absent.
-- The implementation compares source evidence. It does not recalculate TWR from
-  raw transactions or holdings.
+- The implementation reconstructs Modified Dietz inputs from holdings and
+  transactions. It does not treat optional performance-file output components
+  as independent evidence.
 
-## Contribution Ranking Direction
+## Explanation Estimates And Performance-File Boundary
 
-The existing `rank_portfolio_period_evidence()` helper is a review-priority
-sort. It helps decide which findings to inspect first, but it is not a
-contribution model and should not be labeled as explaining a portion of return.
+Audit treats the performance files as reported results, not as a second source
+of holdings, flows, income, gain/loss, contribution, or valuation evidence.
 
-The contribution-ranking layer is optional, conservative, and explicit about
-its basis. The output should be allowed to say "no estimate" when a finding
-lacks the denominator, linkage, or YAML-selected methodology needed for a
-defensible return-impact estimate.
+The normalized performance-file contract is intentionally narrow:
 
-Implemented contribution-candidate fields:
+- `portfolio_performance`: portfolio identifier, period dates, reported
+  portfolio return, and optional base-currency metadata;
+- `security_performance`: portfolio/security identifiers, period dates, and
+  reported security return.
 
-- `estimated_return_impact`: Optional numeric estimate of return impact.
-- `impact_basis`: Short basis label, such as `portfolio_source_field`,
-  `security_contribution`, `linked_holding_price`, or `no_estimate`.
-- `impact_confidence`: High, medium, or low confidence in the estimate.
-- `impact_method`: The formula or rule used to estimate impact.
-- `impact_message`: Human-readable explanation of the estimate or why no
-  estimate was produced.
+Unmapped extra CSV columns are ignored. Audit does not compare or separately
+interpret beginning value, ending value, net flow, income, gain/loss, beginning
+weight, or contribution fields from these files. This keeps the user-facing
+extract requirement clear and leaves room for a future evidence field only
+after that field receives an explicit product contract.
 
-The contribution-candidate implementation preserves all ranked evidence rows
-and populates stable impact columns. It estimates only where the YAML explicitly
-selects a supported `contribution_impact_methods`, `holding_impact_methods`,
-or `transaction_impact_methods` policy and the current evidence carries enough
-denominator, weight, or vendor output context to state the method clearly.
-When a changed source field is known review evidence but should not receive an
-additive estimate, YAML can instead mark it with
-`evidence_only_impact_methods`.
+`rank_portfolio_period_evidence()` remains a review-priority sort rather than
+a contribution model. The explanation layer may attach a conservative
+`estimated_return_impact` only when YAML selects a supported method and all
+required reconstructed inputs are present. Otherwise the row remains visible
+with a null estimate and explicit missing-input or review-only guidance.
 
-```yaml
-contribution_impact_methods:
-  portfolio_source_field:
-    method: source_field_delta_over_begin_market_value
-    denominator_source: begin_market_value
-    source_fields:
-      - income
-      - gain_loss
-  security_contribution:
-    method: vendor_contribution_delta
-  security_return:
-    method: security_return_delta_times_weight
-    weight_source: snapshot_a_weight
-holding_impact_methods:
-  market_value:
-    method: market_value_delta_over_return_denominator
-    denominator_source: begin_market_value
-  accrued:
-    method: accrued_delta_over_return_denominator
-    denominator_source: begin_market_value
-  quantity:
-    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
-    denominator_source: begin_market_value
-  cost:
-    method: evidence_only
-price_impact_methods:
-  price:
-    method: price_delta_over_snapshot_a_price_times_weight
-    weight_source: snapshot_a_weight
-evidence_only_impact_methods:
-  fx_rates:
-    method: evidence_only
-    source_fields:
-      - fx_rate
-  holdings:
-    method: evidence_only
-    source_fields:
-      - cost
-```
+Current estimate inputs are derived as follows:
 
-Current supported impact estimates:
+1. Portfolio denominators use `derived_denominator_a` from the configured
+   portfolio return reconstruction.
+2. Security denominators use `derived_denominator_a` from the configured
+   security return reconstruction.
+3. Portfolio-level security weights use the security beginning value divided by
+   the portfolio beginning value from those same reconstruction checks.
+4. Holding market-value, accrued, and quantity estimates use their configured
+   holding impact methods.
+5. Holding price estimates use the configured price method and the
+   holdings-derived beginning weight.
+6. Performance-treated transaction amounts, eligible security transaction
+   flows, and configured FX-rate exposure estimates use their explicit YAML
+   methods and reconstructed denominators.
 
-1. Vendor security contribution delta:
-   - `impact_basis = security_contribution`
-   - `impact_method = vendor_contribution_delta`
-   - `impact_confidence = medium`
-   - Applies only when YAML explicitly configures
-     `contribution_impact_methods.security_contribution.method` as
-     `vendor_contribution_delta`.
-   - Uses the vendor-provided contribution delta as a related-output impact
-     estimate. This is preferred for the `security_return_or_contribution`
-     cause-area aggregate when available.
-2. Weighted security return delta:
-   - `impact_basis = security_return_weighted`
-   - `impact_method = security_return_delta_times_weight`
-   - `impact_confidence = low`
-   - Applies only when YAML explicitly configures
-     `contribution_impact_methods.security_return.method` as
-     `security_return_delta_times_weight` and `weight_source` as
-     `snapshot_a_weight`.
-   - Formula: `security_return_delta * snapshot_a_weight`.
-   - Used as a candidate-level review cross-check or fallback. It is not summed
-     with vendor contribution in the same security cause bucket because that
-     would double-count two estimates of related security-level performance.
-3. Portfolio source-field delta:
-   - `impact_basis = portfolio_source_field`
-   - `impact_method = source_field_delta_over_begin_market_value`
-   - `impact_confidence = low`
-   - Applies only when YAML explicitly configures
-     `contribution_impact_methods.portfolio_source_field.method` as
-     `source_field_delta_over_begin_market_value`, `denominator_source` as
-     `begin_market_value`, and the source field in `source_fields`.
-   - Formula: `source_field_delta / beginning_market_value`.
-   - Currently applies only to return-bearing portfolio source fields such as
-     `income` and `gain_loss`. It does not apply to control/output fields such
-     as `end_market_value`.
-4. Performance-treated transaction amount delta:
-   - `impact_basis = transaction_performance_amount`
-   - `impact_method = transaction_amount_delta_over_return_denominator`
-   - `impact_confidence = low`
-   - Formula: `source_signed_transaction_amount_delta / return_denominator`.
-   - Applies only when YAML explicitly configures
-     `transaction_impact_methods.performance.method` as
-     `transaction_amount_delta_over_return_denominator`.
-   - Also requires changed transaction `amount` fields whose source-supplied or
-     YAML-rule semantics mark them as performance-affecting and whose cash-flow
-     sign is positive or negative. Missing/zero denominators, out-of-period
-     transaction dates, external-flow treatment, neutral treatment, unknown
-     semantics, and cash-flow `none` remain evidence-only until separate
-     methods are modeled. Missing-input summaries name these unsupported
-     treatments as `transaction impact method`, `external-flow impact method`,
-     `neutral-flow impact method`, or `no-cash transaction impact method` so
-     reviewers can distinguish semantics gaps from method gaps.
-   - If YAML sets `transaction_impact_methods.external_flow.method` to
-     `evidence_only`, external-flow transaction rows still receive no estimate,
-     but review summaries identify the explicit evidence-only policy rather
-     than implying a missing formula.
-   - External-flow rows may carry `transaction_impact_diagnostic` values that
-     distinguish evidence-only policy, missing method configuration, and
-     Modified Dietz cross-check estimates. Eligible Modified Dietz rows may
-     also carry `transaction_impact_diagnostic_estimate`. These diagnostics are
-     reviewer-facing only; they do not populate `estimated_return_impact`.
-5. Holding market value delta:
-   - `impact_basis = holding_market_value`
-   - `impact_method = market_value_delta_over_return_denominator`
-   - `impact_confidence = low`
-   - Formula: `holding_market_value_delta / return_denominator`.
-   - Applies only when YAML explicitly configures
-     `holding_impact_methods.market_value.method` as
-     `market_value_delta_over_return_denominator` and `denominator_source` as
-     `begin_market_value`.
-   - This is intentionally a low-confidence screening estimate because a
-     holding market value delta may reflect price, quantity, FX,
-     accrued-interest, or booking changes.
-6. Weighted price delta:
-   - `impact_basis = price_weighted`
-   - `impact_method = price_delta_over_snapshot_a_price_times_weight`
-   - `impact_confidence = low`
-   - Formula: `(price_delta / snapshot_a_price) * snapshot_a_weight`.
-   - Applies only when YAML explicitly configures
-     `price_impact_methods.price.method` as
-     `price_delta_over_snapshot_a_price_times_weight` and `weight_source` as
-     `snapshot_a_weight`.
-   - Price findings link through security-performance periods, so one changed
-     security price may produce one explanation row per affected portfolio.
-7. Holding accrued delta:
-   - `impact_basis = holding_accrued`
-   - `impact_method = accrued_delta_over_return_denominator`
-   - `impact_confidence = low`
-   - Formula: `holding_accrued_delta / return_denominator`.
-   - Applies only when YAML explicitly configures
-     `holding_impact_methods.accrued.method` as
-     `accrued_delta_over_return_denominator` and `denominator_source` as
-     `begin_market_value`.
-   - This is intentionally a low-confidence screening estimate because accrued
-     balances depend on source income accrual and pricing conventions.
-8. Holding quantity delta:
-   - `impact_basis = holding_quantity_unit_market_value`
-   - `impact_method =
-     quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
-   - `impact_confidence = low`
-   - Formula:
-     `(holding_quantity_delta * snapshot_a_holding_unit_market_value) /
-     return_denominator`.
-   - Applies only when YAML explicitly configures
-     `holding_impact_methods.quantity.method` as
-     `quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
-     and `denominator_source` as `begin_market_value`.
-   - Snapshot A unit market value is calculated from the same holding row as
-     `snapshot_a_market_value / snapshot_a_quantity`.
-   - This is intentionally a low-confidence screening estimate because unit
-     market value can embed price, FX, accrued-interest, or booking effects.
-   - `holding_impact_methods.quantity.method: evidence_only` remains
-     available when a changed quantity should be visible but not additive.
-10. Holding cost evidence:
-   - `holding_impact_methods.cost.method: evidence_only` marks changed
-     holding cost as intentional review evidence.
-   - It does not create `estimated_return_impact`; cost-basis changes are not
-     direct period-return attribution in the current model.
-11. Transaction quantity, price, and commission evidence:
-   - `transaction_impact_methods.quantity.method: evidence_only` and
-     `transaction_impact_methods.price.method: evidence_only` mark changed
-     transaction units and price values as intentional review evidence.
-   - `transaction_impact_methods.commission.method: evidence_only` marks
-     changed transaction commission as intentional review evidence.
-   - They do not create `estimated_return_impact`; transaction amount is the
-     supported additive transaction field so quantity, price, commission, and
-     amount are not double-counted.
-12. FX rate evidence:
-   - The FX-rate row does not receive `estimated_return_impact` because the
-     rate is not a separate Modified Dietz input.
-   - When `rate delta * unchanged local exposure` matches one changed
-     `holdings.base_market_value` or `transactions.base_amount` row, the report
-     links the FX rate to that security as supporting evidence. The base-value
-     row receives the counted impact.
-All other rows use `impact_basis = no_estimate` until a defensible method,
-denominator, and linkage are available.
+Missing reconstruction setup, missing boundary holdings, zero denominators, or
+missing transaction semantics fail closed: Audit does not fall back to optional
+performance-file columns and does not invent an estimate. Review-only Modified
+Dietz external-flow cross-checks remain separate from additive explanation
+totals.
 
-`evidence_only_impact_methods` is the explicit unsupported-but-known escape
-hatch. It does not create `estimated_return_impact`; instead, workbook rows are
-marked review-only and `Explanation` says the row is configured as
-evidence-only. This keeps intentionally review-only changes from looking like
-missing setup. Supported dataset keys are `fx_rates`, `holdings`, and
-`transactions`; each dataset may list only fields that the comparison engine
-already compares.
+The retired `contribution_impact_methods` key is rejected so an old or
+misspelled setup cannot silently restore performance-file-derived estimates.
+The retired portfolio/security market-value continuity issue types are also not
+part of the Data Issues vocabulary; holdings and transaction reconstruction are
+the authoritative valuation and flow evidence.
 
-First contribution estimates should start only where the math is defensible:
+## Report Bundle Contract
 
-- Portfolio performance source fields: Changes in return-bearing fields such
-  as `income` and `gain_loss` may support rough return-impact estimates when
-  beginning market value is present. These estimates should clearly state the
-  denominator and formula. Control/output fields such as `end_market_value`
-  should remain evidence-only until a defensible interpretation is modeled.
-- Security contribution deltas: If a vendor supplies contribution, changed
-  contribution can be ranked by contribution delta. This remains `related_output`
-  evidence, not root cause, because contribution is already calculated output.
-- Security return deltas: If a security return finding has a usable portfolio
-  weight, a low-confidence weighted estimate can be calculated as
-  `security_return_delta * snapshot_a_weight`. Prefer vendor contribution
-  deltas in the aggregate cause summary when both are present.
-- Holding, price, and transaction evidence: These should receive an estimated
-  return impact only when the finding can be linked to an affected portfolio,
-  period, security, and denominator. Transaction amount evidence also requires
-  a normalized transaction category plus modeled transaction sign and flow
-  semantics, and currently estimates only `performance` flow treatment.
-  Transaction evidence uses the linked portfolio period's snapshot A beginning
-  market value as the return denominator when the transaction date maps to a
-  configured period.
-  Otherwise these rows should remain ranked review evidence with `impact_basis`
-  set to `no_estimate`.
-- FX evidence: FX rate changes do not receive a separate portfolio-period
-  return impact. Configure them as evidence-only and use an explicit portfolio
-  and unchanged local exposure to link them to the counted base-currency value.
+The public bundle starts with the level-specific XLSX or HTML report and keeps
+the canonical CSV counterparts for parity and automation. The core supporting
+artifacts include findings, source detail, performance differences, performance
+difference causes, Data Issues, cause lineage, impact coverage, context
+evidence, transaction activity, transaction cross-checks, transaction matching
+diagnostics, residual status, and top evidence.
 
-Contribution ranking should not require every finding to receive an estimate.
-A mixed output is acceptable: some rows may have `estimated_return_impact`, and
-others may remain review-priority evidence only.
-
-Residual findings should wait until the system has a credible contribution
-model. Emitting residuals before enough impact estimates exist would imply a
-precision the comparison does not yet have.
-
-Reports may still include a residual status section for portfolio-period return
-changes. This section should use a section-level caveat plus compact per-period
-reason labels and review notes, rather than calculating an unexplained amount
-from partial or mixed-confidence estimates.
-
-Current residual review statuses are withheld labels only:
-
-- `withheld_no_estimates`: No regular contribution estimates are available for
-  the changed portfolio period.
-- `withheld_partial_estimates`: Some regular contribution estimates exist, but
-  they are partial, low/medium confidence, or potentially overlapping.
-- `withheld_cross_checks_only`: Review-only transaction cross-check estimates
-  exist, but no regular contribution estimates are available.
-
-These statuses keep the unexplained amount visible as a review concern without
-emitting a numeric residual. Report helper tables include a
-`residual_review_note` field that explains why each withheld status should not
-be interpreted as a calculated residual.
-
-Report bundles can be written with `write_audit_report_bundle()`.
-The bundle API includes HTML output by default. The
-user-facing `ppar audit` command reads its presentation choices from the strict
-`audit:` run-settings section; the maintained starter selects XLSX plus HTML.
-`--no-xlsx-output` selects HTML-only output for one run, `--no-html-output`
-selects XLSX-only output, and both options select promoted CSV-only review
-output. Every bundle therefore contains
-primary review artifacts, raw findings, current
-report helper tables as CSV files, a short `README.md`, a compact
-`review_summary.json`, and a JSON
-manifest with options, counts, artifact names, typed semantic fingerprints, and
-canonical review-sheet display fingerprints. This makes reviewer handoffs
-reproducible without coupling the comparison engine to a future
-Axys/APX-specific presentation layer.
-
-Use `report_bundle_contract()` when code or review automation needs to inspect
-the generated-bundle handoff shape. The helper returns the portfolio/security
-audit filenames, required artifact keys, manifest keys, review entrypoints,
-review-summary keys, normalization version, declared volatile metadata,
-Modified Dietz review basis, and review vocabulary keys. It is a contract
-surface for the bundle. It remains
-not a new transaction-classification or accounting layer.
-
-The intended bundle review order starts in the generated report files:
-
-1. The level-specific XLSX audit, when present, or its HTML counterpart for
-   browser review. Start with
-   `Performance Differences`, then use `Performance Difference Causes` to
-   understand what explains each portfolio-period difference.
-2. `source_detail.csv` / `findings.csv`: complete finding-level audit output for
-   troubleshooting and traceability.
-
-The generated artifacts fall into a small taxonomy:
-
-- first-stop review surfaces: `portfolio_audit.*` or `security_audit.*`;
-- reviewer handoff metadata: `README.md`, `manifest.json`, and
-  `review_summary.json`;
-- audit/export backbone: `findings.csv`, `performance_differences.csv`,
-  `performance_difference_causes.csv`, `data_issues.csv`,
-  `needs_review_summary.csv`,
-  `portfolio_period_summary.csv`, `cause_summary.csv`, `impact_estimates.csv`,
-  `impact_coverage.csv`, `top_evidence.csv`, and `residual_status.csv`;
-- supplementary diagnostics: `context_evidence_summary.csv`,
-  `context_evidence.csv`, `transaction_activity.csv`,
-  `transaction_cross_checks.csv`, `flow_cross_check_reconciliation.csv`, and
-  `transaction_matching_diagnostics.csv`;
-- opt-in reconstruction diagnostics: `reconstruction_summary.csv`,
-  `return_reconstruction_checks.csv`, and
-  `security_return_reconstruction_checks.csv`.
-
-Generated bundle `README.md` files explicitly point reviewers to the transaction
-activity, transaction cross-check, and flow-reconciliation CSVs as supplementary
-transaction and external-flow diagnostics. `transaction_matching_diagnostics.csv`
-is audit-support for transaction row-identity evidence rather than a main review
-section. The CSV artifacts remain in the bundle because they make handoffs,
-automation, validation, and troubleshooting reproducible; they are not meant to
-replace the first-stop workbook/report review flow.
-
-User-facing commands always write `source_detail.csv` at the report root and
-never duplicate it in `supporting_files/` or `audit_support.zip`. Remaining
-supporting artifacts are packaged in `audit_support.zip` by default. The
-`--expand-all-supporting-files` option retains those remaining individual files
-under `supporting_files/` for integrations and detailed troubleshooting.
-
-The `ppar.audit.cli.report_bundle` package CLI module
-exposes the same bundle workflow for comparison YAML files.
-Existing bundles can be checked with
-`ppar.audit.cli.validate_bundle`, which verifies required
-artifacts, manifest metadata, typed CSV content, canonical HTML/XLSX review
-content, empty-table headers, and whichever HTML/XLSX primary artifacts the
-manifest includes. Manifest version 8 records the selected output modes and
-excludes only its generation timestamp and
-XLSX creation/package timestamps from normalized repeatability; statuses,
-financial values, labels, causes, evidence rows, and ordering remain covered.
-Packaged demo scenario coverage can be checked with
-`ppar.audit.cli.validate_demo_matrix`, which verifies that
-the current YAML fixtures still produce the reviewer-facing scenarios named in
-the demo matrix.
-
-The HTML report starts with a first-screen `Problems` grid instead of a stack of
-evidence tables. It uses the same period-level triage data to show one compact
-row per actionable issue, with severity, portfolio, period, return delta,
-problem, action required, why it matters, and an optional evidence link. Links
-use stable period-specific row anchors when the target section carries
-portfolio-period fields, so a reviewer can audit the conclusion without using
-raw tables as the primary workflow. Rows are sorted to keep needs-review periods
-first, then missing-impact-input periods, then larger absolute return deltas,
-then portfolio/date. The grid is deliberately static for now: it guides the
-reviewer through existing evidence without adding new calculation logic. Its
-lightweight browser filters search rendered row text, review status, and
-missing-input flags only; they do not change report data or require a server.
-The default HTML presentation should stay short at the top: Problems first,
-with backing tables inside an Evidence Appendix.
-
-The XLSX workbook is the primary reviewer presentation over the same review
-tables used by the HTML/CSV bundle artifacts. Lower-level bundle calls generate
-it when requested with `include_workbook=True` or `--include-workbook`; the
-packaged demo writes it by default. The workbook starts with `Executive
-Summary`, followed by `Performance Differences`. In the portfolio demo,
-Performance Differences has one row per changed portfolio
-period, showing the decimal return difference, explained difference, and any
-unexplained remainder. In the security demo, it shows security-level return
-differences when security-performance rows changed, and it adds explicit
-no-difference rows for changed portfolio periods with no security-level return
-difference. The
-`Performance Difference Causes` sheet lists input rows such as holdings,
-transactions, and FX rates. Every transaction-associated row starts its
-`Explanation` with the native transaction code and a colon. Its `B - A
-Difference` values are raw input-value
-differences, and its `Performance Difference Explained` values appear only when
-ppar has a defensible input-level explanation. User-facing bundle generation
-now requires every changed source-data field that ppar knows how to classify to
-be explicitly configured as additive, evidence-only, or suppressed in YAML
-before any report artifacts are written. Unresolved residuals are summarized in
-the `Performance Differences` comments and the full underlying finding detail
-remains in `source_detail.csv`; there is no default residual-evidence sheet unless
-a future diagnostic can identify a real reviewable mechanism.
-Changed periods without any visible cause or promoted evidence row get a
-`no_underlying_causes_found` diagnostic row. The `source_detail.csv` artifact
-preserves the full finding-level detail, including context rows such as cost and
-reported-performance diagnostics that confirm reporting differences but are not
-root causes.
-The Explanation wording is intentionally report-level aware. Portfolio
-workbooks explain transaction rows by their portfolio-return role, so a `dp`,
-`dv`, or `in` transaction can be described as causing the cash-balance ending
-`holdings.market_value` row to move, while a portfolio `wd` row can include
-weighted external-flow language. Security workbooks explain transaction rows by
-the affected security return container, so the same transaction category family
-uses semantic labels such as `external flow`, `fee/expense`, or `income`.
-Those wording differences are not separate calculations; they reflect the
-different review question asked by the portfolio and security report families.
-Workbook-specific behavior is limited to spreadsheet
-ergonomics such as sheet names, frozen headers, filters, column widths, Excel
-number formats, and header comments that explain column meaning.
-
-YAML setup completeness is the default config-validation and report-bundle
-guardrail. `validate_config` and the report-bundle API option
-`require_complete_yaml_setup=True` fail before writing artifacts if a changed
-source field lacks additive, evidence-only, or suppression YAML. The shared CLI
-flag `--allow-incomplete-yaml` exists only for diagnostic config checks,
-diagnostic bundles, and tests. Strict supported-attribution setup remains an
-additional opt-in guardrail through `require_causal_attribution=True`,
-`--require-causal-attribution`, or `--require-supported-attribution-setup`.
-Strict causal attribution does not require every performance difference to be
-fully explained; it only rejects missing setup for supported attribution methods.
-
-The `needs_review_summary.csv` bundle artifact remains a derived period-level
-triage export. It highlights changed portfolio periods with evidence-only
-areas, missing impact inputs, low-confidence estimates, transaction
-cross-checks, or withheld residuals. It does not add new calculation rules; it
-only summarizes existing report helper tables into reviewer cues and suggested
-next steps. Period-level bundle tables carry a stable `review_key` where
-possible, and `needs_review_summary.csv` includes `review_detail_artifacts` to
-name the CSVs most relevant to each changed period.
-
-The packaged Axys/APX fixtures intentionally separate user-facing setup
-templates from validation fixtures. `ppar setup` installs the portfolio and
-security comparison starter file, `run_audit.py`. That setup-generated
-script writes `portfolio_audit.*` and `security_audit.*`, plus CSV artifacts and
-a manifest under `output/portfolio` and `output/security`.
-
-The remaining YAML files are scenario-coverage fixtures for tests and
-validators:
-
-- `performance_comparison.yaml`: Clean baseline.
-- `ppar_audit_restatement.yaml`: Controlled single
-  restatement with missing transaction setup.
-- `ppar_audit_restatement_transaction_rules.yaml`: Same data
-  with explicit transaction rules and transaction impact setup.
-- `ppar_audit_multi_restatement.yaml`: Multiple portfolios,
-  multiple periods, context rows, and residual/coverage behavior.
-- `ppar_audit_policy_gap_demo.yaml`: Missing-YAML actions such
-  as selecting `contribution_impact_methods`, configuring
-  `transaction_impact_methods`, setting `denominator_source`, and defining
-  transaction sign/flow semantics.
-- `ppar_audit_modified_dietz.yaml`: Cross-check-only Modified
-  Dietz external-flow diagnostics.
-- `ppar_audit_suppressed.yaml`: Active-vs-suppressed finding
-  behavior and audit visibility.
-
-The compact demo scenario matrix lives in `ppar/setup_templates/axys_apx_audit/README.md`.
-It lists which YAML fixture covers each reviewer-facing problem type and which
-scenarios are intentionally planned rather than covered. It also tracks the
-goal that every supported public YAML impact method should have at least one
-packaged demo scenario and validator assertion.
-
-Context evidence is summarized separately from impact estimates. The
-`context_evidence.csv` bundle artifact contains rows whose evidence role is
-`context`, a reviewer-facing `context_use`, and a
-`return_impact_treatment` value that states the row is not included in
-return-impact estimates. This keeps useful audit context visible without
-quietly relaxing the rule that every modeled impact method must be explicit.
-Context evidence linked to changed portfolio periods is also surfaced as a
-high-priority cue in `needs_review_summary.csv`.
-Top-of-report reviewer triage counts include high-priority context groups so
-reviewers can see immediately when context evidence needs early attention.
-Row-level `context_evidence.csv` detail carries the same priority labels and
-reasons as the grouped summary so reviewers do not need to infer priority by
-joining artifacts manually.
-In the workbook, plausible evidence-only input rows for unresolved periods may
-be shown on the `Performance Difference Causes` sheet so the reviewer can see
-likely explanations and calculated explanations together. Transaction component
-rows such as `transactions.quantity`,
-`transactions.price`, and `transactions.commission` also appear on the
-`Performance Difference Causes` sheet when they support a changed `transactions.amount`;
-their explained-difference columns remain blank because they are inputs for the
-changed transaction amount, not separate return-impact estimates. Cost basis
-changes remain supporting evidence unless a later model gives them a defensible
-return-impact interpretation.
-
-Transaction cross-checks are summarized separately from impact estimates. The
-`portfolio_period_transaction_cross_checks()` helper and report section group
-rows with `transaction_impact_diagnostic_estimate` by portfolio period and
-impact policy. The grouped totals are review aids only and remain excluded from
-`estimated_return_impact`, impact coverage totals, and cause-summary totals.
-Report bundles include this table as `transaction_cross_checks.csv`.
-
-Flow cross-check reconciliation compares those transaction cross-check totals
-with review-only portfolio `flow` delta estimates, calculated as
-`flow_delta / return_denominator` when a usable denominator is present. The
-`portfolio_period_flow_cross_check_reconciliation()` helper and report section
-label each period as `aligned`, `different`, `missing_portfolio_flow_delta`, or
-`missing_transaction_cross_check`. These labels are double-counting review
-signals only; they do not change contribution totals. Report bundles include
-this table as `flow_cross_check_reconciliation.csv`.
-
-Transaction matching diagnostics are summarized separately from transaction
-activity. The `transaction_matching_diagnostics()` helper and bundle CSV count
-transaction matching labels such as `matched_by_id`,
-`matched_by_singleton_fallback`, `added_in_snapshot_b`,
-`missing_from_snapshot_b`, `ambiguous_fallback_match`,
-`transaction_id_unmatched`, and `strict_fallback_unmatched`, with reviewer
-confidence and interpretation columns distinguishing strong transaction-ID
-matches, conservative singleton fallback matches, unpaired add/drop rows, and
-withheld ambiguous fallback groups. Reviewer notes explain whether rows were
-paired by stable transaction ID, paired by exact singleton fallback, appeared
-in only one snapshot, or were left unpaired because fallback keys were
-ambiguous. Report bundles include this table as
-`transaction_matching_diagnostics.csv`; row-level match status remains visible
-in the source detail, but the normal workbook and HTML review flow do not
-surface a standalone transaction-match section.
-
-Report bundles can include a level-specific HTML audit as the browser view of
-the same review model used by its XLSX counterpart. The HTML artifact is
-intentionally conservative:
-it uses the same workbook table model, section ordering, column labels, and
-column tooltips as the workbook, with lightweight CSS and accessible table
-captions for browser review rather than separate HTML-specific analytics logic.
-The bundle writer is the only report path; standalone HTML
-rendering helpers remain internal implementation details.
+`source_detail.csv` is always written at the report root. Other supporting
+artifacts are archived by default and are expanded under `supporting_files/`
+when requested. The bundle manifest records ordered columns, row counts,
+semantic fingerprints, source context, transaction-semantics summaries, and
+review entrypoints. Reconstruction diagnostics remain opt-in report artifacts,
+while the inexpensive financial and explanation invariants remain active in
+normal production runs.
 
 ## Long-Term Dataset Watchlist
 

@@ -70,7 +70,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Minimum required datasets: {summary['minimum_required_datasets']}")
     print(f"Required source-data columns: {summary['required_source_data_columns']}")
     print(f"Missing optional files: {summary['missing_optional_files']}")
-    print(f"Contribution impact methods: {summary['contribution_impact_methods']}")
     print(f"Holding impact methods: {summary['holding_impact_methods']}")
     print(f"Price impact methods: {summary['price_impact_methods']}")
     print(f"FX rate impact methods: {summary['fx_rate_impact_methods']}")
@@ -176,7 +175,6 @@ def _validate_config(
         ),
         "required_source_data_columns": minimum_contract["required_columns"],
         "missing_optional_files": _missing_optional_files(specification),
-        "contribution_impact_methods": _contribution_impact_methods(specification),
         "holding_impact_methods": _holding_impact_methods(specification),
         "price_impact_methods": _price_impact_methods(specification),
         "fx_rate_impact_methods": _fx_rate_impact_methods(specification),
@@ -337,16 +335,6 @@ def _transaction_impact_methods(
 ) -> str:
     """Return configured transaction impact method keys."""
     methods_value = specification.values.get("transaction_impact_methods", {})
-    if not isinstance(methods_value, dict) or not methods_value:
-        return "none"
-    return ", ".join(sorted(str(key) for key in methods_value))
-
-
-def _contribution_impact_methods(
-    specification: AuditSpecification,
-) -> str:
-    """Return configured contribution impact method keys."""
-    methods_value = specification.values.get("contribution_impact_methods", {})
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))

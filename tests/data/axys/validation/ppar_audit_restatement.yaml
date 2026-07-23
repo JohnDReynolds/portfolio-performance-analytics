@@ -12,12 +12,12 @@ snapshots:
   a:
     label: axys_a
     path: ../snapshots/axys_a
-    schema: ../axys_column_mappings.yaml
+    schema: ../axys_audit_column_mappings.yaml
 
   b:
     label: axys_b_restatement
     path: ../snapshots/axys_b_restatement
-    schema: ../axys_column_mappings.yaml
+    schema: ../axys_audit_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
@@ -29,19 +29,6 @@ files:
 extract_contract:
   enforce_ambiguous_axys_flows: true
   transaction_semantics_case: legacy_case_insensitive
-
-contribution_impact_methods:
-  portfolio_source_field:
-    method: source_field_delta_over_begin_market_value
-    denominator_source: begin_market_value
-    source_fields:
-      - income
-      - gain_loss
-  security_contribution:
-    method: vendor_contribution_delta
-  security_return:
-    method: security_return_delta_times_weight
-    weight_source: snapshot_a_weight
 
 transaction_impact_methods:
   external_flow:

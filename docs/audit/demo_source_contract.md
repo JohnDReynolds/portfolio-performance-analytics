@@ -62,6 +62,18 @@ file. The normalized cache preserves:
 Cash holdings remain at 1.00. The demo's CUSIP-like fixed-income rows are still
 synthetic instruments; their dated price/return behavior comes from BIL (T-bill),
 SHY (short Treasury), IEI (intermediate Treasury), and MBB (agency MBS) proxies.
+Their accrued-income balances use one synthetic per-unit rate per security so
+same-date positions remain comparable across portfolios. The one configured
+91282Y5Y1 mismatch is then added explicitly as a Data Issues scenario.
+
+The common-stock transaction baseline does not invent dividends for
+non-dividend-paying securities. The JPM example uses the real 2026-04-06
+ex-date, 2026-04-30 payable date, and $1.50 current rate. Snapshot A consistently
+uses the prior $1.40 rate; Snapshot B corrects two portfolios and deliberately
+leaves one at the prior rate so the cross-portfolio check has one bounded,
+reviewable scenario. The separate AAPL late/missing-dividend story remains an
+intentional timing error.
+
 Controlled errors, including the CVNA split-processing story, nonpositive-price
 examples, and isolated ALPHA/GOOGL stale `PRICE` field, remain deliberately
 synthetic and are identified as review scenarios rather than market facts. The

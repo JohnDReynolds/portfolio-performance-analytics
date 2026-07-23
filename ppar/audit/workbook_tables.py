@@ -66,6 +66,10 @@ _WORKBOOK_CHANGED_ITEM_IDENTITY_COLUMNS = (
 )
 _POSSIBLE_CAUSE_COMMENT = "_possible_cause_comment"
 _WORKBOOK_UNEXPLAINED_TOLERANCE = 0.0000005
+_REDUNDANT_BASE_MARKET_VALUE_POLICY = (
+    f"{_pc_findings.IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
+    f"holdings.{pc_cols.BASE_MARKET_VALUE}_redundant"
+)
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.FX_RATES: {pc_cols.FX_RATE},
     pc_cols.HOLDINGS: {
@@ -82,6 +86,12 @@ _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
         pc_cols.PRICE,
         pc_cols.QUANTITY,
     },
+}
+_WORKBOOK_EXPLANATION_SOURCE_DATASETS = {
+    pc_cols.FX_RATES,
+    pc_cols.HOLDINGS,
+    pc_cols.SPLITS,
+    pc_cols.TRANSACTIONS,
 }
 _format_value = _pc_rendering.format_value
 _with_period_review_key = _pc_review_keys.with_period_review_key
@@ -564,6 +574,10 @@ def _shared_detail_sheets(
         causes_table,
         comparison_level=comparison_level,
     )
+    _assert_visible_explanation_contract(
+        causes_table,
+        comparison_level=comparison_level,
+    )
     detail_sheets = [
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name=_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
@@ -599,6 +613,59 @@ def _assert_portfolio_explanation_invariants(
         formula_rows,
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
     )
+
+
+def _assert_visible_explanation_contract(
+    causes: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> None:
+    """Raise unless final source explanations retain their structured facts.
+
+    Raises:
+        PpaError: If a visible source row omits its field, direction, or
+            transaction-code prefix after cause-table transformations.
+    """
+    for row in causes.iter_rows(named=True):
+        if row.get(_pc_findings.FINDING_CODE) == _formula_rows.FORMULA_FINDING_CODE:
+            continue
+        dataset = _format_value(row.get(_pc_findings.DATASET))
+        if dataset not in _WORKBOOK_EXPLANATION_SOURCE_DATASETS:
+            continue
+        change = _rows.number_or_none(row.get(_layout.CHANGE))
+        if change is None:
+            continue
+        explanation = _format_value(row.get(_layout.REVIEW_GUIDANCE))
+        dataset_field = _format_value(row.get(_layout.DATASET_FIELD))
+        required_fragments = (
+            dataset_field,
+            f"{_rows.increased_or_decreased(change)} by ",
+        )
+        issues = [
+            f"missing {fragment!r}"
+            for fragment in required_fragments
+            if fragment and fragment not in explanation
+        ]
+        transaction_code = _format_value(
+            row.get(_pc_findings.TRANSACTION_CODE)
+        ).strip()
+        if (
+            dataset == pc_cols.TRANSACTIONS
+            and transaction_code
+            and not explanation.startswith(f"{transaction_code}:")
+        ):
+            issues.append(f"missing leading transaction code {transaction_code!r}")
+        if explanation and not explanation.endswith("."):
+            issues.append("missing final period")
+        if not issues:
+            continue
+        key = _rows.primary_review_period_key(row, comparison_level)
+        raise PpaError(
+            "SN-03 visible explanation invariant failed for "
+            f"{_workbook_primary_key_text(key)} {dataset_field}: "
+            f"{'; '.join(issues)}.",
+            999,
+        )
 
 
 def _assert_explanation_invariants(
@@ -1637,6 +1704,9 @@ def _workbook_underlying_causes_table(
             comparison_level=comparison_level,
         )
     )
+    redundant_base_market_value_keys = _workbook_redundant_base_market_value_keys(
+        ranked_rows
+    )
     cash_security_matches = _source_allocation.cash_security_matches(
         ranked_rows,
         comparison_level=comparison_level,
@@ -1740,6 +1810,10 @@ def _workbook_underlying_causes_table(
             comparison_level=comparison_level,
             table_cache=table_cache,
         )
+    )
+    rows = _workbook_without_duplicate_base_market_values(
+        rows,
+        redundant_base_market_value_keys,
     )
     if not rows:
         original_table = _workbook_empty_changed_item_table()
@@ -1929,6 +2003,69 @@ def _workbook_should_promote_context_row(
             row.get(_pc_findings.SOURCE_COLUMN),
         )
         and _workbook_cause_family_key(row, comparison_level) in performance_input_keys
+    )
+
+
+def _workbook_redundant_base_market_value_keys(
+    rows: Sequence[Mapping[str, object]],
+) -> set[tuple[object, ...]]:
+    """Return exact holding observations with redundant base market values."""
+    return {
+        _workbook_holding_observation_key(row)
+        for row in rows
+        if row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
+        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.BASE_MARKET_VALUE
+        and row.get(_pc_findings.IMPACT_POLICY) == _REDUNDANT_BASE_MARKET_VALUE_POLICY
+        and row.get(_pc_findings.SOURCE_RECORD_LOCATOR) not in {None, ""}
+    }
+
+
+def _workbook_without_duplicate_base_market_values(
+    rows: Sequence[dict[str, object]],
+    redundant_base_market_value_keys: set[tuple[object, ...]],
+) -> list[dict[str, object]]:
+    """Hide exact same-currency base-value duplicates from visible causes.
+
+    Notes:
+        This is presentation-only deduplication. The base-value finding remains
+        in ``source_detail.csv`` and is suppressed here only when its exact
+        local-market-value counterpart is already present in the final cause
+        rows. No tolerance is used and impact-bearing base values are retained.
+    """
+    visible_market_value_keys = {
+        _workbook_holding_observation_key(row)
+        for row in rows
+        if row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
+        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.MARKET_VALUE
+    }
+    duplicate_keys = redundant_base_market_value_keys & visible_market_value_keys
+    return [
+        row
+        for row in rows
+        if not (
+            row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
+            and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.BASE_MARKET_VALUE
+            and _rows.number_or_none(row.get(_layout.ESTIMATED_IMPACT)) is None
+            and _workbook_holding_observation_key(row) in duplicate_keys
+        )
+    ]
+
+
+def _workbook_holding_observation_key(
+    row: Mapping[str, object],
+) -> tuple[object, ...]:
+    """Return the exact identity and values of one holding observation."""
+    as_of_date = row.get(_layout.AS_OF_DATE)
+    if as_of_date is None:
+        as_of_date = _rows.evidence_as_of_date(row)
+    return (
+        row.get(_layout.REVIEW_KEY),
+        row.get(_pc_findings.PORTFOLIO_ID),
+        row.get(_pc_findings.SECURITY_ID),
+        as_of_date,
+        row.get(_pc_findings.SOURCE_RECORD_LOCATOR),
+        row.get(_pc_findings.SNAPSHOT_A_VALUE),
+        row.get(_pc_findings.SNAPSHOT_B_VALUE),
     )
 
 
@@ -2246,15 +2383,6 @@ def _workbook_preferred_estimate_rows(
     rows: Sequence[Mapping[str, object]],
 ) -> list[Mapping[str, object]]:
     """Return estimate rows selected for workbook additive totals."""
-    if any(
-        row.get(_pc_explain.IMPACT_BASIS) == _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION
-        for row in rows
-    ):
-        return [
-            row
-            for row in rows
-            if row.get(_pc_explain.IMPACT_BASIS) == _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION
-        ]
     holding_inputs = [
         row
         for row in rows
@@ -2352,6 +2480,19 @@ def _workbook_changed_item_row(
         row_kind=row_kind,
     )
     review_guidance = _transaction_prefixed_review_guidance(row, review_guidance)
+    explanation_issues = _guidance.explanation_contract_issues(
+        row,
+        review_guidance,
+        impact_status=impact_status,
+        comparison_path=comparison_path,
+    )
+    if explanation_issues:
+        dataset_field = _guidance.dataset_field(row) or "unknown source field"
+        raise PpaError(
+            "SN-03 explanation wording invariant failed for "
+            f"{dataset_field}: {'; '.join(explanation_issues)}.",
+            999,
+        )
     return {
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),

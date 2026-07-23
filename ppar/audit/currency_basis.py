@@ -52,15 +52,6 @@ _ROW_CURRENCY_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
     (pc_cols.TRANSACTIONS, pc_cols.COMMISSION),
 }
 _PORTFOLIO_BASE_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
-    (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.BEGIN_MARKET_VALUE),
-    (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.END_MARKET_VALUE),
-    (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.FLOW),
-    (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.INCOME),
-    (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.GAIN_LOSS),
-    (pc_cols.SECURITY_PERFORMANCE, pc_cols.BEGIN_MARKET_VALUE),
-    (pc_cols.SECURITY_PERFORMANCE, pc_cols.END_MARKET_VALUE),
-    (pc_cols.SECURITY_PERFORMANCE, pc_cols.INCOME),
-    (pc_cols.SECURITY_PERFORMANCE, pc_cols.GAIN_LOSS),
     (pc_cols.HOLDINGS, pc_cols.BASE_MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.BASE_ACCRUED),
     (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT),
@@ -96,8 +87,8 @@ def monetary_field_currency_basis(dataset: object, source_column: object) -> str
     """Return the normalized currency basis for a monetary field.
 
     Detailed unqualified monetary fields use the row's ``currency``. Detailed
-    ``base_`` fields and portfolio/security performance monetary fields use the
-    portfolio's ``base_currency``. FX rates use their explicit currency pair.
+    ``base_`` fields use the portfolio's ``base_currency``. FX rates use their
+    explicit currency pair.
 
     Args:
         dataset: Normalized dataset name.

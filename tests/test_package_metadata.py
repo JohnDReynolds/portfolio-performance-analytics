@@ -35,10 +35,7 @@ from ppar.axys_apx import (
 from ppar.audit import report as audit_report
 from ppar.audit import runner as audit_runner
 from ppar.audit.performance_comparison import findings as performance_comparison_findings
-from ppar.audit.performance_comparison.methods import (
-    ContributionImpactMethod,
-    TransactionImpactMethod,
-)
+from ppar.audit.performance_comparison.methods import TransactionImpactMethod
 from ppar.audit import transactions as audit_transactions
 from ppar.audit.performance_comparison import backlog_gates as performance_backlog_gates
 from ppar.audit import fixed_income as performance_fixed_income
@@ -97,10 +94,6 @@ from ppar.audit.performance_comparison import (
     CONTEXT,
     DIRECT_INPUT,
     EVIDENCE_ROLE,
-    IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-    IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
-    IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
-    IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
     RELATED_OUTPUT,
     TARGET_OUTPUT,
     CauseArea,
@@ -112,7 +105,6 @@ from ppar.audit.performance_comparison import (
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
-    portfolio_period_flow_cross_check_reconciliation,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
@@ -499,16 +491,16 @@ class TestPackageMetadata(unittest.TestCase):
             "The default command to run Audit is",
             "To customize with your own data",
             "Ambiguous transaction codes must not become external flows",
-            "If snapshot directory names differ, edit snapshots.*.path below",
-            "If CSV filenames or column names differ, edit files.*.path or",
+            "If your snapshot directory names differ, edit snapshots.*.path below",
+            "If your CSV filenames or column names differ, edit files.*.path or",
             "rules and impact methods below unchanged",
             "Every setting has a\n  # documented default and may be omitted",
             'Default: "Portfolio Audit Report" and "Security Audit Report"',
             "Command-line override: --exclude-suppressed",
             "Usually the original/older source-data extract",
-            "Portfolio performance CSV; required for every Audit run",
+            "Portfolio performance CSV; required",
             "Required columns: Portfolio Code, From Date, Thru Date",
-            "Optional columns: Base Currency, Beginning Market Value",
+            "Optional columns: Base Currency",
             "# Data Issues",
             "# Portfolio Return Reconstruction",
             "# Security Return Reconstruction",
@@ -521,6 +513,11 @@ class TestPackageMetadata(unittest.TestCase):
             "# Price Impact Methods",
             "# Supporting-Evidence Impact Methods",
             "# Comparison Tolerances",
+            "# Appendix — Additional Supported Parameters",
+            "# Parameter: audit.reconstruction_diagnostics",
+            "# Parameter: data_issues.deliver_in_original_cost_incomplete",
+            "# Parameter: suppressions",
+            "# Parameter: extract_contract.transaction_semantics_case",
             "All values are required",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -531,6 +528,74 @@ class TestPackageMetadata(unittest.TestCase):
             yaml_text,
         )
         self.assertNotIn("comparison:", yaml_text)
+        configuration = _load_yaml(
+            Path("ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml")
+        )
+        audit_settings = _yaml_mapping(configuration["audit"], label="audit")
+        appendix_parameters = set(
+            re.findall(r"^# Parameter: ([^\n]+)$", yaml_text, re.M)
+        )
+        runtime_appendix_settings = {
+            parameter.removeprefix("audit.")
+            for parameter in appendix_parameters
+            if parameter.startswith("audit.")
+        }
+        self.assertEqual(audit_settings, {"output_directory": "output"})
+        self.assertEqual(
+            runtime_appendix_settings,
+            {
+                "exclude_suppressed",
+                "expand_all_supporting_files",
+                "html_output",
+                "reconstruction_diagnostics",
+                "require_causal_attribution",
+                "title",
+                "xlsx_output",
+            },
+        )
+        self.assertEqual(
+            set(audit_settings) | runtime_appendix_settings,
+            {
+                "output_directory",
+                "title",
+                "xlsx_output",
+                "html_output",
+                "exclude_suppressed",
+                "reconstruction_diagnostics",
+                "expand_all_supporting_files",
+                "require_causal_attribution",
+            },
+        )
+        self.assertEqual(
+            appendix_parameters - {f"audit.{name}" for name in runtime_appendix_settings},
+            {
+                "data_issues.<issue_type>.exclude",
+                "data_issues.deliver_in_original_cost_incomplete",
+                "data_issues.large_price_variation.rules[].enabled",
+                "extract_contract.enforce_ambiguous_axys_flows",
+                "extract_contract.path",
+                "extract_contract.transaction_semantics_case",
+                "files.<optional_dataset>.required",
+                "snapshots.<snapshot>.schema",
+                "suppressions",
+            },
+        )
+        data_issues = _yaml_mapping(
+            configuration["data_issues"],
+            label="data_issues",
+        )
+        self.assertNotIn("deliver_in_original_cost_incomplete", data_issues)
+        for documented_default in (
+            "#   title: null",
+            "#   xlsx_output: true",
+            "#   html_output: true",
+            "#   exclude_suppressed: false",
+            "#   reconstruction_diagnostics: false",
+            "#   expand_all_supporting_files: false",
+            "#   require_causal_attribution: false",
+        ):
+            with self.subTest(documented_default=documented_default):
+                self.assertIn(documented_default, yaml_text)
         for line_number, line in enumerate(yaml_text.splitlines(), start=1):
             if line.lstrip().startswith("#"):
                 self.assertLessEqual(
@@ -580,6 +645,15 @@ class TestPackageMetadata(unittest.TestCase):
             "Analytics Runtime Parameters",
             "Analytics Source CSV Files",
             "Reporting Classification Mappings",
+            "Appendix — Additional Supported Parameters",
+            "Parameter: analytics.annual_minimum_acceptable_return",
+            "Parameter: analytics.confidence_level",
+            "Parameter: analytics.portfolio_value",
+            "Parameter: analytics.currency_symbol",
+            "#   annual_minimum_acceptable_return: 0.00",
+            "#   confidence_level: 0.95",
+            "#   portfolio_value: 100000",
+            '#   currency_symbol: "$"',
             'security_name: "Security Name"',
             "mappings",
             "classification_column",
@@ -592,7 +666,46 @@ class TestPackageMetadata(unittest.TestCase):
             "Command-line override: ppar analytics",
             yaml_text,
         )
-        self.assertEqual(yaml_text.count("  # Default:"), 15)
+        self.assertEqual(yaml_text.count("  # Default:"), 11)
+        self.assertEqual(yaml_text.count("# Default:"), 15)
+        configuration = _load_yaml(
+            Path("ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml")
+        )
+        analytics = _yaml_mapping(configuration["analytics"], label="analytics")
+        appendix_settings = {
+            parameter.removeprefix("analytics.")
+            for parameter in re.findall(r"^# Parameter: (analytics\.[a-z_]+)$", yaml_text, re.M)
+        }
+        self.assertEqual(
+            appendix_settings,
+            {
+                "annual_minimum_acceptable_return",
+                "confidence_level",
+                "currency_symbol",
+                "portfolio_value",
+            },
+        )
+        self.assertEqual(
+            set(analytics) | appendix_settings,
+            {
+                "portfolio",
+                "benchmark",
+                "frequency",
+                "output_directory",
+                "from_date",
+                "thru_date",
+                "classification",
+                "annual_minimum_acceptable_return",
+                "annual_risk_free_rate",
+                "confidence_level",
+                "portfolio_value",
+                "currency_symbol",
+            },
+        )
+        self.assertNotIn("annual_minimum_acceptable_return", analytics)
+        self.assertNotIn("confidence_level", analytics)
+        self.assertNotIn("portfolio_value", analytics)
+        self.assertNotIn("currency_symbol", analytics)
         source_layout_positions = [
             yaml_text.index("  portfolio_performance:"),
             yaml_text.index("    path: portperf.csv"),
@@ -641,9 +754,20 @@ class TestPackageMetadata(unittest.TestCase):
             and isinstance(settings.get("only"), dict)
             and "security_id" in settings["only"]
         }
-        self.assertEqual(
-            targeted_security_rules,
-            {"dividend_rate", "missing_dividend", "holdings_accrued_rate"},
+        self.assertEqual(targeted_security_rules, set())
+        reference_filtered_rules = {
+            issue_type
+            for issue_type, settings in data_issues.items()
+            if isinstance(settings, dict)
+            and isinstance(settings.get("only"), dict)
+            and any(
+                str(field).startswith("security_reference.")
+                for field in settings["only"]
+            )
+        }
+        self.assertTrue(
+            {"dividend_rate", "missing_dividend", "holdings_accrued_rate"}
+            <= reference_filtered_rules
         )
 
         for snapshot_name in ("snapshot_a", "snapshot_b"):
@@ -1851,19 +1975,13 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "ppar setup",
-            "run_audit.py",
-            "output/portfolio",
-            "output/security",
-            "portfolio_audit.*",
-            "security_audit.*",
-            "review_summary.json",
-            "report_bundle_contract()",
-            "not a new transaction-classification or accounting layer",
-            "Explanation wording is intentionally report-level aware",
-            "portfolio-return role",
-            "affected security return container",
-            "`external flow`, `fee/expense`, or `income`",
+            "normalized internal datasets",
+            "`portfolio_performance`: portfolio identifier",
+            "`security_performance`: portfolio/security identifiers",
+            "authoritative valuation and flow evidence",
+            "retired `contribution_impact_methods`",
+            "Modified Dietz",
+            "transaction rules",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, design)
@@ -2081,26 +2199,14 @@ class TestPackageMetadata(unittest.TestCase):
                             places=2,
                         )
 
-    def test_axys_demo_fee_transactions_reduce_cash_and_income(self) -> None:
-        """Packaged fee changes reduce ending cash and cash security income."""
+    def test_axys_demo_fee_transactions_reduce_cash(self) -> None:
+        """Packaged fee changes reduce ending cash by their combined amount."""
         axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("INCOME", "2026-01-20", "CASHUSD", "dp")
         margin_interest_key = ("INCOME", "2026-01-22", "MARGIN_USD", "ai")
         cash_holding_key = ("INCOME", "CASHUSD", "2026-01-30")
-        cash_performance_key = (
-            "INCOME",
-            "CASHUSD",
-            "2026-01-01",
-            "2026-01-30",
-        )
-        portfolio_performance_key = (
-            "INCOME",
-            "2026-01-01",
-            "2026-01-30",
-        )
-
         transactions_a = _demo_transactions_by_natural_key(snapshot_a)
         transactions_b = _demo_transactions_by_natural_key(snapshot_b)
         holdings_a = _csv_rows_by_key(
@@ -2111,23 +2217,6 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
         )
-        secperf_a = _csv_rows_by_key(
-            snapshot_a / "secperf.csv",
-            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
-        )
-        secperf_b = _csv_rows_by_key(
-            snapshot_b / "secperf.csv",
-            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
-        )
-        portperf_a = _csv_rows_by_key(
-            snapshot_a / "portperf.csv",
-            ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
-        )
-        portperf_b = _csv_rows_by_key(
-            snapshot_b / "portperf.csv",
-            ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
-        )
-
         amount_delta = _float_delta(
             transactions_a[transaction_key],
             transactions_b[transaction_key],
@@ -2143,24 +2232,6 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertLess(margin_interest_delta, 0)
         self.assertAlmostEqual(
             _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),
-            combined_expense_delta,
-            places=2,
-        )
-        self.assertAlmostEqual(
-            _float_delta(
-                secperf_a[cash_performance_key],
-                secperf_b[cash_performance_key],
-                "INCOME",
-            ),
-            amount_delta,
-            places=2,
-        )
-        self.assertAlmostEqual(
-            _float_delta(
-                portperf_a[portfolio_performance_key],
-                portperf_b[portfolio_performance_key],
-                "INCOME",
-            ),
             combined_expense_delta,
             places=2,
         )
@@ -2182,19 +2253,13 @@ class TestPackageMetadata(unittest.TestCase):
             ]
             self.assertEqual(split_rows, [])
 
-    def test_axys_demo_withdrawal_changes_cash_and_flow_return(self) -> None:
-        """Packaged withdrawal changes cash, flow, and reconstructed return."""
+    def test_axys_demo_withdrawal_changes_cash_and_reconstructed_return(self) -> None:
+        """Packaged withdrawal changes cash and the reconstructed return."""
         axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("ALPHA", "2026-01-20", "CASHUSD", "wd")
         cash_holding_key = ("ALPHA", "CASHUSD", "2026-01-30")
-        cash_performance_key = (
-            "ALPHA",
-            "CASHUSD",
-            "2026-01-01",
-            "2026-01-30",
-        )
         portfolio_key = ("ALPHA", "2026-01-01", "2026-01-30")
 
         transactions_a = _demo_transactions_by_natural_key(snapshot_a)
@@ -2206,14 +2271,6 @@ class TestPackageMetadata(unittest.TestCase):
         holdings_b = _csv_rows_by_key(
             snapshot_b / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
-        )
-        secperf_a = _csv_rows_by_key(
-            snapshot_a / "secperf.csv",
-            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
-        )
-        secperf_b = _csv_rows_by_key(
-            snapshot_b / "secperf.csv",
-            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
         )
         portperf_a = _csv_rows_by_key(
             snapshot_a / "portperf.csv",
@@ -2233,20 +2290,6 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertLess(amount_delta, 0)
         self.assertAlmostEqual(
             _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),
-            amount_delta,
-            places=2,
-        )
-        self.assertAlmostEqual(
-            _float_delta(
-                secperf_a[cash_performance_key],
-                secperf_b[cash_performance_key],
-                "END_MV",
-            ),
-            amount_delta,
-            places=2,
-        )
-        self.assertAlmostEqual(
-            _float_delta(portperf_a[portfolio_key], portperf_b[portfolio_key], "FLOW"),
             amount_delta,
             places=2,
         )
@@ -2270,8 +2313,8 @@ class TestPackageMetadata(unittest.TestCase):
             places=9,
         )
 
-    def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
-        """Security performance demo rows stay consistent with holdings."""
+    def test_axys_demo_security_performance_has_minimal_source_contract(self) -> None:
+        """Security performance demo rows contain only reported-return fields."""
         axys_demo_data = files("ppar.setup_templates") / "axys_apx_audit"
         for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot=snapshot_name):
@@ -2279,10 +2322,6 @@ class TestPackageMetadata(unittest.TestCase):
                 holdings = _csv_rows_by_key(
                     snapshot / "holdings.csv",
                     ("PORT", "SEC", "HOLDING_DATE"),
-                )
-                portperf = _csv_rows_by_key(
-                    snapshot / "portperf.csv",
-                    ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
                 )
                 secperf = _csv_rows_by_key(
                     snapshot / "secperf.csv",
@@ -2298,23 +2337,20 @@ class TestPackageMetadata(unittest.TestCase):
                     for portfolio, security, _from_date, thru_date in secperf
                 }
                 self.assertEqual(holding_keys, secperf_holding_keys)
-
-                for key, row in secperf.items():
-                    portfolio, _security, from_date, thru_date = key
-                    portfolio_row = portperf[(portfolio, from_date, thru_date)]
-                    expected_weight = float(row["BEGIN_MV"]) / float(
-                        portfolio_row["BEGIN_MV"]
-                    )
-                    expected_contribution = expected_weight * float(row["SEC_RETURN"])
-                    self.assertAlmostEqual(
-                        float(row["BEGIN_WEIGHT"]),
-                        expected_weight,
-                        places=10,
-                    )
-                    self.assertAlmostEqual(
-                        float(row["CONTRIBUTION"]),
-                        expected_contribution,
-                        places=9,
+                with (snapshot / "secperf.csv").open(
+                    encoding=util.ENCODING,
+                    newline="",
+                ) as file:
+                    self.assertEqual(
+                        csv.DictReader(file).fieldnames,
+                        [
+                            "Portfolio Code",
+                            "Security Symbol",
+                            "Security Type",
+                            "From Date",
+                            "Thru Date",
+                            "Security Return",
+                        ],
                     )
 
     def test_axys_demo_portfolio_performance_matches_reconstruction(
@@ -2334,34 +2370,23 @@ class TestPackageMetadata(unittest.TestCase):
                     snapshot / "portperf.csv",
                     ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
                 )
-                security_rows: dict[tuple[str, str, str], list[dict[str, str]]] = {}
-                with (snapshot / "secperf.csv").open(
+                with (snapshot / "portperf.csv").open(
                     encoding=util.ENCODING,
                     newline="",
                 ) as file:
-                    for row in csv.DictReader(file):
-                        key = (
-                            row["Portfolio Code"],
-                            row["From Date"],
-                            row["Thru Date"],
-                        )
-                        security_rows.setdefault(key, []).append(row)
-
-                self.assertEqual(set(portperf), set(security_rows))
-                for raw_key, portfolio_row in portperf.items():
+                    self.assertEqual(
+                        csv.DictReader(file).fieldnames,
+                        [
+                            "Portfolio Code",
+                            "From Date",
+                            "Thru Date",
+                            "Portfolio Return",
+                            "Base Currency",
+                        ],
+                    )
+                for raw_key in portperf:
                     key = cast(tuple[str, str, str], raw_key)
                     with self.subTest(snapshot=snapshot_name, key=key):
-                        rows = security_rows[key]
-                        self.assertAlmostEqual(
-                            sum(float(row["Beginning Market Value"]) for row in rows),
-                            float(portfolio_row["BEGIN_MV"]),
-                            places=2,
-                        )
-                        self.assertAlmostEqual(
-                            sum(float(row["Ending Market Value"]) for row in rows),
-                            float(portfolio_row["END_MV"]),
-                            places=2,
-                        )
                         reconstruction_row = checks[key]
                         allowed_statuses = {
                             RECONSTRUCTION_STATUS_ALIGNED,
@@ -2474,7 +2499,6 @@ class TestPackageMetadata(unittest.TestCase):
         matrix = Path("tests/data/axys/README.md").read_text(encoding=util.ENCODING)
         expected_scenarios = {
             "Clean/no issue": "baseline",
-            "Missing contribution policy": "policy_gap",
             "Missing transaction method": "policy_gap",
             "Missing denominator": "policy_gap",
             "Missing transaction sign/flow semantics": "policy_gap",
@@ -2607,27 +2631,6 @@ class TestPackageMetadata(unittest.TestCase):
     def test_performance_comparison_method_constants_use_enum_values(self) -> None:
         """Report and finding constants stay aligned with YAML method enums."""
         self.assertEqual(
-            performance_comparison_findings.IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
-            (
-                "portfolio_source_field:"
-                f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
-            ),
-        )
-        self.assertEqual(
-            performance_comparison_findings.IMPACT_POLICY_SECURITY_CONTRIBUTION,
-            (
-                "security_contribution:"
-                f"{ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value}"
-            ),
-        )
-        self.assertEqual(
-            performance_comparison_findings.IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
-            (
-                "security_return:"
-                f"{ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value}"
-            ),
-        )
-        self.assertEqual(
             performance_comparison_findings.TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
             f"external_flow:{TransactionImpactMethod.EVIDENCE_ONLY.value}",
         )
@@ -2692,10 +2695,6 @@ class TestPackageMetadata(unittest.TestCase):
             "CONTEXT",
             "DIRECT_INPUT",
             "EVIDENCE_ROLE",
-            "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD",
-            "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED",
-            "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT",
-            "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV",
             "RELATED_OUTPUT",
             "TARGET_OUTPUT",
             "CauseArea",
@@ -2707,7 +2706,6 @@ class TestPackageMetadata(unittest.TestCase):
             "portfolio_period_cause_summary",
             "portfolio_period_contribution_candidates",
             "portfolio_period_evidence_breakdown",
-            "portfolio_period_flow_cross_check_reconciliation",
             "portfolio_period_impact_coverage_summary",
             "portfolio_period_summary",
             "portfolio_period_transaction_cross_checks",

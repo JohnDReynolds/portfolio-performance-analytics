@@ -59,13 +59,11 @@ class TestPerformanceComparisonCurrencyBasis(unittest.TestCase):
         self.assertEqual(normalized[pc_cols.TO_CURRENCY], "USD")
 
     def test_explicit_and_inherent_base_fields_use_portfolio_currency(self) -> None:
-        """Detailed base_ and portfolio-performance values use base currency."""
+        """Detailed base_ values use portfolio base currency."""
         for dataset, source_column in (
             (pc_cols.HOLDINGS, pc_cols.BASE_MARKET_VALUE),
             (pc_cols.HOLDINGS, pc_cols.BASE_ACCRUED),
             (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT),
-            (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.BEGIN_MARKET_VALUE),
-            (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.FLOW),
         ):
             with self.subTest(dataset=dataset, source_column=source_column):
                 self.assertEqual(

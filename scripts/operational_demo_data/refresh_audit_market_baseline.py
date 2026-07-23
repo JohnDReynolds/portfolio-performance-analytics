@@ -15,6 +15,15 @@ from typing import Final
 import pandas as pd
 
 from scripts.demo_support.market_data import ensure_market_history, price_on_or_before
+from scripts.operational_demo_data.holdings import accrued_income_for
+from scripts.operational_demo_data.rebuild_audit_demo_data import (
+    _packaged_holdings,
+    _read_packaged_axys_frame,
+    _read_packaged_transactions,
+    _with_internal_transaction_ids,
+    _write_packaged_axys_frame,
+    _write_packaged_transactions,
+)
 
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
@@ -37,7 +46,12 @@ _MARKET_PROXY_BY_IDENTIFIER: Final = {
     "91282Y5Y1": "IEI",
     "36225MBS1": "MBB",
 }
-_NON_MARKET_IDENTIFIERS: Final = {"CASHUSD", "CASHEUR", "CASHGBP"}
+_NON_MARKET_IDENTIFIERS: Final = {
+    "CASHUSD",
+    "CASHEUR",
+    "CASHGBP",
+    "MARGIN_USD",
+}
 _QUANTITY_SIGNS: Final = {"by": 1.0, "cs": 1.0, "sl": -1.0, "ss": -1.0}
 _CONTRIBUTION_HOLDINGS: Final = {
     "2026-02-28": 100_000.0,
@@ -53,8 +67,10 @@ def main() -> None:
     """Refresh the shared cache and optionally rewrite packaged baseline rows."""
     args = _parse_args()
     snapshot_a = args.audit_directory / "snapshot_a"
-    holdings = pd.read_csv(snapshot_a / "holdings.csv")
-    transactions = pd.read_csv(snapshot_a / "transactions.csv")
+    holdings_path = snapshot_a / "holdings.csv"
+    transactions_path = snapshot_a / "transactions.csv"
+    holdings = _read_packaged_axys_frame(holdings_path, "holdings")
+    transactions = _read_packaged_transactions(transactions_path)
     identifiers = sorted(
         set(holdings["SEC"]).union(transactions["SEC"]).difference(
             _NON_MARKET_IDENTIFIERS
@@ -94,8 +110,12 @@ def main() -> None:
         market_history,
     )
     if args.write:
-        refreshed_transactions.to_csv(snapshot_a / "transactions.csv", index=False)
-        refreshed_holdings.to_csv(snapshot_a / "holdings.csv", index=False)
+        _write_packaged_transactions(refreshed_transactions, transactions_path)
+        _write_packaged_axys_frame(
+            _packaged_holdings(refreshed_holdings),
+            holdings_path,
+            "holdings",
+        )
         refreshed_scenarios.to_csv(args.holding_scenarios_path, index=False)
         refreshed_transaction_scenarios.to_csv(
             args.transaction_scenarios_path,
@@ -211,12 +231,14 @@ def refresh_holdings(
             displayed_price = 0.0 if float(row["PRICE"]) <= 0.0 else actual_price
             market_value = quantity * actual_price
             base_ratio = _base_value_ratio(row)
-            accrued_ratio = _accrued_value_ratio(row)
             rows.loc[row_index, "QTY"] = round(quantity, 4)
             rows.loc[row_index, "PRICE"] = round(displayed_price, 4)
             rows.loc[row_index, "MKT_VAL"] = round(market_value, 2)
             rows.loc[row_index, "BASE_MKT_VAL"] = round(market_value * base_ratio, 2)
-            rows.loc[row_index, "ACCRUED"] = round(market_value * accrued_ratio, 2)
+            rows.loc[row_index, "ACCRUED"] = round(
+                accrued_income_for(str(identifier), quantity),
+                2,
+            )
             previous_date = holding_date
         refreshed_parts.append(rows)
     refreshed = pd.concat(refreshed_parts, ignore_index=True)
@@ -296,7 +318,9 @@ def recalibrate_transaction_scenarios(
 ) -> pd.DataFrame:
     """Return trade scenarios calibrated to dated prices and cash amounts."""
     output = scenarios.copy()
-    baseline = _with_transaction_ids(baseline_transactions).set_index("TRANSACTION_ID")
+    baseline = _with_internal_transaction_ids(baseline_transactions).set_index(
+        "TRANSACTION_ID"
+    )
     market_identifiers = set(market_history["identifier"])
     for index, scenario in output.iterrows():
         action = str(scenario["action"])
@@ -342,27 +366,6 @@ def recalibrate_transaction_scenarios(
     return output
 
 
-def _with_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
-    """Return baseline rows with the rebuild script's deterministic IDs."""
-    output = transactions.copy()
-    period_index_by_portfolio: dict[str, dict[pd.Period, int]] = {}
-    row_count_by_period: dict[tuple[str, pd.Period], int] = {}
-    identifiers: list[str] = []
-    for row in output.itertuples(index=False):
-        portfolio = str(row.PORT)
-        month = pd.Timestamp(row.TRANSACTION_DATE).to_period("M")
-        portfolio_periods = period_index_by_portfolio.setdefault(portfolio, {})
-        if month not in portfolio_periods:
-            portfolio_periods[month] = len(portfolio_periods) + 1
-        key = (portfolio, month)
-        row_count_by_period[key] = row_count_by_period.get(key, 0) + 1
-        identifiers.append(
-            f"{portfolio}{portfolio_periods[month]:02d}{row_count_by_period[key]:02d}"
-        )
-    output.insert(0, "TRANSACTION_ID", identifiers)
-    return output
-
-
 def _trade_amount(
     transaction_code: str,
     quantity: float,
@@ -392,12 +395,6 @@ def _base_value_ratio(row: pd.Series) -> float:
     """Return the existing local-to-base valuation ratio."""
     market_value = float(row["MKT_VAL"])
     return float(row["BASE_MKT_VAL"]) / market_value if market_value else 1.0
-
-
-def _accrued_value_ratio(row: pd.Series) -> float:
-    """Return the existing accrued-to-market-value ratio."""
-    market_value = float(row["MKT_VAL"])
-    return float(row["ACCRUED"]) / market_value if market_value else 0.0
 
 
 def _parse_args() -> argparse.Namespace:

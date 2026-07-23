@@ -23,14 +23,16 @@ class TestAuditSchema(unittest.TestCase):
             ),
         )
 
-    def test_portfolio_performance_columns_include_optional_context(self) -> None:
-        """Portfolio performance schema include optional explanatory fields."""
-        self.assertIn(
-            pc_cols.BEGIN_MARKET_VALUE,
+    def test_performance_columns_exclude_calculated_output_context(self) -> None:
+        """Performance schemas retain returns and portfolio currency metadata."""
+        self.assertEqual(
             pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS,
+            (*pc_cols.PORTFOLIO_PERFORMANCE_REQUIRED_COLUMNS, pc_cols.BASE_CURRENCY),
         )
-        self.assertIn(pc_cols.FLOW, pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS)
-        self.assertNotIn(pc_cols.WEIGHT, pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS)
+        self.assertEqual(
+            pc_cols.SECURITY_PERFORMANCE_COLUMNS,
+            pc_cols.SECURITY_PERFORMANCE_REQUIRED_COLUMNS,
+        )
 
     def test_optional_dataset_required_columns_are_stable(self) -> None:
         """Optional explanatory datasets have explicit minimal column contracts."""

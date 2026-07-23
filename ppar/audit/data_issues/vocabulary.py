@@ -28,8 +28,6 @@ class DataIssueType(StrEnum):
     LARGE_PRICE_VARIATION = "large_price_variation"
     MISSING_DIVIDEND = "missing_dividend"
     PA_SA_RATE = "pa_sa_rate"
-    PORTFOLIO_MARKET_VALUE_CONTINUITY = "portfolio_market_value_continuity"
-    SECURITY_MARKET_VALUE_CONTINUITY = "security_market_value_continuity"
     TRANSACTION_SECURITY_TYPE_MISMATCH = "transaction_security_type_mismatch"
     TRANSACTIONS_NONPOSITIVE_PRICE = "transactions_nonpositive_price"
     TRANSACTIONS_PRICE_RANGE = "transactions_price_range"
@@ -38,7 +36,6 @@ class DataIssueType(StrEnum):
 class DataIssueCategory(StrEnum):
     """Stable reviewer groupings for current and approved Data Issues families."""
 
-    CONTINUITY = "continuity"
     DUPLICATE = "duplicate"
     PRICE = "price"
     INCOME = "income"
@@ -191,28 +188,6 @@ DATA_ISSUE_REGISTRY: Final[
             required_datasets=("transactions", "holdings"),
             **_NUMERIC_CHECK,
             reviewer_meaning="Same-day purchase/sale accrued rates differ across portfolios.",
-        ),
-        DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY: (
-            DataIssueDefinition(
-                category=DataIssueCategory.CONTINUITY,
-                mandatory=True,
-                default_enabled=True,
-                required_datasets=("portfolio_performance",),
-                **_NUMERIC_CHECK,
-                reviewer_meaning=(
-                    "Prior ending and next beginning portfolio market values differ."
-                ),
-            )
-        ),
-        DataIssueType.SECURITY_MARKET_VALUE_CONTINUITY: DataIssueDefinition(
-            category=DataIssueCategory.CONTINUITY,
-            mandatory=True,
-            default_enabled=True,
-            required_datasets=("security_performance",),
-            **_NUMERIC_CHECK,
-            reviewer_meaning=(
-                "Prior ending and next beginning security market values differ."
-            ),
         ),
         DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,

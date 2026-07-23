@@ -37,18 +37,12 @@ from ppar.audit.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
     PC_FX_RATE,
-    PC_PORT_FLOW,
-    PC_PORT_MV,
     PC_PORT_RET,
     PC_ROW_ADD,
     PC_ROW_DROP,
     PC_SEC_ADD,
-    PC_SEC_CONTR,
-    PC_SEC_FLOW,
-    PC_SEC_MV,
     PC_SEC_DROP,
     PC_SEC_RET,
-    PC_SEC_WGT,
     PC_TXN_ADD,
     PC_TXN_AMBIG,
     PC_TXN_AMT,
@@ -79,7 +73,6 @@ from ppar.audit.performance_comparison.policies import (
     _TRANSACTION_COMMISSION_KEY,
     _TRANSACTION_PRICE_KEY,
     _TRANSACTION_QUANTITY_KEY,
-    _contribution_impact_policies,
     _evidence_only_impact_policies,
     _fx_rate_impact_policies,
     _is_evidence_only_policy_label,
@@ -93,12 +86,19 @@ from ppar.audit.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
     modified_dietz_float as _modified_dietz_float,
 )
+from ppar.audit.performance_comparison.return_reconstruction import (
+    BEGIN_VALUE_A,
+    DERIVED_DENOMINATOR_A,
+    portfolio_return_reconstruction_checks,
+    security_return_reconstruction_checks,
+)
 from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
 from ppar.audit.holdings import HoldingsLoader
 from ppar.audit.performance_comparison.rules import apply_suppressions
 from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import (
+    PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
     AuditSpecification,
 )
@@ -157,20 +157,9 @@ _TRANSACTION_FALLBACK_KEY_COLUMNS: Final[tuple[str, ...]] = (
 )
 _PORTFOLIO_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.PORTFOLIO_RETURN: PC_PORT_RET,
-    pc_cols.BEGIN_MARKET_VALUE: PC_PORT_MV,
-    pc_cols.END_MARKET_VALUE: PC_PORT_MV,
-    pc_cols.FLOW: PC_PORT_FLOW,
-    pc_cols.INCOME: PC_PORT_FLOW,
-    pc_cols.GAIN_LOSS: PC_PORT_FLOW,
 }
 _SECURITY_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.SECURITY_RETURN: PC_SEC_RET,
-    pc_cols.WEIGHT: PC_SEC_WGT,
-    pc_cols.CONTRIBUTION: PC_SEC_CONTR,
-    pc_cols.BEGIN_MARKET_VALUE: PC_SEC_MV,
-    pc_cols.END_MARKET_VALUE: PC_SEC_MV,
-    pc_cols.INCOME: PC_SEC_FLOW,
-    pc_cols.GAIN_LOSS: PC_SEC_FLOW,
 }
 _HOLDINGS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.QUANTITY: PC_HOLD_QTY,
@@ -215,14 +204,7 @@ _CHANGED_VALUE_SOURCE_COLUMN: Final[str] = "__ppar_changed_value_source_column"
 _CHANGED_VALUE_DELTA: Final[str] = "__ppar_changed_value_delta"
 _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.PORTFOLIO_RETURN: "return",
-    pc_cols.BEGIN_MARKET_VALUE: "market_value",
-    pc_cols.END_MARKET_VALUE: "market_value",
-    pc_cols.FLOW: "market_value",
-    pc_cols.INCOME: "market_value",
-    pc_cols.GAIN_LOSS: "market_value",
     pc_cols.SECURITY_RETURN: "return",
-    pc_cols.WEIGHT: "weight",
-    pc_cols.CONTRIBUTION: "contribution",
     pc_cols.QUANTITY: "quantity",
     pc_cols.MARKET_VALUE: "market_value",
     pc_cols.BASE_MARKET_VALUE: "market_value",
@@ -303,8 +285,6 @@ class PerformanceComparison:
         _transactions_loader: Loader for normalized transaction rows.
         _transaction_impact_policies: YAML-configured transaction impact
             policies keyed by performance-flow treatment.
-        _contribution_impact_policies: YAML-configured contribution impact
-            policy labels keyed by dataset and source column.
         _holding_impact_policies: YAML-configured holding impact policy
             labels keyed by source column.
         _price_impact_policies: YAML-configured price impact policy labels
@@ -331,11 +311,15 @@ class PerformanceComparison:
         self._transactions_loader = TransactionsLoader(specification)
         self._transaction_impact_policies = _transaction_impact_policies(specification)
         self._security_return_impact_policies = _security_return_impact_policies(specification)
-        self._contribution_impact_policies = _contribution_impact_policies(specification)
         self._holding_impact_policies = _holding_impact_policies(specification)
         self._price_impact_policies = _price_impact_policies(specification)
         self._fx_rate_impact_policies = _fx_rate_impact_policies(specification)
         self._evidence_only_impact_policies = _evidence_only_impact_policies(specification)
+        self._portfolio_denominator_cache: dict[tuple[object, ...], float] | None = None
+        self._security_denominator_cache: dict[tuple[object, ...], float] | None = None
+        self._security_weight_cache: dict[
+            tuple[object, object, object, object], float
+        ] | None = None
 
     def compare_portfolio_performance(self) -> list[Finding]:
         """Compare portfolio performance rows for snapshots A and B.
@@ -394,7 +378,54 @@ class PerformanceComparison:
             Findings preserving all source and financial values while applying
             this view's transaction policy label.
         """
-        return [self._retarget_transaction_policy(finding) for finding in findings]
+        return [self._retarget_shared_finding(finding) for finding in findings]
+
+    def _retarget_shared_finding(self, finding: Finding) -> Finding:
+        """Return shared evidence with this view's policy and denominator."""
+        retargeted = self._retarget_transaction_policy(finding)
+        denominator = self._finding_return_denominator(retargeted)
+        return_weight = self._finding_return_weight(retargeted)
+        diagnostic_row = {
+            pc_cols.PERFORMANCE_FLOW_SIGN: retargeted.performance_flow_sign,
+            pc_cols.TRANSACTION_DATE: retargeted._transaction_date,
+            pc_cols.SETTLEMENT_DATE: retargeted._settlement_date,
+        }
+        diagnostic = self._transaction_impact_diagnostic(
+            diagnostic_row,
+            retargeted.dataset,
+            retargeted.source_column or "",
+            retargeted.portfolio_id,
+            retargeted.from_date,
+            retargeted.thru_date,
+            denominator,
+        )
+        diagnostic_estimate = self._transaction_impact_diagnostic_estimate(
+            diagnostic_row,
+            retargeted.dataset,
+            retargeted.source_column or "",
+            retargeted.portfolio_id,
+            retargeted.from_date,
+            retargeted.thru_date,
+            denominator,
+            retargeted.delta_b_minus_a,
+        )
+        if (
+            retargeted.return_denominator == denominator
+            and retargeted.return_weight == return_weight
+            and retargeted.transaction_impact_diagnostic == diagnostic
+            and (
+                retargeted.transaction_impact_diagnostic_estimate
+                == diagnostic_estimate
+            )
+        ):
+            return retargeted
+        return replace(
+            retargeted,
+            return_denominator=denominator,
+            return_weight=return_weight,
+            transaction_impact_diagnostic=diagnostic,
+            transaction_impact_diagnostic_estimate=diagnostic_estimate,
+        )
 
     def apply_view_rules(self, findings: Sequence[Finding]) -> list[Finding]:
         """Apply this comparison view's suppression rules to finding records."""
@@ -487,8 +518,6 @@ class PerformanceComparison:
             return []
 
         portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
-        return_denominators = self._portfolio_period_return_denominators()
-        return_weights = self._security_period_return_weights()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -498,6 +527,12 @@ class PerformanceComparison:
             pc_cols.HOLDINGS,
             "Holding row appears only in snapshot B.",
             "Holding row appears only in snapshot A.",
+        )
+        return_denominators = self._return_denominators()
+        return_weights = (
+            self._security_period_return_weights()
+            if self._specification.comparison_level == PORTFOLIO_COMPARISON_LEVEL
+            else {}
         )
         findings.extend(
             self._changed_value_findings(
@@ -527,7 +562,7 @@ class PerformanceComparison:
             return []
 
         portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
-        return_denominators = self._portfolio_period_return_denominators()
+        return_denominators = self._return_denominators()
         key_columns = self._optional_key_columns(
             snapshot_a,
             snapshot_b,
@@ -754,7 +789,7 @@ class PerformanceComparison:
 
         key_columns = self._transaction_key_columns(snapshot_a, snapshot_b)
         portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
-        return_denominators = self._portfolio_period_return_denominators()
+        return_denominators = self._return_denominators()
         fallback_periods = self._single_changed_portfolio_return_periods()
         findings = self._transaction_row_presence_findings(
             snapshot_a,
@@ -853,7 +888,7 @@ class PerformanceComparison:
         snapshot_b: pl.DataFrame,
         key_columns: tuple[str, ...],
         portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
-        return_denominators: Mapping[tuple[object, object, object], float] | None,
+        return_denominators: Mapping[tuple[object, ...], float] | None,
     ) -> list[Finding]:
         """Return transaction add/drop findings and fallback ambiguity diagnostics."""
         if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
@@ -1005,7 +1040,7 @@ class PerformanceComparison:
         transaction_match_status: TransactionMatchStatus,
         snapshot_side: str,
         portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
-        return_denominators: Mapping[tuple[object, object, object], float] | None,
+        return_denominators: Mapping[tuple[object, ...], float] | None,
     ) -> list[Finding]:
         """Return transaction findings for rows present in only one snapshot."""
         other_keys = other_snapshot.select(key_columns).unique()
@@ -1046,7 +1081,7 @@ class PerformanceComparison:
         transaction_match_status: TransactionMatchStatus,
         snapshot_side: str,
         portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
-        return_denominators: Mapping[tuple[object, object, object], float] | None,
+        return_denominators: Mapping[tuple[object, ...], float] | None,
     ) -> list[Finding]:
         """Return dated transaction add/drop findings from one source row."""
         amount_finding = self._transaction_presence_finding(
@@ -1087,7 +1122,7 @@ class PerformanceComparison:
         transaction_match_status: TransactionMatchStatus,
         snapshot_side: str,
         portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
-        return_denominators: Mapping[tuple[object, object, object], float] | None,
+        return_denominators: Mapping[tuple[object, ...], float] | None,
         source_column: str,
     ) -> Finding:
         """Return a dated transaction add/drop finding for one source field."""
@@ -1131,6 +1166,8 @@ class PerformanceComparison:
             from_date=from_date,
             thru_date=thru_date,
             input_date=self._input_date(row, pc_cols.TRANSACTIONS),
+            _transaction_date=row.get(pc_cols.TRANSACTION_DATE),
+            _settlement_date=row.get(pc_cols.SETTLEMENT_DATE),
             source_file=source_file,
             source_record_locator=pc_lineage.source_record_locator(
                 pc_cols.TRANSACTIONS,
@@ -1257,6 +1294,16 @@ class PerformanceComparison:
                         from_date=row.get(pc_cols.FROM_DATE),
                         thru_date=row.get(pc_cols.THRU_DATE),
                         input_date=self._input_date(row, dataset),
+                        _transaction_date=(
+                            row.get(pc_cols.TRANSACTION_DATE)
+                            if dataset == pc_cols.TRANSACTIONS
+                            else None
+                        ),
+                        _settlement_date=(
+                            row.get(pc_cols.SETTLEMENT_DATE)
+                            if dataset == pc_cols.TRANSACTIONS
+                            else None
+                        ),
                         source_file=source_file,
                         source_record_locator=pc_lineage.source_record_locator(
                             dataset,
@@ -1316,7 +1363,7 @@ class PerformanceComparison:
         dataset: str = pc_cols.PORTFOLIO_PERFORMANCE,
         portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None = None,
         security_periods: pl.DataFrame | None = None,
-        return_denominators: Mapping[tuple[object, object, object], float] | None = None,
+        return_denominators: Mapping[tuple[object, ...], float] | None = None,
         return_weights: Mapping[tuple[object, object, object, object], float] | None = None,
         transaction_match_status: TransactionMatchStatus | None = None,
         transaction_fallback_periods: (
@@ -1393,6 +1440,16 @@ class PerformanceComparison:
                         from_date=from_date,
                         thru_date=thru_date,
                         input_date=self._input_date(row, dataset),
+                        _transaction_date=(
+                            row.get(pc_cols.TRANSACTION_DATE)
+                            if dataset == pc_cols.TRANSACTIONS
+                            else None
+                        ),
+                        _settlement_date=(
+                            row.get(pc_cols.SETTLEMENT_DATE)
+                            if dataset == pc_cols.TRANSACTIONS
+                            else None
+                        ),
                         source_file=source_file,
                         source_record_locator=pc_lineage.source_record_locator(
                             dataset,
@@ -1799,28 +1856,30 @@ class PerformanceComparison:
         portfolio_id: object | None,
         from_date: object | None,
         thru_date: object | None,
-        return_denominators: Mapping[tuple[object, object, object], float] | None,
+        return_denominators: Mapping[tuple[object, ...], float] | None,
     ) -> float | None:
-        """Return beginning market value for approximate return impacts."""
-        if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
-            if (
-                dataset
-                in {
-                    pc_cols.HOLDINGS,
-                    pc_cols.TRANSACTIONS,
-                    pc_cols.FX_RATES,
-                }
-                and portfolio_id is not None
-                and from_date is not None
-                and thru_date is not None
-                and return_denominators is not None
-            ):
-                return return_denominators.get((portfolio_id, from_date, thru_date))
+        """Return the reconstruction denominator for approximate impacts."""
+        if (
+            dataset
+            not in {
+                pc_cols.HOLDINGS,
+                pc_cols.TRANSACTIONS,
+                pc_cols.FX_RATES,
+            }
+            or portfolio_id is None
+            or from_date is None
+            or thru_date is None
+            or return_denominators is None
+        ):
             return None
-        value = row.get(pc_cols.BEGIN_MARKET_VALUE)
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            return None
-        return float(value)
+        security_id = row.get(pc_cols.SECURITY_ID)
+        if security_id is not None:
+            security_value = return_denominators.get(
+                (portfolio_id, security_id, from_date, thru_date)
+            )
+            if security_value is not None:
+                return security_value
+        return return_denominators.get((portfolio_id, from_date, thru_date))
 
     @staticmethod
     def _return_weight(
@@ -1832,28 +1891,22 @@ class PerformanceComparison:
         return_weights: Mapping[tuple[object, object, object, object], float] | None,
     ) -> float | None:
         """Return snapshot A security weight for approximate return impacts."""
-        if dataset == pc_cols.HOLDINGS:
-            if (
-                portfolio_id is None
-                or from_date is None
-                or thru_date is None
-                or return_weights is None
-            ):
-                return None
-            return return_weights.get(
-                (
-                    portfolio_id,
-                    row.get(pc_cols.SECURITY_ID),
-                    from_date,
-                    thru_date,
-                )
+        if (
+            dataset != pc_cols.HOLDINGS
+            or portfolio_id is None
+            or from_date is None
+            or thru_date is None
+            or return_weights is None
+        ):
+            return None
+        return return_weights.get(
+            (
+                portfolio_id,
+                row.get(pc_cols.SECURITY_ID),
+                from_date,
+                thru_date,
             )
-        if dataset != pc_cols.SECURITY_PERFORMANCE:
-            return None
-        value = row.get(pc_cols.WEIGHT)
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            return None
-        return float(value)
+        )
 
     @staticmethod
     def _impact_input_value(
@@ -1923,12 +1976,14 @@ class PerformanceComparison:
 
     def _portfolio_period_return_denominators(
         self,
-    ) -> dict[tuple[object, object, object], float]:
-        """Return snapshot A beginning market value keyed by portfolio period."""
-        snapshot_a = self._portfolio_loader.load("a")
-        denominators: dict[tuple[object, object, object], float] = {}
-        for row in snapshot_a.iter_rows(named=True):
-            value = row.get(pc_cols.BEGIN_MARKET_VALUE)
+    ) -> dict[tuple[object, ...], float]:
+        """Return holdings/transactions-derived portfolio denominators."""
+        if self._portfolio_denominator_cache is not None:
+            return self._portfolio_denominator_cache
+        checks = portfolio_return_reconstruction_checks(self._specification.path)
+        denominators: dict[tuple[object, ...], float] = {}
+        for row in checks.iter_rows(named=True):
+            value = row.get(DERIVED_DENOMINATOR_A)
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 continue
             key = (
@@ -1937,7 +1992,88 @@ class PerformanceComparison:
                 row.get(pc_cols.THRU_DATE),
             )
             denominators[key] = float(value)
+        self._portfolio_denominator_cache = denominators
         return denominators
+
+    def _security_period_return_denominators(
+        self,
+    ) -> dict[tuple[object, ...], float]:
+        """Return holdings/transactions-derived security denominators."""
+        if self._security_denominator_cache is not None:
+            return self._security_denominator_cache
+        if self._security_loader.load("a") is None:
+            self._security_denominator_cache = {}
+            return self._security_denominator_cache
+        checks = security_return_reconstruction_checks(self._specification.path)
+        denominators: dict[tuple[object, ...], float] = {}
+        for row in checks.iter_rows(named=True):
+            value = row.get(DERIVED_DENOMINATOR_A)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            key = (
+                row.get(pc_cols.PORTFOLIO_ID),
+                row.get(pc_cols.SECURITY_ID),
+                row.get(pc_cols.FROM_DATE),
+                row.get(pc_cols.THRU_DATE),
+            )
+            denominators[key] = float(value)
+        self._security_denominator_cache = denominators
+        return denominators
+
+    def _return_denominators(self) -> Mapping[tuple[object, ...], float]:
+        """Return reconstruction denominators for this comparison view."""
+        if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
+            return self._security_period_return_denominators()
+        return self._portfolio_period_return_denominators()
+
+    def _finding_return_denominator(self, finding: Finding) -> float | None:
+        """Return this view's denominator for one shared finding."""
+        if (
+            finding.dataset
+            not in {pc_cols.HOLDINGS, pc_cols.TRANSACTIONS, pc_cols.FX_RATES}
+            or finding.source_column is None
+            or finding.portfolio_id is None
+            or finding.from_date is None
+            or finding.thru_date is None
+        ):
+            return None
+        denominators = self._return_denominators()
+        if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
+            if finding.security_id is None:
+                return None
+            return denominators.get(
+                (
+                    finding.portfolio_id,
+                    finding.security_id,
+                    finding.from_date,
+                    finding.thru_date,
+                )
+            )
+        return denominators.get(
+            (finding.portfolio_id, finding.from_date, finding.thru_date)
+        )
+
+    def _finding_return_weight(self, finding: Finding) -> float | None:
+        """Return a holdings-derived portfolio weight for one shared finding."""
+        if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
+            return None
+        if (
+            finding.dataset != pc_cols.HOLDINGS
+            or finding.source_column is None
+            or finding.security_id is None
+            or finding.portfolio_id is None
+            or finding.from_date is None
+            or finding.thru_date is None
+        ):
+            return None
+        return self._security_period_return_weights().get(
+            (
+                finding.portfolio_id,
+                finding.security_id,
+                finding.from_date,
+                finding.thru_date,
+            )
+        )
 
     def _single_changed_portfolio_return_periods(
         self,
@@ -1984,14 +2120,45 @@ class PerformanceComparison:
     def _security_period_return_weights(
         self,
     ) -> dict[tuple[object, object, object, object], float]:
-        """Return snapshot A security weights keyed by portfolio/security period."""
-        snapshot_a = self._security_loader.load("a")
-        if snapshot_a is None or pc_cols.WEIGHT not in snapshot_a.columns:
-            return {}
-        weights: dict[tuple[object, object, object, object], float] = {}
-        for row in snapshot_a.iter_rows(named=True):
-            value = row.get(pc_cols.WEIGHT)
+        """Return holdings-derived beginning weights by security period."""
+        if self._security_weight_cache is not None:
+            return self._security_weight_cache
+        if self._security_loader.load("a") is None:
+            self._security_weight_cache = {}
+            return self._security_weight_cache
+        portfolio_checks = portfolio_return_reconstruction_checks(
+            self._specification.path
+        )
+        portfolio_begin_values: dict[tuple[object, object, object], float] = {}
+        for row in portfolio_checks.iter_rows(named=True):
+            value = row.get(BEGIN_VALUE_A)
             if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            portfolio_begin_values[
+                (
+                    row.get(pc_cols.PORTFOLIO_ID),
+                    row.get(pc_cols.FROM_DATE),
+                    row.get(pc_cols.THRU_DATE),
+                )
+            ] = float(value)
+        security_checks = security_return_reconstruction_checks(
+            self._specification.path
+        )
+        weights: dict[tuple[object, object, object, object], float] = {}
+        for row in security_checks.iter_rows(named=True):
+            security_value = row.get(BEGIN_VALUE_A)
+            portfolio_key = (
+                row.get(pc_cols.PORTFOLIO_ID),
+                row.get(pc_cols.FROM_DATE),
+                row.get(pc_cols.THRU_DATE),
+            )
+            portfolio_value = portfolio_begin_values.get(portfolio_key)
+            if (
+                isinstance(security_value, bool)
+                or not isinstance(security_value, (int, float))
+                or portfolio_value is None
+                or portfolio_value == 0.0
+            ):
                 continue
             key = (
                 row.get(pc_cols.PORTFOLIO_ID),
@@ -1999,7 +2166,8 @@ class PerformanceComparison:
                 row.get(pc_cols.FROM_DATE),
                 row.get(pc_cols.THRU_DATE),
             )
-            weights[key] = float(value)
+            weights[key] = float(security_value) / portfolio_value
+        self._security_weight_cache = weights
         return weights
 
     @staticmethod
@@ -2154,14 +2322,6 @@ class PerformanceComparison:
             return None
         return comparison_file.relative_path.as_posix()
 
-    def _contribution_impact_policy(
-        self,
-        dataset: str,
-        source_column: str,
-    ) -> str | None:
-        """Return the YAML-selected contribution-impact policy for a field."""
-        return self._contribution_impact_policies.get((dataset, source_column))
-
     def _impact_policy(
         self,
         dataset: str,
@@ -2190,9 +2350,6 @@ class PerformanceComparison:
                 return policy
         if _field_roles.is_reported_performance_component(dataset, source_column):
             return None
-        policy = self._contribution_impact_policy(dataset, source_column)
-        if policy is not None:
-            return policy
         return None
 
     def _row_impact_policy(

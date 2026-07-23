@@ -11,8 +11,8 @@
 #    older/original source files.
 # 2. Replace the CSV files in the snapshot_b directory with your own
 #    newer/restated source files.
-# 3. If snapshot directory names differ, edit snapshots.*.path below.
-# 4. If CSV filenames or column names differ, edit files.*.path or
+# 3. If your snapshot directory names differ, edit snapshots.*.path below.
+# 4. If your CSV filenames or column names differ, edit files.*.path or
 #    files.*.columns below.
 # 5. Run ppar audit ./my_ppar_data/audit again and review the outputs.
 # 6. Ambiguous transaction codes must not become external flows or other
@@ -33,47 +33,6 @@ audit:
   # Command-line override: --output-directory ./review_output
   output_directory: output
 
-  # Optional title used for both portfolio and security reports.
-  # Default: "Portfolio Audit Report" and "Security Audit Report", respectively
-  # Command-line override: --title "Quarter-end Audit"
-  title: null
-
-  # Whether to write XLSX workbooks.
-  # Default: true
-  # Command-line override: --no-xlsx-output
-  xlsx_output: true
-
-  # Whether to write HTML reports.
-  # Default: true
-  # Command-line override: --no-html-output
-  html_output: true
-
-  # Whether findings suppressed by the rules below are omitted from reports.
-  # Source-data is still processed when suppressed findings are omitted.
-  # Default: false
-  # Command-line override: --exclude-suppressed
-  exclude_suppressed: false
-
-  # Whether detailed return-reconstruction diagnostics are added to reports and
-  # supporting artifacts.
-  # Default: false
-  # Command-line override: --reconstruction-diagnostics
-  reconstruction_diagnostics: false
-
-  # Whether supporting CSV and JSON files are written individually instead of
-  # in audit_support.zip. source_detail.csv is always written at the report
-  #   root.
-  # Default: false
-  # Command-line override: --expand-all-supporting-files
-  expand_all_supporting_files: false
-
-  # Whether changed periods must have the YAML setup required by a supported
-  # causal explanation method. This does not require every difference to be
-  # fully explained.
-  # Default: false
-  # Command-line override: --require-causal-attribution
-  require_causal_attribution: false
-
 # ==============================================================================
 # Audit Snapshots
 # ==============================================================================
@@ -90,8 +49,8 @@ snapshots:
   #   User-facing label used in reports.
   #
   # path:
-  #   Directory containing the snapshot CSV files. Keep paths relative to this
-  #   YAML so the setup directory can move as one unit.
+  #   Directory containing the snapshot CSV files. Relative paths are anchored
+  #   to this audit directory; absolute paths are also supported.
   a:
     label: snapshot_a
     path: snapshot_a
@@ -107,11 +66,10 @@ files:
   # Paths are relative to each snapshot directory. Column mappings must match
   # the CSV headings exactly.
   portfolio_performance:
-    # Portfolio performance CSV; required for every Audit run.
+    # Portfolio performance CSV; required.
     # Default: portperf.csv
     # Required columns: Portfolio Code, From Date, Thru Date, Portfolio Return.
-    # Optional columns: Base Currency, Beginning Market Value, Ending Market
-    #   Value, Gain/Loss, Income, Net Flow.
+    # Optional columns: Base Currency.
     path: portperf.csv
     columns:
       portfolio_code: "Portfolio Code"
@@ -119,19 +77,12 @@ files:
       thru_date: "Thru Date"
       portfolio_return: "Portfolio Return"
       base_currency: "Base Currency"
-      begin_market_value: "Beginning Market Value"
-      end_market_value: "Ending Market Value"
-      gain_loss: "Gain/Loss"
-      income: "Income"
-      flow: "Net Flow"
 
   security_performance:
     # Security performance CSV; required for security-level Audit reports.
     # Default: secperf.csv
     # Required columns: Portfolio Code, Security Symbol, Security Type,
     #   From Date, Thru Date, Security Return.
-    # Optional columns: Beginning Market Value, Beginning Weight, Contribution,
-    #   Ending Market Value, Gain/Loss, Income.
     path: secperf.csv
     columns:
       portfolio_code: "Portfolio Code"
@@ -140,15 +91,9 @@ files:
       from_date: "From Date"
       thru_date: "Thru Date"
       security_return: "Security Return"
-      begin_market_value: "Beginning Market Value"
-      weight: "Beginning Weight"
-      contribution: "Contribution"
-      end_market_value: "Ending Market Value"
-      gain_loss: "Gain/Loss"
-      income: "Income"
 
   holdings:
-    # Holdings CSV; required for the starter's return reconstruction.
+    # Holdings CSV; required by the configured return reconstruction.
     # Default when required by configured reconstruction: holdings.csv
     # Required columns: Portfolio Code, Security Symbol, Security Type,
     #   Holding Date.
@@ -169,7 +114,7 @@ files:
       quantity: "Quantity"
 
   transactions:
-    # Transactions CSV; required for the starter's return reconstruction.
+    # Transactions CSV; required by the configured return reconstruction.
     # Default when required by configured reconstruction: transactions.csv
     # Required columns: Portfolio Code, Security Symbol, Security Type,
     #   Transaction Date.
@@ -211,7 +156,7 @@ files:
 
   fx_rates:
     # FX-rate CSV; optional evidence for multi-currency data.
-    # Default: None; this starter uses fx_rates.csv.
+    # Default: None. This starter uses fx_rates.csv for multi-currency evidence.
     # Required columns: From Currency, To Currency, Rate Date, FX Rate.
     # Optional columns: Local Exposure, Portfolio Code, Rate Source, Rate Type.
     path: fx_rates.csv
@@ -227,7 +172,7 @@ files:
 
   splits:
     # Security-split CSV; optional evidence for split-adjusted prices.
-    # Default: None; this starter uses splits.csv.
+    # Default: None. This starter uses splits.csv for split evidence.
     # Required columns: Security Symbol, Security Type, Split Date,
     #   Split Factor.
     path: splits.csv
@@ -243,19 +188,19 @@ files:
 # ==============================================================================
 data_issues:
   # Whether to report optional Data Issues checks.
-  # Default: true. Mandatory continuity checks always run.
+  # Default: true.
   enabled: true
 
   holdings_nonpositive_price:
     # Flags a nonzero holding with a zero or negative price.
-    # Default: disabled. This starter enables a filtered example.
+    # Default: disabled. Enabled here for common stock.
     enabled: true
     only:
       security_reference.security_type: csus
 
   holdings_price_range:
     # Flags same-day holding prices that differ across portfolios.
-    # Default: enabled. This starter limits the check to common stock.
+    # Default: enabled. Limited here to common stock.
     enabled: true
     only:
       security_reference.security_type: csus
@@ -264,7 +209,7 @@ data_issues:
 
   holdings_stale_price:
     # Flags a positive holding price repeated for the configured number of days.
-    # Default: disabled. This starter enables a common-stock example.
+    # Default: disabled. Enabled here for common stock.
     enabled: true
     only:
       security_reference.security_type: csus
@@ -272,7 +217,7 @@ data_issues:
 
   large_price_variation:
     # Flags split-adjusted price variation within one portfolio period.
-    # Default: disabled. This starter enables a common-stock example.
+    # Default: disabled. Enabled here for common stock.
     enabled: true
     rules:
       - rule_id: common_stock_30_percent
@@ -286,40 +231,32 @@ data_issues:
 
   transactions_price_range:
     # Flags same-day transaction prices that differ across portfolios.
-    # Default: enabled. This starter limits the check to common-stock purchases.
+    # Default: enabled. Limited here to common-stock purchases and sales.
     enabled: true
     only:
       transactions.transaction_code:
         - by
+        - sl
       security_reference.security_type: csus
     absolute_tolerance: 0.01
     percent_tolerance: 0.05
 
   transactions_nonpositive_price:
     # Flags a nonzero-quantity transaction with a nonpositive price.
-    # Default: disabled. This starter enables a filtered purchase example.
+    # Default: disabled. Enabled here for common-stock purchases and sales.
     enabled: true
     only:
       transactions.transaction_code:
         - by
+        - sl
       security_reference.security_type: csus
 
   transaction_security_type_mismatch:
     # Flags a transaction security type that differs from the security master.
-    # Default: disabled. This starter enables a common-stock example.
+    # Default: disabled. Enabled here for common stock.
     enabled: true
     only:
       security_reference.security_type: csus
-
-  deliver_in_original_cost_incomplete:
-    # Flags missing original cost or cost date in a deliver-in population.
-    # Default: disabled. Both original-cost columns are needed when enabled.
-    enabled: false
-    only:
-      transactions.transaction_code: ti
-      transactions.transaction_security_type: csus
-      transactions.source_destination_type: $pty
-      transactions.source_destination_symbol: external_delivery
 
   duplicate_transactions:
     # Flags exact duplicate transaction rows within a snapshot.
@@ -328,25 +265,23 @@ data_issues:
 
   dividend_rate:
     # Flags same-day dividend rates that differ across portfolios.
-    # Default: enabled. This starter targets its JPM dividend scenario.
+    # Default: enabled. Limited here to common stock.
     enabled: true
     only:
-      security_id:
-        - csusJPM
+      security_reference.security_type: csus
     absolute_tolerance: 0.01
     percent_tolerance: 0.5
 
   missing_dividend:
     # Flags an eligible holding that may be missing a dividend transaction.
-    # Default: enabled. This starter targets its AAPL dividend scenario.
+    # Default: enabled. Limited here to common stock.
     enabled: true
     only:
-      security_id:
-        - csusAAPL
+      security_reference.security_type: csus
 
   pa_sa_rate:
     # Flags purchase/sale accrued rates that differ across portfolios.
-    # Default: enabled. This starter limits the check to fixed income.
+    # Default: enabled. Limited here to fixed income.
     enabled: true
     only:
       security_reference.asset_class_code: FI
@@ -355,11 +290,9 @@ data_issues:
 
   holdings_accrued_rate:
     # Flags same-day accrued-income rates that differ across portfolios.
-    # Default: enabled. This starter targets one reviewed fixed-income issue.
+    # Default: enabled. Limited here to fixed income.
     enabled: true
     only:
-      security_id:
-        - fius91282Y5Y1
       security_reference.asset_class_code: FI
     absolute_tolerance: 0.00001
     percent_tolerance: 0.5
@@ -368,51 +301,42 @@ data_issues:
 # Portfolio Return Reconstruction
 # ==============================================================================
 portfolio_return_reconstruction:
+  # All settings in this section are required.
+
   # Return formula used to reconstruct portfolio performance.
-  # Required. Supported value: modified_dietz.
   method: modified_dietz
 
   # Dataset supplying beginning values.
-  # Required. Supported value: holdings.
   beginning_value_source: holdings
 
   # Dataset supplying ending values.
-  # Required. Supported value: holdings.
   ending_value_source: holdings
 
   # Dataset supplying external flows and income.
-  # Required. Supported value: transactions.
   flow_source: transactions
 
   # Transaction date used for flow weighting.
-  # Required. Supported value: transaction_date.
   flow_timing: transaction_date
 
   # Day-count convention used for flow weighting.
-  # Required. Supported value: actual_days.
   day_count: actual_days
 
   # Timing assigned to a flow on its transaction date.
-  # Required. Supported value: beginning_of_day.
   inclusion_rule: beginning_of_day
 
   # Transaction categories treated as portfolio external flows.
-  # Required. Supported starter value: external_flow.
   flow_categories:
     - external_flow
 
   # Transaction categories treated as portfolio income or expense.
-  # Required. Supported starter values: income, fee_expense.
   income_categories:
     - income
     - fee_expense
 
   # Whether reconstructed returns are net or gross.
-  # Required. Supported starter value: net.
   return_basis: net
 
   # How transaction amounts express cash-flow direction.
-  # Required. Supported value: signed_amount.
   sign_convention: signed_amount
 
 
@@ -420,52 +344,43 @@ portfolio_return_reconstruction:
 # Security Return Reconstruction
 # ==============================================================================
 security_return_reconstruction:
+  # All settings in this section are required for security reconstruction.
+
   # Return formula used to reconstruct security performance.
-  # Required for security reconstruction. Supported value: modified_dietz.
   method: modified_dietz
 
   # Dataset supplying beginning values.
-  # Required. Supported value: holdings.
   beginning_value_source: holdings
 
   # Dataset supplying ending values.
-  # Required. Supported value: holdings.
   ending_value_source: holdings
 
   # Dataset supplying security flows and income.
-  # Required. Supported value: transactions.
   flow_source: transactions
 
   # Transaction date used for flow weighting.
-  # Required. Supported value: transaction_date.
   flow_timing: transaction_date
 
   # Day-count convention used for flow weighting.
-  # Required. Supported value: actual_days.
   day_count: actual_days
 
   # Timing assigned to a flow on its transaction date.
-  # Required. Supported value: beginning_of_day.
   inclusion_rule: beginning_of_day
 
   # Transaction categories treated as security-level flows.
-  # Required. Supported starter values: buy, sell.
   flow_categories:
     - buy
     - sell
 
   # Transaction categories treated as security income or expense.
-  # Required. Supported starter values: income, fee_expense.
   income_categories:
     - income
     - fee_expense
 
   # Whether reconstructed returns are net or gross.
-  # Required. Supported starter value: net.
   return_basis: net
 
   # How transaction amounts express cash-flow direction.
-  # Required. Supported value: signed_amount.
   sign_convention: signed_amount
 
 # ==============================================================================
@@ -749,3 +664,118 @@ tolerances:
   price: 0.000001
   split_factor: 0.00000001
   fx_rate: 0.00000001
+
+# ==============================================================================
+# Appendix — Additional Supported Parameters
+# ==============================================================================
+# These settings use their documented defaults when omitted. To override one,
+# copy its commented parameter line or block into the named existing section,
+# preserve its indentation, and remove the comment marker.
+
+# Parameter: audit.title
+# Optional title used for both portfolio and security reports.
+# Default: "Portfolio Audit Report" and "Security Audit Report", respectively
+# Command-line override: --title "Quarter-end Audit"
+#   title: null
+
+# Parameter: audit.xlsx_output
+# Whether to write XLSX workbooks.
+# Default: true
+# Command-line override: --no-xlsx-output
+#   xlsx_output: true
+
+# Parameter: audit.html_output
+# Whether to write HTML reports.
+# Default: true
+# Command-line override: --no-html-output
+#   html_output: true
+
+# Parameter: audit.exclude_suppressed
+# Whether configured suppressed findings are omitted from reports.
+# Default: false
+# Command-line override: --exclude-suppressed
+#   exclude_suppressed: false
+
+# Parameter: audit.reconstruction_diagnostics
+# Whether detailed return-reconstruction diagnostics are added to outputs.
+# Default: false
+# Command-line override: --reconstruction-diagnostics
+#   reconstruction_diagnostics: false
+
+# Parameter: audit.expand_all_supporting_files
+# Whether supporting CSV and JSON files are expanded instead of archived.
+# source_detail.csv is always written at the report root.
+# Default: false
+# Command-line override: --expand-all-supporting-files
+#   expand_all_supporting_files: false
+
+# Parameter: audit.require_causal_attribution
+# Whether changed periods must have a supported causal-explanation setup.
+# This does not require every difference to be fully explained.
+# Default: false
+# Command-line override: --require-causal-attribution
+#   require_causal_attribution: false
+
+# Parameter: data_issues.deliver_in_original_cost_incomplete
+# Flags missing original cost or cost date in a deliver-in population.
+# Default: disabled. Both original-cost columns are required when enabled.
+# Copy this block under the existing data_issues: section.
+# Change enabled to true only after adding both source columns.
+#   deliver_in_original_cost_incomplete:
+#     enabled: false
+#     only:
+#       transactions.transaction_code: ti
+#       transactions.transaction_security_type: csus
+#       transactions.source_destination_type: $pty
+#       transactions.source_destination_symbol: external_delivery
+
+# Parameter: data_issues.<issue_type>.exclude
+# Excludes exact filter matches from one configured Data Issues check.
+# Default: no values are excluded.
+# Example under a configured issue type:
+#     exclude:
+#       portfolio_id: CLOSED_PORTFOLIO
+
+# Parameter: data_issues.large_price_variation.rules[].enabled
+# Whether one named large-price-variation rule is evaluated.
+# Default: true
+# Example under a configured large_price_variation rule:
+#       enabled: false
+
+# Parameter: files.<optional_dataset>.required
+# Whether Audit fails during preflight when an optional source file is absent.
+# Default: false. This setting is invalid for a contract-required dataset.
+# Example under an optional files.<dataset> entry:
+#     required: true
+
+# Parameter: snapshots.<snapshot>.schema
+# External source-column mapping used when snapshots have different layouts.
+# Default: None; the shared files.*.columns mappings above are used.
+# Example under snapshots.a or snapshots.b:
+#     schema: schemas/snapshot_a.yaml
+
+# Parameter: suppressions
+# Marks exact matching comparison findings as suppressed without deleting them.
+# Default: []
+# Optional rule fields include dataset, portfolio_id, security_id, from_date,
+# thru_date, source_column, and reason.
+# suppressions: []
+
+# The extract-contract settings below belong under one new top-level
+# extract_contract: section.
+
+# Parameter: extract_contract.path
+# Selects a reviewed local extract-contract YAML file.
+# Default: the packaged Axys/APX extract contract.
+#   path: null
+
+# Parameter: extract_contract.enforce_ambiguous_axys_flows
+# Requires context before ambiguous Axys/APX codes acquire flow meaning.
+# Default: true
+#   enforce_ambiguous_axys_flows: true
+
+# Parameter: extract_contract.transaction_semantics_case
+# Controls case matching for transaction codes and condition values.
+# Default: exact
+# Accepted values: exact, legacy_case_insensitive
+#   transaction_semantics_case: exact

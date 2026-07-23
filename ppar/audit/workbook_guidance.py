@@ -45,6 +45,7 @@ __all__ = [
     "IMPACT_STATUS_MISSING_METHOD",
     "IMPACT_STATUS_REVIEW_ONLY",
     "dataset_field",
+    "explanation_contract_issues",
     "possible_cause_field_name",
     "possible_cause_row_comment",
     "possible_cause_summary",
@@ -144,7 +145,7 @@ def review_guidance(
     impact_status: str,
     row_kind: str,
 ) -> str:
-    """Return guidance for why a row does or does not explain performance.
+    """Return deterministic guidance that begins with the source change.
 
     Args:
         row: Finding or intermediate workbook evidence row.
@@ -154,7 +155,37 @@ def review_guidance(
         row_kind: Internal evidence-row classification.
 
     Returns:
-        Deterministic reviewer guidance for the cause table.
+        Reviewer guidance normalized to the explanation contract.
+    """
+    guidance = _review_guidance(
+        row,
+        estimated_impact,
+        comparison_path=comparison_path,
+        impact_status=impact_status,
+        row_kind=row_kind,
+    )
+    return _with_source_change_lead(row, guidance)
+
+
+def _review_guidance(
+    row: Mapping[str, object],
+    estimated_impact: float | None,
+    *,
+    comparison_path: util.PathLike | None,
+    impact_status: str,
+    row_kind: str,
+) -> str:
+    """Return the role-specific part of one explanation.
+
+    Args:
+        row: Finding or intermediate workbook evidence row.
+        estimated_impact: Additive estimated return impact, when available.
+        comparison_path: Optional comparison YAML path used in setup guidance.
+        impact_status: Reviewer-facing impact treatment status.
+        row_kind: Internal evidence-row classification.
+
+    Returns:
+        Role-specific reviewer guidance for the cause table.
     """
     dataset = format_value(row.get(findings.DATASET))
     source_column = format_value(row.get(findings.SOURCE_COLUMN))
@@ -164,6 +195,7 @@ def review_guidance(
             return _transaction_reconstruction_flow_guidance(
                 row,
                 exact_case=exact_case,
+                estimated_impact=estimated_impact,
             )
         if dataset == audit_schema.HOLDINGS and source_column in {
             audit_schema.ACCRUED,
@@ -173,12 +205,13 @@ def review_guidance(
             audit_schema.PRICE,
             audit_schema.QUANTITY,
         }:
-            return _holding_detail_explanation(row, source_column)
+            return _holding_source_explanation(row, source_column)
         if dataset == audit_schema.TRANSACTIONS:
             return _transaction_component_explanation(
                 row,
                 source_column,
                 exact_case=exact_case,
+                estimated_impact=estimated_impact,
             )
         return ""
 
@@ -252,7 +285,7 @@ def review_guidance(
         audit_schema.PRICE,
         audit_schema.QUANTITY,
     }:
-        return _holding_detail_explanation(row, source_column)
+        return _holding_source_explanation(row, source_column)
     if dataset == audit_schema.TRANSACTIONS:
         if source_column == audit_schema.AMOUNT:
             return _source_row_explanation(
@@ -305,6 +338,247 @@ def dataset_field(row: Mapping[str, object]) -> str:
     if dataset:
         return dataset
     return source_column
+
+
+def explanation_contract_issues(
+    row: Mapping[str, object],
+    explanation: str,
+    *,
+    impact_status: str,
+    comparison_path: util.PathLike | None,
+) -> tuple[str, ...]:
+    """Return semantic consistency issues for one source-row explanation.
+
+    Args:
+        row: Finding or intermediate workbook evidence row.
+        explanation: Rendered reviewer-facing explanation.
+        impact_status: Reviewer-facing impact treatment status.
+        comparison_path: Optional comparison YAML path used to apply its
+            transaction case-matching contract.
+
+    Returns:
+        Deterministically ordered contract violations. An empty tuple means
+        that the explanation states the source change and every required
+        downstream performance field consistently.
+    """
+    issues: list[str] = []
+    exact_case = _comparison_uses_exact_transaction_case(comparison_path)
+    expected_lead = _source_change_sentence(row)
+    if expected_lead and not explanation.startswith(expected_lead):
+        issues.append(f"must begin with {expected_lead!r}")
+
+    dataset = format_value(row.get(findings.DATASET))
+    transaction_code = format_value(row.get(findings.TRANSACTION_CODE)).strip()
+    if dataset == audit_schema.TRANSACTIONS and transaction_code:
+        expected_prefix = f"{transaction_code}:"
+        if not explanation.startswith(expected_prefix):
+            issues.append(f"must begin with transaction code {expected_prefix!r}")
+
+    for performance_reference in _required_performance_references(
+        row,
+        impact_status=impact_status,
+        exact_case=exact_case,
+    ):
+        if performance_reference not in explanation:
+            issues.append(
+                "must name affected performance field "
+                f"{performance_reference!r}"
+            )
+
+    expected_currency_field = _expected_currency_value_field(row)
+    if expected_currency_field == "holdings.base_market_value":
+        wrong_phrases = (
+            "through holdings.market_value",
+            "ending holdings.market_value",
+        )
+        if any(phrase in explanation for phrase in wrong_phrases):
+            issues.append("uses local-currency language for a base-currency effect")
+    elif expected_currency_field == "holdings.market_value":
+        wrong_phrases = (
+            "through holdings.base_market_value",
+            "ending holdings.base_market_value",
+        )
+        if any(phrase in explanation for phrase in wrong_phrases):
+            issues.append("uses base-currency language for a local-currency effect")
+
+    if explanation and not explanation.endswith("."):
+        issues.append("must end with a period")
+    if explanation == _REVIEW_ONLY_EVIDENCE_NOTE and expected_lead:
+        issues.append("must state the source change instead of generic review-only text")
+    if any(token in explanation.lower() for token in (" none", " nan")):
+        issues.append("contains a missing-value token")
+    return tuple(issues)
+
+
+def _with_source_change_lead(
+    row: Mapping[str, object],
+    guidance: str,
+) -> str:
+    """Ensure source evidence begins by stating its exact changed field."""
+    source_change = _source_change_sentence(row)
+    if not source_change or guidance.startswith(source_change):
+        return guidance
+    if not guidance:
+        return source_change
+    return f"{source_change} {guidance}"
+
+
+def _source_change_sentence(row: Mapping[str, object]) -> str:
+    """Return the canonical first sentence for a changed source row."""
+    dataset = format_value(row.get(findings.DATASET))
+    source_column = format_value(row.get(findings.SOURCE_COLUMN))
+    if _source_change_value(row) is None:
+        return ""
+    if dataset == audit_schema.HOLDINGS:
+        return _holding_source_explanation(row, source_column)
+    if dataset == audit_schema.TRANSACTIONS:
+        return _transaction_change_sentence(row, source_column)
+    if dataset == audit_schema.FX_RATES and source_column == audit_schema.FX_RATE:
+        return _fx_rate_change_sentence(row)
+    if dataset == audit_schema.SPLITS and source_column == audit_schema.SPLIT_FACTOR:
+        return _split_factor_change_sentence(row)
+    return ""
+
+
+def _source_change_value(row: Mapping[str, object]) -> float | None:
+    """Return a numeric delta, deriving it from snapshot values when needed."""
+    change_value = rows.number_or_none(rows.row_change_value(row))
+    if change_value is not None:
+        return change_value
+    snapshot_a = rows.number_or_none(row.get(findings.SNAPSHOT_A_VALUE))
+    snapshot_b = rows.number_or_none(row.get(findings.SNAPSHOT_B_VALUE))
+    if snapshot_a is None or snapshot_b is None:
+        return None
+    return snapshot_b - snapshot_a
+
+
+def _transaction_change_sentence(
+    row: Mapping[str, object],
+    source_column: str,
+) -> str:
+    """Return the canonical source-change sentence for a transaction row."""
+    security_id = format_value(row.get(findings.SECURITY_ID))
+    security_prefix = f"{security_id} " if security_id else ""
+    change_value = rows.row_change_value(row)
+    return (
+        f"{_transaction_code_prefix(row)}{security_prefix}"
+        f"transactions.{source_column} "
+        f"{rows.increased_or_decreased(change_value)} by "
+        f"{_field_change_text(change_value, source_column)}."
+    )
+
+
+def _fx_rate_change_sentence(row: Mapping[str, object]) -> str:
+    """Return the canonical source-change sentence for an FX-rate row."""
+    snapshot_a = rows.number_or_none(row.get(findings.SNAPSHOT_A_VALUE))
+    snapshot_b = rows.number_or_none(row.get(findings.SNAPSHOT_B_VALUE))
+    from_currency = format_value(row.get(findings.FROM_CURRENCY))
+    to_currency = format_value(row.get(findings.TO_CURRENCY))
+    pair_prefix = (
+        f"{from_currency}-to-{to_currency} "
+        if from_currency and to_currency
+        else ""
+    )
+    change_value = _source_change_value(row)
+    value_detail = ""
+    if snapshot_a is not None and snapshot_b is not None:
+        quote_suffix = (
+            f" {to_currency} per {from_currency}"
+            if from_currency and to_currency
+            else ""
+        )
+        value_detail = f", from {snapshot_a:g} to {snapshot_b:g}{quote_suffix}"
+    return (
+        f"{pair_prefix}fx_rates.fx_rate "
+        f"{rows.increased_or_decreased(change_value)} by "
+        f"{rows.change_amount_text(change_value)}{value_detail}."
+    )
+
+
+def _split_factor_change_sentence(row: Mapping[str, object]) -> str:
+    """Return the canonical source-change sentence for a split row."""
+    security_id = format_value(row.get(findings.SECURITY_ID))
+    security_prefix = f"{security_id} " if security_id else ""
+    change_value = rows.row_change_value(row)
+    return (
+        f"{security_prefix}splits.split_factor "
+        f"{rows.increased_or_decreased(change_value)} by "
+        f"{rows.change_amount_text(change_value)}."
+    )
+
+
+def _required_performance_references(
+    row: Mapping[str, object],
+    *,
+    impact_status: str,
+    exact_case: bool,
+) -> tuple[str, ...]:
+    """Return downstream performance references required by the row's role."""
+    dataset = format_value(row.get(findings.DATASET))
+    source_column = format_value(row.get(findings.SOURCE_COLUMN))
+    if dataset == audit_schema.HOLDINGS:
+        if source_column in {audit_schema.PRICE, audit_schema.QUANTITY}:
+            return (_holding_performance_input(row, source_column),)
+        if (
+            source_column == audit_schema.BASE_MARKET_VALUE
+            and impact_status == IMPACT_STATUS_REVIEW_ONLY
+        ):
+            return ("holdings.market_value",)
+        return ()
+    if dataset == audit_schema.FX_RATES and source_column == audit_schema.FX_RATE:
+        if not row.get(source_allocation.FX_RATE_SUPPORTS_BASE_INPUT):
+            return ()
+        target_field = format_value(row.get(source_allocation.FX_RATE_TARGET_FIELD))
+        return (target_field,) if target_field else ()
+    if dataset == audit_schema.SPLITS and source_column == audit_schema.SPLIT_FACTOR:
+        if row.get(rows.SPLIT_FACTOR_SUPPORTS_HOLDING):
+            return ("holdings.market_value",)
+        return ()
+    if dataset != audit_schema.TRANSACTIONS:
+        return ()
+    if source_column in {audit_schema.COMMISSION, audit_schema.PRICE}:
+        return ("transactions.amount",)
+    if source_column == audit_schema.QUANTITY:
+        references = ["transactions.amount"]
+        if _transaction_quantity_affects_holding_value(row, exact_case=exact_case):
+            references.append("holdings.market_value")
+        return tuple(references)
+    if row.get(rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION):
+        return (_transaction_cash_balance_field(row),)
+    if impact_status == IMPACT_STATUS_ESTIMATED:
+        category = row.get(findings.TRANSACTION_CATEGORY)
+        if category in {
+            TRANSACTION_CATEGORY_BUY,
+            TRANSACTION_CATEGORY_SELL,
+            TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+        }:
+            return ("weighted external flow",)
+        if category in {
+            TRANSACTION_CATEGORY_FEE_EXPENSE,
+            TRANSACTION_CATEGORY_INCOME,
+        }:
+            return ("income",)
+    if row.get(rows.TRANSACTION_FLOW_SUPPORTS_HOLDING):
+        return ("holdings.market_value",)
+    return ()
+
+
+def _expected_currency_value_field(row: Mapping[str, object]) -> str:
+    """Return the local/base value field implied by one supporting row."""
+    dataset = format_value(row.get(findings.DATASET))
+    source_column = format_value(row.get(findings.SOURCE_COLUMN))
+    if dataset == audit_schema.HOLDINGS and source_column in {
+        audit_schema.PRICE,
+        audit_schema.QUANTITY,
+    }:
+        return _holding_performance_input(row, source_column)
+    if dataset == audit_schema.TRANSACTIONS and row.get(
+        rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION
+    ):
+        return _transaction_cash_balance_field(row)
+    if dataset == audit_schema.FX_RATES:
+        return format_value(row.get(source_allocation.FX_RATE_TARGET_FIELD))
+    return ""
 
 
 def possible_cause_field_name(row: Mapping[str, object]) -> str:
@@ -374,14 +648,7 @@ def _performance_dataset_review_note(source_column: str) -> str:
     """Return review guidance for reported performance-extract rows."""
     if source_column in {audit_schema.PORTFOLIO_RETURN, audit_schema.SECURITY_RETURN}:
         return "Reported return residual; no supported source-data row explains this difference."
-    if source_column in {
-        audit_schema.BEGIN_MARKET_VALUE,
-        audit_schema.END_MARKET_VALUE,
-        audit_schema.FLOW,
-        audit_schema.INCOME,
-    }:
-        return "Performance-extract input; not a separate additive cause."
-    return "Performance-extract diagnostic; not a separate additive cause."
+    return "Unsupported performance-extract field; review the source-data contract."
 
 
 def _related_input_guidance(
@@ -392,7 +659,10 @@ def _related_input_guidance(
     exact_case: bool,
 ) -> str:
     """Return guidance for an input component's related performance field."""
-    if dataset == audit_schema.HOLDINGS and source_column == audit_schema.QUANTITY:
+    if dataset == audit_schema.HOLDINGS and source_column in {
+        audit_schema.PRICE,
+        audit_schema.QUANTITY,
+    }:
         return _review_only_holding_explanation(
             row,
             dataset,
@@ -406,7 +676,7 @@ def _related_input_guidance(
         audit_schema.BASE_MARKET_VALUE,
         audit_schema.PRICE,
     }:
-        return _holding_detail_explanation(row, source_column)
+        return _holding_source_explanation(row, source_column)
     if dataset == audit_schema.TRANSACTIONS:
         return _transaction_component_explanation(
             row,
@@ -420,6 +690,7 @@ def _transaction_reconstruction_flow_guidance(
     row: Mapping[str, object],
     *,
     exact_case: bool,
+    estimated_impact: float | None = None,
 ) -> str:
     """Return guidance for transaction rows absorbed by reconstruction formulas."""
     comparison_level = row.get("_workbook_reconstruction_comparison_level")
@@ -428,6 +699,7 @@ def _transaction_reconstruction_flow_guidance(
             row,
             audit_schema.AMOUNT,
             exact_case=exact_case,
+            estimated_impact=estimated_impact,
         )
     if row.get(findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
         return _portfolio_external_flow_transaction_explanation(row)
@@ -462,14 +734,7 @@ def _transaction_amount_possible_cause_explanation(
     row: Mapping[str, object],
 ) -> str:
     """Return compact possible-cause wording for transaction amount changes."""
-    security_id = format_value(row.get(findings.SECURITY_ID))
-    security_prefix = f"{security_id} " if security_id else ""
-    change_value = rows.row_change_value(row)
-    return (
-        f"{_transaction_code_prefix(row)}{security_prefix}transactions.amount "
-        f"{rows.increased_or_decreased(change_value)} by "
-        f"{rows.change_amount_text(change_value)}."
-    )
+    return _transaction_change_sentence(row, audit_schema.AMOUNT)
 
 
 def _portfolio_external_flow_transaction_explanation(
@@ -481,29 +746,28 @@ def _portfolio_external_flow_transaction_explanation(
         source_allocation.source_flow_weight(row)
     )
     return (
-        f"{_transaction_code_prefix(row)}External flow "
-        f"{rows.increased_or_decreased(flow_delta)} by "
-        f"{rows.change_amount_text(flow_delta)}; weighted external flow "
-        f"{rows.increased_or_decreased(weighted_flow_delta)} by "
+        f"{_transaction_change_sentence(row, audit_schema.AMOUNT)} "
+        "This affects the performance calculation through weighted external flow, "
+        f"which {rows.increased_or_decreased(weighted_flow_delta)} by "
         f"{rows.change_amount_text(weighted_flow_delta)}."
     )
 
 
 def _transaction_cash_balance_explanation(row: Mapping[str, object]) -> str:
     """Return source-data wording for a transaction's ending cash-balance effect."""
+    source_column = format_value(row.get(findings.SOURCE_COLUMN))
     return (
-        f"{_transaction_code_prefix(row)}Caused cash-balance "
-        "ending holdings.market_value "
-        f"to {_cash_balance_direction(row)} by "
-        f"{rows.change_amount_text(rows.row_change_value(row))}."
+        f"{_transaction_change_sentence(row, source_column)} "
+        "This affects the performance calculation through cash-balance ending "
+        f"{_transaction_cash_balance_field(row)}."
     )
 
 
-def _cash_balance_direction(row: Mapping[str, object]) -> str:
-    """Return increase/decrease wording for the cash effect of a transaction."""
-    if row.get(findings.CASH_FLOW_SIGN) == TRANSACTION_CASH_FLOW_SIGN_POSITIVE:
-        return "increase"
-    return "decrease"
+def _transaction_cash_balance_field(row: Mapping[str, object]) -> str:
+    """Return the cash value field matching a transaction's source basis."""
+    if format_value(row.get(findings.SOURCE_COLUMN)) == audit_schema.BASE_AMOUNT:
+        return "holdings.base_market_value"
+    return "holdings.market_value"
 
 
 def _holding_detail_explanation(
@@ -523,6 +787,20 @@ def _holding_detail_explanation(
     )
 
 
+def _holding_source_explanation(
+    row: Mapping[str, object],
+    source_column: str,
+) -> str:
+    """Return a holding change plus its downstream value field when needed."""
+    detail = _holding_detail_explanation(row, source_column)
+    if source_column not in {audit_schema.PRICE, audit_schema.QUANTITY}:
+        return detail
+    return (
+        f"{detail} This affects the performance calculation through "
+        f"{_holding_performance_input(row, source_column)}."
+    )
+
+
 def _review_only_holding_explanation(
     row: Mapping[str, object],
     dataset: str,
@@ -532,12 +810,9 @@ def _review_only_holding_explanation(
     """Return specific guidance for review-only holding input components."""
     if dataset != audit_schema.HOLDINGS or impact_status != IMPACT_STATUS_REVIEW_ONLY:
         return ""
+    if source_column in {audit_schema.PRICE, audit_schema.QUANTITY}:
+        return _holding_source_explanation(row, source_column)
     detail = _holding_detail_explanation(row, source_column)
-    if source_column == audit_schema.QUANTITY:
-        return (
-            f"{detail} This affects the performance calculation through "
-            "holdings.market_value."
-        )
     if source_column == audit_schema.BASE_MARKET_VALUE:
         return (
             f"{detail} This change is also reflected in the performance calculation "
@@ -546,59 +821,43 @@ def _review_only_holding_explanation(
     return ""
 
 
+def _holding_performance_input(
+    row: Mapping[str, object],
+    source_column: str,
+) -> str:
+    """Return the counted holding-value field related to a component row."""
+    impact_policy = format_value(row.get(findings.IMPACT_POLICY))
+    foreign_currency_policy = (
+        f"{findings.IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
+        f"holdings.{source_column}_row_currency"
+    )
+    if impact_policy == foreign_currency_policy:
+        return "holdings.base_market_value"
+    return "holdings.market_value"
+
+
 def _fx_rate_support_explanation(row: Mapping[str, object]) -> str:
     """Return an FX-rate explanation linked to the counted base value."""
     security_id = format_value(row.get(findings.SECURITY_ID))
-    security_prefix = f"{security_id} " if security_id else ""
     target_field = format_value(row.get(source_allocation.FX_RATE_TARGET_FIELD))
     base_value_change = row.get(source_allocation.FX_RATE_BASE_VALUE_CHANGE)
-    snapshot_a = rows.number_or_none(row.get(findings.SNAPSHOT_A_VALUE))
-    snapshot_b = rows.number_or_none(row.get(findings.SNAPSHOT_B_VALUE))
-    from_currency = format_value(row.get(findings.FROM_CURRENCY))
     to_currency = format_value(row.get(findings.TO_CURRENCY))
-    pair_prefix = (
-        f"{from_currency}-to-{to_currency} FX rate"
-        if from_currency and to_currency
-        else "FX rate"
-    )
-    quote_suffix = (
-        f" {to_currency} per {from_currency}"
-        if from_currency and to_currency
-        else ""
-    )
-    rate_change = (
-        "changed"
-        if snapshot_a is None or snapshot_b is None
-        else f"changed from {snapshot_a:g} to {snapshot_b:g}"
-    )
+    security_suffix = f" for {security_id}" if security_id else ""
     return (
-        f"{pair_prefix} {rate_change}{quote_suffix}; "
-        f"{security_prefix}{target_field} shows the counted "
-        f"{to_currency or 'base-currency'} effect of "
+        f"{_fx_rate_change_sentence(row)} This affects the performance calculation "
+        f"through {target_field}; the counted {to_currency or 'base-currency'} "
+        f"effect{security_suffix} is "
         f"{rows.change_amount_text(base_value_change)}."
     )
 
 
 def _split_factor_explanation(row: Mapping[str, object]) -> str:
     """Return plain-language explanation for a split-factor support row."""
-    security_id = format_value(row.get(findings.SECURITY_ID))
-    security_prefix = f"{security_id} " if security_id else ""
-    split_factor = rows.row_change_value(row)
     return (
-        f"split: Caused {security_prefix}holdings.quantity and related "
-        "holdings.market_value to increase using a "
-        f"{_split_factor_text(split_factor)} split factor."
+        f"{_split_factor_change_sentence(row)} This affects the performance "
+        "calculation through holdings.market_value; holdings.quantity is "
+        "supporting evidence."
     )
-
-
-def _split_factor_text(value: object) -> str:
-    """Return compact split-factor text for workbook explanations."""
-    number = rows.number_or_none(value)
-    if number is None:
-        return "changed"
-    if float(number).is_integer():
-        return f"{abs(number):.1f}"
-    return f"{abs(number):g}"
 
 
 def _holding_timing_label(row: Mapping[str, object]) -> str:
@@ -622,27 +881,15 @@ def _transaction_component_explanation(
     source_column: str,
     *,
     exact_case: bool,
+    estimated_impact: float | None = None,
 ) -> str:
     """Return plain-language explanation for a transaction component row."""
-    security_id = format_value(row.get(findings.SECURITY_ID))
-    security_text = f" for {security_id}" if security_id else ""
-    field_text = f"transactions.{source_column}"
     if source_column in {
         audit_schema.COMMISSION,
         audit_schema.PRICE,
         audit_schema.QUANTITY,
     }:
-        change_value = rows.row_change_value(row)
-        change_number = rows.number_or_none(change_value)
-        change_verb = (
-            "decreased" if change_number is not None and change_number < 0 else "increased"
-        )
-        security_prefix = f"{security_id} " if security_id else ""
-        explanation = (
-            f"{_transaction_code_prefix(row)}{security_prefix}{field_text} "
-            f"{change_verb} by "
-            f"{_field_change_text(change_value, source_column)}."
-        )
+        explanation = _transaction_change_sentence(row, source_column)
         if (
             source_column == audit_schema.QUANTITY
             and _transaction_quantity_affects_holding_value(
@@ -658,25 +905,29 @@ def _transaction_component_explanation(
             f"{explanation} This affects the performance calculation through "
             "transactions.amount."
         )
-    if (
-        source_column == audit_schema.AMOUNT
-        and row.get(findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW
-    ):
-        field_text = "external flow"
-    elif (
-        source_column == audit_schema.AMOUNT
-        and row.get(findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_FEE_EXPENSE
-    ):
-        field_text = "fee/expense"
-    elif (
-        source_column == audit_schema.AMOUNT
-        and row.get(findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_INCOME
-    ):
-        field_text = "income"
-    return (
-        f"{_transaction_code_prefix(row)}The {field_text}{security_text} changed by "
-        f"{rows.change_amount_text(rows.row_change_value(row))}."
-    )
+    explanation = _transaction_change_sentence(row, source_column)
+    category = row.get(findings.TRANSACTION_CATEGORY)
+    if estimated_impact is not None and category in {
+        TRANSACTION_CATEGORY_BUY,
+        TRANSACTION_CATEGORY_SELL,
+    }:
+        return (
+            f"{explanation} This affects the performance calculation through "
+            "weighted external flow."
+        )
+    if estimated_impact is not None and category in {
+        TRANSACTION_CATEGORY_FEE_EXPENSE,
+        TRANSACTION_CATEGORY_INCOME,
+    }:
+        return (
+            f"{explanation} This affects the performance calculation through income."
+        )
+    if row.get(rows.TRANSACTION_FLOW_SUPPORTS_HOLDING):
+        return (
+            f"{explanation} This affects the performance calculation through "
+            "holdings.market_value."
+        )
+    return explanation
 
 
 def _field_change_text(value: object, source_column: str) -> str:

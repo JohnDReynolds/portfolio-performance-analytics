@@ -924,11 +924,11 @@ def _transactions(
     """Return controlled operational transactions using date-specific prices."""
     rows = []
     for portfolio_code, group in performance.groupby("portfolio_code", sort=True):
-        equities = (
+        equity = (
             group[group["asset_class"].eq("Equity")]
             .drop_duplicates("identifier")
             .sort_values("identifier")
-            .head(2)
+            .iloc[0]
         )
         periods = (
             group[["from_date", "thru_date"]]
@@ -937,66 +937,46 @@ def _transactions(
             .itertuples(index=False)
         )
         for period_index, period in enumerate(periods, start=1):
-            for index, row in enumerate(equities.itertuples(index=False), start=1):
-                gross_amount = 1_000.0 * index
-                transaction_code = "by" if index == 1 else "dv"
-                transaction_identifier = row.identifier
-                transaction_date = period.from_date + pd.Timedelta(days=5)
-                settle_date = period.from_date + pd.Timedelta(days=6)
-                transaction_price = price_on_or_before(
-                    market_history,
-                    transaction_identifier,
-                    transaction_date,
+            transaction_date = period.from_date + pd.Timedelta(days=5)
+            transaction_price = price_on_or_before(
+                market_history,
+                str(equity["identifier"]),
+                transaction_date,
+            )
+            quantity = round(1_000.0 / transaction_price, 4)
+            rows.append(
+                _transaction_row(
+                    transaction_id=f"{portfolio_code}{period_index:02d}01",
+                    portfolio_code=portfolio_code,
+                    transaction_date=str(transaction_date.date()),
+                    settle_date=str((transaction_date + pd.Timedelta(days=1)).date()),
+                    security_id=str(equity["identifier"]),
+                    transaction_code="by",
+                    source_destination_type="$cash",
+                    source_destination_symbol=_CASH_IDENTIFIER,
+                    quantity=quantity,
+                    price=transaction_price,
+                    amount=_buy_transaction_amount(quantity, transaction_price, 4.95),
+                    commission=4.95,
                 )
-                quantity = (
-                    round(gross_amount / transaction_price, 4)
-                    if transaction_code == "by"
-                    else 0.0
-                )
-                price = transaction_price if transaction_code == "by" else 0.0
-                commission = 4.95 if transaction_code == "by" else 0.0
-                amount = (
-                    _buy_transaction_amount(quantity, price, commission)
-                    if transaction_code == "by"
-                    else round(gross_amount * 0.0125, 2)
-                )
-                if (
-                    portfolio_code == "BALANCED"
-                    and str(period.thru_date.date()) == _JPM_DIVIDEND_PAY_DATE
-                    and transaction_code == "dv"
-                ):
-                    transaction_identifier = _JPM_DIVIDEND_IDENTIFIER
-                    transaction_date = pd.Timestamp(_JPM_DIVIDEND_EX_DATE)
-                    settle_date = pd.Timestamp(_JPM_DIVIDEND_PAY_DATE)
-                    amount = _jpm_dividend_amount(
-                        group,
-                        market_history,
-                        _JPM_PRIOR_DIVIDEND_PER_SHARE,
-                    )
+            )
+            if str(period.thru_date.date()) == _JPM_DIVIDEND_PAY_DATE:
                 rows.append(
-                    {
-                        "TRANSACTION_ID": f"{portfolio_code}{period_index:02d}{index:02d}",
-                        "PORT": portfolio_code,
-                        "TRANSACTION_DATE": transaction_date.date(),
-                        "SETTLE_DATE": settle_date.date(),
-                        "SEC": transaction_identifier,
-                        "TRAN": transaction_code,
-                        "SEC_TYPE": _security_type_for_transaction(
-                            transaction_identifier
+                    _transaction_row(
+                        transaction_id=f"{portfolio_code}{period_index:02d}02",
+                        portfolio_code=portfolio_code,
+                        transaction_date=_JPM_DIVIDEND_EX_DATE,
+                        settle_date=_JPM_DIVIDEND_PAY_DATE,
+                        security_id=_JPM_DIVIDEND_IDENTIFIER,
+                        transaction_code="dv",
+                        source_destination_type="$income",
+                        source_destination_symbol="$cash",
+                        amount=_jpm_dividend_amount(
+                            group,
+                            market_history,
+                            _JPM_PRIOR_DIVIDEND_PER_SHARE,
                         ),
-                        "SRC_DEST_TYPE": (
-                            "$cash" if transaction_code == "by" else "$income"
-                        ),
-                        "SRC_DEST_SYMBOL": (
-                            _CASH_IDENTIFIER if transaction_code == "by" else "$cash"
-                        ),
-                        "SPECIAL_SEC_TYPE": "",
-                        "SPECIAL_SEC_SYMBOL": "",
-                        "QTY": quantity,
-                        "PRICE": price,
-                        "AMOUNT": amount,
-                        "COMMISSION": commission,
-                    }
+                    )
                 )
             if portfolio_code == "ALPHA" and str(period.thru_date.date()) == "2026-01-30":
                 rows.append(
@@ -1140,21 +1120,17 @@ def _jpm_dividend_amount(
     market_history: pd.DataFrame,
     dividend_per_share: float,
 ) -> float:
-    """Return the JPM dividend amount for the BALANCED dividend demo phase."""
+    """Return a JPM dividend amount based on the opening demo position."""
     jpm_rows = performance[
         performance["identifier"].eq(_JPM_DIVIDEND_IDENTIFIER)
-        & performance["thru_date"].dt.date.astype(str).eq(_JPM_DIVIDEND_PAY_DATE)
-    ]
+    ].sort_values("thru_date")
     if jpm_rows.empty:
         raise ValueError("Could not find BALANCED JPM performance row for dividend demo.")
-    shares = (
-        _BASE_MARKET_VALUE
-        * float(jpm_rows.iloc[0]["weight"])
-        / price_on_or_before(
-            market_history,
-            _JPM_DIVIDEND_IDENTIFIER,
-            _JPM_DIVIDEND_PAY_DATE,
-        )
+    opening_row = jpm_rows.iloc[0]
+    shares = _BASE_MARKET_VALUE * float(opening_row["weight"]) / price_on_or_before(
+        market_history,
+        _JPM_DIVIDEND_IDENTIFIER,
+        opening_row["thru_date"],
     )
     return round(shares * dividend_per_share, 2)
 

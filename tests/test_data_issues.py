@@ -22,49 +22,6 @@ from ppar.errors import PpaError
 class TestDataIssues(unittest.TestCase):
     """Validate source-data consistency checks used by the Data Issues sheet."""
 
-    def test_continuity_respects_adjacency_and_combined_tolerance(self) -> None:
-        """Continuity flags only adjacent periods beyond absolute and percent limits."""
-        frame = pl.DataFrame(
-            {
-                data_issues.SNAPSHOT: ["Snapshot A"] * 6,
-                pc_cols.PORTFOLIO_ID: ["P1", "P1", "P2", "P2", "P3", "P3"],
-                pc_cols.FROM_DATE: [
-                    dt.date(2026, 1, 1),
-                    dt.date(2026, 2, 2),
-                    dt.date(2026, 1, 1),
-                    dt.date(2026, 2, 1),
-                    dt.date(2026, 1, 1),
-                    dt.date(2026, 2, 1),
-                ],
-                pc_cols.THRU_DATE: [
-                    dt.date(2026, 1, 31),
-                    dt.date(2026, 2, 28),
-                    dt.date(2026, 1, 31),
-                    dt.date(2026, 2, 28),
-                    dt.date(2026, 1, 31),
-                    dt.date(2026, 2, 28),
-                ],
-                pc_cols.BEGIN_MARKET_VALUE: [900.0, 500.0, 900.0, 989.0, 1900.0, 1985.0],
-                pc_cols.END_MARKET_VALUE: [1000.0, 600.0, 1000.0, 1100.0, 2000.0, 2100.0],
-            }
-        )
-        config = {
-            data_issues.ISSUE_PORTFOLIO_MV_CONTINUITY: {
-                "absolute_tolerance": 10.0,
-                "percent_tolerance": 1.0,
-            }
-        }
-
-        issues = data_issues._market_value_continuity_issues(
-            (frame,),
-            config,
-            dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
-        )
-
-        self.assertEqual(len(issues), 1)
-        self.assertEqual(issues[0][pc_cols.PORTFOLIO_ID], "P2")
-        self.assertEqual(issues[0][data_issues.DIFFERENCE], -11.0)
-
     def test_packaged_demo_includes_every_enabled_data_issues_type(self) -> None:
         """The Axys/APX demo keeps examples of every enabled X-Ref issue type."""
         comparison_path = (
@@ -112,10 +69,10 @@ class TestDataIssues(unittest.TestCase):
             & (issues["security_id"] == "csusJPM")
         )
 
-        self.assertEqual(dividend_rate_issues.height, 2)
+        self.assertEqual(dividend_rate_issues.height, 3)
         self.assertEqual(
             set(dividend_rate_issues.get_column("portfolio_id").to_list()),
-            {"ALPHA", "BALANCED"},
+            {"ALPHA", "BALANCED", "INCOME"},
         )
 
     def test_packaged_demo_includes_pa_sa_rate_data_issues_issue(self) -> None:
@@ -289,7 +246,7 @@ class TestDataIssues(unittest.TestCase):
         )
 
     def test_packaged_demo_keeps_original_cost_review_optional(self) -> None:
-        """The primary demo omits optional cost inputs and disables their check."""
+        """The primary demo omits optional cost inputs and uses the disabled default."""
         comparison_path = (
             Path(__file__).resolve().parents[1]
             / "ppar"
@@ -302,9 +259,10 @@ class TestDataIssues(unittest.TestCase):
             comparison_path,
             comparison_level="portfolio",
         )
-        check_config = specification.values["data_issues"][
-            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
-        ]
+        self.assertNotIn(
+            data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
+            specification.values["data_issues"],
+        )
         issue_types = set(
             data_issues.data_issues_table(comparison_path)
             .get_column(data_issues.ISSUE_TYPE)
@@ -317,7 +275,6 @@ class TestDataIssues(unittest.TestCase):
             self.assertNotIn("ORIGINAL_COST_DATE", header)
             self.assertNotIn("ORIGINAL_COST", header)
 
-        self.assertFalse(check_config["enabled"])
         self.assertNotIn(
             data_issues.ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
             issue_types,

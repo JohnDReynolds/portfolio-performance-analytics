@@ -30,7 +30,6 @@ from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
     SnapshotKey,
 )
-from ppar.audit.security_performance import SecurityPerformanceLoader
 from ppar.audit.security_reference import SecurityReferenceLoader
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
@@ -70,12 +69,6 @@ ISSUE_LARGE_PRICE_VARIATION: Final[str] = (
 )
 ISSUE_MISSING_DIVIDEND: Final[str] = DataIssueType.MISSING_DIVIDEND.value
 ISSUE_PA_SA_RATE: Final[str] = DataIssueType.PA_SA_RATE.value
-ISSUE_PORTFOLIO_MV_CONTINUITY: Final[str] = (
-    DataIssueType.PORTFOLIO_MARKET_VALUE_CONTINUITY.value
-)
-ISSUE_SECURITY_MV_CONTINUITY: Final[str] = (
-    DataIssueType.SECURITY_MARKET_VALUE_CONTINUITY.value
-)
 ISSUE_TRANSACTION_SECURITY_TYPE_MISMATCH: Final[str] = (
     DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH.value
 )
@@ -163,14 +156,6 @@ _ISSUE_SCHEMA: Final[dict[str, type[pl.DataType]]] = {
     EXPLANATION: pl.String,
     REVIEW_KEY: pl.String,
 }
-
-_CONTINUITY_PRIOR_THRU_DATE: Final[str] = "__ppar_continuity_prior_thru_date"
-_CONTINUITY_PRIOR_END_VALUE: Final[str] = "__ppar_continuity_prior_end_value"
-_CONTINUITY_CURRENT_BEGIN_VALUE: Final[str] = (
-    "__ppar_continuity_current_begin_value"
-)
-_CONTINUITY_THRESHOLD: Final[str] = "__ppar_continuity_threshold"
-
 
 @dataclass(frozen=True)
 class _Tolerance:
@@ -319,10 +304,6 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
         PortfolioPerformanceLoader(specification),
         pc_cols.PORTFOLIO_PERFORMANCE,
     )
-    security_performance = _snapshot_frames(
-        SecurityPerformanceLoader(specification),
-        pc_cols.SECURITY_PERFORMANCE,
-    )
     holdings = _snapshot_frames(HoldingsLoader(specification), pc_cols.HOLDINGS)
     transactions = _snapshot_frames(
         TransactionsLoader(specification),
@@ -334,20 +315,6 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
         specification=specification,
     )
     rows: list[dict[str, object]] = []
-    rows.extend(
-        _market_value_continuity_issues(
-            portfolio_performance,
-            config,
-            dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
-        )
-    )
-    rows.extend(
-        _market_value_continuity_issues(
-            security_performance,
-            config,
-            dataset_name=pc_cols.SECURITY_PERFORMANCE,
-        )
-    )
     if not _config_enabled(config):
         return _issues_table(rows)
     transaction_rows = _snapshot_rows(transactions)
@@ -430,157 +397,6 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     )
     rows.extend(_holdings_accrued_rate_issues(holding_rows, config))
     return _issues_table(rows)
-
-
-def _market_value_continuity_issues(
-    performance_frames: Iterable[pl.DataFrame],
-    config: Mapping[str, object],
-    *,
-    dataset_name: str,
-) -> list[dict[str, object]]:
-    """Return prior-ending versus next-beginning market-value issues.
-
-    Continuity is a mandatory financial-integrity check. Unlike optional Data
-    Issues checks, it remains active when ``data_issues.enabled`` is false
-    because these values directly participate in Modified Dietz.
-    """
-    issue_type = (
-        ISSUE_SECURITY_MV_CONTINUITY
-        if dataset_name == pc_cols.SECURITY_PERFORMANCE
-        else ISSUE_PORTFOLIO_MV_CONTINUITY
-    )
-    tolerance = _tolerance(config, issue_type)
-    if tolerance == _Tolerance(absolute=0.0, percent=0.0):
-        tolerance = _Tolerance(absolute=0.01, percent=0.0)
-    grouping_columns = [SNAPSHOT, pc_cols.PORTFOLIO_ID]
-    if dataset_name == pc_cols.SECURITY_PERFORMANCE:
-        grouping_columns.append(pc_cols.SECURITY_ID)
-
-    candidates = _market_value_continuity_candidates(
-        performance_frames,
-        grouping_columns,
-        tolerance,
-    )
-    rows: list[dict[str, object]] = []
-    for current in candidates.iter_rows(named=True):
-        current_from = _date(current.get(pc_cols.FROM_DATE))
-        prior_end = _number(current.get(_CONTINUITY_PRIOR_END_VALUE))
-        current_begin = _number(current.get(_CONTINUITY_CURRENT_BEGIN_VALUE))
-        if current_from is None or prior_end is None or current_begin is None:
-            raise PpaError(
-                "SN-04 continuity candidate contains invalid typed values.",
-                999,
-                context={
-                    "dataset": dataset_name,
-                    "portfolio_id": current.get(pc_cols.PORTFOLIO_ID),
-                },
-            )
-        difference = current_begin - prior_end
-        security_id = _text(current.get(pc_cols.SECURITY_ID))
-        scope = f"portfolio {current.get(pc_cols.PORTFOLIO_ID)}"
-        if security_id:
-            scope += f", security {security_id}"
-        rows.append(
-            _issue_row(
-                snapshot=_text(current.get(SNAPSHOT)),
-                portfolio_id=_text(current.get(pc_cols.PORTFOLIO_ID)),
-                as_of_date=current_from,
-                dataset_field=(
-                    f"{dataset_name}.end_market_value -> "
-                    f"{dataset_name}.begin_market_value"
-                ),
-                security_id=security_id,
-                issue_type=issue_type,
-                value_a=prior_end,
-                value_b=current_begin,
-                difference=difference,
-                tolerance=tolerance.description(),
-                explanation=(
-                    f"SN-04 continuity mismatch for {scope}: prior ending "
-                    f"market value {prior_end:,.2f} does not equal next "
-                    f"beginning market value {current_begin:,.2f}."
-                ),
-            )
-        )
-    return rows
-
-
-def _market_value_continuity_candidates(
-    performance_frames: Iterable[pl.DataFrame],
-    grouping_columns: Sequence[str],
-    tolerance: _Tolerance,
-) -> pl.DataFrame:
-    """Return consecutive-period market-value mismatches from one lazy plan."""
-    candidate_plans: list[pl.LazyFrame] = []
-    sort_columns = [
-        *grouping_columns,
-        pc_cols.FROM_DATE,
-        pc_cols.THRU_DATE,
-    ]
-    for frame in performance_frames:
-        if not {
-            pc_cols.BEGIN_MARKET_VALUE,
-            pc_cols.END_MARKET_VALUE,
-        }.issubset(frame.columns):
-            continue
-        security_id = (
-            pl.col(pc_cols.SECURITY_ID)
-            if pc_cols.SECURITY_ID in frame.columns
-            else pl.lit(None, dtype=pl.String)
-        )
-        candidate_plans.append(
-            frame.lazy()
-            .sort(sort_columns, nulls_last=False)
-            .with_columns(
-                pl.col(pc_cols.THRU_DATE)
-                .shift(1)
-                .over(grouping_columns)
-                .alias(_CONTINUITY_PRIOR_THRU_DATE),
-                pl.col(pc_cols.END_MARKET_VALUE)
-                .shift(1)
-                .over(grouping_columns)
-                .cast(pl.Float64, strict=False)
-                .alias(_CONTINUITY_PRIOR_END_VALUE),
-                pl.col(pc_cols.BEGIN_MARKET_VALUE)
-                .cast(pl.Float64, strict=False)
-                .alias(_CONTINUITY_CURRENT_BEGIN_VALUE),
-            )
-            .filter(
-                pl.col(_CONTINUITY_PRIOR_THRU_DATE).is_not_null()
-                & pl.col(pc_cols.FROM_DATE).is_not_null()
-                & (
-                    pl.col(pc_cols.FROM_DATE)
-                    == pl.col(_CONTINUITY_PRIOR_THRU_DATE).dt.offset_by("1d")
-                )
-                & pl.col(_CONTINUITY_PRIOR_END_VALUE).is_finite()
-                & pl.col(_CONTINUITY_CURRENT_BEGIN_VALUE).is_finite()
-            )
-            .with_columns(
-                (
-                    pl.col(_CONTINUITY_CURRENT_BEGIN_VALUE)
-                    - pl.col(_CONTINUITY_PRIOR_END_VALUE)
-                ).alias(DIFFERENCE),
-                pl.max_horizontal(
-                    pl.lit(tolerance.absolute),
-                    pl.col(_CONTINUITY_PRIOR_END_VALUE).abs()
-                    * tolerance.percent
-                    / 100.0,
-                ).alias(_CONTINUITY_THRESHOLD),
-            )
-            .filter(pl.col(DIFFERENCE).abs() > pl.col(_CONTINUITY_THRESHOLD))
-            .select(
-                SNAPSHOT,
-                pc_cols.PORTFOLIO_ID,
-                pc_cols.FROM_DATE,
-                pc_cols.THRU_DATE,
-                security_id.alias(pc_cols.SECURITY_ID),
-                _CONTINUITY_PRIOR_END_VALUE,
-                _CONTINUITY_CURRENT_BEGIN_VALUE,
-            )
-        )
-    if not candidate_plans:
-        return pl.DataFrame()
-    return pl.concat(candidate_plans).sort(sort_columns).collect()
 
 
 def _empty_issues_table() -> pl.DataFrame:
