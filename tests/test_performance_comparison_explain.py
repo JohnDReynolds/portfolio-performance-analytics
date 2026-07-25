@@ -107,7 +107,6 @@ from ppar.audit.performance_comparison.findings import (
     FROM_DATE,
     CONFIDENCE_HIGH,
     PC_PORT_RET,
-    PC_SEC_CONTR,
     PC_SEC_RET,
     PC_TXN_AMT,
     PORTFOLIO_ID,
@@ -440,7 +439,9 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             list(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS),
         )
         self.assertEqual(candidates.height, 9)
-        self.assertTrue(candidates.filter(pl.col(FINDING_CODE) == PC_SEC_CONTR).is_empty())
+        self.assertTrue(
+            candidates.filter(pl.col(FINDING_CODE) == "PC-SEC-CONTR").is_empty()
+        )
 
     def test_portfolio_period_contribution_candidates_estimates_security_return(
         self,
@@ -514,7 +515,9 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self,
     ) -> None:
         """Portfolio cause summary remains stable without security contribution rows."""
-        findings = self._restatement().filter(pl.col(FINDING_CODE) != PC_SEC_CONTR)
+        findings = self._restatement().filter(
+            pl.col(FINDING_CODE) != "PC-SEC-CONTR"
+        )
 
         summary = portfolio_period_cause_summary(findings)
         cause_areas = set(summary.get_column(ROOT_CAUSE_AREA).to_list())

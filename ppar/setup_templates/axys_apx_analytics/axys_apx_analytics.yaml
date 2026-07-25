@@ -1,10 +1,10 @@
 # ==============================================================================
 # PPAR Axys/APX Analytics Configuration
 # ==============================================================================
-# This file has been copied to your setup directory as analytics/ppar.yaml.
+# This file has been copied to your PPAR Analytics workspace as ppar.yaml.
 #
 # The default command to run Analytics is:
-#   ppar analytics ./my_ppar_data/analytics
+#   ppar analytics ./my_ppar_analytics
 #
 # To customize with your own data:
 # 1. Replace portperf.csv, secperf.csv, and secmast.csv with your own IMEX/REP
@@ -13,7 +13,7 @@
 #    files.*.columns below.
 # 3. Set analytics.portfolio and analytics.benchmark below to actual portfolio
 #    codes contained in your CSV files.
-# 4. Run ppar analytics ./my_ppar_data/analytics again and review the outputs.
+# 4. Run ppar analytics ./my_ppar_analytics again and review the outputs.
 
 # ==============================================================================
 # Analytics Runtime Parameters

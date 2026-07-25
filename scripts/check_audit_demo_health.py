@@ -69,8 +69,7 @@ def _run_setup_generated_smoke_tests() -> None:
     onboarding surface instead of the older source-checkout demo modules.
     """
     with tempfile.TemporaryDirectory(prefix="ppar_setup_smoke_") as directory:
-        site_directory = Path(directory) / "my_ppar_data"
-        audit_directory = site_directory / "audit"
+        audit_directory = Path(directory) / "my_ppar_audit"
 
         _run(
             [
@@ -78,21 +77,13 @@ def _run_setup_generated_smoke_tests() -> None:
                 "-m",
                 "ppar.cli",
                 "setup",
-                site_directory,
-                "--include-generic-analytics",
+                audit_directory,
             ]
         )
-        _run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
         _run(
             [
                 _VENV_PYTHON,
                 audit_directory / "run_audit.py",
-            ]
-        )
-        _run(
-            [
-                _VENV_PYTHON,
-                site_directory / "generic_analytics" / "run_generic_analytics.py",
             ]
         )
         _run(

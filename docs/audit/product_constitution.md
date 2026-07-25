@@ -5,8 +5,8 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.15 |
-| Date | 2026-07-19 |
+| Version | 1.16 |
+| Date | 2026-07-25 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
 | Canonical scope | Product identity, current truth, principles, boundaries, capability status, validation doctrine, claims, and founder decisions |
@@ -16,6 +16,15 @@
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
 
 ## Change Log
+
+### Version 1.16 — 2026-07-25
+
+- Established **PPAR Audit** as the market-facing product and kept **PPAR**
+  unexpanded so the name does not force a permanent word onto each letter.
+- Made Audit the default setup and onboarding path through a direct
+  `my_ppar_audit` workspace.
+- Retained PPAR Analytics as a maintained, separately positioned module with an
+  explicit `--analytics` setup mode and optional visualization dependencies.
 
 ### Version 1.15 — 2026-07-19
 
@@ -194,9 +203,11 @@
 
 ## 1.1 Product identity
 
-PPAR stands for **Portfolio Performance Auditing & Analytics Reporting**. This
-governing design concerns **PPAR Audit** and the `ppar audit` workflow only.
-Performance Analytics has a separate product identity, buyer, use case,
+**PPAR** is the product and package name; it is not expanded in market-facing
+use. The name is rooted in portfolio performance audit and reporting without
+forcing a permanent word onto each letter. This governing design concerns
+**PPAR Audit** and the `ppar audit` workflow only. PPAR Analytics is a
+maintained additional module with a separate product identity, buyer, use case,
 message, and roadmap.
 
 The internal category thesis is:
@@ -371,13 +382,13 @@ validation. Configurability does not establish vendor compatibility.
 The documented path is:
 
 ```text
-ppar setup <site_directory>
-ppar audit <site_directory>/audit
+ppar setup ./my_ppar_audit
+ppar audit ./my_ppar_audit
 ```
 
-Setup creates a local starter workspace with commented configuration and
-Axys/APX-oriented starter files. Routine data processing and calculations occur
-inside the client-controlled environment.
+Setup creates a local PPAR Audit workspace with commented configuration and
+Axys/APX-oriented demonstration files. Routine data processing and calculations
+occur inside the client-controlled environment.
 
 ## 3.3 Inputs and interpretation
 
@@ -437,7 +448,10 @@ Current optional checks cover:
 - holdings price ranges; and
 - dividend-rate consistency.
 
-Beginning/end continuity remains a mandatory visible integrity finding.
+The former performance-file beginning/end market-value continuity checks are
+retired. Holdings and transactions are the authoritative valuation and flow
+evidence; a future position-roll-forward control requires validation-partner
+evidence and a separately approved contract.
 
 Data Issues findings are independent of additive performance causes. A
 suspicious relationship must not automatically change the explained amount.
@@ -455,7 +469,7 @@ Current report bundles can include:
 - complete `source_detail.csv` and `findings.csv` evidence;
 - primary and supporting CSV summaries and diagnostics;
 - `review_summary.json` handoff metadata;
-- `manifest.json` version 8;
+- `manifest.json` version 9;
 - cause lineage and typed semantic/display fingerprints; and
 - compact or expanded audit-support artifacts.
 
@@ -475,7 +489,7 @@ diagnostics remain secondary.
 | Capability | Governing status and limitation |
 |---|---|
 | Local Python execution and setup | CURRENT — DOCUMENTED; client deployment/support validation still required |
-| Axys/APX starter mappings and demo seed | CURRENT — DOCUMENTED; not proof of compatibility with every site |
+| Axys/APX workspace mappings and demo seed | CURRENT — DOCUMENTED; not proof of compatibility with every site |
 | Two-snapshot portfolio/security comparison | CURRENT — DEMONSTRATED; real client variability untested |
 | Modified Dietz source-row explanation | CURRENT — DEMONSTRATED and DOCUMENTED; coverage depends on evidence and policy |
 | Fully/Partly/Unexplained classification | CURRENT — DEMONSTRATED; operational interpretation requires validation |
@@ -538,7 +552,7 @@ diagnostics remain secondary.
 | `SN-01` | No lost differences: every reportable source difference remains in the complete trail unless safe processing stops |
 | `SN-02` | No double counting: one representation owns each explained economic effect |
 | `SN-03` | Fully Explained arithmetic reconciles internally, at display precision, and in serialized output |
-| `SN-04` | Beginning/end continuity anomalies remain visible at portfolio and security grain |
+| `SN-04` | Retired performance-file continuity cannot silently reappear as an active finding |
 | `SN-05` | Source-backed causes and findings retain validated bidirectional lineage |
 | `SN-06` | Unsafe currency or unit interpretation stops rather than being silently coerced |
 | `SN-07` | Reversed, overlapping, ambiguous, or out-of-boundary periods cannot silently own explained performance |
@@ -549,9 +563,9 @@ diagnostics remain secondary.
 | `SN-12` | Unknown fields and incomplete required policy fail closed; suppression cannot replace classification |
 
 No feature, presentation change, pilot accommodation, or roadmap item may
-silently weaken these guarantees. The maintained 500x scale check remains part
-of release-candidate work after major cross-cutting, reporting, audit, or
-safety-net changes.
+silently weaken the active guarantees or reactivate a retired contract. The
+maintained 500x scale check remains part of release-candidate work after major
+cross-cutting, reporting, audit, or safety-net changes.
 
 ## 4.3 Failure classes
 
@@ -787,7 +801,7 @@ Use narrow language such as:
 - explains supported causes under configured Modified Dietz treatment;
 - identifies unresolved differences and review evidence;
 - preserves source evidence and deterministic report artifacts;
-- includes Axys/APX-oriented starter mappings and an accepted packaged-demo
+- includes Axys/APX-oriented workspace mappings and an accepted packaged-demo
   seed; and
 - runs locally within the client-controlled environment.
 

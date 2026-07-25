@@ -319,18 +319,28 @@ class TestPackageMetadata(unittest.TestCase):
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in optional_dependencies["dev"]
         }
+        analytics_dependencies = {
+            dependency.split(">=", maxsplit=1)[0].lower()
+            for dependency in optional_dependencies["analytics"]
+        }
 
         self.assertEqual(pyproject["project"]["version"], "0.1.5")
         self.assertEqual(ppar.__version__, pyproject["project"]["version"])
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
         self.assertIn("openpyxl", pyproject_dependencies)
-        self.assertIn("matplotlib", pyproject_dependencies)
-        self.assertIn("seaborn", pyproject_dependencies)
+        self.assertNotIn("matplotlib", pyproject_dependencies)
+        self.assertNotIn("seaborn", pyproject_dependencies)
+        self.assertNotIn("scipy", pyproject_dependencies)
+        self.assertEqual(
+            analytics_dependencies,
+            {"matplotlib", "seaborn"},
+        )
         self.assertIn("polars>=1.24.0", pyproject["project"]["dependencies"])
         self.assertNotIn("charts", optional_dependencies)
         self.assertNotIn("excel", optional_dependencies)
         self.assertIn("pytest", dev_dependencies)
+        self.assertNotIn("scipy-stubs", dev_dependencies)
 
     def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
         """Build metadata uses current setuptools license fields."""
@@ -501,9 +511,13 @@ class TestPackageMetadata(unittest.TestCase):
             "Portfolio performance CSV; required",
             "Required columns: Portfolio Code, From Date, Thru Date",
             "Optional columns: Base Currency",
+            "Holdings CSV; required",
+            "Holding Date, Market Value",
+            "Transactions CSV; required",
+            "Transaction Date, Transaction Code, Amount",
             "# Data Issues",
-            "# Portfolio Return Reconstruction",
-            "# Security Return Reconstruction",
+            "# Portfolio Performance Calculation",
+            "# Security Performance Calculation",
             "# Transaction Rules",
             "Default: no internal code meanings",
             "code-only ti remains unsupported",
@@ -522,6 +536,23 @@ class TestPackageMetadata(unittest.TestCase):
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
+
+        section_order = [
+            "# Audit Runtime Parameters",
+            "# Audit Snapshots",
+            "# Audit Source CSV Files",
+            "# Data Issues",
+            "# Comparison Tolerances",
+            "# Transaction Rules",
+            "# Portfolio Performance Calculation",
+            "# Security Performance Calculation",
+            "# Transaction Impact Methods",
+            "# Appendix — Additional Supported Parameters",
+        ]
+        self.assertEqual(
+            [yaml_text.index(section) for section in section_order],
+            sorted(yaml_text.index(section) for section in section_order),
+        )
 
         self.assertNotIn(
             "Command-line override: ppar audit",
@@ -818,19 +849,14 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "ppar setup ./my_ppar_data",
-            "ppar analytics ./my_ppar_data/analytics",
-            "ppar audit ./my_ppar_data/audit",
+            "# PPAR Audit Workspace",
+            "ppar setup ./my_ppar_audit",
+            "ppar audit ./my_ppar_audit",
             "Output goes here:",
-            "audit/output/portfolio/portfolio_audit.xlsx",
-            "audit/output/security/security_audit.xlsx",
-            "analytics/output/*.html",
-            "analytics/output/*.png",
-            "my_ppar_data/",
-            "analytics/",
-            "audit/",
+            "output/portfolio/portfolio_audit.xlsx",
+            "output/security/security_audit.xlsx",
+            "my_ppar_audit/",
             "README.md",
-            "run_analytics.py",
             "run_audit.py",
             "Customizing",
             "--overwrite",
@@ -840,6 +866,8 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertNotIn("SETUP.md", readme)
         self.assertNotIn("ppar setup --guide", readme)
+        self.assertNotIn("ppar analytics", readme)
+        self.assertNotIn("Performance Analytics", readme)
         self.assertTrue(Path("ppar/setup_templates/axys_apx_analytics/run_analytics.py").exists())
         self.assertTrue(
             Path(
@@ -896,40 +924,43 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertNotIn("ppar.demos", text)
                 self.assertNotIn("analytics_demo_outputs", text)
 
-    def test_repository_readme_points_axys_users_to_setup(self) -> None:
-        """The top-level README keeps user-facing workflow terms consistent."""
+    def test_repository_readme_is_audit_focused(self) -> None:
+        """The top-level README presents one Audit product and workflow."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
+        analytics_readme = Path("docs/analytics/README.md").read_text(
+            encoding=util.ENCODING
+        )
 
-        self.assertIn(
-            "PPAR is a Python package that creates Audit and Performance\n"
-            "Analytics reports from local portfolio accounting data.",
-            readme,
-        )
-        self.assertLess(
-            readme.index("## Audit"),
-            readme.index("## Performance Analytics"),
-        )
+        self.assertIn("# PPAR Audit", readme)
+        self.assertIn("Explain why reported portfolio performance changed.", readme)
+        self.assertIn("## What PPAR Audit Answers", readme)
         self.assertIn("**Performance Comparison:**", readme)
         self.assertIn("**Data Issues:**", readme)
-        self.assertIn("**Performance Attribution:**", readme)
-        self.assertIn("**Ex-Post Risk:**", readme)
         self.assertIn("docs/images/readme/PerformanceAuditPortfolio.jpg", readme)
-        self.assertIn("alt=\"Portfolio Audit report\"", readme)
+        self.assertIn("alt=\"PPAR Audit portfolio report\"", readme)
         self.assertNotIn("PerformanceComparisonPortfolio.jpg", readme)
         self.assertNotIn("PerformanceComparisonSecurity.jpg", readme)
         self.assertNotIn("DataIssues.jpg", readme)
         self.assertIn("## Setup", readme)
         self.assertNotIn("## Quick Setup", readme)
-        self.assertIn("ppar setup ./my_ppar_data", readme)
+        self.assertIn("ppar setup ./my_ppar_audit", readme)
+        self.assertIn("ppar audit ./my_ppar_audit", readme)
         self.assertNotIn("ppar setup --guide", readme)
-        self.assertIn("ppar analytics ./my_ppar_data/analytics", readme)
-        self.assertIn(
-            "ppar audit ./my_ppar_data/audit",
-            readme,
-        )
+        self.assertNotIn("ppar analytics ./", readme)
         self.assertIn("ppar.yaml", readme)
         self.assertIn("Customizing", readme)
         self.assertNotIn("## For Maintainers", readme)
+        self.assertIn("## Additional Repository Capability", readme)
+        self.assertIn("docs/analytics/README.md", readme)
+        self.assertIn("# PPAR Analytics", analytics_readme)
+        self.assertIn("**Performance Attribution:**", analytics_readme)
+        self.assertIn("**Ex-Post Risk:**", analytics_readme)
+        self.assertIn(
+            "ppar setup ./my_ppar_analytics --analytics",
+            analytics_readme,
+        )
+        self.assertIn("ppar analytics ./my_ppar_analytics", analytics_readme)
+        self.assertIn('pip install "ppar[analytics]"', analytics_readme)
 
     def test_generic_analytics_is_documented_as_maintainer_infrastructure(self) -> None:
         """Generic analytics remains useful without becoming the setup path."""
@@ -975,9 +1006,11 @@ class TestPackageMetadata(unittest.TestCase):
         for expected_text in [
             "# PPAR Architecture",
             "The public installed command is:",
-            "ppar setup <site_directory>",
-            "ppar analytics <site_directory>/analytics",
-            "ppar audit <site_directory>/audit",
+            "PPAR Audit is the current market-facing product",
+            "ppar setup ./my_ppar_audit",
+            "ppar audit ./my_ppar_audit",
+            "ppar setup ./my_ppar_analytics --analytics",
+            "ppar analytics ./my_ppar_analytics",
             "`ppar.analytics`",
             "`ppar.axys_apx`",
             "`ppar.audit`",
@@ -1012,6 +1045,7 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/audit/roadmap.md"),
             Path("docs/audit/mvp_plan.md"),
             Path("docs/audit/product_specifications_index.md"),
+            Path("docs/analytics/README.md"),
             Path("docs/analytics/analytics_demo_refresh.md"),
             Path("docs/analytics/roadmap.md"),
             Path("docs/maintainer_guide.md"),
@@ -1039,6 +1073,7 @@ class TestPackageMetadata(unittest.TestCase):
         for documented_path in (
             "audit/README.md",
             "audit/roadmap.md",
+            "analytics/README.md",
             "analytics/roadmap.md",
             "archive/roadmap_through_v0.1.5.md",
             "maintainer_guide.md",
@@ -1071,15 +1106,23 @@ class TestPackageMetadata(unittest.TestCase):
                 ):
                     self.assertTrue((markdown_path.parent / local_path).exists())
 
-    def test_repository_readme_image_references_exist(self) -> None:
-        """The marketing README only embeds checked-in README image artifacts."""
-        readme = Path("README.md").read_text(encoding=util.ENCODING)
-        image_paths = re.findall(r'src="(docs/images/readme/[^"]+)"', readme)
+    def test_product_readme_image_references_exist(self) -> None:
+        """Audit and Analytics product pages embed checked-in image artifacts."""
+        readme_paths = (
+            Path("README.md"),
+            Path("docs/analytics/README.md"),
+        )
 
-        self.assertGreater(len(image_paths), 0)
-        for image_path in image_paths:
-            with self.subTest(image_path=image_path):
-                self.assertTrue(Path(image_path).exists())
+        for readme_path in readme_paths:
+            readme = readme_path.read_text(encoding=util.ENCODING)
+            image_paths = re.findall(r'src="([^"]*images/readme/[^"]+)"', readme)
+            self.assertGreater(len(image_paths), 0)
+            for image_path in image_paths:
+                with self.subTest(
+                    readme=readme_path.as_posix(),
+                    image_path=image_path,
+                ):
+                    self.assertTrue((readme_path.parent / image_path).exists())
 
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
@@ -1858,16 +1901,16 @@ class TestPackageMetadata(unittest.TestCase):
             "`--build` regenerates `PPAR.pdf`",
             "`--refresh-images` regenerates the README PNG/JPG assets",
             "Yahoo-dependent generic analytics",
-            "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
-            "/tmp/ppar_smoke_site/analytics/run_analytics.py",
-            "/tmp/ppar_smoke_site/audit/run_audit.py",
-            "/tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py",
+            "ppar.cli setup /tmp/my_ppar_audit",
+            "/tmp/my_ppar_audit/run_audit.py",
+            "/tmp/my_ppar_analytics/run_analytics.py",
+            "/tmp/my_ppar_analytics/generic_analytics/run_generic_analytics.py",
             "ppar.audit.cli.validate_bundle",
             "ppar.audit.cli.validate_config",
             "ppar.audit.cli.validate_demo_matrix",
             "scripts/check_audit_demo_health.py",
-            "/tmp/ppar_smoke_site/audit/output/portfolio",
-            "/tmp/ppar_smoke_site/audit/output/security",
+            "/tmp/my_ppar_audit/output/portfolio",
+            "/tmp/my_ppar_audit/output/security",
             "portfolio_audit.xlsx",
             "report_bundle_contract()",
             "prefer the package-root workflow helpers",
@@ -1936,7 +1979,8 @@ class TestPackageMetadata(unittest.TestCase):
             '"dist/ppar-${PPAR_RELEASE_VERSION}-py3-none-any.whl"',
             '"dist/ppar-${PPAR_RELEASE_VERSION}.tar.gz"',
             "only the `ppar` console script is exposed",
-            "ppar setup /tmp/ppar_release_site",
+            "ppar setup /tmp/my_ppar_audit",
+            "ppar setup /tmp/my_ppar_analytics --analytics",
             "Do not move, create, or push a release tag until the version and release commit",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -2582,7 +2626,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("PPAR normalizes those files through YAML", root_readme)
         self.assertIn("## Minimum Source-Data Contract", contract_doc)
         self.assertIn("stops before producing a report", contract_doc)
-        self.assertIn("return reconstruction is configured", contract_doc)
+        self.assertIn("performance calculation is configured", contract_doc)
         self.assertIn("required normalized", contract_doc)
         self.assertIn("required normalized column cannot be resolved", contract_doc)
         self.assertIn("required source column is ambiguous", contract_doc)
@@ -2615,7 +2659,7 @@ class TestPackageMetadata(unittest.TestCase):
             "holdings, portfolio_performance, security_performance, transactions",
         )
         self.assertIn(
-            "holdings: portfolio_id, security_id, holding_date",
+            "holdings: portfolio_id, security_id, holding_date, market_value",
             summary["required_columns"],
         )
         self.assertIn(
@@ -2624,7 +2668,8 @@ class TestPackageMetadata(unittest.TestCase):
             summary["required_columns"],
         )
         self.assertIn(
-            "transactions: portfolio_id, security_id, transaction_date",
+            "transactions: portfolio_id, security_id, transaction_date, "
+            "transaction_code, amount",
             summary["required_columns"],
         )
 
@@ -2854,6 +2899,16 @@ class TestPackageMetadata(unittest.TestCase):
         command = (
             "import sys; import ppar; "
             "raise SystemExit(1 if 'ppar.analytics.format_chart' in sys.modules else 0)"
+        )
+
+        subprocess.run([sys.executable, "-c", command], check=True)
+
+    def test_audit_import_does_not_load_optional_analytics_dependencies(self) -> None:
+        """Audit imports remain independent of optional chart and SciPy packages."""
+        command = (
+            "import sys; import ppar.audit; "
+            "optional = {'matplotlib', 'seaborn', 'scipy'}; "
+            "raise SystemExit(1 if optional.intersection(sys.modules) else 0)"
         )
 
         subprocess.run([sys.executable, "-c", command], check=True)

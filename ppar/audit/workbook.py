@@ -533,6 +533,7 @@ def _add_workbook_sheet(
     worksheet = workbook.create_sheet(sheet.sheet_name)
     if sheet.artifact_name == _pc_review_model.EXECUTIVE_SUMMARY_ARTIFACT:
         _add_executive_summary_tables(worksheet, sheet.table, styles)
+        _configure_worksheet_print_layout(worksheet, fit_to_one_page=True)
         return
     table = sheet.table
     columns = _workbook_sheet_columns(sheet)
@@ -556,6 +557,7 @@ def _add_workbook_sheet(
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
     _format_workbook_columns(worksheet, columns, headers, max_widths)
+    _configure_worksheet_print_layout(worksheet, fit_to_one_page=False)
 
 
 def _add_executive_summary_tables(
@@ -587,6 +589,33 @@ def _add_executive_summary_tables(
         styles=styles,
     )
     worksheet.freeze_panes = "A3"
+
+
+def _configure_worksheet_print_layout(
+    worksheet: Any,
+    *,
+    fit_to_one_page: bool,
+) -> None:
+    """Apply conservative print metadata without changing visible report content."""
+    max_column_letter = _column_letter(max(worksheet.max_column, 1))
+    worksheet.print_area = (
+        f"A1:{max_column_letter}{max(worksheet.max_row, 1)}"
+    )
+    worksheet.page_setup.orientation = "landscape"
+    worksheet.page_setup.paperSize = worksheet.PAPERSIZE_LETTER
+    worksheet.page_setup.fitToWidth = 1
+    worksheet.page_setup.fitToHeight = 1 if fit_to_one_page else 0
+    worksheet.sheet_properties.pageSetUpPr.fitToPage = True
+    worksheet.page_margins.left = 0.25
+    worksheet.page_margins.right = 0.25
+    worksheet.page_margins.top = 0.4
+    worksheet.page_margins.bottom = 0.4
+    worksheet.page_margins.header = 0.2
+    worksheet.page_margins.footer = 0.2
+    if fit_to_one_page:
+        worksheet.print_options.horizontalCentered = True
+    else:
+        worksheet.print_title_rows = "1:1"
 
 
 def _write_executive_section(

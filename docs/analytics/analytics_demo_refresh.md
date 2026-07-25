@@ -4,8 +4,9 @@ This maintainer guide documents the refresh workflow for the generic Mega-Cap
 analytics dataset, README story, and README images. Use it when replacing the
 packaged Mega-Cap inputs with a newer or better historical dataset.
 
-The public first-user onboarding path is the Axys/APX setup workspace created by
-`ppar setup`. The generic Mega-Cap dataset is retained as maintainer/demo
+The Analytics onboarding path is the dedicated Axys/APX workspace created by
+`ppar setup ./my_ppar_analytics --analytics`. The generic Mega-Cap dataset is
+retained as maintainer/demo
 infrastructure because it feeds README marketing images, analytics regression
 tests, and Axys/APX demo-data derivation.
 
@@ -115,6 +116,7 @@ generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic 
 After promotion, update:
 
 - `ppar/setup_templates/README.md`
+- `docs/analytics/README.md`
 - `tests/test_mega_cap_demo_data_contract.py`
 - any expected coverage dates, cash notes, and story metrics.
 
@@ -132,7 +134,10 @@ Then run the optional generic analytics setup script from a temporary setup
 workspace:
 
 ```bash
-./.venv/bin/python -m ppar.cli setup /tmp/ppar_generic_smoke --include-generic-analytics
+./.venv/bin/python -m ppar.cli setup \
+  /tmp/ppar_generic_smoke \
+  --analytics \
+  --include-generic-analytics
 ./.venv/bin/python /tmp/ppar_generic_smoke/generic_analytics/run_generic_analytics.py
 ```
 

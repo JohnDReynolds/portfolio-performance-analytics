@@ -106,6 +106,14 @@ def main(argv: list[str] | None = None) -> int:
             portfolio_value=args.portfolio_value,
             currency_symbol=args.currency_symbol,
         )
+    except ModuleNotFoundError as error:
+        print(
+            "Analytics failed: "
+            f"{error} Install optional dependencies with "
+            "'pip install \"ppar[analytics]\"'.",
+            file=sys.stderr,
+        )
+        return 1
     except (PpaError, ValueError) as error:
         print(f"Analytics failed: {error}", file=sys.stderr)
         return 1
@@ -230,7 +238,7 @@ def _argument_parser(
         epilog=(
             (
                 "Examples:\n"
-                "  ppar analytics ./my_ppar_data/analytics\n"
+                "  ppar analytics ./my_ppar_analytics\n"
                 "  ppar analytics"
             )
             if include_site_directory
@@ -392,9 +400,9 @@ def _load_config_values(config_path: Path) -> dict[str, Any]:
     """Load an analytics YAML file and return its root mapping."""
     if not config_path.exists():
         raise PpaError(
-            f"{config_path} does not exist. Run from the analytics folder "
-            "or pass the folder. For first-time setup, run: "
-            "ppar setup ./my_ppar_data",
+            f"{config_path} does not exist. Run from the Analytics workspace "
+            "or pass its folder. For first-time setup, run: "
+            "ppar setup ./my_ppar_analytics --analytics",
             504,
         )
     with open(config_path, "r", encoding=util.ENCODING) as file:

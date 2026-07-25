@@ -28,6 +28,7 @@ class InvariantCoverage(StrEnum):
     ENFORCED = "enforced"
     PARTIAL = "partial"
     NOT_ENFORCED = "not_enforced"
+    RETIRED = "retired"
 
 
 class DifferenceDisposition(StrEnum):
@@ -48,6 +49,7 @@ class SafetyInvariant:
         failure_class: Primary way a violation must surface.
         coverage: Current enforcement coverage.
         existing_controls: Current code or test controls that enforce it.
+        control_tests: Pytest node IDs that exercise the stated controls.
         known_gaps: Specific behavior still required for full enforcement.
         implementation_phase: Implementation phase in the safety-net program.
     """
@@ -58,6 +60,7 @@ class SafetyInvariant:
     failure_class: InvariantFailureClass
     coverage: InvariantCoverage
     existing_controls: tuple[str, ...]
+    control_tests: tuple[str, ...]
     known_gaps: tuple[str, ...]
     implementation_phase: int
 
@@ -94,6 +97,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Every cause row is preserved while its disposition is assigned.",
             "Bundle validation rejects missing or invalid disposition metadata.",
         ),
+        control_tests=(
+            "tests/test_audit_conservation.py::TestAuditConservation::"
+            "test_finding_audit_trail_is_lossless_and_includes_suppressed_rows",
+        ),
         known_gaps=(),
         implementation_phase=2,
     ),
@@ -113,6 +120,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Support-only representations are prohibited from owning an explanation.",
             "Cash holdings count value once while retaining quantity as evidence.",
         ),
+        control_tests=(
+            "tests/test_audit_conservation.py::TestAuditConservation::"
+            "test_no_double_counting_rejects_two_owners_for_one_effect",
+        ),
         known_gaps=(),
         implementation_phase=2,
     ),
@@ -131,22 +142,30 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Serialized portfolio and security workbook cells reconcile.",
             "Modified Dietz formula components must remain visible in causes.",
         ),
+        control_tests=(
+            "tests/test_audit_workbook_contract.py::TestAuditWorkbookContract::"
+            "test_portfolio_explanation_invariant_rejects_arithmetic_mismatch",
+        ),
         known_gaps=(),
         implementation_phase=2,
     ),
     SafetyInvariant(
         identifier="SN-04",
-        name="Beginning and ending continuity",
+        name="Retired performance-file continuity",
         guarantee=(
-            "A prior ending value and the next beginning value either reconcile or "
-            "produce a visible source-data review finding."
+            "The former performance-file beginning/end market-value continuity "
+            "contract is retired and cannot silently reappear as an active finding."
         ),
         failure_class=InvariantFailureClass.VISIBLE_REVIEW_FINDING,
-        coverage=InvariantCoverage.ENFORCED,
+        coverage=InvariantCoverage.RETIRED,
         existing_controls=(
-            "Portfolio and security prior-end/next-begin values are checked per snapshot.",
-            "Continuity mismatches remain mandatory Data Issues.",
-            "The continuity check cannot be disabled with optional audit checks.",
+            "Optional performance-file market values are not loaded as Audit inputs.",
+            "Retired continuity issue types are rejected by the strict Data Issues schema.",
+            "Holdings and transactions remain the authoritative valuation and flow evidence.",
+        ),
+        control_tests=(
+            "tests/test_audit_financial_integrity.py::TestAuditFinancialIntegrity::"
+            "test_retired_performance_values_are_ignored",
         ),
         known_gaps=(),
         implementation_phase=3,
@@ -165,6 +184,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Source-backed causes retain source-finding fingerprints.",
             "Derived formula and no-cause disposition rows have explicit lineage types.",
             "Bundle validation checks persisted findings and cause-lineage artifacts.",
+        ),
+        control_tests=(
+            "tests/test_audit_lineage.py::TestAuditLineage::"
+            "test_generated_findings_and_causes_have_bidirectional_lineage",
         ),
         known_gaps=(),
         implementation_phase=4,
@@ -186,6 +209,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Foreign countable values require explicit base-currency counterparts.",
             "Same-currency local/base values and portfolio FX quote units must agree.",
         ),
+        control_tests=(
+            "tests/test_audit_financial_integrity.py::TestAuditFinancialIntegrity::"
+            "test_foreign_countable_value_requires_explicit_base_value",
+        ),
         known_gaps=(),
         implementation_phase=3,
     ),
@@ -206,6 +233,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Multiply assigned evidence fails and unassigned evidence cannot own impact.",
             "Prior-day holdings and FX values are the only counted beginning boundary.",
         ),
+        control_tests=(
+            "tests/test_audit_financial_integrity.py::TestAuditFinancialIntegrity::"
+            "test_overlapping_performance_periods_fail_source_contract",
+        ),
         known_gaps=(),
         implementation_phase=3,
     ),
@@ -223,6 +254,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Source-input dates must remain in each scenario's declared source period.",
             "Actual report status and disposition must match the scenario contract.",
             "Scenario-specific tests protect important transaction examples.",
+        ),
+        control_tests=(
+            "tests/test_audit_demo_data.py::TestAuditDemoData::"
+            "test_protected_inventory_detects_removed_or_unregistered_scenarios",
         ),
         known_gaps=(),
         implementation_phase=5,
@@ -242,6 +277,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Paired accounting legs share one economic identity.",
             "Carry-forward effects are explicit and must remain visible in later causes.",
         ),
+        control_tests=(
+            "tests/test_audit_demo_data.py::TestAuditDemoData::"
+            "test_scenario_independent_change_contract_fails_closed",
+        ),
         known_gaps=(),
         implementation_phase=5,
     ),
@@ -260,6 +299,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Bundle validation compares HTML and XLSX with canonical review content.",
             "Content mutation tests cover CSV, HTML, XLSX, and manifest drift.",
         ),
+        control_tests=(
+            "tests/test_audit_report.py::TestAuditReport::"
+            "test_report_bundle_validation_catches_cross_format_content_drift",
+        ),
         known_gaps=(),
         implementation_phase=6,
     ),
@@ -273,10 +316,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
         coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Manifest v3 records ordered typed table and display fingerprints.",
+            "The manifest records ordered typed table and display fingerprints.",
             "The public contract declares the exact volatile metadata exclusions.",
             "A normalized bundle fingerprint covers all nonvolatile manifest semantics.",
             "Repeat-run tests compare normalized manifests and deterministic artifacts.",
+        ),
+        control_tests=(
+            "tests/test_audit_report.py::TestAuditReport::"
+            "test_report_bundle_generation_is_semantically_repeatable",
         ),
         known_gaps=(),
         implementation_phase=6,
@@ -295,6 +342,10 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Impact-policy requirements derive from performance-input roles.",
             "Unknown changed fields fail even when suppressed by YAML.",
             "Ambiguous transaction semantics and unsafe currency inputs fail closed.",
+        ),
+        control_tests=(
+            "tests/test_audit_lineage.py::TestAuditLineage::"
+            "test_policy_requirement_is_derived_from_field_role",
         ),
         known_gaps=(),
         implementation_phase=4,

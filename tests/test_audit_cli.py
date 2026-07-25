@@ -291,7 +291,7 @@ class TestAuditCli(unittest.TestCase):
         """Report CLI modules expose consistent command-line help."""
         module_expectations = {
             _SETUP_MODULE: (
-                "Create an Axys/APX starter workspace"
+                "Create a PPAR Audit workspace"
             ),
             _ANALYTICS_MODULE: (
                 "Write Axys/APX analytics reports"
@@ -336,23 +336,28 @@ class TestAuditCli(unittest.TestCase):
                     self.assertIn("Reconstruction Checks", result.stdout)
                     self.assertIn("Security Return Checks", result.stdout)
                 if module_name == _SETUP_MODULE:
+                    self.assertIn("--analytics", result.stdout)
                     self.assertIn("--overwrite", result.stdout)
                     self.assertNotIn("--guide", result.stdout)
                     self.assertIn("usage: ppar setup", result.stdout)
-                    self.assertIn("ppar setup ./my_ppar_data", result.stdout)
+                    self.assertIn("ppar setup ./my_ppar_audit", result.stdout)
+                    self.assertIn(
+                        "ppar setup ./my_ppar_analytics --analytics",
+                        result.stdout,
+                    )
                 if module_name == _ANALYTICS_MODULE:
                     self.assertIn("usage: ppar analytics", result.stdout)
-                    self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
+                    self.assertIn(
+                        "ppar analytics ./my_ppar_analytics",
+                        result.stdout,
+                    )
                 if module_name == _SITE_REPORT_MODULE:
                     self.assertNotIn("--report", result.stdout)
                     self.assertIn("usage: ppar audit", result.stdout)
-                    self.assertIn(
-                        "ppar audit ./my_ppar_data/audit",
-                        result.stdout,
-                    )
+                    self.assertIn("ppar audit ./my_ppar_audit", result.stdout)
 
-    def test_top_level_ppar_cli_exposes_setup_analytics_and_comparison_help(self) -> None:
-        """The product command separates setup from production report generation."""
+    def test_top_level_ppar_cli_keeps_general_help_audit_focused(self) -> None:
+        """General help presents the current Audit product and onboarding path."""
         result = subprocess.run(
             _module_command(_PPAR_MODULE, "--help"),
             check=True,
@@ -361,29 +366,16 @@ class TestAuditCli(unittest.TestCase):
         )
 
         self.assertIn("usage: ppar <command> [options]", result.stdout)
-        self.assertIn("analytics", result.stdout)
         self.assertIn("setup", result.stdout)
         self.assertIn("audit", result.stdout)
         self.assertIn("Write Audit reports", result.stdout)
-        self.assertIn("Write Performance Analytics reports", result.stdout)
-        self.assertLess(
-            result.stdout.index("audit"),
-            result.stdout.index("analytics"),
-        )
+        self.assertNotIn("analytics", result.stdout.lower())
         self.assertNotIn("performance_comparison", result.stdout)
         self.assertNotIn("perfcomp", result.stdout)
-        self.assertNotIn(
-            "{analytics,setup,audit,performance_comparison,perfcomp}",
-            result.stdout,
-        )
         self.assertNotIn("PPAR command-line tools", result.stdout)
         self.assertIn("Examples:", result.stdout)
-        self.assertIn("ppar setup ./my_ppar_data", result.stdout)
-        self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
-        self.assertIn(
-            "ppar audit ./my_ppar_data/audit",
-            result.stdout,
-        )
+        self.assertIn("ppar setup ./my_ppar_audit", result.stdout)
+        self.assertIn("ppar audit ./my_ppar_audit", result.stdout)
         self.assertNotIn("Set up and run PPAR reports.", result.stdout)
         self.assertNotIn("After setup", result.stdout)
         self.assertEqual(result.stderr, "")
@@ -397,23 +389,18 @@ class TestAuditCli(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("PPAR creates Axys/APX Audit", result.stdout)
-        self.assertIn("Performance Analytics reports.", result.stdout)
-        self.assertIn("First-time setup:", result.stdout)
-        self.assertIn("ppar setup ./my_ppar_data", result.stdout)
         self.assertIn(
-            "ppar audit ./my_ppar_data/audit",
+            "PPAR Audit explains why reported portfolio performance changed.",
             result.stdout,
         )
-        self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
-        self.assertLess(
-            result.stdout.index("ppar audit"),
-            result.stdout.index("ppar analytics"),
-        )
+        self.assertIn("First-time setup:", result.stdout)
+        self.assertIn("ppar setup ./my_ppar_audit", result.stdout)
+        self.assertIn("ppar audit ./my_ppar_audit", result.stdout)
+        self.assertNotIn("analytics", result.stdout.lower())
         self.assertNotIn("usage:", result.stdout)
         self.assertEqual(result.stderr, "")
 
-    def test_setup_requires_site_directory(self) -> None:
+    def test_setup_requires_workspace_directory(self) -> None:
         """Setup requires an explicit destination folder."""
         result = subprocess.run(
             _module_command(_SETUP_MODULE),
@@ -424,76 +411,52 @@ class TestAuditCli(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("usage: ppar setup", result.stderr)
-        self.assertIn("site_directory", result.stderr)
+        self.assertIn("workspace_directory", result.stderr)
         self.assertNotIn("--guide", result.stderr)
 
-    def test_setup_writes_canonical_yaml_configs(self) -> None:
-        """Setup creates self-describing YAML for each starter workflow."""
+    def test_setup_writes_canonical_audit_workspace(self) -> None:
+        """Default setup creates one self-describing Audit workspace."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            workspace_directory = Path(directory) / "my_ppar_audit"
 
             result = subprocess.run(
                 _module_command(
                     _SETUP_MODULE,
-                    str(site_directory),
+                    str(workspace_directory),
                 ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
 
-            analytics_path = site_directory / "analytics"
-            comparison_path = site_directory / "audit"
-            config_path = comparison_path / "ppar.yaml"
+            config_path = workspace_directory / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-            readme = (site_directory / "README.md").read_text(encoding="utf-8")
-            self.assertIn("PPAR setup complete:", result.stdout)
+            readme = (workspace_directory / "README.md").read_text(encoding="utf-8")
+            self.assertIn("PPAR Audit workspace ready:", result.stdout)
             self.assertIn("To run Audit:", result.stdout)
-            self.assertIn("To run Performance Analytics:", result.stdout)
+            self.assertNotIn("Analytics", result.stdout)
             self.assertIn("To customize with your own data:", result.stdout)
             self.assertIn(
                 f"Refer to the \"Customizing With Your Own Data\" section in "
-                f"{site_directory / 'README.md'}",
+                f"{workspace_directory / 'README.md'}",
                 result.stdout,
             )
             self.assertNotIn("(created)", result.stdout)
             self.assertNotIn("(written)", result.stdout)
-            self.assertTrue((site_directory / "README.md").exists())
-            self.assertIn("## Demos", readme)
+            self.assertTrue((workspace_directory / "README.md").exists())
+            self.assertIn("# PPAR Audit Workspace", readme)
+            self.assertIn("## First Run", readme)
             self.assertIn("## Customizing With Your Own Data", readme)
             self.assertIn("## Folder Map", readme)
-            self.assertIn(
-                "Replace `analytics/portperf.csv` with your own "
-                "portfolio-performance export.",
-                readme,
-            )
-            self.assertIn(
-                "Replace `analytics/secperf.csv` with your own "
-                "security-performance export.",
-                readme,
-            )
-            self.assertIn(
-                "Replace `analytics/secmast.csv` with your own "
-                "security reference export.",
-                readme,
-            )
             self.assertNotIn("PYTHON_TUTORIAL.md", readme)
-            self.assertNotIn("Open the files listed in the command output.", readme)
-            self.assertNotIn("Start by replacing the starter CSV files", readme)
-            self.assertIn("analytics/run_analytics.py", readme)
+            self.assertNotIn("Performance Analytics", readme)
             self.assertIn("run_audit.py", readme)
-            self.assertIn("ppar analytics -h", readme)
-            self.assertIn("python analytics/run_analytics.py -h", readme)
             self.assertIn("ppar audit -h", readme)
-            self.assertIn("python audit/run_audit.py -h", readme)
+            self.assertIn("python run_audit.py -h", readme)
             self.assertNotIn("run_portfolio_comparison.py", readme)
             self.assertNotIn("run_security_comparison.py", readme)
-            self.assertIn(
-                "If you want to customize the workflows and outputs",
-                readme,
-            )
             self.assertIn("Audit compares two snapshots", readme)
-            self.assertIn("#### Getting Data from Axys/APX", readme)
+            self.assertIn("### Getting Data from Axys/APX", readme)
             self.assertIn("Start with the comments under `files:`", readme)
             self.assertIn("use a REP performance or attribution", readme)
             self.assertIn("try IMEX first", readme)
@@ -501,52 +464,21 @@ class TestAuditCli(unittest.TestCase):
             self.assertIn("PPAR-normalized examples", readme)
             self.assertEqual(readme.count("fx_rates.csv"), 2)
             self.assertEqual(readme.count("splits.csv"), 2)
-            demo_sequence = [
-                "## Demos",
-                "### Audit",
-                f"ppar audit {site_directory / 'audit'}",
-                "### Performance Analytics",
-                f"ppar analytics {site_directory / 'analytics'}",
+            section_sequence = [
+                "## What This Folder Is For",
+                "## First Run",
                 "## Customizing With Your Own Data",
+                "## Optional Python Script",
+                "## Folder Map",
             ]
-            for before, after in zip(demo_sequence, demo_sequence[1:]):
+            for before, after in zip(section_sequence, section_sequence[1:]):
                 with self.subTest(before=before, after=after):
                     self.assertLess(readme.index(before), readme.index(after))
             self.assertIn("the original or older source-data snapshot", readme)
             self.assertIn("the newer, corrected, or restated source-data snapshot", readme)
-            self.assertLess(
-                readme.index("## Demos"),
-                readme.index("## Customizing With Your Own Data"),
-            )
-            self.assertLess(
-                readme.index("## Customizing With Your Own Data"),
-                readme.index("## Folder Map"),
-            )
-            self.assertIn("Edit `analytics/ppar.yaml` if", readme)
-            self.assertIn("Edit `audit/ppar.yaml`.", readme)
-            self.assertTrue((analytics_path / "ppar.yaml").exists())
-            self.assertTrue((analytics_path / "portperf.csv").exists())
-            self.assertTrue((analytics_path / "secperf.csv").exists())
-            self.assertTrue((analytics_path / "secmast.csv").exists())
-            self.assertTrue((analytics_path / "run_analytics.py").exists())
-            analytics_script = (analytics_path / "run_analytics.py").read_text(
-                encoding="utf-8"
-            )
-            self.assertNotIn("ppar.demos", analytics_script)
-            self.assertNotIn("TemporaryDirectory", analytics_script)
-            self.assertNotIn("MPLCONFIGDIR", analytics_script)
-            self.assertNotIn("This script is installed by", analytics_script)
-            self.assertNotIn("CONFIG_PATH", analytics_script)
-            self.assertIn("SPECIFICATIONS_PATH", analytics_script)
-            self.assertIn("AxysData", analytics_script)
-            self.assertIn("to_analytics", analytics_script)
-            self.assertIn(
-                "same command-line options as ``ppar analytics``",
-                analytics_script,
-            )
-            self.assertIn("``python run_analytics.py -h``", analytics_script)
-            self.assertTrue((comparison_path / "run_audit.py").exists())
-            audit_script = (comparison_path / "run_audit.py").read_text(
+            self.assertIn("Edit `ppar.yaml`.", readme)
+            self.assertTrue((workspace_directory / "run_audit.py").exists())
+            audit_script = (workspace_directory / "run_audit.py").read_text(
                 encoding="utf-8"
             )
             self.assertIn(
@@ -555,13 +487,15 @@ class TestAuditCli(unittest.TestCase):
             )
             self.assertIn("``python run_audit.py -h``", audit_script)
             self.assertFalse(
-                (comparison_path / "run_portfolio_comparison.py").exists()
+                (workspace_directory / "run_portfolio_comparison.py").exists()
             )
             self.assertFalse(
-                (comparison_path / "run_security_comparison.py").exists()
+                (workspace_directory / "run_security_comparison.py").exists()
             )
-            self.assertFalse((site_directory / "PYTHON_TUTORIAL.md").exists())
-            self.assertFalse((site_directory / "generic_analytics").exists())
+            self.assertFalse((workspace_directory / "PYTHON_TUTORIAL.md").exists())
+            self.assertFalse((workspace_directory / "generic_analytics").exists())
+            self.assertFalse((workspace_directory / "analytics").exists())
+            self.assertFalse((workspace_directory / "audit").exists())
             self.assertEqual(config["snapshots"]["a"]["path"], "snapshot_a")
             self.assertEqual(config["snapshots"]["b"]["path"], "snapshot_b")
             for snapshot_name in ("a", "b"):
@@ -580,93 +514,86 @@ class TestAuditCli(unittest.TestCase):
                 self.assertIn("columns", config["files"][file_name])
             self.assertNotIn("security_id", config)
             self.assertIn("security_return_reconstruction", config)
-            self.assertFalse((comparison_path / "column_mappings.yaml").exists())
+            self.assertFalse((workspace_directory / "column_mappings.yaml").exists())
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 self.assertTrue(
-                    (comparison_path / snapshot_name / "secmast.csv").exists()
+                    (workspace_directory / snapshot_name / "secmast.csv").exists()
                 )
 
-    def test_setup_creates_starter_workspace(self) -> None:
-        """Setup creates Analytics and Audit starter folders."""
+    def test_setup_can_create_analytics_workspace(self) -> None:
+        """The explicit Analytics mode creates one Analytics workspace."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            workspace_directory = Path(directory) / "my_ppar_analytics"
 
             result = subprocess.run(
                 _module_command(
                     _SETUP_MODULE,
-                    str(site_directory),
+                    str(workspace_directory),
+                    "--analytics",
                 ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
 
-            self.assertIn("PPAR setup complete:", result.stdout)
-            self.assertIn("ppar analytics", result.stdout)
-            self.assertIn("ppar audit", result.stdout)
+            self.assertIn("PPAR Analytics workspace ready:", result.stdout)
+            self.assertIn(f"ppar analytics {workspace_directory}", result.stdout)
+            self.assertNotIn("ppar audit", result.stdout)
             self.assertNotIn("secperf.csv", result.stdout)
-            self.assertTrue((site_directory / "analytics").is_dir())
-            self.assertFalse((site_directory / "PYTHON_TUTORIAL.md").exists())
-            self.assertTrue(
-                (site_directory / "analytics" / "run_analytics.py").exists()
+            readme = (workspace_directory / "README.md").read_text(encoding="utf-8")
+            self.assertIn("# PPAR Analytics Workspace", readme)
+            self.assertIn('pip install "ppar[analytics]"', readme)
+            self.assertIn(
+                f"ppar setup {workspace_directory} --analytics",
+                readme,
             )
-            self.assertTrue(
-                (site_directory / "audit" / "snapshot_a").is_dir()
-            )
-            self.assertTrue(
-                (site_directory / "audit" / "snapshot_b").is_dir()
-            )
-            self.assertTrue((site_directory / "analytics" / "ppar.yaml").exists())
-            self.assertTrue(
-                (site_directory / "audit" / "ppar.yaml").exists()
-            )
-            self.assertFalse((site_directory / "output").exists())
+            self.assertNotIn("PPAR Audit", readme)
+            self.assertTrue((workspace_directory / "run_analytics.py").exists())
+            self.assertTrue((workspace_directory / "ppar.yaml").exists())
+            self.assertTrue((workspace_directory / "portperf.csv").exists())
+            self.assertTrue((workspace_directory / "secperf.csv").exists())
+            self.assertTrue((workspace_directory / "secmast.csv").exists())
+            self.assertFalse((workspace_directory / "snapshot_a").exists())
+            self.assertFalse((workspace_directory / "audit").exists())
+            analytics_script = (
+                workspace_directory / "run_analytics.py"
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("ppar.demos", analytics_script)
+            self.assertNotIn("TemporaryDirectory", analytics_script)
+            self.assertNotIn("MPLCONFIGDIR", analytics_script)
+            self.assertIn("SPECIFICATIONS_PATH", analytics_script)
+            self.assertIn("AxysData", analytics_script)
+            self.assertIn("to_analytics", analytics_script)
 
     def test_setup_rerun_preserves_user_edits_without_overwrite(self) -> None:
         """Setup does not replace local user edits unless overwrite is requested."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            workspace_directory = Path(directory) / "my_ppar_audit"
             subprocess.run(
-                _module_command(_SETUP_MODULE, str(site_directory)),
+                _module_command(_SETUP_MODULE, str(workspace_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            readme_path = site_directory / "README.md"
-            analytics_script_path = site_directory / "analytics" / "run_analytics.py"
-            audit_script_path = (
-                site_directory / "audit" / "run_audit.py"
-            )
-            analytics_config_path = site_directory / "analytics" / "ppar.yaml"
-            audit_config_path = (
-                site_directory / "audit" / "ppar.yaml"
-            )
+            readme_path = workspace_directory / "README.md"
+            audit_script_path = workspace_directory / "run_audit.py"
+            audit_config_path = workspace_directory / "ppar.yaml"
 
             custom_readme = "custom readme\n"
-            custom_analytics_script = "# custom analytics script\n"
             custom_audit_script = "# custom audit script\n"
-            custom_analytics_config = (
-                analytics_config_path.read_text(encoding="utf-8")
-                + "\n# custom analytics note\n"
-            )
             custom_comparison_config = (
                 audit_config_path.read_text(encoding="utf-8")
                 + "\n# custom performance comparison note\n"
             )
             readme_path.write_text(custom_readme, encoding="utf-8")
-            analytics_script_path.write_text(custom_analytics_script, encoding="utf-8")
             audit_script_path.write_text(custom_audit_script, encoding="utf-8")
-            analytics_config_path.write_text(
-                custom_analytics_config,
-                encoding="utf-8",
-            )
             audit_config_path.write_text(
                 custom_comparison_config,
                 encoding="utf-8",
             )
 
             subprocess.run(
-                _module_command(_SETUP_MODULE, str(site_directory)),
+                _module_command(_SETUP_MODULE, str(workspace_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -674,39 +601,75 @@ class TestAuditCli(unittest.TestCase):
 
             self.assertEqual(readme_path.read_text(encoding="utf-8"), custom_readme)
             self.assertEqual(
-                analytics_script_path.read_text(encoding="utf-8"),
-                custom_analytics_script,
-            )
-            self.assertEqual(
                 audit_script_path.read_text(encoding="utf-8"),
                 custom_audit_script,
-            )
-            self.assertEqual(
-                analytics_config_path.read_text(encoding="utf-8"),
-                custom_analytics_config,
             )
             self.assertEqual(
                 audit_config_path.read_text(encoding="utf-8"),
                 custom_comparison_config,
             )
 
+    def test_setup_rejects_mixed_or_legacy_workspace_roots(self) -> None:
+        """Setup refuses to mix workflow files into one workspace."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            audit_workspace = root / "my_ppar_audit"
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(audit_workspace)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            mixed_result = subprocess.run(
+                _module_command(
+                    _SETUP_MODULE,
+                    str(audit_workspace),
+                    "--analytics",
+                ),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(mixed_result.returncode, 0)
+            self.assertIn(
+                "contains an existing audit configuration",
+                mixed_result.stderr,
+            )
+            legacy_root = root / "legacy"
+            (legacy_root / "audit").mkdir(parents=True)
+            (legacy_root / "audit" / "ppar.yaml").write_text(
+                "audit: {}\n",
+                encoding="utf-8",
+            )
+            legacy_result = subprocess.run(
+                _module_command(_SETUP_MODULE, str(legacy_root)),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(legacy_result.returncode, 0)
+            self.assertIn("legacy combined PPAR workspace", legacy_result.stderr)
+
     def test_setup_can_include_hidden_generic_analytics_sample(self) -> None:
         """Setup can optionally copy generic analytics infrastructure."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            workspace_directory = Path(directory) / "my_ppar_analytics"
 
             result = subprocess.run(
                 _module_command(
                     _SETUP_MODULE,
+                    "--analytics",
                     "--include-generic-analytics",
-                    str(site_directory),
+                    str(workspace_directory),
                 ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
 
-            generic_directory = site_directory / "generic_analytics"
+            generic_directory = workspace_directory / "generic_analytics"
             self.assertIn("To run Generic Analytics:", result.stdout)
             self.assertIn(
                 f"python {generic_directory / 'run_generic_analytics.py'}",
@@ -739,12 +702,24 @@ class TestAuditCli(unittest.TestCase):
     def test_setup_installed_python_scripts_run_end_to_end(self) -> None:
         """Copied setup scripts are the canonical Python smoke-test path."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            audit_directory = Path(directory) / "my_ppar_audit"
+            analytics_directory = Path(directory) / "my_ppar_analytics"
             subprocess.run(
                 _module_command(
                     _PPAR_MODULE,
                     "setup",
-                    str(site_directory),
+                    str(audit_directory),
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "setup",
+                    str(analytics_directory),
+                    "--analytics",
                     "--include-generic-analytics",
                 ),
                 check=True,
@@ -753,11 +728,11 @@ class TestAuditCli(unittest.TestCase):
             )
 
             script_paths = (
-                site_directory / "analytics" / "run_analytics.py",
-                site_directory
-                / "audit"
-                / "run_audit.py",
-                site_directory / "generic_analytics" / "run_generic_analytics.py",
+                audit_directory / "run_audit.py",
+                analytics_directory / "run_analytics.py",
+                analytics_directory
+                / "generic_analytics"
+                / "run_generic_analytics.py",
             )
             for script_path in script_paths:
                 with self.subTest(script_path=script_path.name):
@@ -772,8 +747,7 @@ class TestAuditCli(unittest.TestCase):
 
             self.assertTrue(
                 (
-                    site_directory
-                    / "audit"
+                    audit_directory
                     / "output"
                     / "portfolio"
                     / "portfolio_audit.xlsx"
@@ -781,8 +755,7 @@ class TestAuditCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    site_directory
-                    / "audit"
+                    audit_directory
                     / "output"
                     / "security"
                     / "security_audit.xlsx"
@@ -790,15 +763,14 @@ class TestAuditCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    site_directory
-                    / "analytics"
+                    analytics_directory
                     / "output"
                     / "risk_statistics.html"
                 ).exists()
             )
             self.assertTrue(
                 (
-                    site_directory
+                    analytics_directory
                     / "generic_analytics"
                     / "output"
                     / "risk_statistics.html"
@@ -819,8 +791,8 @@ class TestAuditCli(unittest.TestCase):
                     text=True,
                 )
 
-            cli_audit = cli_site / "audit"
-            script_audit = script_site / "audit"
+            cli_audit = cli_site
+            script_audit = script_site
             subprocess.run(
                 _module_command(_PPAR_MODULE, "audit", str(cli_audit)),
                 check=True,
@@ -961,14 +933,19 @@ class TestAuditCli(unittest.TestCase):
             script_site = root / "script_site"
             for site in (cli_site, script_site):
                 subprocess.run(
-                    _module_command(_PPAR_MODULE, "setup", str(site)),
+                    _module_command(
+                        _PPAR_MODULE,
+                        "setup",
+                        str(site),
+                        "--analytics",
+                    ),
                     check=True,
                     capture_output=True,
                     text=True,
                 )
 
-            cli_analytics = cli_site / "analytics"
-            script_analytics = script_site / "analytics"
+            cli_analytics = cli_site
+            script_analytics = script_site
             subprocess.run(
                 _module_command(_PPAR_MODULE, "analytics", str(cli_analytics)),
                 check=True,
@@ -1129,7 +1106,7 @@ class TestAuditCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            audit_directory = site / "audit"
+            audit_directory = site
             commands = (
                 _module_command(
                     _PPAR_MODULE,
@@ -1196,14 +1173,14 @@ class TestAuditCli(unittest.TestCase):
     def test_site_report_writes_both_reports_by_default(self) -> None:
         """The production comparison command writes both workbooks by default."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_audit"
             subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            audit_directory = site_directory / "audit"
+            audit_directory = site_directory
 
             result = subprocess.run(
                 _module_command(
@@ -1260,14 +1237,14 @@ class TestAuditCli(unittest.TestCase):
     def test_site_report_can_disable_html_output(self) -> None:
         """The production report command can write an XLSX-only audit."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_audit"
             subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            audit_directory = site_directory / "audit"
+            audit_directory = site_directory
 
             subprocess.run(
                 _module_command(
@@ -1290,14 +1267,14 @@ class TestAuditCli(unittest.TestCase):
     def test_site_report_can_write_csv_only_output(self) -> None:
         """Disabling XLSX and HTML promotes the canonical CSV review files."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_audit"
             subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            audit_directory = site_directory / "audit"
+            audit_directory = site_directory
 
             result = subprocess.run(
                 _module_command(
@@ -1409,14 +1386,14 @@ class TestAuditCli(unittest.TestCase):
     def test_audit_skips_unavailable_security_performance(self) -> None:
         """The standard run writes portfolio output and skips unavailable security."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_audit"
             setup_result = subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            audit_directory = site_directory / "audit"
+            audit_directory = site_directory
             (audit_directory / "snapshot_a" / "secperf.csv").unlink()
             (audit_directory / "snapshot_b" / "secperf.csv").unlink()
 
@@ -1427,7 +1404,7 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("PPAR setup complete:", setup_result.stdout)
+            self.assertIn("PPAR Audit workspace ready:", setup_result.stdout)
             self.assertTrue(
                 (
                     audit_directory
@@ -1457,14 +1434,14 @@ class TestAuditCli(unittest.TestCase):
     def test_site_report_writes_both_available_reports(self) -> None:
         """The production report command writes portfolio and security output."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_audit"
             subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            audit_directory = site_directory / "audit"
+            audit_directory = site_directory
 
             result = subprocess.run(
                 _module_command(_SITE_REPORT_MODULE, str(audit_directory)),
@@ -1515,14 +1492,18 @@ class TestAuditCli(unittest.TestCase):
     def test_analytics_cli_writes_site_outputs(self) -> None:
         """The production analytics command writes output from setup data."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_analytics"
             subprocess.run(
-                _module_command(_SETUP_MODULE, str(site_directory)),
+                _module_command(
+                    _SETUP_MODULE,
+                    str(site_directory),
+                    "--analytics",
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            analytics_directory = site_directory / "analytics"
+            analytics_directory = site_directory
 
             result = subprocess.run(
                 _module_command(_ANALYTICS_MODULE, str(analytics_directory)),
@@ -1553,14 +1534,18 @@ class TestAuditCli(unittest.TestCase):
     def test_analytics_native_frequency_omits_risk_statistics(self) -> None:
         """Native-period Attribution succeeds without a Risk Statistics artifact."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_analytics"
             subprocess.run(
-                _module_command(_SETUP_MODULE, str(site_directory)),
+                _module_command(
+                    _SETUP_MODULE,
+                    str(site_directory),
+                    "--analytics",
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            analytics_directory = site_directory / "analytics"
+            analytics_directory = site_directory
             config_path = analytics_directory / "ppar.yaml"
             configuration = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             del configuration["analytics"]["frequency"]
@@ -1638,16 +1623,11 @@ class TestAuditCli(unittest.TestCase):
         for phrase in _DEMO_QUIET_PHRASES:
             self.assertNotIn(phrase, output)
 
-    def test_top_level_commands_do_not_default_from_setup_root(self) -> None:
-        """Production commands require either a workflow folder or an explicit path."""
+    def test_top_level_commands_do_not_default_from_unconfigured_root(self) -> None:
+        """Production commands require a configured workspace or explicit path."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
-            subprocess.run(
-                _module_command(_PPAR_MODULE, "setup", str(site_directory)),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            site_directory = Path(directory) / "unconfigured"
+            site_directory.mkdir()
 
             analytics_result = subprocess.run(
                 _module_command(_PPAR_MODULE, "analytics"),
@@ -1666,29 +1646,42 @@ class TestAuditCli(unittest.TestCase):
             self.assertNotEqual(comparison_result.returncode, 0)
             self.assertIn("Analytics failed:", analytics_result.stderr)
             self.assertIn(
-                "Run from the analytics folder or pass the folder.",
+                "Run from the Analytics workspace or pass its folder.",
                 analytics_result.stderr,
             )
-            self.assertIn("ppar setup ./my_ppar_data", analytics_result.stderr)
+            self.assertIn(
+                "ppar setup ./my_ppar_analytics --analytics",
+                analytics_result.stderr,
+            )
             self.assertIn("Report failed:", comparison_result.stderr)
             self.assertIn(
-                "Run from the audit folder or pass the folder.",
+                "Run from the Audit workspace or pass its folder.",
                 comparison_result.stderr,
             )
-            self.assertIn("ppar setup ./my_ppar_data", comparison_result.stderr)
+            self.assertIn("ppar setup ./my_ppar_audit", comparison_result.stderr)
 
     def test_top_level_commands_default_inside_workflow_folders(self) -> None:
         """Production commands can default to cwd inside their configured folder."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            audit_directory = Path(directory) / "my_ppar_audit"
+            analytics_directory = Path(directory) / "my_ppar_analytics"
             subprocess.run(
-                _module_command(_PPAR_MODULE, "setup", str(site_directory)),
+                _module_command(_PPAR_MODULE, "setup", str(audit_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            analytics_directory = site_directory / "analytics"
-            audit_directory = site_directory / "audit"
+            subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "setup",
+                    str(analytics_directory),
+                    "--analytics",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
 
             analytics_result = subprocess.run(
                 _module_command(_PPAR_MODULE, "analytics"),
@@ -1728,15 +1721,19 @@ class TestAuditCli(unittest.TestCase):
     def test_analytics_cli_resolves_relative_site_directory_once(self) -> None:
         """Analytics source paths stay config-relative when the site path is relative."""
         with tempfile.TemporaryDirectory(prefix="ppar_relative_site_") as directory:
-            site_directory = Path(directory) / "my_ppar_data"
+            site_directory = Path(directory) / "my_ppar_analytics"
             relative_site_directory = Path(os.path.relpath(site_directory, Path.cwd()))
             subprocess.run(
-                _module_command(_SETUP_MODULE, str(relative_site_directory)),
+                _module_command(
+                    _SETUP_MODULE,
+                    str(relative_site_directory),
+                    "--analytics",
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            analytics_directory = relative_site_directory / "analytics"
+            analytics_directory = relative_site_directory
 
             result = subprocess.run(
                 _module_command(_ANALYTICS_MODULE, str(analytics_directory)),
@@ -1750,7 +1747,6 @@ class TestAuditCli(unittest.TestCase):
             self.assertTrue(
                 (
                     site_directory
-                    / "analytics"
                     / "output"
                     / "risk_statistics.html"
                 ).exists()
@@ -2012,6 +2008,15 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn(
             "security_performance: portfolio_id, security_id, from_date, "
             "thru_date, security_return",
+            result.stdout,
+        )
+        self.assertIn(
+            "holdings: portfolio_id, security_id, holding_date, market_value",
+            result.stdout,
+        )
+        self.assertIn(
+            "transactions: portfolio_id, security_id, transaction_date, "
+            "transaction_code, amount",
             result.stdout,
         )
         self.assertIn("Missing optional files: none", result.stdout)

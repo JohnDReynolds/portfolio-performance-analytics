@@ -32,7 +32,7 @@ evidence pack, and safety controls plus four additional product capabilities:
 
 The MVP is complete only when these capabilities are implemented, tested,
 demonstrated in the packaged Axys/APX scope, documented for users, and preserve
-all twelve safety invariants.
+all eleven active safety invariants plus the `SN-04` retirement guard.
 
 This is an implementation plan, not a new visionary product-design phase.
 
@@ -627,7 +627,8 @@ Before this workstream can be marked complete:
 
 MVP completion is unacceptable unless:
 
-- all twelve safety invariants remain enforced;
+- all eleven active safety invariants remain enforced and retired `SN-04`
+  cannot silently reactivate;
 - current valid YAML remains behaviorally compatible unless an intentional
   contract change is documented;
 - malformed or unknown new configuration fails closed;

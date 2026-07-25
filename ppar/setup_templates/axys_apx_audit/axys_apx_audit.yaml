@@ -1,10 +1,10 @@
 # ==============================================================================
 # PPAR Axys/APX Audit Configuration
 # ==============================================================================
-# This file has been copied to your setup directory as audit/ppar.yaml.
+# This file has been copied to your PPAR Audit workspace as ppar.yaml.
 #
 # The default command to run Audit is:
-#   ppar audit ./my_ppar_data/audit
+#   ppar audit ./my_ppar_audit
 #
 # To customize with your own data:
 # 1. Replace the CSV files in the snapshot_a directory with your own
@@ -14,7 +14,7 @@
 # 3. If your snapshot directory names differ, edit snapshots.*.path below.
 # 4. If your CSV filenames or column names differ, edit files.*.path or
 #    files.*.columns below.
-# 5. Run ppar audit ./my_ppar_data/audit again and review the outputs.
+# 5. Run ppar audit ./my_ppar_audit again and review the outputs.
 # 6. Ambiguous transaction codes must not become external flows or other
 #    financial meanings without reviewed local evidence. Leave the transaction
 #    rules and impact methods below unchanged unless that evidence supports an
@@ -93,12 +93,13 @@ files:
       security_return: "Security Return"
 
   holdings:
-    # Holdings CSV; required by the configured return reconstruction.
-    # Default when required by configured reconstruction: holdings.csv
+    # Holdings CSV; required.
+    # Default: holdings.csv
     # Required columns: Portfolio Code, Security Symbol, Security Type,
-    #   Holding Date.
-    # Optional columns: Accrued Income, Base Currency, Base Market Value,
-    #   Currency Code, Market Value, Price, Quantity.
+    #   Holding Date, Market Value; Base Market Value when Currency Code differs
+    #   from the portfolio base currency.
+    # Optional columns: Accrued Income, Base Currency, Currency Code, Price,
+    #   Quantity.
     path: holdings.csv
     columns:
       portfolio_code: "Portfolio Code"
@@ -114,14 +115,15 @@ files:
       quantity: "Quantity"
 
   transactions:
-    # Transactions CSV; required by the configured return reconstruction.
-    # Default when required by configured reconstruction: transactions.csv
+    # Transactions CSV; required.
+    # Default: transactions.csv
     # Required columns: Portfolio Code, Security Symbol, Security Type,
-    #   Transaction Date.
-    # Optional columns: Amount, Base Amount, Base Currency, Commission, Currency
-    #   Code, Price, Quantity, Settlement Date, Source/Destination Symbol,
+    #   Transaction Date, Transaction Code, Amount; Base Amount when Currency
+    #   Code differs from the portfolio base currency.
+    # Optional columns: Base Currency, Commission, Currency Code, Price,
+    #   Quantity, Settlement Date, Source/Destination Symbol,
     #   Source/Destination Type, Special Security Symbol, Special Security Type,
-    #   Transaction Code, Transaction Security Type.
+    #   Transaction Security Type.
     path: transactions.csv
     columns:
       portfolio_code: "Portfolio Code"
@@ -298,90 +300,20 @@ data_issues:
     percent_tolerance: 0.5
 
 # ==============================================================================
-# Portfolio Return Reconstruction
+# Comparison Tolerances
 # ==============================================================================
-portfolio_return_reconstruction:
-  # All settings in this section are required.
-
-  # Return formula used to reconstruct portfolio performance.
-  method: modified_dietz
-
-  # Dataset supplying beginning values.
-  beginning_value_source: holdings
-
-  # Dataset supplying ending values.
-  ending_value_source: holdings
-
-  # Dataset supplying external flows and income.
-  flow_source: transactions
-
-  # Transaction date used for flow weighting.
-  flow_timing: transaction_date
-
-  # Day-count convention used for flow weighting.
-  day_count: actual_days
-
-  # Timing assigned to a flow on its transaction date.
-  inclusion_rule: beginning_of_day
-
-  # Transaction categories treated as portfolio external flows.
-  flow_categories:
-    - external_flow
-
-  # Transaction categories treated as portfolio income or expense.
-  income_categories:
-    - income
-    - fee_expense
-
-  # Whether reconstructed returns are net or gross.
-  return_basis: net
-
-  # How transaction amounts express cash-flow direction.
-  sign_convention: signed_amount
-
-
-# ==============================================================================
-# Security Return Reconstruction
-# ==============================================================================
-security_return_reconstruction:
-  # All settings in this section are required for security reconstruction.
-
-  # Return formula used to reconstruct security performance.
-  method: modified_dietz
-
-  # Dataset supplying beginning values.
-  beginning_value_source: holdings
-
-  # Dataset supplying ending values.
-  ending_value_source: holdings
-
-  # Dataset supplying security flows and income.
-  flow_source: transactions
-
-  # Transaction date used for flow weighting.
-  flow_timing: transaction_date
-
-  # Day-count convention used for flow weighting.
-  day_count: actual_days
-
-  # Timing assigned to a flow on its transaction date.
-  inclusion_rule: beginning_of_day
-
-  # Transaction categories treated as security-level flows.
-  flow_categories:
-    - buy
-    - sell
-
-  # Transaction categories treated as security income or expense.
-  income_categories:
-    - income
-    - fee_expense
-
-  # Whether reconstructed returns are net or gross.
-  return_basis: net
-
-  # How transaction amounts express cash-flow direction.
-  sign_convention: signed_amount
+tolerances:
+  # Minimum differences reported by Audit.
+  # All values are required. Return, contribution, and weight use decimals;
+  #   market value uses currency units.
+  return: 0.000001
+  contribution: 0.000001
+  weight: 0.000001
+  market_value: 0.01
+  quantity: 0.000001
+  price: 0.000001
+  split_factor: 0.00000001
+  fx_rate: 0.00000001
 
 # ==============================================================================
 # Transaction Rules
@@ -540,6 +472,92 @@ transaction_rules:
       performance_flow_sign: neutral
 
 # ==============================================================================
+# Portfolio Performance Calculation
+# ==============================================================================
+portfolio_return_reconstruction:
+  # All settings in this section are required.
+
+  # Formula used to calculate portfolio performance from source data.
+  method: modified_dietz
+
+  # Dataset supplying beginning values.
+  beginning_value_source: holdings
+
+  # Dataset supplying ending values.
+  ending_value_source: holdings
+
+  # Dataset supplying external flows and income.
+  flow_source: transactions
+
+  # Transaction date used for flow weighting.
+  flow_timing: transaction_date
+
+  # Day-count convention used for flow weighting.
+  day_count: actual_days
+
+  # Timing assigned to a flow on its transaction date.
+  inclusion_rule: beginning_of_day
+
+  # Transaction categories treated as portfolio external flows.
+  flow_categories:
+    - external_flow
+
+  # Transaction categories treated as portfolio income or expense.
+  income_categories:
+    - income
+    - fee_expense
+
+  # Whether calculated returns are net or gross.
+  return_basis: net
+
+  # How transaction amounts express cash-flow direction.
+  sign_convention: signed_amount
+
+
+# ==============================================================================
+# Security Performance Calculation
+# ==============================================================================
+security_return_reconstruction:
+  # All settings in this section are required for security performance.
+
+  # Formula used to calculate security performance from source data.
+  method: modified_dietz
+
+  # Dataset supplying beginning values.
+  beginning_value_source: holdings
+
+  # Dataset supplying ending values.
+  ending_value_source: holdings
+
+  # Dataset supplying security flows and income.
+  flow_source: transactions
+
+  # Transaction date used for flow weighting.
+  flow_timing: transaction_date
+
+  # Day-count convention used for flow weighting.
+  day_count: actual_days
+
+  # Timing assigned to a flow on its transaction date.
+  inclusion_rule: beginning_of_day
+
+  # Transaction categories treated as security-level flows.
+  flow_categories:
+    - buy
+    - sell
+
+  # Transaction categories treated as security income or expense.
+  income_categories:
+    - income
+    - fee_expense
+
+  # Whether calculated returns are net or gross.
+  return_basis: net
+
+  # How transaction amounts express cash-flow direction.
+  sign_convention: signed_amount
+
+# ==============================================================================
 # Transaction Impact Methods
 # ==============================================================================
 transaction_impact_methods:
@@ -648,22 +666,6 @@ evidence_only_impact_methods:
     source_fields:
       - fx_rate
 
-
-# ==============================================================================
-# Comparison Tolerances
-# ==============================================================================
-tolerances:
-  # Minimum differences reported by Audit.
-  # All values are required. Return, contribution, and weight use decimals;
-  #   market value uses currency units.
-  return: 0.000001
-  contribution: 0.000001
-  weight: 0.000001
-  market_value: 0.01
-  quantity: 0.000001
-  price: 0.000001
-  split_factor: 0.00000001
-  fx_rate: 0.00000001
 
 # ==============================================================================
 # Appendix — Additional Supported Parameters

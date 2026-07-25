@@ -50,28 +50,17 @@ class TestAuditDemoHealthScript(unittest.TestCase):
         self.assertTrue(
             any(
                 "ppar.cli setup" in text
-                and "--include-generic-analytics" in text
+                and "my_ppar_audit" in text
                 for text in command_texts
             )
         )
         self.assertTrue(
             any(
-                "analytics/run_analytics.py" in text
+                "my_ppar_audit/run_audit.py" in text
                 for text in command_texts
             )
         )
-        self.assertTrue(
-            any(
-                "audit/run_audit.py" in text
-                for text in command_texts
-            )
-        )
-        self.assertTrue(
-            any(
-                "generic_analytics/run_generic_analytics.py" in text
-                for text in command_texts
-            )
-        )
+        self.assertFalse(any("run_analytics.py" in text for text in command_texts))
         self.assertTrue(
             any(
                 "validate_bundle" in text

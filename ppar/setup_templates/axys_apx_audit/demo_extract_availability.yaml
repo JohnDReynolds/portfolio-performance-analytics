@@ -645,8 +645,8 @@ datasets:
         Currency Code: Required for transaction amounts stated in a currency other than portfolio base currency.
         Base Currency: Required for multi-currency portfolios unless the authoritative portfolio-performance row
           supplies it.
-        Base Amount: Required when AMOUNT is local-currency rather than the portfolio-base amount used by return
-          reconstruction.
+        Base Amount: Required when AMOUNT is local-currency rather than the portfolio-base amount used by the
+          performance calculation.
       optional:
       - Settlement Date
       - Quantity

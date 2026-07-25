@@ -35,7 +35,6 @@ from ppar.audit.specification import (
 import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
-_DEFAULT_SITE_DIRECTORY: Final[str] = "audit"
 _CSV_REVIEW_ARTIFACTS: Final[tuple[str, ...]] = (
     _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
@@ -128,9 +127,9 @@ def run_report(
     config_path = site_path / _CONFIG_FILE_NAME
     if not config_path.exists():
         raise PpaError(
-            f"{config_path} is missing. Run from the audit folder "
-            "or pass the folder. For first-time setup, run: "
-            "ppar setup ./my_ppar_data",
+            f"{config_path} is missing. Run from the Audit workspace "
+            "or pass its folder. For first-time setup, run: "
+            "ppar setup ./my_ppar_audit",
             802,
         )
     settings = _resolve_settings(
@@ -221,7 +220,7 @@ def _argument_parser(
         epilog=(
             (
                 "Examples:\n"
-                "  ppar audit ./my_ppar_data/audit"
+                "  ppar audit ./my_ppar_audit"
             )
             if include_site_directory
             else (

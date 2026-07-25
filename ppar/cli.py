@@ -55,38 +55,34 @@ def _is_top_level_help_request(argv: list[str]) -> bool:
 
 
 def _top_level_help() -> str:
-    """Return user-facing help for the top-level command."""
+    """Return Audit-focused help for the top-level command."""
     return (
         "usage: ppar <command> [options]\n"
         "\n"
         "commands:\n"
-        "  setup                   Create a local PPAR setup folder.\n"
+        "  setup                   Create a local PPAR Audit workspace.\n"
         "  audit                   "
-        "Write Audit reports from a configured site.\n"
-        "  analytics               "
-        "Write Performance Analytics reports from a configured site.\n"
+        "Write Audit reports from a configured workspace.\n"
         "\n"
         "options:\n"
         "  -h, --help              Show this help message and exit.\n"
         "\n"
         "Examples:\n"
-        "  ppar setup ./my_ppar_data\n"
-        "  ppar audit ./my_ppar_data/audit\n"
-        "  ppar analytics ./my_ppar_data/analytics"
+        "  ppar setup ./my_ppar_audit\n"
+        "  ppar audit ./my_ppar_audit"
     )
 
 
 def _top_level_onboarding() -> str:
-    """Return the first-run handoff for users who type ``ppar``."""
+    """Return the Audit first-run handoff for users who type ``ppar``."""
     return (
-        "PPAR creates Axys/APX Audit and Performance Analytics reports.\n"
+        "PPAR Audit explains why reported portfolio performance changed.\n"
         "\n"
         "First-time setup:\n"
-        "  ppar setup ./my_ppar_data\n"
+        "  ppar setup ./my_ppar_audit\n"
         "\n"
         "Then run:\n"
-        "  ppar audit ./my_ppar_data/audit\n"
-        "  ppar analytics ./my_ppar_data/analytics\n"
+        "  ppar audit ./my_ppar_audit\n"
         "\n"
         "For command help:\n"
         "  ppar -h"
@@ -101,9 +97,8 @@ def _argument_parser() -> argparse.ArgumentParser:
         description=None,
         epilog=(
             "Examples:\n"
-            "  ppar setup ./my_ppar_data\n"
-            "  ppar analytics ./my_ppar_data/analytics\n"
-            "  ppar audit ./my_ppar_data/audit"
+            "  ppar setup ./my_ppar_audit\n"
+            "  ppar audit ./my_ppar_audit"
         ),
         formatter_class=_TopLevelHelpFormatter,
     )
@@ -114,16 +109,12 @@ def _argument_parser() -> argparse.ArgumentParser:
         required=True,
     )
     subparsers.add_parser(
-        "analytics",
-        help="Write analytics reports from a configured site.",
-    )
-    subparsers.add_parser(
         "setup",
-        help="Create ppar.yaml and starter folders for a site.",
+        help="Create a PPAR Audit workspace.",
     )
     subparsers.add_parser(
         "audit",
-        help="Write Audit reports from a configured site.",
+        help="Write Audit reports from a configured workspace.",
     )
     return parser
 

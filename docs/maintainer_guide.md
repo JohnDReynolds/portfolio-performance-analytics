@@ -14,8 +14,10 @@ report boundaries. This guide begins where those orientation documents stop.
 Shared maintenance priorities belong here rather than in a separate portfolio
 roadmap:
 
-- keep `ppar setup`, the root README, setup-installed documentation, and both
-  product commands aligned around the same first-run path;
+- keep `ppar setup`, the Audit-focused root README, and setup-installed
+  documentation aligned around the primary Audit first-run path;
+- keep the explicit `ppar setup --analytics` path and Analytics README aligned
+  without adding Analytics to general onboarding;
 - keep package contents, public commands, generated artifact names, and release
   records synchronized with executable contracts and tests;
 - keep inexpensive financial, conservation, lineage, and explanation-
@@ -79,7 +81,7 @@ The installed command names are declared in `pyproject.toml`.
 
 | Command | Purpose |
 | --- | --- |
-| `ppar` | Top-level user command for setup, Audit, and Performance Analytics. |
+| `ppar` | Audit-focused setup and onboarding command; the maintained `analytics` subcommand remains directly callable. |
 
 The source-checkout smoke path uses setup-generated scripts:
 
@@ -92,11 +94,11 @@ The source-checkout smoke path uses setup-generated scripts:
 Packaged demos and test configuration fixtures intentionally live in different
 places:
 
-- `ppar/setup_templates/axys_apx_analytics/` is the public analytics setup seed
-  copied by `ppar setup`.
-- `ppar/setup_templates/axys_apx_audit/` is the public
-  Audit setup seed copied by `ppar setup` and is also used
+- `ppar/setup_templates/axys_apx_audit/` is the public Audit workspace source
+  copied directly by default `ppar setup` and is also used
   for packaged examples that users and reviewers can run.
+- `ppar/setup_templates/axys_apx_analytics/` is the maintained Analytics
+  workspace source copied directly by `ppar setup --analytics`.
 - `ppar/setup_templates/generic_analytics/` is maintainer/demo infrastructure. It
   feeds README marketing images, analytics regression tests, and operational
   demo-data derivation; it is not advertised as the primary onboarding path.
@@ -238,9 +240,10 @@ Use these opt-in switches only when the intent is explicit:
 
 `--build` regenerates `PPAR.pdf` from the current `README.md`, builds the wheel
 and sdist, installs the wheel into a temporary environment outside the source
-checkout, and runs `ppar setup`, the installed Analytics and Audit commands,
-and both Audit bundle validators. This prevents stale overview text and catches
-package-data or import failures that source-checkout tests cannot expose.
+checkout, creates separate Audit and Analytics workspaces, runs both installed
+workflows, and runs both Audit bundle validators. This prevents stale overview
+text and catches package-data or import failures that source-checkout tests
+cannot expose.
 `--refresh-images` regenerates the README PNG/JPG assets as well as `PPAR.pdf`.
 `--include-generic-data-generation` runs the Yahoo-dependent generic analytics
 candidate-data generator.
@@ -266,19 +269,24 @@ contract; add rows only when the documented density gate requires a split.
 
 ### Run Setup-Generated Smoke Scripts
 
-The preferred source-checkout smoke path creates a temporary setup workspace and
-runs the Python scripts copied by `ppar setup`. This proves the same Python
-examples that users see in their local setup folder:
+The preferred source-checkout smoke path creates separate temporary Audit and
+Analytics workspaces and runs the Python scripts copied by `ppar setup`. This
+proves the same Python examples that users see in their local workspace:
 
 ```bash
-./.venv/bin/python -m ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics
-./.venv/bin/python /tmp/ppar_smoke_site/analytics/run_analytics.py
-./.venv/bin/python /tmp/ppar_smoke_site/audit/run_audit.py
-./.venv/bin/python /tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py
+./.venv/bin/python -m ppar.cli setup /tmp/my_ppar_audit
+./.venv/bin/python /tmp/my_ppar_audit/run_audit.py
+./.venv/bin/python -m ppar.cli setup \
+  /tmp/my_ppar_analytics \
+  --analytics \
+  --include-generic-analytics
+./.venv/bin/python /tmp/my_ppar_analytics/run_analytics.py
+./.venv/bin/python \
+  /tmp/my_ppar_analytics/generic_analytics/run_generic_analytics.py
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
-  /tmp/ppar_smoke_site/audit/output/portfolio
+  /tmp/my_ppar_audit/output/portfolio
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
-  /tmp/ppar_smoke_site/audit/output/security
+  /tmp/my_ppar_audit/output/security
 ```
 
 Open the generated `portfolio_audit.xlsx` or `security_audit.xlsx` when present.
@@ -455,7 +463,7 @@ Use this pre-publish checklist after the maintainer decides to release:
 
 6. Inspect the wheel:
    - only the `ppar` console script is exposed;
-   - Axys/APX Analytics and Audit starter files are included;
+   - Axys/APX Analytics and Audit workspace files are included;
    - `_demo_output`, `scripts`, `tests`, `docs`, and obsolete demo paths are not
      present in the wheel.
 7. Confirm that the release-candidate `--build` check installed the wheel into
@@ -463,9 +471,10 @@ Use this pre-publish checklist after the maintainer decides to release:
 
    ```bash
    ppar --help
-   ppar setup /tmp/ppar_release_site
-   ppar analytics /tmp/ppar_release_site/analytics
-   ppar audit /tmp/ppar_release_site/audit
+   ppar setup /tmp/my_ppar_audit
+   ppar audit /tmp/my_ppar_audit
+   ppar setup /tmp/my_ppar_analytics --analytics
+   ppar analytics /tmp/my_ppar_analytics
    ```
 8. Push the branch and tag only after the checks above match the intended
    release commit.
@@ -491,7 +500,7 @@ Audit report bundles include these visible files by default:
   lineage, diagnostics, manifest metadata, and CSV counterparts of visible sheets.
 - `README.md`: generated bundle handoff notes.
 
-The starter YAML enables `audit.xlsx_output` and `audit.html_output`.
+The workspace YAML enables `audit.xlsx_output` and `audit.html_output`.
 `--no-xlsx-output` suppresses XLSX for one run, and `--no-html-output`
 suppresses HTML for one run.
 Supplying both promotes the three canonical review-table CSVs alongside

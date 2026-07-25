@@ -150,8 +150,8 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertGreater(len(sector_attribution), 0)
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
 
-    def test_readme_risk_story_matches_quarterly_demo(self) -> None:
-        """README risk values remain synchronized with its quarterly demo."""
+    def test_analytics_readme_risk_story_matches_quarterly_demo(self) -> None:
+        """Analytics README risk values remain synchronized with its quarterly demo."""
         analytics = Analytics(
             _PORTFOLIO_PATH,
             _BENCHMARK_PATH,
@@ -168,7 +168,9 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             f"Sharpe was about {portfolio_sharpe:.2f} versus {benchmark_sharpe:.2f}, and "
             f"Sortino was about {portfolio_sortino:.2f} versus {benchmark_sortino:.2f}."
         )
-        readme = " ".join(Path("README.md").read_text(encoding="utf-8").split())
+        readme = " ".join(
+            Path("docs/analytics/README.md").read_text(encoding="utf-8").split()
+        )
 
         self.assertIn(expected_story, readme)
 

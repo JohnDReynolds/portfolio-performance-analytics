@@ -11,15 +11,18 @@ PPAR Analytics creates portfolio-versus-benchmark attribution, contribution,
 cumulative-effect, and ex-post risk reporting from local portfolio accounting
 data.
 
-It is a separate product from PPAR Audit. It may share setup, normalized data,
-Axys/APX integration knowledge, packaging, and reporting infrastructure, but it
-does not inherit Audit's changed-performance investigation roadmap.
+It is a maintained additional module with a separate product identity from
+PPAR Audit. It may share setup, normalized data, Axys/APX integration knowledge,
+packaging, and reporting infrastructure, but it does not inherit Audit's
+changed-performance investigation roadmap. It can be evaluated as a separately
+positioned product when market evidence supports that step.
 
 ## Current Position
 
-- The installed-user path starts with `ppar setup` and the packaged Axys/APX
-  Analytics starter workspace.
-- Normal run choices live together in the starter's strict `analytics:` section;
+- The installed-user path starts with
+  `ppar setup ./my_ppar_analytics --analytics` and the packaged Axys/APX
+  Analytics workspace.
+- Normal run choices live together in the workspace's strict `analytics:` section;
   matching CLI options are one-run overrides rather than a second source of
   defaults.
 - Conventional Analytics source filenames are `portperf.csv`, `secperf.csv`,

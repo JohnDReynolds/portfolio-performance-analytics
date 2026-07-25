@@ -6,9 +6,13 @@ or deeper performance-comparison design notes.
 
 ## Product Surface
 
-PPAR presents two market-facing products—PPAR Audit and PPAR Analytics—that
-share one codebase, common command infrastructure, and integration support.
-Audit contains sibling Performance Comparison and Data Issues sub-features.
+PPAR Audit is the current market-facing product. It contains sibling
+Performance Comparison and Data Issues sub-features. PPAR Analytics remains a
+maintained additional module with a separate use case and product-ready
+documentation, but it is outside the current Audit validation program and
+default onboarding workflow.
+
+Both areas share one codebase, command infrastructure, and integration support.
 
 The public installed command is:
 
@@ -16,27 +20,33 @@ The public installed command is:
 ppar
 ```
 
-The main user path is:
+The primary user path is:
 
 ```text
-ppar setup <site_directory>
-  -> creates analytics/ and audit/ starter folders
-  -> installs heavily commented ppar.yaml files
-  -> copies Axys/APX starter CSV files
+ppar setup ./my_ppar_audit
+  -> creates one self-contained Audit workspace
+  -> installs a heavily commented ppar.yaml
+  -> copies Axys/APX demonstration CSV files
+
+ppar audit ./my_ppar_audit
 ```
 
-After setup, users run:
+The maintained Analytics path is explicit and separate:
 
 ```bash
-ppar analytics <site_directory>/analytics
-ppar audit <site_directory>/audit
+pip install "ppar[analytics]"
+ppar setup ./my_ppar_analytics --analytics
+ppar analytics ./my_ppar_analytics
 ```
+
+Existing combined workspaces remain runnable because each production command
+continues to accept any folder containing its corresponding `ppar.yaml`.
 
 ## Package Map
 
 | Package | Role |
 | --- | --- |
-| `ppar.analytics` | Performance analytics, attribution, contribution, risk statistics, and analytics report generation. |
+| `ppar.analytics` | Maintained additional module for attribution, contribution, risk statistics, and Analytics report generation. |
 | `ppar.axys_apx` | Axys/APX ingestion and normalization support. |
 | `ppar.audit` | Audit orchestration, shared source loading, reports, bundles, safety controls, and validation. |
 | `ppar.audit.performance_comparison` | Performance-difference attribution, Modified Dietz evidence, and explanation logic. |
@@ -92,8 +102,8 @@ context unless explicit YAML policy says otherwise.
 
 | Area | Intended audience | Notes |
 | --- | --- | --- |
-| `ppar/setup_templates/axys_apx_analytics` | Installed users and demos | Copied by `ppar setup` into `analytics/`. |
-| `ppar/setup_templates/axys_apx_audit` | Installed users and demos | Copied by `ppar setup` into `audit/`. |
+| `ppar/setup_templates/axys_apx_audit` | Audit users and demos | Copied directly into the workspace by default `ppar setup`. |
+| `ppar/setup_templates/axys_apx_analytics` | Analytics users and demos | Copied directly into the workspace by `ppar setup --analytics`. |
 | `ppar/setup_templates/generic_analytics` | Maintainers | Feeds README images, analytics regression tests, and demo-data derivation. It is not the primary onboarding path. |
 | `tests/data/axys` | Test authors | Synthetic fixtures for narrow validation and edge-case behavior. |
 | `_demo_output` | Maintainers | Generated local report/image output; not source-data and not shipped as user setup input. |
@@ -181,7 +191,7 @@ Use this rough guide before adding code or docs:
 | Goal | Start here |
 | --- | --- |
 | Add user setup behavior | `ppar/audit/cli/setup.py` and packaged `ppar.yaml` files. |
-| Add analytics behavior | `ppar/analytics/` and the Axys/APX analytics starter YAML. |
+| Add analytics behavior | `ppar/analytics/` and the Axys/APX Analytics workspace YAML. |
 | Add performance-comparison logic | `ppar/audit/performance_comparison/` plus focused tests under `tests/`. |
 | Add Data Issues behavior | `ppar/audit/data_issues/` plus focused tests under `tests/`. |
 | Add transaction coverage | Update evidence/docs first, then test-only fixtures, then packaged demo rows only when realistic. |

@@ -1,184 +1,96 @@
-# PPAR - Portfolio Performance Auditing & Analytics Reporting
+# PPAR Audit
 
-PPAR is a Python package that creates Audit and Performance
-Analytics reports from local portfolio accounting data.
+**Explain why reported portfolio performance changed.**
 
-1. You can generate standard charts, xlsx, and html output.
-2. Being built in Python, it is highly customizable.  You can automate batch
-   runs and produce custom output in CSV, Pandas, Polars, JSON, and XML formats.
-3. Everything runs locally, so your data stays inside your environment.
+PPAR Audit turns changed portfolio and security returns into a structured,
+evidence-backed investigation. It compares two portfolio-accounting snapshots,
+quantifies supported causes across holdings, transactions, prices, FX, and related
+data, flags suspicious source-data relationships, and produces reviewer-ready Excel
+and HTML reports.
+
+When a difference cannot be explained safely, PPAR Audit keeps it visible for human
+review rather than manufacturing certainty.
+
+- Everything runs locally, so client data stays inside the client's environment.
+- The Python implementation supports automated batch runs and local customization.
+- Standard output includes XLSX, HTML, CSV, JSON, and compact evidence bundles.
 
 [Download the product overview (PDF)](PPAR.pdf) | [License](LICENSE)
 
 ---
 
-## Audit
+## What PPAR Audit Answers
 
-Use Audit to answer: "Why did my reported performance change?"
+PPAR Audit is built around one operational question:
 
-- **Performance Comparison:** identifies changed portfolio and security
-  performance for each time period, quantitatively attributes the differences
-  to changes in holdings and transactions, and highlights anything that needs human
-  review.
+> **Why did my reported performance change?**
+
+- **Performance Comparison:** identifies changed portfolio and security performance
+  for each time period, quantitatively attributes defensible differences to supported
+  source-data changes, and highlights anything that still needs human review.
 - **Data Issues:** flags suspicious source-data relationships — including price
-  ranges, dividend rates, accrued-interest rates, and missing dividends — that
-  may indicate data-quality issues.
+  ranges, dividend rates, accrued-interest rates, and missing dividends — that may
+  indicate data-quality issues independently of the performance explanation.
 
 <img
   src="docs/images/readme/PerformanceAuditPortfolio.jpg"
-  alt="Portfolio Audit report"
+  alt="PPAR Audit portfolio report"
   width="100%"
 />
-
----
-
-## Performance Analytics
-
-Use Performance Analytics when you want a clean explanation of portfolio
-performance versus a benchmark. It includes:
-
-- **Performance Attribution:** Brinson-Fachler attribution, Carino-smoothed
-  multi-period effects, and contribution views.
-- **Ex-Post Risk:** ex-post risk statistics calculated from realized returns.
-
-Typical questions from the below Mega-Cap Alpha vs Mega-Cap Benchmark demo:
-
-- Did Mega-Cap Alpha outperform the benchmark? Yes. The portfolio returned
-  about 89.3% versus 82.4% for the benchmark, or roughly 684 bps of active
-  return.
-- Was outperformance mostly allocation or selection? Mostly selection. The
-  overall sector attribution view shows about 19 bps from allocation and about
-  665 bps from selection.
-- Which area drove the result? Information Technology was the largest positive
-  contributor, with roughly 351 bps of total attribution effect.
-- Did the portfolio take more risk than the benchmark? Slightly, but
-  risk-adjusted results still improved: Sharpe was about 0.70 versus 0.67, and
-  Sortino was about 1.96 versus 1.85.
-
-<img
-  src="docs/images/readme/OverallAttributionByEconomicSector.png"
-  alt="Overall attribution by economic sector"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/OverallContributionByEconomicSector.png"
-  alt="Overall contribution by economic sector"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/SubPeriodAttributionEffectsByEconomicSector.png"
-  alt="Sub-period attribution effects by economic sector"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/SubPeriodReturns.png"
-  alt="Sub-period returns"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/ActiveContributionsByEconomicSector.png"
-  alt="Active contributions by economic sector"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/TotalAttributionEffectsByEconomicSector.png"
-  alt="Total attribution effects by economic sector"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/CumulativeAttributionEffectsByEconomicSector.png"
-  alt="Cumulative attribution effect by economic sector"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/CumulativeReturns.png"
-  alt="Cumulative returns"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/CumulativeAttributionByEconomicSector.jpg"
-  alt="Cumulative attribution by economic sector table"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/OverallAttributionByEconomicSector.jpg"
-  alt="Overall attribution by economic sector table"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/OverallAttributionBySecurity.jpg"
-  alt="Overall attribution by security table"
-  width="100%"
-/>
-
-<img src="docs/images/readme/RiskStatistics.jpg" alt="Ex-post risk report" width="100%" />
 
 ---
 
 ## Setup
 
-Install the ppar package.
+Install the PPAR package:
 
 ```bash
 pip install ppar
 ```
 
-Create a local starter workspace. The workspace is seeded with demo data that
-lets you run full demos before replacing the demo data with your own data.
+Create a local PPAR Audit workspace. The workspace includes demonstration data so
+you can run the complete workflow before replacing the CSV files with approved
+exports from your own environment.
 
 ```bash
-ppar setup ./my_ppar_data
+ppar setup ./my_ppar_audit
 ```
 
-Run the demos.
+Run Audit:
 
 ```bash
-ppar audit ./my_ppar_data/audit
-ppar analytics ./my_ppar_data/analytics
+ppar audit ./my_ppar_audit
 ```
 
-To customize the workspace with your own data, follow the `Customizing` section in
-`./my_ppar_data/README.md`.
+Follow the `Customizing With Your Own Data` section in
+`./my_ppar_audit/README.md` when you are ready to configure the workspace for a
+local site.
 
 ```text
-my_ppar_data/
+my_ppar_audit/
   README.md
-  audit/
-    ppar.yaml
-    run_audit.py
-    snapshot_a/
-      portperf.csv
-      holdings.csv
-      transactions.csv
-      secmast.csv
-      secperf.csv
-      fx_rates.csv
-      splits.csv
-    snapshot_b/
-      portperf.csv
-      holdings.csv
-      transactions.csv
-      secmast.csv
-      secperf.csv
-      fx_rates.csv
-      splits.csv
-  analytics/
-    ppar.yaml
+  ppar.yaml
+  run_audit.py
+  snapshot_a/
     portperf.csv
-    secperf.csv
+    holdings.csv
+    transactions.csv
     secmast.csv
-    run_analytics.py
+    secperf.csv
+    fx_rates.csv
+    splits.csv
+  snapshot_b/
+    portperf.csv
+    holdings.csv
+    transactions.csv
+    secmast.csv
+    secperf.csv
+    fx_rates.csv
+    splits.csv
 ```
+
+Existing combined workspaces remain runnable. For example, a workspace previously
+created under `my_ppar_data/audit` can still be passed directly to `ppar audit`.
 
 ---
 
@@ -186,40 +98,35 @@ my_ppar_data/
 
 The source-data files are typically IMEX-style CSV exports:
 
-- portfolio performance
-- security performance
-- holdings
-- transactions
-- FX rates
-- split factors
+- portfolio performance;
+- security performance;
+- holdings;
+- transactions;
+- security reference data;
+- FX rates; and
+- split factors.
 
-Audit uses two source-data snapshots, usually an older/original
-snapshot and a newer/restated snapshot.
+Audit uses two source-data snapshots. Snapshot A is normally the older or original
+state and Snapshot B is normally the newer or restated state, but neither snapshot
+is presumed correct.
 
-Performance Analytics uses portfolio performance, security performance, and security
-reference exports.
+PPAR normalizes those files through YAML, so each site can configure its local field
+names, transaction-code treatment, comparison tolerances, and report assumptions.
+The setup-created `ppar.yaml` keeps normal choices in its `audit:` section. Each
+runtime setting is documented beside an exact one-run command-line override.
 
-PPAR normalizes those files through YAML, so that each site can configure its own
-local field names, transaction-code treatment, and report assumptions.
-
-The setup-created YAML keeps normal run choices together: Performance Analytics
-uses its `analytics:` section and Audit uses its `audit:` section. Each setting
-is documented beside an exact one-run command-line override. The command line
-does not create a second configuration layer; an option changes only that run.
+The configured file and accounting contracts fail closed when required source
+treatment is missing or ambiguous. Optional evidence does not silently expand the
+calculation or policy surface.
 
 ---
 
 ## Outputs
 
-Audit writes review packages:
-
-To prevent unusably large report artifacts, Audit stops with a nonzero exit code
-before writing a report when any primary review table would exceed 100,000 rows.
-The error identifies the oversized table and its largest contributors so the user
-can narrow the portfolio/date scope or correct the upstream differences.
+PPAR Audit writes review packages:
 
 ```text
-audit/output/
+output/
   portfolio/
     portfolio_audit.xlsx
     portfolio_audit.html
@@ -232,25 +139,44 @@ audit/output/
     audit_support.zip
 ```
 
-The starter's `audit:` section enables both XLSX and HTML. Use
-`--no-xlsx-output` for HTML-only output or `--no-html-output` for XLSX-only
-output for one run. Supplying both options writes a CSV-only audit and promotes
+The workspace's `audit:` settings enable both XLSX and HTML output. Use
+`--no-xlsx-output` for HTML-only output or `--no-html-output` for XLSX-only output
+for one run. Supplying both options writes a CSV-only audit and promotes
 `performance_differences.csv`, `performance_difference_causes.csv`,
 `data_issues.csv`, and `source_detail.csv` to each report directory.
 
 Use `--expand-all-supporting-files` to replace each `audit_support.zip` with an
 expanded `supporting_files/` directory.
 
-Performance Analytics writes attribution and ex-post risk reports and chart images:
+To prevent unusably large artifacts, Audit stops with a nonzero exit code before
+writing a report when any primary review table would exceed 100,000 rows. The error
+identifies the oversized table and its largest contributors so the user can narrow
+the portfolio or date scope or correct upstream differences.
 
-```text
-analytics/output/
-  security_overall_attribution.html
-  sector_overall_attribution.html
-  sector_cumulative_attribution.html
-  risk_statistics.html
-  *.png
-```
+---
 
-The Python API can also return CSV, Pandas, Polars, JSON, and XML formats for
-Performance Analytics result tables.
+## Current Validation Scope
+
+PPAR Audit has substantial automated coverage, financial invariants, report
+reconciliation checks, output-integrity checks, deterministic demonstrations, and
+maintained scale gates.
+
+It has not yet been validated against a real client's production-style Axys/APX
+exports and approved local accounting policy. The current program is seeking a
+small number of strong validation partners to test source authenticity, setup
+burden, financial interpretation, false positives, and reviewer usefulness.
+
+PPAR Audit detects, compares, explains, and helps investigate supported
+portfolio-performance and source-data differences. It does not provide a
+financial-statement audit, GIPS verification, attestation, certification, or
+assurance opinion.
+
+---
+
+## Additional Repository Capability
+
+This repository also contains
+[`ppar.analytics`](docs/analytics/README.md), a maintained module for benchmark
+attribution, contribution, and ex-post risk reporting. It is retained for future
+PPAR packaging but is not part of the current PPAR Audit validation program or
+default onboarding workflow.

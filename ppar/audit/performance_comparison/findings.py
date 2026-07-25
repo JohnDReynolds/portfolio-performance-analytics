@@ -80,13 +80,7 @@ __all__ = [
     "PC_ROW_ADD",
     "PC_ROW_DROP",
     "PC_PORT_RET",
-    "PC_PORT_MV",
-    "PC_PORT_FLOW",
     "PC_SEC_RET",
-    "PC_SEC_WGT",
-    "PC_SEC_CONTR",
-    "PC_SEC_MV",
-    "PC_SEC_FLOW",
     "PC_SEC_ADD",
     "PC_SEC_DROP",
     "PC_REF_ID",
@@ -186,13 +180,7 @@ SUPPRESSED = "suppressed"
 PC_ROW_ADD: Final[str] = "PC-ROW-ADD"
 PC_ROW_DROP: Final[str] = "PC-ROW-DROP"
 PC_PORT_RET: Final[str] = "PC-PORT-RET"
-PC_PORT_MV: Final[str] = "PC-PORT-MV"
-PC_PORT_FLOW: Final[str] = "PC-PORT-FLOW"
 PC_SEC_RET: Final[str] = "PC-SEC-RET"
-PC_SEC_WGT: Final[str] = "PC-SEC-WGT"
-PC_SEC_CONTR: Final[str] = "PC-SEC-CONTR"
-PC_SEC_MV: Final[str] = "PC-SEC-MV"
-PC_SEC_FLOW: Final[str] = "PC-SEC-FLOW"
 PC_SEC_ADD: Final[str] = "PC-SEC-ADD"
 PC_SEC_DROP: Final[str] = "PC-SEC-DROP"
 PC_REF_ID: Final[str] = "PC-REF-ID"

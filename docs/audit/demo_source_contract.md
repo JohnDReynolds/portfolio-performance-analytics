@@ -120,8 +120,8 @@ the target performance dataset:
 | --- | --- | --- |
 | `portfolio_performance` | The active execution level is `portfolio`. | `portfolio_id`, `from_date`, `thru_date`, `portfolio_return` |
 | `security_performance` | The active execution level is `security`, or `security_return_reconstruction` is configured. | `portfolio_id`, `security_id`, `from_date`, `thru_date`, `security_return` |
-| `holdings` | Portfolio or security return reconstruction is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date` |
-| `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
+| `holdings` | Portfolio or security performance calculation is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date`; performance calculation also requires `market_value` |
+| `transactions` | Portfolio or security performance calculation is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date`; performance calculation also requires `transaction_code` and `amount` |
 | `fx_rates` | Optional evidence links a rate change to a counted base-currency value. | `from_currency`, `to_currency`, `rate_date`, `fx_rate`; add `portfolio_id` and `local_exposure` for report linkage |
 | `security_reference` | A Data Issues `only` or `exclude` filter references `security_reference.*`. | `security_id`; each referenced qualifier column must also be present and nonblank for relevant source rows |
 | `splits` | Optional; when present, `large_price_variation` uses it to normalize earlier prices to the performance-period ending share basis. | `security_id`, `split_date`, `split_factor`; factor must be finite and strictly positive for the enabled rule |
@@ -169,11 +169,14 @@ ppar stops before producing a report. Optional datasets may be omitted; if a
 configured optional file exists, its required columns are still validated before
 that dataset contributes evidence.
 
-Return reconstruction tightens the contract. When portfolio or security return
-reconstruction is configured, `holdings` and `transactions` are required
-formula-source datasets, not optional evidence files. Modified Dietz also
-requires the configured reconstruction timing, day-count, inclusion,
-flow-category, income-category, return-basis, and sign-convention YAML fields.
+Performance calculation tightens the contract. When
+`portfolio_return_reconstruction` or `security_return_reconstruction` is
+configured, `holdings` and `transactions` are required calculation-source
+datasets, not optional evidence files. Every holding row requires a finite
+`market_value`; every transaction row requires `transaction_code`, and each
+external-flow or performance transaction requires a finite `amount`. Modified
+Dietz also requires the configured timing, day-count, inclusion, flow-category,
+income-category, return-basis, and sign-convention YAML fields.
 
 ## Field Role Contract
 

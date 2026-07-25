@@ -387,6 +387,55 @@ def _write_accrued_value_fixture(
     return path
 
 
+def _remove_fixture_column(
+    directory: Path,
+    *,
+    file_name: str,
+    column_name: str,
+) -> None:
+    """Remove one source column from both snapshots of a generated fixture."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        path = directory / snapshot_name / file_name
+        pl.read_csv(path).drop(column_name).write_csv(path)
+
+
+def _blank_fixture_column(
+    directory: Path,
+    *,
+    file_name: str,
+    column_name: str,
+) -> None:
+    """Blank one source column in both snapshots of a generated fixture."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        path = directory / snapshot_name / file_name
+        frame = pl.read_csv(path)
+        frame.with_columns(
+            pl.lit(None).cast(frame.schema[column_name]).alias(column_name)
+        ).write_csv(path)
+
+
+def _add_fixture_columns(
+    directory: Path,
+    *,
+    file_name: str,
+    columns: dict[str, object],
+) -> None:
+    """Add constant source columns to both snapshots of a generated fixture."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        path = directory / snapshot_name / file_name
+        frame = pl.read_csv(path)
+        frame.with_columns(
+            pl.lit(value).alias(column)
+            for column, value in columns.items()
+        ).write_csv(path)
+
+
+def _refresh_fixture_mappings(path: Path) -> None:
+    """Refresh generated exact column mappings after a fixture mutation."""
+    configuration = yaml.safe_load(path.read_text(encoding="utf-8"))
+    test_util.write_audit_test_yaml(path, configuration)
+
+
 def _comparison_path_with_reconstruction_method(
     directory: Path,
     method: str,
@@ -701,6 +750,159 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
             alpha_aapl[WEIGHTED_FLOW_DIFFERENCE],
             alpha_aapl[NET_FLOW_DIFFERENCE] * 0.5,
         )
+
+    def test_performance_calculation_requires_holdings_market_value_column(
+        self,
+    ) -> None:
+        """Configured performance calculation requires holdings.market_value."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _remove_fixture_column(
+                root,
+                file_name="holdings.csv",
+                column_name="MKT_VAL",
+            )
+
+            with self.assertRaisesRegex(PpaError, "market_value"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_rejects_blank_holdings_market_values(
+        self,
+    ) -> None:
+        """Configured performance calculation requires finite holding values."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _blank_fixture_column(
+                root,
+                file_name="holdings.csv",
+                column_name="MKT_VAL",
+            )
+
+            with self.assertRaisesRegex(PpaError, "finite value on every row"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_requires_foreign_base_market_values(
+        self,
+    ) -> None:
+        """Foreign holdings require explicit portfolio-base market values."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _add_fixture_columns(
+                root,
+                file_name="holdings.csv",
+                columns={
+                    "CURRENCY": "EUR",
+                    "BASE_CURRENCY": "USD",
+                    "BASE_MKT_VAL": None,
+                },
+            )
+            _refresh_fixture_mappings(path)
+
+            with self.assertRaisesRegex(PpaError, "base_market_value"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_requires_transaction_code_column(self) -> None:
+        """Configured performance calculation requires transaction_code."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _remove_fixture_column(
+                root,
+                file_name="transactions.csv",
+                column_name="TRAN",
+            )
+
+            with self.assertRaisesRegex(PpaError, "transaction_code"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_rejects_blank_transaction_codes(self) -> None:
+        """Configured performance calculation requires a code on every row."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _blank_fixture_column(
+                root,
+                file_name="transactions.csv",
+                column_name="TRAN",
+            )
+
+            with self.assertRaisesRegex(PpaError, "must contain a value on every row"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_requires_transaction_amount_column(self) -> None:
+        """Configured performance calculation requires transactions.amount."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _remove_fixture_column(
+                root,
+                file_name="transactions.csv",
+                column_name="AMOUNT",
+            )
+
+            with self.assertRaisesRegex(PpaError, "amount"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_rejects_blank_financial_amounts(self) -> None:
+        """External or performance transactions require finite amounts."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _blank_fixture_column(
+                root,
+                file_name="transactions.csv",
+                column_name="AMOUNT",
+            )
+
+            with self.assertRaisesRegex(PpaError, "finite value for every"):
+                portfolio_return_reconstruction_checks(path)
+
+    def test_performance_calculation_requires_foreign_base_amounts(self) -> None:
+        """Foreign transactions require explicit portfolio-base amounts."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = _write_accrued_value_fixture(
+                root,
+                include_accrued_column=False,
+            )
+            _add_fixture_columns(
+                root,
+                file_name="transactions.csv",
+                columns={
+                    "AMOUNT": 100.0,
+                    "CURRENCY": "EUR",
+                    "BASE_CURRENCY": "USD",
+                    "BASE_AMOUNT": None,
+                },
+            )
+            _refresh_fixture_mappings(path)
+
+            with self.assertRaisesRegex(PpaError, "base_amount"):
+                portfolio_return_reconstruction_checks(path)
 
     def test_malformed_reconstruction_yaml_fails_up_front(self) -> None:
         """Opted-in reconstruction YAML must include every required field."""

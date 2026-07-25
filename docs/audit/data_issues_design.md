@@ -26,10 +26,11 @@ This worksheet is deliberately separate from both primary evidence sheets:
 - `Data Issues` reports consistency checks across source-data relationships,
   whether or not those checks explain a performance difference.
 
-Beginning/ending market-value continuity is a mandatory financial-integrity
-check at portfolio and security grain. A mismatch remains visible in this
-worksheet even when optional Data Issues checks are disabled because both values
-participate directly in return calculations.
+The former portfolio- and security-performance beginning/end market-value
+continuity checks are retired. Those optional performance-file values are not
+Audit inputs; holdings and transactions are the authoritative valuation and flow
+evidence. A future position-roll-forward check requires a separately approved,
+source-backed contract.
 
 Checks should run on the union of Snapshot A and Snapshot B. A reviewer should
 be able to see an issue that appears only in Snapshot A, only in Snapshot B, or
@@ -99,8 +100,7 @@ data_issues:
 
 Interpretation:
 
-- `data_issues.enabled`: master switch for optional consistency checks;
-  mandatory beginning/ending continuity findings remain active.
+- `data_issues.enabled`: master switch for optional consistency checks.
 - The seven established optional issue types are enabled by default when the
   worksheet is enabled. Set `enabled: false` under one issue type to opt out.
 - Conservative opt-in issue types declare that policy in the registry.

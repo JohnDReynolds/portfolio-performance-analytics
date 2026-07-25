@@ -29,7 +29,7 @@ from ppar.audit.data_issues import checks as data_issues
 
 
 class TestAuditFinancialIntegrity(unittest.TestCase):
-    """Enforce SN-04, SN-06, and SN-07 at their intended boundaries."""
+    """Protect retired SN-04 behavior and enforce SN-06 and SN-07."""
 
     def test_changed_evidence_multiset_preserves_unmatched_duplicate_rows(self) -> None:
         """Changed-row detection conserves duplicate multiplicity and null values."""

@@ -118,6 +118,21 @@ def _workbook_date_text(value: object) -> str:
     return str(value)[:10]
 
 
+def _assert_print_layout(test_case: unittest.TestCase, workbook: Any) -> None:
+    """Assert every reviewer sheet has bounded, one-page-wide print metadata."""
+    for worksheet in workbook.worksheets:
+        with test_case.subTest(sheet=worksheet.title):
+            test_case.assertEqual(worksheet.page_setup.orientation, "landscape")
+            test_case.assertEqual(worksheet.page_setup.fitToWidth, 1)
+            test_case.assertTrue(worksheet.sheet_properties.pageSetUpPr.fitToPage)
+            test_case.assertTrue(worksheet.print_area)
+            if worksheet.title == _pc_review_model.EXECUTIVE_SUMMARY_SHEET:
+                test_case.assertEqual(worksheet.page_setup.fitToHeight, 1)
+            else:
+                test_case.assertEqual(worksheet.page_setup.fitToHeight, 0)
+                test_case.assertEqual(worksheet.print_title_rows, "$1:$1")
+
+
 class TestAuditWorkbookContract(unittest.TestCase):
     """Validate reviewer-facing workbook presentation invariants."""
 
@@ -417,10 +432,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
-                read_only=True,
                 data_only=True,
             )
             try:
+                _assert_print_layout(self, workbook)
                 self.assertEqual(workbook.sheetnames, _EXPECTED_PORTFOLIO_SHEETS)
                 self.assertEqual(
                     _header_values(workbook["Performance Differences"]),
@@ -1015,10 +1030,10 @@ class TestAuditWorkbookContract(unittest.TestCase):
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
-                read_only=True,
                 data_only=True,
             )
             try:
+                _assert_print_layout(self, workbook)
                 self.assertEqual(workbook.sheetnames, _EXPECTED_SECURITY_SHEETS)
                 self.assertEqual(
                     _header_values(workbook["Performance Differences"]),

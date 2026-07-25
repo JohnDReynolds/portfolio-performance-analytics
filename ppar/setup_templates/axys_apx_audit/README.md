@@ -1,44 +1,38 @@
-# Axys/APX Demo Data
+# PPAR Audit Workspace
 
-The packaged Axys/APX demo data is the starter workspace source for
-Audit. Run it first, then replace the CSVs with your own
+The packaged Axys/APX demonstration data is the source for a generated PPAR
+Audit workspace. Run it first, then replace the CSVs with your own approved
 Axys/APX exports.
 
 ## First Run
 
 ```bash
-ppar setup ./my_ppar_data
-ppar audit ./my_ppar_data/audit
-ppar analytics ./my_ppar_data/analytics
+ppar setup ./my_ppar_audit
+ppar audit ./my_ppar_audit
 ```
 
-Open the files printed by each command.
-
-Start with Audit if reported returns changed or you want to
-check source-data quality. Start with Performance Analytics if you want
-attribution and Ex-Post Risk reports.
+Open the files printed by the Audit command.
 
 Output goes here:
 
-- Audit: `audit/output/portfolio/portfolio_audit.xlsx` and
-  `audit/output/security/security_audit.xlsx`
-- Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
+- `output/portfolio/portfolio_audit.xlsx`
+- `output/security/security_audit.xlsx`
 
-When you are ready to use your own data, open `my_ppar_data/README.md` and
+When you are ready to use your own data, open `my_ppar_audit/README.md` and
 follow the `Customizing` section. Existing files are kept unless you pass
 `--overwrite`.
 
-## Starter Folder
+## Workspace Layout
 
-Setup copies starter files into:
+Setup copies the Audit workspace files into:
 
 ```text
-my_ppar_data/
+my_ppar_audit/
   README.md
-  analytics/
-    run_analytics.py
-  audit/
-    run_audit.py
+  ppar.yaml
+  run_audit.py
+  snapshot_a/
+  snapshot_b/
 ```
 
 There is one packaged Axys/APX audit YAML file. Portfolio and security reports
@@ -68,8 +62,8 @@ The FX estimate is a ppar screening formula using an explicit unchanged local
 exposure; it is not a claim about proprietary Axys/APX calculation mechanics.
 
 The packaged fixture uses dated public-market observations instead of constant
-equity marks. Analytics and Audit are generated from the same maintainer
-yFinance cache: adjusted closes support total returns, reconstructed
+equity marks. The demonstration data is generated from a maintained yFinance
+cache: adjusted closes support total returns, reconstructed
 contemporaneous closes support holdings and trades, and reported dividends and
 splits provide independent reconciliation evidence. Cash remains at 1.00. The
 CUSIP-like fixed-income examples are synthetic and use disclosed BIL, SHY, IEI,
@@ -80,9 +74,8 @@ securities; the JPM and AAPL examples use the documented real dates and rates.
 Intentional Snapshot A errors remain clearly bounded Audit/Data Issues scenarios
 rather than claims about the public-market source.
 
-Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
-Each file keeps its normal run settings in one named section: `analytics:` or
-`audit:`. Every setting in those sections includes a matching one-run CLI
+Setup creates `ppar.yaml` in the workspace root. It keeps normal run settings
+in one `audit:` section. Every setting in that section includes a matching one-run CLI
 example. Save the normal choice in YAML and use the command-line form only when
 one invocation needs to differ. Audit keeps `--allow-incomplete-yaml` CLI-only
 because it is a diagnostic safety bypass, not a reproducible normal-run choice.
@@ -94,7 +87,7 @@ an enabled conservative check without its required `only` population stop with t
 exact YAML path. Mandatory portfolio/security market-value continuity remains active
 when optional Data Issues checks are disabled.
 The user-facing `ppar audit` command explicitly runs the portfolio view and, when
-`secperf.csv` is available in both snapshots, the security view. The starter
+`secperf.csv` is available in both snapshots, the security view. The workspace
 therefore does not contain a misleading single `comparison.level`. Lower-level
 single-view tools must select their level explicitly. Required datasets use
 their standard filenames when their `files.*` keys are omitted. Genuinely
@@ -123,7 +116,7 @@ cover the enabled check end to end.
 Optional `secmast.csv` fields can qualify Data Issues populations through
 `security_reference.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
-change performance calculations. The starter includes only `Security Symbol`,
+change performance calculations. The workspace includes only `Security Symbol`,
 `Security Type`, and `Asset Class Code`, because those are the only reference
 fields used by its active rules. A direct `files.*.columns.security_id` mapping
 takes precedence over automatic inference. Otherwise, mapping both
@@ -149,30 +142,30 @@ Data Issues checks and the master-switch policy.
 Run the audit once:
 
 ```bash
-ppar audit ./my_ppar_data/audit
+ppar audit ./my_ppar_audit
 ```
 
 When the configured security-performance files are available, the command
 creates both report bundles:
 
-- `my_ppar_data/audit/output/portfolio/portfolio_audit.xlsx`
-- `my_ppar_data/audit/output/portfolio/portfolio_audit.html`
-- `my_ppar_data/audit/output/portfolio/source_detail.csv`
-- `my_ppar_data/audit/output/portfolio/audit_support.zip`
-- `my_ppar_data/audit/output/security/security_audit.xlsx`
-- `my_ppar_data/audit/output/security/security_audit.html`
-- `my_ppar_data/audit/output/security/source_detail.csv`
-- `my_ppar_data/audit/output/security/audit_support.zip`
+- `my_ppar_audit/output/portfolio/portfolio_audit.xlsx`
+- `my_ppar_audit/output/portfolio/portfolio_audit.html`
+- `my_ppar_audit/output/portfolio/source_detail.csv`
+- `my_ppar_audit/output/portfolio/audit_support.zip`
+- `my_ppar_audit/output/security/security_audit.xlsx`
+- `my_ppar_audit/output/security/security_audit.html`
+- `my_ppar_audit/output/security/source_detail.csv`
+- `my_ppar_audit/output/security/audit_support.zip`
 
 If `files.security_performance` is unavailable, the portfolio bundle is still
 created and the command reports that security output was skipped. Other
 security-generation failures remain fatal.
 
-The starter `audit:` settings generate XLSX and HTML. Override that choice for
+The workspace `audit:` settings generate XLSX and HTML. Override that choice for
 one run to generate HTML without XLSX:
 
 ```bash
-ppar audit ./my_ppar_data/audit --no-xlsx-output
+ppar audit ./my_ppar_audit --no-xlsx-output
 ```
 
 Generate XLSX without HTML with `--no-html-output`. Supplying both options
@@ -186,7 +179,7 @@ creates a CSV-only audit with `performance_differences.csv`,
 files individually when needed:
 
 ```bash
-ppar audit ./my_ppar_data/audit --expand-all-supporting-files
+ppar audit ./my_ppar_audit --expand-all-supporting-files
 ```
 
 Open `portfolio_audit.xlsx` or `security_audit.xlsx` for review, use the matching
@@ -261,7 +254,7 @@ Data used:
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, one CVNA split-processing example,
   `CASHUSD`, `912797AA1`, `91282Y2Y1`, and `91282Y5Y1`. `ALPHA` is the closest match
-  to the Mega-Cap Alpha analytics portfolio; `BALANCED` and `INCOME` reuse the
+  to the maintained Mega-Cap Alpha portfolio; `BALANCED` and `INCOME` reuse the
   same securities with larger cash/fixed-income sleeves. CVNA appears only in
   the BALANCED portfolio as a small corporate-action processing example tied to
   a May 2026 5-for-1 split.
@@ -393,9 +386,9 @@ After generating the workbook demo bundle, validate it with:
 
 ```bash
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
-  my_ppar_data/audit/output/portfolio
+  my_ppar_audit/output/portfolio
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
-  my_ppar_data/audit/output/security
+  my_ppar_audit/output/security
 ```
 
 For a full packaged-demo health pass from a source checkout, maintainers can use
@@ -483,7 +476,7 @@ Current public YAML targets are intentionally narrow:
   transaction semantics by exact case. That packaged contract can enforce
   context-field presence before ambiguous Axys/APX `li`, `lo`, `ti`, `dp`, or
   `wd` rows can be classified by YAML rules. Use
-  `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starter
+  `docs/axys_apx/contracts/templates/site_extract_contract.yaml` as a starting
   when a real site needs a local contract. In exact mode, unmatched uppercase
   codes remain unknown and do not acquire cancellation meaning. Legacy
   case-insensitive behavior can be requested explicitly with

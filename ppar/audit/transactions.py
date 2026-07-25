@@ -318,6 +318,122 @@ def transaction_impact_semantics_available(row: Mapping[str, object]) -> bool:
     )
 
 
+def _performance_calculation_configured(
+    specification: AuditSpecification,
+) -> bool:
+    """Return whether transactions supply a configured performance calculation."""
+    return (
+        specification.portfolio_return_reconstruction is not None
+        or specification.security_return_reconstruction is not None
+    )
+
+
+def _transaction_column_aliases(
+    specification: AuditSpecification,
+) -> tuple[source_loader.ColumnAliases, source_loader.ColumnAliases]:
+    """Return required and optional transaction aliases for this configuration."""
+    required_aliases = dict(aliases.TRANSACTIONS_REQUIRED_ALIASES)
+    optional_aliases = dict(aliases.TRANSACTIONS_OPTIONAL_ALIASES)
+    if _performance_calculation_configured(specification):
+        for column in pc_cols.TRANSACTIONS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS:
+            if column in required_aliases:
+                continue
+            required_aliases[column] = optional_aliases.pop(column)
+    return required_aliases, optional_aliases
+
+
+def _validate_performance_calculation_values(
+    frame: pl.DataFrame,
+    *,
+    path: util.PathLike,
+    specification_path: util.PathLike,
+) -> None:
+    """Require transaction codes and finite financial amounts where applicable."""
+    blank_codes = frame.filter(
+        pl.col(pc_cols.TRANSACTION_CODE).is_null()
+        | (
+            pl.col(pc_cols.TRANSACTION_CODE)
+            .cast(pl.String)
+            .str.strip_chars()
+            == ""
+        )
+    )
+    if not blank_codes.is_empty():
+        raise PpaError(
+            (
+                f"{specification_path}: transactions column "
+                f"{pc_cols.TRANSACTION_CODE!r} must contain a value on every "
+                f"row used for performance calculation in {str(path)!r}."
+            ),
+            502,
+        )
+
+    affects_performance = pl.col(pc_cols.PERFORMANCE_FLOW_SIGN).is_in(
+        [
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+        ]
+    )
+    amount = pl.col(pc_cols.AMOUNT).cast(pl.Float64, strict=False)
+    invalid_amounts = frame.filter(
+        affects_performance
+        & (
+            amount.is_null()
+            | amount.is_nan()
+            | amount.is_infinite()
+        )
+    )
+    if invalid_amounts.is_empty():
+        return
+    raise PpaError(
+        (
+            f"{specification_path}: transactions column {pc_cols.AMOUNT!r} "
+            "must contain a finite value for every external-flow or "
+            f"performance transaction in {str(path)!r}."
+        ),
+        502,
+    )
+
+
+def _validate_foreign_currency_base_amounts(
+    frame: pl.DataFrame,
+    *,
+    path: util.PathLike,
+    specification_path: util.PathLike,
+) -> None:
+    """Require a finite base amount for each explicitly foreign transaction."""
+    if not {
+        pc_cols.CURRENCY,
+        pc_cols.BASE_CURRENCY,
+        pc_cols.BASE_AMOUNT,
+    }.issubset(frame.columns):
+        return
+    currency = pl.col(pc_cols.CURRENCY).fill_null("").str.strip_chars()
+    base_currency = pl.col(pc_cols.BASE_CURRENCY).fill_null("").str.strip_chars()
+    base_amount = pl.col(pc_cols.BASE_AMOUNT).cast(pl.Float64, strict=False)
+    invalid_rows = frame.filter(
+        (currency != "")
+        & (base_currency != "")
+        & (currency != base_currency)
+        & (
+            base_amount.is_null()
+            | base_amount.is_nan()
+            | base_amount.is_infinite()
+        )
+    )
+    if invalid_rows.is_empty():
+        return
+    raise PpaError(
+        (
+            f"{specification_path}: transactions column "
+            f"{pc_cols.BASE_AMOUNT!r} must contain a finite value for every "
+            "foreign-currency transaction used for performance calculation "
+            f"in {str(path)!r}."
+        ),
+        502,
+    )
+
+
 class TransactionsLoader:
     """Load normalized transaction rows for comparison snapshots.
 
@@ -364,12 +480,15 @@ class TransactionsLoader:
         if cached is not None:
             return cached
 
+        required_aliases, optional_aliases = _transaction_column_aliases(
+            self._specification
+        )
         frame = source_loader.read_schema_mapped_csv(
             path,
             pc_cols.TRANSACTIONS_COLUMNS,
             pc_cols.TRANSACTIONS,
-            aliases.TRANSACTIONS_REQUIRED_ALIASES,
-            aliases.TRANSACTIONS_OPTIONAL_ALIASES,
+            required_aliases,
+            optional_aliases,
             self._specification,
             snapshot_key,
         )
@@ -421,6 +540,12 @@ class TransactionsLoader:
             path=path,
             specification_path=self._specification.path,
         )
+        if _performance_calculation_configured(self._specification):
+            _validate_performance_calculation_values(
+                frame,
+                path=path,
+                specification_path=self._specification.path,
+            )
         frame = normalize_currency_columns(
             with_authoritative_base_currency(
                 frame,
@@ -430,6 +555,12 @@ class TransactionsLoader:
                 specification_path=self._specification.path,
             )
         )
+        if _performance_calculation_configured(self._specification):
+            _validate_foreign_currency_base_amounts(
+                frame,
+                path=path,
+                specification_path=self._specification.path,
+            )
         return source_loader.cache_normalized_frame(
             self._specification.path,
             pc_cols.TRANSACTIONS,

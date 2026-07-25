@@ -25,11 +25,19 @@ _SAFETY_DOCUMENT = Path(
 class TestAuditSafetyInvariants(unittest.TestCase):
     """Protect the stable safety-net definitions and enforcement catalog."""
 
-    def test_completed_program_has_no_partial_invariants(self) -> None:
-        """All twelve safety nets remain fully enforced after Phase 6."""
+    def test_active_program_has_no_partial_invariants(self) -> None:
+        """Every active safety net remains enforced after the SN-04 retirement."""
         self.assertEqual(
             {invariant.coverage for invariant in SAFETY_INVARIANTS},
-            {InvariantCoverage.ENFORCED},
+            {InvariantCoverage.ENFORCED, InvariantCoverage.RETIRED},
+        )
+        self.assertEqual(
+            [
+                invariant.identifier
+                for invariant in SAFETY_INVARIANTS
+                if invariant.coverage == InvariantCoverage.RETIRED
+            ],
+            ["SN-04"],
         )
 
     def test_catalog_has_twelve_stable_unique_identifiers(self) -> None:
@@ -48,12 +56,34 @@ class TestAuditSafetyInvariants(unittest.TestCase):
                 self.assertIsInstance(invariant.failure_class, InvariantFailureClass)
                 self.assertIsInstance(invariant.coverage, InvariantCoverage)
                 self.assertTrue(invariant.existing_controls)
+                self.assertTrue(invariant.control_tests)
                 if invariant.coverage == InvariantCoverage.ENFORCED:
                     self.assertFalse(invariant.known_gaps)
-                else:
+                elif invariant.coverage != InvariantCoverage.RETIRED:
                     self.assertTrue(invariant.known_gaps)
+                else:
+                    self.assertFalse(invariant.known_gaps)
                 self.assertIn(invariant.implementation_phase, range(2, 7))
                 self.assertIs(safety_invariant(invariant.identifier), invariant)
+
+    def test_every_catalog_entry_names_an_existing_executable_test(self) -> None:
+        """Catalog claims remain linked to concrete executable regression tests."""
+        for invariant in SAFETY_INVARIANTS:
+            for node_id in invariant.control_tests:
+                with self.subTest(identifier=invariant.identifier, node_id=node_id):
+                    path_text, separator, selector = node_id.partition("::")
+                    self.assertEqual(separator, "::")
+                    self.assertTrue(selector)
+                    test_path = Path(path_text)
+                    self.assertTrue(test_path.is_file())
+                    test_source = test_path.read_text(encoding="utf-8")
+                    for selector_part in selector.split("::"):
+                        declaration = (
+                            f"def {selector_part}("
+                            if selector_part.startswith("test_")
+                            else f"class {selector_part}("
+                        )
+                        self.assertIn(declaration, test_source)
 
     def test_planned_phases_preserve_the_agreed_grouping(self) -> None:
         """Implementation phases retain the dependencies established in Phase 1."""

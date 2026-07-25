@@ -2,15 +2,15 @@
 
 This directory contains CSV inputs, YAML files, and Python runner scripts used
 by packaged setup templates, maintainer checks, and README image generation.
-The public onboarding path starts
-with the Axys/APX workspace created by `ppar setup ./my_ppar_data`.
+The public onboarding path starts with the PPAR Audit workspace created by
+`ppar setup ./my_ppar_audit`.
 
-## Axys/APX Starter Data
+## Axys/APX Workspace Data
 
-- `axys_apx_analytics/`: starter analytics CSVs and YAML copied into
-  `my_ppar_data/analytics`.
-- `axys_apx_audit/`: starter Audit snapshots
-  and YAML copied into `my_ppar_data/audit`.
+- `axys_apx_audit/`: Audit snapshots and YAML copied directly into
+  `my_ppar_audit`.
+- `axys_apx_analytics/`: Analytics CSVs and YAML copied directly into
+  `my_ppar_analytics` by `ppar setup ./my_ppar_analytics --analytics`.
 
 ## Generic Analytics Data
 
@@ -38,9 +38,9 @@ returns as its cash-return proxy.
 
 ## Refresh Notes
 
-The packaged CSVs are the source of truth for the optional generic analytics
-setup script, `README.md`, README images under `docs/images/readme/`, and selected
-operational demo derivation scripts. Refresh helpers live under
+The packaged CSVs are the source of truth for the optional generic Analytics
+setup script, `docs/analytics/README.md`, images under `docs/images/readme/`, and
+selected operational demo derivation scripts. Refresh helpers live under
 `scripts/generic_analytics_demo_data/`; generated files under
 `_demo_output/generic_analytics_data_generation/` are cache/provenance output,
 not packaged demo inputs.

@@ -279,8 +279,8 @@ def _run_report_bundle_checks(runner: ReleaseCandidateRunner) -> None:
 def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
     """Run scripts copied by ``ppar setup`` in a temporary site workspace."""
     with tempfile.TemporaryDirectory(prefix="ppar_release_site_") as directory:
-        site_directory = Path(directory) / "my_ppar_data"
-        audit_directory = site_directory / "audit"
+        audit_directory = Path(directory) / "my_ppar_audit"
+        analytics_directory = Path(directory) / "my_ppar_analytics"
 
         runner.run(
             [
@@ -288,18 +288,28 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
                 "-m",
                 "ppar.cli",
                 "setup",
-                site_directory,
-                "--include-generic-analytics",
+                audit_directory,
             ]
         )
-        runner.run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
-        runner.run(
-            [_VENV_PYTHON, audit_directory / "run_audit.py"]
-        )
+        runner.run([_VENV_PYTHON, audit_directory / "run_audit.py"])
         runner.run(
             [
                 _VENV_PYTHON,
-                site_directory / "generic_analytics" / "run_generic_analytics.py",
+                "-m",
+                "ppar.cli",
+                "setup",
+                analytics_directory,
+                "--analytics",
+                "--include-generic-analytics",
+            ]
+        )
+        runner.run([_VENV_PYTHON, analytics_directory / "run_analytics.py"])
+        runner.run(
+            [
+                _VENV_PYTHON,
+                analytics_directory
+                / "generic_analytics"
+                / "run_generic_analytics.py",
             ]
         )
         runner.run(

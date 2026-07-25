@@ -474,9 +474,9 @@ class PerformanceComparison:
         """Compare security performance rows for snapshots A and B.
 
         Returns:
-            Findings for added/dropped rows and material security return,
-            weight, and contribution changes. Returns an empty list when the
-            optional security performance dataset is unavailable.
+            Findings for added/dropped rows and material security-return changes.
+            Returns an empty list when the optional security-performance dataset
+            is unavailable.
         """
         snapshot_a = self._security_loader.load("a")
         snapshot_b = self._security_loader.load("b")

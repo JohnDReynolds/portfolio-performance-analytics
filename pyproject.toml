@@ -19,7 +19,7 @@ build-backend = "setuptools.build_meta"
 # - `dependencies`: runtime requirements expressed as minimum compatible versions.
 name = "ppar"
 version = "0.1.5"
-description = "Portfolio performance audit, attribution, contribution, and risk reporting."
+description = "Local-first software for explaining changes in reported portfolio performance."
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
 # README file included in the distribution and displayed on PyPI.
 readme = "README.md"
@@ -32,13 +32,11 @@ keywords = [
     "performance",
     "audit",
     "reconciliation",
+    "restatement",
     "data quality",
-    "analytics",
-    "attribution",
-    "brinson",
-    "fachler",
-    "risk",
-    "statistics",
+    "portfolio accounting",
+    "Axys",
+    "APX",
 ]
 # Minimal Python runtime required to run the package.
 requires-python = ">=3.12.1"
@@ -48,15 +46,17 @@ dependencies = [
     "numpy>=1.26.4",
     "pandas>=2.2.2",
     "polars>=1.24.0",
-    "matplotlib>=3.8.2",
     "openpyxl>=3.1",
     "pyarrow>=15.0.1",
     "pyyaml>=6.0",
-    "scipy>=1.12.0",
-    "seaborn>=0.13.2",
 ]
 
 [project.optional-dependencies]
+# Chart rendering used by the optional PPAR Analytics workflow.
+analytics = [
+    "matplotlib>=3.8.2",
+    "seaborn>=0.13.2",
+]
 # Developer tooling used for local checks and editor feedback.
 dev = [
     "build>=1.2",
@@ -66,7 +66,6 @@ dev = [
     "pytest>=8.0",
     "pylint>=4.0",
     "pyright>=1.1.409",
-    "scipy-stubs",
     "setuptools>=77.0.0",
     "types-PyYAML",
     "types-seaborn",

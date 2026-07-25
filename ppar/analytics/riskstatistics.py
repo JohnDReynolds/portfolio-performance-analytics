@@ -11,6 +11,7 @@ import datetime as dt
 from enum import Enum
 import math
 from numbers import Real
+from statistics import NormalDist
 from typing import cast, Sequence
 
 # Third-Party Imports
@@ -18,7 +19,6 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import polars as pl
-from scipy.stats import norm
 
 # Project Imports
 import ppar.analytics.schema as cols
@@ -657,7 +657,7 @@ class RiskStatistics:
         """
         # For a 95% VaR, use the 5th percentile of the normal return distribution.
         # ``z_score`` is negative, so ``mean + z * stddev`` is the lower-tail return.
-        z_score = norm.ppf(1 - confidence_level)
+        z_score = NormalDist().inv_cdf(1 - confidence_level)
 
         # Report VaR as a nonnegative potential loss. Example: if the 5th-percentile
         # return is -3%, a $100,000 portfolio has $3,000 VaR. If the lower-tail

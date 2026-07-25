@@ -11,16 +11,18 @@ explains the design decisions behind that catalog.
 
 ## Current Guarantee Summary
 
-All twelve cataloged invariants are enforced. Together they provide these
-end-to-end guarantees:
+Eleven cataloged invariants are active and enforced. `SN-04` retains its stable
+identifier as a retired contract so performance-file continuity findings cannot
+silently reappear. Together the active invariants provide these end-to-end
+guarantees:
 
 - every reportable source difference remains in the complete audit trail as a
   counted cause or visible review evidence;
 - one economic effect cannot own more than one explained amount, and portfolio
   and security explanation arithmetic must reconcile internally, at displayed
   precision, and after workbook serialization;
-- continuity, currency, unit, and period-boundary controls prevent unsafe
-  financial inputs from being counted silently;
+- currency, unit, and period-boundary controls prevent unsafe financial inputs
+  from being counted silently;
 - stable source locators and persisted cause lineage support forward and reverse
   traceability;
 - every compared field has an explicit accounting role and policy treatment;
@@ -95,9 +97,8 @@ remove the last visible representation of a reportable difference.
   drifted. Fail source-checkout maintenance/tests; do not produce a
   production-client finding.
 
-These classifications are intentionally separate. For example, a discontinuity
-between two source periods is normally a visible review finding; failure to
-display that already-detected discontinuity is an internal logic error.
+These classifications are intentionally separate. A visible review finding is
+not an internal logic error, while losing an already-detected review finding is.
 
 ## Audited Invariant Catalog
 
@@ -106,7 +107,7 @@ display that already-detected discontinuity is an internal logic error.
 | `SN-01` | No lost differences | Enforced | `internal_logic_error` | 2 |
 | `SN-02` | No double counting | Enforced | `internal_logic_error` | 2 |
 | `SN-03` | Fully Explained arithmetic | Enforced | `internal_logic_error` | 2 |
-| `SN-04` | Beginning and ending continuity | Enforced | `visible_review_finding` | 3 |
+| `SN-04` | Retired performance-file continuity | Retired | `visible_review_finding` | 3 |
 | `SN-05` | Bidirectional source lineage | Enforced | `internal_logic_error` | 4 |
 | `SN-06` | Currency and unit consistency | Enforced | `source_contract_error` | 3 |
 | `SN-07` | Period-boundary safety | Enforced | `source_contract_error` | 3 |
@@ -116,7 +117,8 @@ display that already-detected discontinuity is an internal logic error.
 | `SN-11` | Deterministic output | Enforced | `internal_logic_error` | 6 |
 | `SN-12` | Fail-closed policy coverage | Enforced | `source_contract_error` | 4 |
 
-The executable catalog records the audited foundations and gaps for every row.
+The executable catalog records the audited foundations, concrete control-test
+references, and gaps for every row.
 
 ## Existing Enforcement Map
 
@@ -146,8 +148,10 @@ The main current controls are:
 - `rebuild_audit_demo_data.audit_demo_data`: generated-data
   drift, residual, inventory, calendar, density, and scenario coverage guards.
 
-The catalog and focused tests identify which combination of controls proves each
-broader invariant.
+The catalog's `control_tests` entries identify concrete executable tests for
+each broader invariant. Catalog tests verify that every named pytest node still
+exists. `SN-04` points to its retirement guard rather than claiming an active
+continuity control.
 
 ## Change-Control Rule
 

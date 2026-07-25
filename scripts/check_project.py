@@ -115,7 +115,8 @@ def _run_installed_wheel_smoke(wheel_path: Path, smoke_root: Path) -> None:
     """
     smoke_root.mkdir(parents=True, exist_ok=True)
     venv_path = smoke_root / "venv"
-    site_path = smoke_root / "my_ppar_data"
+    audit_path = smoke_root / "my_ppar_audit"
+    analytics_path = smoke_root / "my_ppar_analytics"
     _run(
         [
             _VENV_PYTHON,
@@ -169,17 +170,22 @@ def _run_installed_wheel_smoke(wheel_path: Path, smoke_root: Path) -> None:
         isolate_python_path=True,
     )
     _run(
-        [smoke_ppar, "setup", site_path],
+        [smoke_ppar, "setup", audit_path],
         cwd=smoke_root,
         isolate_python_path=True,
     )
     _run(
-        [smoke_ppar, "analytics", site_path / "analytics"],
+        [smoke_ppar, "audit", audit_path],
         cwd=smoke_root,
         isolate_python_path=True,
     )
     _run(
-        [smoke_ppar, "audit", site_path / "audit"],
+        [smoke_ppar, "setup", analytics_path, "--analytics"],
+        cwd=smoke_root,
+        isolate_python_path=True,
+    )
+    _run(
+        [smoke_ppar, "analytics", analytics_path],
         cwd=smoke_root,
         isolate_python_path=True,
     )
@@ -189,7 +195,7 @@ def _run_installed_wheel_smoke(wheel_path: Path, smoke_root: Path) -> None:
                 smoke_python,
                 "-m",
                 "ppar.audit.cli.validate_bundle",
-                site_path / "audit" / "output" / comparison_level,
+                audit_path / "output" / comparison_level,
             ],
             cwd=smoke_root,
             isolate_python_path=True,

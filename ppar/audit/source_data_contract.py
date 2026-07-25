@@ -159,10 +159,19 @@ def source_data_contract_summary(
     if include_security_reference:
         required_names.add(pc_cols.SECURITY_REFERENCE)
     contracts_by_name = {contract.name: contract for contract in _SOURCE_DATA_CONTRACT}
-    required_columns = [
-        f"{name}: {', '.join(contracts_by_name[name].required_columns)}"
-        for name in sorted(required_names)
-    ]
+    calculation_required_columns = {
+        pc_cols.HOLDINGS: pc_cols.HOLDINGS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS,
+        pc_cols.TRANSACTIONS: (
+            pc_cols.TRANSACTIONS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS
+        ),
+    }
+    required_columns = []
+    for name in sorted(required_names):
+        columns = calculation_required_columns.get(
+            name,
+            contracts_by_name[name].required_columns,
+        )
+        required_columns.append(f"{name}: {', '.join(columns)}")
     return {
         "required_datasets": ", ".join(sorted(required_names)),
         "required_columns": "; ".join(required_columns),

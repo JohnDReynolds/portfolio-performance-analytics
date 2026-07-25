@@ -53,6 +53,14 @@ class TestAuditSchema(unittest.TestCase):
                 pc_cols.TRANSACTION_DATE,
             ),
         )
+        self.assertEqual(
+            pc_cols.TRANSACTIONS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS,
+            (
+                *pc_cols.TRANSACTIONS_REQUIRED_COLUMNS,
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.AMOUNT,
+            ),
+        )
         self.assertIn(
             pc_cols.TRANSACTION_CATEGORY,
             pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS,
@@ -69,6 +77,10 @@ class TestAuditSchema(unittest.TestCase):
         self.assertEqual(
             pc_cols.HOLDINGS_REQUIRED_COLUMNS,
             (pc_cols.PORTFOLIO_ID, pc_cols.SECURITY_ID, pc_cols.HOLDING_DATE),
+        )
+        self.assertEqual(
+            pc_cols.HOLDINGS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS,
+            (*pc_cols.HOLDINGS_REQUIRED_COLUMNS, pc_cols.MARKET_VALUE),
         )
 
 

@@ -1,4 +1,4 @@
-"""Create an Axys/APX starter workspace for PPAR."""
+"""Create a local PPAR Audit or PPAR Analytics workspace."""
 
 from __future__ import annotations
 
@@ -8,7 +8,9 @@ from importlib.resources import files
 from importlib.resources.abc import Traversable
 from pathlib import Path
 import sys
-from typing import Final
+from typing import Any, Final, Literal
+
+import yaml
 
 # Project imports
 from ppar.errors import PpaError
@@ -16,8 +18,6 @@ from ppar.audit.config_validation import validate_config
 import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
-_ANALYTICS_DIRECTORY: Final[str] = "analytics"
-_AUDIT_DIRECTORY: Final[str] = "audit"
 _SNAPSHOT_A_DIR: Final[str] = "snapshot_a"
 _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
 _PACKAGED_DEMO_RESOURCE: Final[str] = "ppar.setup_templates"
@@ -27,6 +27,7 @@ _PACKAGED_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _PACKAGED_ANALYTICS_YAML: Final[str] = "axys_apx_analytics.yaml"
 _PACKAGED_AUDIT_YAML: Final[str] = "axys_apx_audit.yaml"
 _GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
+_WorkspaceKind = Literal["audit", "analytics"]
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
@@ -52,13 +53,14 @@ def main(argv: list[str] | None = None) -> int:
         argv: Optional command-line arguments excluding the executable name.
 
     Returns:
-        Process exit code. ``0`` indicates that the starter workspace exists
-        and Audit setup validates.
+        Process exit code. ``0`` indicates that the requested workspace exists
+        and, for Audit, its configuration validates.
     """
     args = _argument_parser().parse_args(argv)
     try:
         result = run_setup(
-            args.site_directory,
+            args.workspace_directory,
+            analytics=args.analytics,
             overwrite=args.overwrite,
             include_generic_analytics=args.include_generic_analytics,
         )
@@ -71,67 +73,88 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_setup(
-    site_directory: Path,
+    workspace_directory: Path,
     *,
+    analytics: bool = False,
     overwrite: bool = False,
     include_generic_analytics: bool = False,
 ) -> dict[str, Path | str]:
-    """Create an Axys/APX starter workspace with analytics and audit folders.
+    """Create one self-contained PPAR workspace.
 
     Args:
-        site_directory: Folder that will receive ``analytics`` and
-            ``audit`` subfolders.
-        overwrite: Whether to replace existing starter files.
+        workspace_directory: Folder that will receive the selected workflow.
+        analytics: Whether to create an Analytics workspace instead of the
+            default Audit workspace.
+        overwrite: Whether to replace existing packaged workspace files.
         include_generic_analytics: Whether to copy the maintainer-facing generic
-            analytics starter data and tutorial script.
+            Analytics sample into an Analytics workspace.
 
     Returns:
-        Paths and status labels for the starter workspace.
+        Paths and status labels for the selected workspace.
 
     Raises:
-        PpaError: If a destination path is an existing non-directory, if starter
-            files cannot be written, or if Audit validation
-            fails.
+        PpaError: If a destination path is an existing non-directory, if the
+            requested workflow conflicts with an existing workspace, if files
+            cannot be written, or if Audit validation fails.
     """
-    site_path = Path(site_directory).expanduser()
-    setup_status = _ensure_directory(site_path)
-    analytics_path = site_path / _ANALYTICS_DIRECTORY
-    audit_path = site_path / _AUDIT_DIRECTORY
+    if include_generic_analytics and not analytics:
+        raise PpaError(
+            "--include-generic-analytics requires --analytics.",
+            802,
+        )
+
+    workspace_path = Path(workspace_directory).expanduser()
+    workflow: _WorkspaceKind = "analytics" if analytics else "audit"
+    setup_status = _ensure_directory(workspace_path)
+    _validate_workspace_kind(workspace_path, workflow)
+    readme_text = (
+        _analytics_workspace_readme_text(workspace_path)
+        if analytics
+        else _audit_workspace_readme_text(workspace_path)
+    )
     readme_status = _write_text_file(
-        site_path / "README.md",
-        _starter_readme_text(site_path),
+        workspace_path / "README.md",
+        readme_text,
         overwrite=overwrite,
     )
-    analytics_status = _ensure_analytics_starter(analytics_path, overwrite=overwrite)
-    audit_status = _ensure_audit_starter(
-        audit_path,
-        overwrite=overwrite,
-    )
-    generic_analytics_path = site_path / _GENERIC_ANALYTICS_DIRECTORY
-    generic_analytics_status: str | None = None
-    if include_generic_analytics:
-        generic_analytics_status = _ensure_generic_analytics_starter(
-            generic_analytics_path,
+    if analytics:
+        workflow_status = _ensure_analytics_workspace(
+            workspace_path,
             overwrite=overwrite,
         )
-    audit_config_path = audit_path / _CONFIG_FILE_NAME
+        result: dict[str, Path | str] = {
+            "workspace_directory": workspace_path,
+            "workflow": workflow,
+            "setup_status": setup_status,
+            "readme_path": workspace_path / "README.md",
+            "readme_status": readme_status,
+            "workflow_status": workflow_status,
+            "config_path": workspace_path / _CONFIG_FILE_NAME,
+        }
+        if include_generic_analytics:
+            generic_path = workspace_path / _GENERIC_ANALYTICS_DIRECTORY
+            result["generic_analytics_status"] = _ensure_generic_analytics_sample(
+                generic_path,
+                overwrite=overwrite,
+            )
+            result["generic_analytics_directory"] = generic_path
+        return result
 
-    result: dict[str, Path | str] = {
-        "site_directory": site_path,
+    workflow_status = _ensure_audit_workspace(
+        workspace_path,
+        overwrite=overwrite,
+    )
+    audit_config_path = workspace_path / _CONFIG_FILE_NAME
+    result = {
+        "workspace_directory": workspace_path,
+        "workflow": workflow,
         "setup_status": setup_status,
-        "readme_path": site_path / "README.md",
+        "readme_path": workspace_path / "README.md",
         "readme_status": readme_status,
-        "analytics_directory": analytics_path,
-        "analytics_status": analytics_status,
-        "analytics_config_path": analytics_path / _CONFIG_FILE_NAME,
-        "audit_directory": audit_path,
-        "audit_status": audit_status,
-        "audit_config_path": audit_config_path,
+        "workflow_status": workflow_status,
+        "config_path": audit_config_path,
     }
-    if generic_analytics_status is not None:
-        result["generic_analytics_directory"] = generic_analytics_path
-        result["generic_analytics_status"] = generic_analytics_status
-    missing_files = _missing_snapshot_files(audit_path)
+    missing_files = _missing_snapshot_files(workspace_path)
     if missing_files:
         result["missing_files"] = "\n".join(missing_files)
         return result
@@ -145,25 +168,28 @@ def _argument_parser() -> argparse.ArgumentParser:
     """Return the setup argument parser."""
     parser = argparse.ArgumentParser(
         prog="ppar setup",
-        description=(
-            "Create an Axys/APX starter workspace with analytics and "
-            "Audit folders."
-        ),
+        description="Create a PPAR Audit workspace.",
         epilog=(
             "Examples:\n"
-            "  ppar setup ./my_ppar_data"
+            "  ppar setup ./my_ppar_audit\n"
+            "  ppar setup ./my_ppar_analytics --analytics"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "site_directory",
+        "workspace_directory",
         type=Path,
-        help="Folder that will receive audit and analytics.",
+        help="Folder that will contain the selected PPAR workspace.",
+    )
+    parser.add_argument(
+        "--analytics",
+        action="store_true",
+        help="Create a PPAR Analytics workspace instead of a PPAR Audit workspace.",
     )
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Replace existing starter files with packaged starter files.",
+        help="Replace existing workspace files with packaged files.",
     )
     parser.add_argument(
         "--include-generic-analytics",
@@ -186,6 +212,54 @@ def _ensure_directory(directory: Path) -> str:
     return "created"
 
 
+def _validate_workspace_kind(
+    workspace_path: Path,
+    requested_kind: _WorkspaceKind,
+) -> None:
+    """Reject setup requests that would mix workflow files.
+
+    Args:
+        workspace_path: Existing or newly created workspace directory.
+        requested_kind: Workflow requested by the current setup invocation.
+
+    Raises:
+        PpaError: If the destination is a legacy combined setup root or its
+            configuration belongs to the other workflow.
+    """
+    legacy_audit_config = workspace_path / "audit" / _CONFIG_FILE_NAME
+    legacy_analytics_config = workspace_path / "analytics" / _CONFIG_FILE_NAME
+    if legacy_audit_config.exists() or legacy_analytics_config.exists():
+        raise PpaError(
+            f"{workspace_path} is a legacy combined PPAR workspace. Continue "
+            "using its audit/ and analytics/ folders, or choose a new workspace "
+            "directory.",
+            802,
+        )
+
+    config_path = workspace_path / _CONFIG_FILE_NAME
+    if not config_path.exists():
+        return
+    try:
+        values: Any = yaml.safe_load(config_path.read_text(encoding=util.ENCODING))
+    except yaml.YAMLError:
+        return
+    if not isinstance(values, dict):
+        return
+    existing_kinds = {
+        kind for kind in ("audit", "analytics") if kind in values
+    }
+    if not existing_kinds or existing_kinds == {requested_kind}:
+        return
+    existing_label = " and ".join(sorted(existing_kinds))
+    raise PpaError(
+        f"{workspace_path} contains an existing {existing_label} configuration "
+        "and cannot "
+        f"be initialized as {requested_kind}. Choose a different workspace "
+        "directory.",
+        802,
+    )
+
+
 def _missing_snapshot_files(site_path: Path) -> list[str]:
     """Return user-facing labels for expected portfolio files not present yet."""
     missing_files: list[str] = []
@@ -193,14 +267,12 @@ def _missing_snapshot_files(site_path: Path) -> list[str]:
         snapshot_path = site_path / snapshot_dir
         for file_name in _PORTFOLIO_SETUP_FILES:
             if not (snapshot_path / file_name).exists():
-                missing_files.append(
-                    f"{_AUDIT_DIRECTORY}/{snapshot_dir}/{file_name}"
-                )
+                missing_files.append(f"{snapshot_dir}/{file_name}")
     return missing_files
 
 
-def _ensure_analytics_starter(directory: Path, *, overwrite: bool) -> str:
-    """Copy Axys/APX analytics starter files into ``directory``."""
+def _ensure_analytics_workspace(directory: Path, *, overwrite: bool) -> str:
+    """Copy the Axys/APX Analytics workspace files into ``directory``."""
     status = _ensure_directory(directory)
     source_directory = files(_PACKAGED_DEMO_RESOURCE).joinpath(
         _PACKAGED_ANALYTICS_DIRECTORY
@@ -219,15 +291,15 @@ def _ensure_analytics_starter(directory: Path, *, overwrite: bool) -> str:
     return _combined_status(status, config_status)
 
 
-def _ensure_audit_starter(directory: Path, *, overwrite: bool) -> str:
-    """Copy Axys/APX Audit starter files into ``directory``."""
+def _ensure_audit_workspace(directory: Path, *, overwrite: bool) -> str:
+    """Copy the Axys/APX Audit workspace files into ``directory``."""
     status = _ensure_directory(directory)
     source_directory = files(_PACKAGED_DEMO_RESOURCE).joinpath(
         _PACKAGED_AUDIT_DIRECTORY
     )
     config_status = _write_text_file(
         directory / _CONFIG_FILE_NAME,
-        _starter_audit_config_text(
+        _audit_workspace_config_text(
             source_directory.joinpath(_PACKAGED_AUDIT_YAML)
         ),
         overwrite=overwrite,
@@ -247,8 +319,8 @@ def _ensure_audit_starter(directory: Path, *, overwrite: bool) -> str:
     return _combined_status(status, config_status)
 
 
-def _ensure_generic_analytics_starter(directory: Path, *, overwrite: bool) -> str:
-    """Copy maintainer-facing generic analytics starter files into ``directory``."""
+def _ensure_generic_analytics_sample(directory: Path, *, overwrite: bool) -> str:
+    """Copy maintainer-facing generic Analytics sample files into ``directory``."""
     status = _ensure_directory(directory)
     source_directory = files(_PACKAGED_DEMO_RESOURCE).joinpath(
         _PACKAGED_GENERIC_ANALYTICS_DIRECTORY
@@ -257,61 +329,48 @@ def _ensure_generic_analytics_starter(directory: Path, *, overwrite: bool) -> st
     return status
 
 
-def _starter_audit_config_text(resource: Traversable) -> str:
-    """Return the documented one-file Audit starter YAML."""
+def _audit_workspace_config_text(resource: Traversable) -> str:
+    """Return the documented one-file Audit workspace YAML."""
     return resource.read_text(encoding=util.ENCODING)
 
 
-def _starter_readme_text(site_path: Path) -> str:
-    """Return the local setup README copied into a user's starter workspace."""
-    return f"""# PPAR
+def _audit_workspace_readme_text(workspace_path: Path) -> str:
+    """Return the README for a generated PPAR Audit workspace."""
+    return f"""# PPAR Audit Workspace
 
 This folder was created by:
 
 ```bash
-ppar setup {site_path}
+ppar setup {workspace_path}
 ```
 
 ## What This Folder Is For
 
-This folder has been seeded with demo data exports from Axys. You can run the
-demos with the seeded data (see "Demos" below), or replace the demo data with
-your own data (see "Customizing With Your Own Data" below).
+This workspace contains demonstration Axys/APX-style exports and a documented
+Audit configuration. Run the demonstration first, then replace the CSV files
+with approved exports from your own environment.
 
-## Demos
-
-### Audit
-
-Use Audit to answer: "Why did my reported performance change?"
+PPAR Audit answers: "Why did my reported performance change?"
 
 - **Performance Comparison:** identifies changed portfolio and security
   performance for each time period, quantitatively attributes the differences
-  to changes in holdings and transactions, and highlights anything that needs human
-  review.
+  to supported source-data changes, and highlights anything that still needs
+  human review.
 - **Data Issues:** flags suspicious source-data relationships — including price
   ranges, dividend rates, accrued-interest rates, and missing dividends — that
   may indicate data-quality issues.
 
-```bash
-ppar audit {site_path / _AUDIT_DIRECTORY}
-```
-
-### Performance Analytics
-
-Use Performance Analytics when you want a clean explanation of performance
-versus a benchmark. It includes:
-
-- **Performance Attribution:** Brinson-Fachler attribution, Carino-smoothed
-  multi-period effects, and contribution views.
-- **Ex-Post Risk:** ex-post risk statistics calculated from realized returns.
+## First Run
 
 ```bash
-ppar analytics {site_path / _ANALYTICS_DIRECTORY}
+ppar audit {workspace_path}
 ```
+
+Open the files printed by the command. Normal output is written under
+`output/portfolio` and, when security-performance files are available,
+`output/security`.
 
 ## Customizing With Your Own Data
-
-### Audit
 
 Audit compares two snapshots:
 
@@ -320,15 +379,15 @@ Audit compares two snapshots:
 
 Steps:
 
-1. Replace the CSV data in `audit/snapshot_a`.
-2. Replace the CSV data in `audit/snapshot_b`.
-3. Edit `audit/ppar.yaml`.
-4. Run `ppar audit {site_path / _AUDIT_DIRECTORY}`.
+1. Replace the CSV data in `snapshot_a`.
+2. Replace the CSV data in `snapshot_b`.
+3. Edit `ppar.yaml`.
+4. Run `ppar audit {workspace_path}`.
 
-#### Getting Data from Axys/APX
+### Getting Data from Axys/APX
 
-Start with the comments under `files:` in `audit/ppar.yaml`. They classify every
-starter field as **Required**, **Required only when applicable**, or
+Start with the comments under `files:` in `ppar.yaml`. They classify every
+workspace field as **Required**, **Required only when applicable**, or
 **Optional**. Required is intentionally narrow: data needed to make Fully
 Explained possible.
 
@@ -340,7 +399,7 @@ is:
 - Holdings: use an IMEX positions/holdings export or a REP appraisal report.
 - Transactions: try IMEX first. If `dp`, `li`, `lo`, or `wd` rows can occur, the
   extract must include the source/destination and special-security context named
-  in `audit/ppar.yaml`; otherwise use REP, a custom report, or another reviewed
+  in `ppar.yaml`; otherwise use REP, a custom report, or another reviewed
   source.
 - Security reference: needed only when Data Issues filters use
   `security_reference.*` qualifiers. Use a reviewed security-information IMEX
@@ -350,66 +409,109 @@ is:
 - Split factors: optional review information, usually from `split.inf` or an
   equivalent local export.
 
-The starter CSV names and headers are PPAR-normalized examples, not guaranteed
-native Axys/APX schemas. Confirm the exact local object, report, field names,
-date basis, currency basis, and return basis before relying on an extract.
+The demonstration CSV names and headers are PPAR-normalized examples, not
+guaranteed native Axys/APX schemas. Confirm the exact local object, report,
+field names, date basis, currency basis, and return basis before relying on an
+extract.
 
-### Performance Analytics
+## Optional Python Script
 
-Steps:
-
-1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
-2. Replace `analytics/secperf.csv` with your own security-performance export.
-3. Replace `analytics/secmast.csv` with your own security reference export.
-4. Edit `analytics/ppar.yaml` if your filenames or headers differ.
-5. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
-
-## Optional Python Scripts
-
-If you want to customize the workflows and outputs using your own Python
-scripts, refer to the sample scripts:
-
-- `analytics/run_analytics.py`
-- `audit/run_audit.py`
+`run_audit.py` is the visible Python equivalent of the normal command and is
+the starting point for local output customization.
 
 View the available command-line options:
 
 ```bash
-ppar analytics -h
-python analytics/run_analytics.py -h
 ppar audit -h
-python audit/run_audit.py -h
+python run_audit.py -h
 ```
 
 ## Folder Map
 
 ```text
-{site_path.name}/
-  analytics/
-    ppar.yaml
+{workspace_path.name}/
+  README.md
+  ppar.yaml
+  run_audit.py
+  snapshot_a/
     portperf.csv
-    secperf.csv
+    holdings.csv
+    transactions.csv
     secmast.csv
-    run_analytics.py
-  audit/
-    ppar.yaml
-    run_audit.py
-    snapshot_a/
-      portperf.csv
-      holdings.csv
-      transactions.csv
-      secmast.csv
-      secperf.csv
-      fx_rates.csv
-      splits.csv
-    snapshot_b/
-      portperf.csv
-      holdings.csv
-      transactions.csv
-      secmast.csv
-      secperf.csv
-      fx_rates.csv
-      splits.csv
+    secperf.csv
+    fx_rates.csv
+    splits.csv
+  snapshot_b/
+    portperf.csv
+    holdings.csv
+    transactions.csv
+    secmast.csv
+    secperf.csv
+    fx_rates.csv
+    splits.csv
+```
+"""
+
+
+def _analytics_workspace_readme_text(workspace_path: Path) -> str:
+    """Return the README for a generated PPAR Analytics workspace."""
+    return f"""# PPAR Analytics Workspace
+
+This folder was created by:
+
+```bash
+ppar setup {workspace_path} --analytics
+```
+
+## What This Folder Is For
+
+This workspace contains demonstration portfolio, benchmark, and classification
+exports for Performance Analytics. Run the demonstration first, then replace
+the CSV files with approved exports from your own environment.
+
+Performance Analytics explains portfolio results relative to a benchmark:
+
+- **Performance Attribution:** Brinson-Fachler attribution, Carino-smoothed
+  multi-period effects, and contribution views.
+- **Ex-Post Risk:** risk statistics calculated from realized returns.
+
+## First Run
+
+Install the optional Analytics dependencies and run the workspace:
+
+```bash
+pip install "ppar[analytics]"
+ppar analytics {workspace_path}
+```
+
+## Customizing With Your Own Data
+
+1. Replace `portperf.csv` with your portfolio-performance export.
+2. Replace `secperf.csv` with your security-performance export.
+3. Replace `secmast.csv` with your security-reference export.
+4. Edit `ppar.yaml` if your filenames, headers, or report choices differ.
+5. Run `ppar analytics {workspace_path}`.
+
+## Optional Python Script
+
+`run_analytics.py` is the visible Python equivalent of the normal command and
+is the starting point for local output customization.
+
+```bash
+ppar analytics -h
+python run_analytics.py -h
+```
+
+## Folder Map
+
+```text
+{workspace_path.name}/
+  README.md
+  ppar.yaml
+  portperf.csv
+  secperf.csv
+  secmast.csv
+  run_analytics.py
 ```
 """
 
@@ -446,7 +548,7 @@ def _copy_resource_file(
 
 
 def _write_text_file(destination: Path, text: str, *, overwrite: bool) -> str:
-    """Write a text starter file and return its status label."""
+    """Write a workspace text file and return its status label."""
     if destination.exists() and not overwrite:
         return "existing"
     existed_before = destination.exists()
@@ -456,7 +558,7 @@ def _write_text_file(destination: Path, text: str, *, overwrite: bool) -> str:
 
 
 def _combined_status(directory_status: str, config_status: str) -> str:
-    """Return a compact status label for a starter folder."""
+    """Return a compact status label for a workspace folder."""
     if directory_status == "created":
         return "created"
     return config_status
@@ -464,13 +566,13 @@ def _combined_status(directory_status: str, config_status: str) -> str:
 
 def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
-    print(f"PPAR setup complete: {result['site_directory']}")
+    workspace_path = result["workspace_directory"]
+    workflow = str(result["workflow"])
+    label = "Analytics" if workflow == "analytics" else "Audit"
+    print(f"PPAR {label} workspace ready: {workspace_path}")
     print()
-    print("To run Audit:")
-    print(f"  ppar audit {result['audit_directory']}")
-    print()
-    print("To run Performance Analytics:")
-    print(f"  ppar analytics {result['analytics_directory']}")
+    print(f"To run {label}:")
+    print(f"  ppar {workflow} {workspace_path}")
     print()
     if "generic_analytics_directory" in result:
         print("To run Generic Analytics:")
@@ -485,7 +587,7 @@ def _print_success(result: dict[str, Path | str]) -> None:
         return
 
     print("To customize with your own data:")
-    readme_path = Path(result["site_directory"]) / "README.md"
+    readme_path = Path(str(workspace_path)) / "README.md"
     print(
         f"  Refer to the \"Customizing With Your Own Data\" section in "
         f"{readme_path}"
