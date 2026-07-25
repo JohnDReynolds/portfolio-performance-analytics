@@ -1,4 +1,4 @@
-"""Cache return-reconstruction diagnostics used by Audit workbook views."""
+"""Cache return-reconstruction diagnostics shared across Audit run views."""
 
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ import datetime as dt
 import polars as pl
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
+from ppar.audit import schema as pc_cols
 from ppar.audit.performance_comparison import return_reconstruction
 
 __all__ = [
@@ -20,10 +21,15 @@ __all__ = [
 
 
 class WorkbookReconstructionCache:
-    """Cache reconstruction diagnostics for one workbook or report build.
+    """Cache reconstruction diagnostics for one Audit comparison/report run.
 
     Args:
         comparison_path: Audit YAML path used to load reconstruction inputs.
+
+    Notes:
+        The cache is named for its original workbook use. Site runs also share
+        it with portfolio and security comparisons so identical financial
+        reconstruction results are calculated once.
     """
 
     def __init__(self, comparison_path: util.PathLike | None) -> None:
@@ -66,10 +72,17 @@ class WorkbookReconstructionCache:
             cache_key = frozenset(reconstruction_keys)
             if cache_key not in self._security_checks_by_active_keys:
                 self._security_checks_by_active_keys[cache_key] = (
-                    return_reconstruction.security_return_reconstruction_checks(
-                        self._comparison_path,
-                        active_keys=reconstruction_keys,
-                        _input_cache=self._input_cache,
+                    _cached_security_checks_for_keys(
+                        self._security_checks,
+                        reconstruction_keys,
+                    )
+                    if self._security_checks is not None
+                    else (
+                        return_reconstruction.security_return_reconstruction_checks(
+                            self._comparison_path,
+                            active_keys=reconstruction_keys,
+                            _input_cache=self._input_cache,
+                        )
                     )
                 )
             return self._security_checks_by_active_keys[cache_key]
@@ -100,7 +113,7 @@ def resolved_reconstruction_cache(
 
     Args:
         comparison_path: Audit YAML path used for a newly created cache.
-        reconstruction_cache: Existing build-scoped cache, when available.
+        reconstruction_cache: Existing run-scoped cache, when available.
 
     Returns:
         The supplied cache or a new cache bound to ``comparison_path``.
@@ -127,3 +140,34 @@ def _security_reconstruction_active_keys(
             )
         )
     return reconstruction_keys
+
+
+def _cached_security_checks_for_keys(
+    checks: pl.DataFrame,
+    active_keys: set[tuple[str, str, dt.date, dt.date]],
+) -> pl.DataFrame:
+    """Return full cached security checks constrained to active workbook keys."""
+    if not active_keys:
+        return checks.head(0)
+    key_columns = (
+        pc_cols.PORTFOLIO_ID,
+        pc_cols.SECURITY_ID,
+        pc_cols.FROM_DATE,
+        pc_cols.THRU_DATE,
+    )
+    key_table = pl.DataFrame(
+        sorted(active_keys),
+        schema={
+            pc_cols.PORTFOLIO_ID: pl.String,
+            pc_cols.SECURITY_ID: pl.String,
+            pc_cols.FROM_DATE: pl.Date,
+            pc_cols.THRU_DATE: pl.Date,
+        },
+        orient="row",
+    )
+    return checks.join(
+        key_table,
+        on=key_columns,
+        how="semi",
+        maintain_order="left",
+    )

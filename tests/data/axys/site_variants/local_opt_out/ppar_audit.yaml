@@ -18,7 +18,6 @@ files:
 
 extract_contract:
   enforce_ambiguous_axys_flows: false
-  transaction_semantics_case: legacy_case_insensitive
 
 tolerances:
   return: 0.000001

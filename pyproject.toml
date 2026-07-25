@@ -42,19 +42,19 @@ keywords = [
 requires-python = ">=3.12.1"
 # Runtime dependencies. These are lower-bound constraints, not exact pins.
 dependencies = [
-    "lxml>=5.1.0",
-    "numpy>=1.26.4",
-    "pandas>=2.2.2",
     "polars>=1.24.0",
     "openpyxl>=3.1",
-    "pyarrow>=15.0.1",
     "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 # Chart rendering used by the optional PPAR Analytics workflow.
 analytics = [
+    "lxml>=5.1.0",
     "matplotlib>=3.8.2",
+    "numpy>=1.26.4",
+    "pandas>=2.2.2",
+    "pyarrow>=15.0.1",
     "seaborn>=0.13.2",
 ]
 # Developer tooling used for local checks and editor feedback.

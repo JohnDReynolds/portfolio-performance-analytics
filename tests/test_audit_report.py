@@ -28,7 +28,7 @@ from ppar.audit import (
     compare_snapshots,
     report_bundle_contract,
     report_bundle_validation_issues,
-    write_audit_report_bundle,
+    write_audit_report_bundle as _write_audit_report_bundle,
     write_audit_review_workbook,
 )
 from ppar.audit import schema as pc_cols
@@ -66,9 +66,6 @@ _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
 _PORTFOLIO_COMPARISON_PATH = Path(
     "ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml"
 )
-_POLICY_GAP_DEMO_COMPARISON_PATH = Path(
-    "tests/data/axys/validation/ppar_audit_policy_gap_demo.yaml"
-)
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
@@ -76,6 +73,13 @@ _EXPECTED_REPORT_TABLE_SCHEMA_FINGERPRINTS = {
     "portfolio": "0c28a285026d867fe2b778ce1a47eec54c809da69eb87dace81b3ad0d08faa7e",
     "security": "c1d556de1c6276a646265702d960fefcb692c02c59e2dd94d95289842ae22389",
 }
+
+
+def write_audit_report_bundle(*args: Any, **kwargs: Any) -> dict[str, Path]:
+    """Write an expanded, HTML-only bundle unless a test overrides the layout."""
+    kwargs.setdefault("include_workbook", False)
+    kwargs.setdefault("expand_all_supporting_files", True)
+    return _write_audit_report_bundle(*args, **kwargs)
 _original_import = __import__
 
 
@@ -85,7 +89,6 @@ def _required_yaml_settings() -> dict[str, object]:
         "comparison": {"level": "portfolio"},
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "tolerances": {
             "return": 0.000001,
@@ -179,6 +182,13 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
                 "transaction_impact_methods": (
                     _standard_transaction_impact_methods()
                 ),
+                "transaction_rules": {
+                    "BUY": {
+                        "transaction_category": "buy",
+                        "cash_flow_sign": "negative",
+                        "performance_flow_sign": "performance",
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -227,6 +237,13 @@ def _write_transaction_commission_review_specification(directory: Path) -> Path:
                 "transaction_impact_methods": (
                     _standard_transaction_impact_methods()
                 ),
+                "transaction_rules": {
+                    "BUY": {
+                        "transaction_category": "buy",
+                        "cash_flow_sign": "negative",
+                        "performance_flow_sign": "performance",
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -616,6 +633,29 @@ class TestAuditReport(unittest.TestCase):
                 report_bundle_validation_issues(output_directory),
             )
 
+    def test_public_bundle_defaults_match_audit_onboarding(self) -> None:
+        """The Python entry point writes XLSX, HTML, and compact support by default."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+            paths = _write_audit_report_bundle(
+                findings,
+                output_directory,
+                comparison_path=_RESTATEMENT_COMPARISON_PATH,
+            )
+
+            self.assertEqual(
+                set(paths),
+                {
+                    "audit_support",
+                    "html_report",
+                    "readme",
+                    "review_workbook",
+                    "source_detail",
+                },
+            )
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
+
     def test_generation_defers_deep_reparse_to_standalone_validation(self) -> None:
         """Audit generation keeps assertions on while deep artifact parity is separate."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
@@ -778,7 +818,7 @@ class TestAuditReport(unittest.TestCase):
         summary = transaction_semantics_summary([frame], rule_codes={"BY"})
 
         self.assertEqual(summary["observed_codes"], ["BY", "Sl", "by"])
-        self.assertEqual(summary["codes_without_yaml_rules"], ["Sl"])
+        self.assertEqual(summary["codes_without_yaml_rules"], ["Sl", "by"])
         self.assertEqual(summary["unknown_category_count"], 1)
 
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
@@ -1328,14 +1368,6 @@ class TestAuditReport(unittest.TestCase):
         self.assertIn("BUY", semantics["observed_codes"])
         self.assertEqual(semantics["unknown_category_count"], 0)
 
-    def test_write_report_bundle_requires_complete_yaml_by_default(self) -> None:
-        """User-facing bundles fail when changed source fields lack YAML policy."""
-        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-
-        with tempfile.TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(PpaError, "YAML setup is incomplete"):
-                write_audit_report_bundle(findings, directory)
-
     def test_workbook_tables_follow_review_accounting_invariants(self) -> None:
         """Workbook review tables stay internally consistent across demos."""
         cases = (
@@ -1343,7 +1375,6 @@ class TestAuditReport(unittest.TestCase):
             ("transaction_rules", _RESTATEMENT_TRANSACTION_RULES_PATH, False),
             ("multi", _MULTI_RESTATEMENT_COMPARISON_PATH, False),
             ("portfolio", _PORTFOLIO_COMPARISON_PATH, True),
-            ("policy_gap", _POLICY_GAP_DEMO_COMPARISON_PATH, False),
         )
 
         for name, comparison_path, require_causal_attribution in cases:
@@ -1388,24 +1419,6 @@ class TestAuditReport(unittest.TestCase):
 
     def test_transaction_rules_demo_explains_transaction_amount_row(self) -> None:
         """Transaction rules demo exposes the modeled transaction amount impact."""
-        plain_findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        plain_causes = _workbook_underlying_causes_table(plain_findings)
-        plain_transaction_amount = plain_causes.filter(
-            (pl.col("dataset") == "transactions")
-            & (pl.col("source_column") == "amount")
-        )
-        self.assertEqual(plain_transaction_amount.height, 1)
-        self.assertIsNone(plain_transaction_amount["estimated_impact"][0])
-        self.assertEqual(
-            plain_transaction_amount["review_guidance"][0],
-            (
-                "BUY: AAPL transactions.amount decreased by 100.00. This affects "
-                "the performance calculation through cash-balance ending "
-                "holdings.market_value. "
-                "Add YAML configuration to count it as explained."
-            ),
-        )
-
         rules_findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
         rules_causes = _workbook_underlying_causes_table(rules_findings)
         rules_transaction_amount = rules_causes.filter(
@@ -2080,6 +2093,46 @@ class TestAuditReport(unittest.TestCase):
                 "manifest option 'include_html_output' does not match artifact "
                 "'html_report'",
                 report_bundle_validation_issues(output_directory),
+            )
+
+    def test_failed_report_rebuild_preserves_previous_valid_bundle(self) -> None:
+        """A late report failure never damages the prior promoted output."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+            original_paths = write_audit_report_bundle(
+                findings,
+                output_directory,
+                require_complete_yaml_setup=False,
+            )
+            original_manifest = original_paths["manifest"].read_bytes()
+            original_html = original_paths["html_report"].read_bytes()
+
+            with (
+                mock.patch.object(
+                    _pc_report._pc_bundle,
+                    "write_report_bundle_review_summary",
+                    side_effect=PpaError("late staged failure", None),
+                ),
+                self.assertRaisesRegex(PpaError, "late staged failure"),
+            ):
+                write_audit_report_bundle(
+                    findings,
+                    output_directory,
+                    require_complete_yaml_setup=False,
+                )
+
+            self.assertEqual(
+                original_paths["manifest"].read_bytes(),
+                original_manifest,
+            )
+            self.assertEqual(
+                original_paths["html_report"].read_bytes(),
+                original_html,
+            )
+            self.assertEqual(
+                tuple(output_directory.parent.glob(".bundle.staging-*")),
+                (),
             )
 
     def test_write_report_bundle_supports_csv_only_output(self) -> None:

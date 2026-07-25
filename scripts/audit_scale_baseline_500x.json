@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Observational reference for Audit scaling work; not a substitute for release gates.",
-  "captured_at": "2026-07-15",
+  "captured_at": "2026-07-25",
   "command": "./.venv/bin/python scripts/check_scale.py --scale 500",
   "environment": {
     "platform": "macOS arm64",
@@ -10,10 +10,12 @@
   },
   "workload": {
     "scale": 500,
-    "baseline_input_rows": 2034,
-    "portfolio_scaled_input_rows": 2033,
-    "site_level_input_rows": 1,
-    "scaled_input_rows": 1016501,
+    "baseline_input_rows": 2058,
+    "timing_reference_scale": 100,
+    "timing_reference_input_rows": 201345,
+    "portfolio_scaled_input_rows": 2013,
+    "site_level_input_rows": 45,
+    "scaled_input_rows": 1006545,
     "reports": [
       "portfolio",
       "security"
@@ -23,17 +25,19 @@
     "supporting_files_packaging": "compact_zip"
   },
   "established_gate": {
-    "scale_divisor": 7.0,
+    "timing_reference_scale": 100,
+    "expected_ratio_at_500x": 5.0,
     "warning_multiplier": 1.05,
     "failure_multiplier": 1.1,
-    "warning_ratio_at_500x": 76.05,
-    "failure_ratio_at_500x": 79.67142857142858
+    "warning_ratio_at_500x": 5.25,
+    "failure_ratio_at_500x": 5.5
   },
   "scale_gate_observation": {
-    "baseline_seconds": 0.93,
-    "scaled_seconds": 64.14,
-    "elapsed_ratio": 69.0,
-    "status": "PASS"
+    "baseline_seconds": 0.78,
+    "timing_reference_seconds": 12.83,
+    "scaled_seconds": 70.3,
+    "reference_to_scaled_elapsed_ratio": 5.48,
+    "status": "WARN"
   },
   "optimization_observations": [
     {
@@ -150,6 +154,11 @@
       "phase": "Phase W Polars-native cause safety metadata",
       "scaled_seconds": 63.92,
       "elapsed_ratio": 67.85
+    },
+    {
+      "phase": "Phase Y run-scoped reconstruction result cache",
+      "scaled_seconds": 66.41,
+      "elapsed_ratio": 66.44
     }
   ],
   "profile_observation": {
@@ -192,6 +201,8 @@
     "Elapsed time and memory are machine-dependent observations, not hard-coded pass criteria.",
     "The established gate values are repeated here so threshold changes are explicit and reviewable.",
     "On 2026-07-15, the Audit large-site curve was deliberately tightened from 1 + scale / 4 to 1 + scale / 7 after reviewing measured 10x through 500x results; the warning and failure margins remain 5 and 10 percent.",
+    "On 2026-07-25, Phase Y's 66.44x release-scale ratio supported tightening the Audit large-site curve from 1 + scale / 7 to 1 + scale / 7.64; the unchanged 5 percent warning and 10 percent failure margins now warn at 69.77x and fail at 73.09x for 500x.",
+    "On 2026-07-25, the approved 500x gate changed from a 1x startup-relative ratio to a 100x workload reference after Audit-only lazy imports reduced 1x startup without slowing 100x or 500x. Expected 100x-to-500x growth is 5.00x; the unchanged 5 percent warning and 10 percent failure margins warn at 5.25x and fail at 5.50x. The 1x run remains the financial and output-equivalence reference.",
     "The detailed phase profile remains the Phase A baseline; later gate observations show optimization progress.",
     "The Phase O gate measures the finalized default with both XLSX and HTML enabled, so it remains comparable with the earlier phases.",
     "Phase E adds mutually exclusive --html-only, --xlsx-only, and --csv-only output modes without weakening the row ceiling or financial assertions.",
@@ -238,6 +249,10 @@
     "The rejected Phase X openpyxl write-only prototype preserved workbook values, formatting, comments, widths, filters, frozen panes, and SN-03 semantics exactly but did not improve execution time.",
     "At 100x, the existing writer's 2.91-second median and approximately 363 MB peak RSS compared with 3.10 seconds and approximately 283 MB for write-only streaming; at 500x, 15.00 seconds and approximately 1.174 GB compared with 16.16 seconds and approximately 745 MB.",
     "Streaming was therefore not adopted for the runtime objective, despite reducing observed peak process memory by approximately 22 percent at 100x and 36.5 percent at 500x.",
+    "Phase Y shares one complete portfolio and security return-reconstruction result across comparison denominators, holdings-derived security weights, and report construction; workbook active-key security requests filter the already cached full result.",
+    "Phase Y preserved every profiled 100x CSV and HTML artifact byte-for-byte, preserved all XLSX package members except the generated core document timestamp, and preserved normalized manifests exactly.",
+    "Phase Y reduced the current-workload 100x wall-clock observation from 15.02 seconds to 13.09 seconds, the full profile from 33.402 seconds to 29.744 seconds, and Python function calls by approximately 20.2 million.",
+    "Phase Y reduced the same-day 500x wall-clock observation from 75.35 seconds to 66.41 seconds while passing the then-current hard gate; the subsequent 2026-07-25 recalibration tightened thresholds without changing the workload.",
     "Phase measurements identify optimization targets and may include nested work; they are not additive accounting.",
     "Financial and reviewer-facing equivalence is enforced independently by scripts/check_scale.py."
   ]

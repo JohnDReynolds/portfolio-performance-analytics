@@ -1,6 +1,6 @@
 """Integration tests for supported user-facing data-source representations."""
 
-# Direct cache access preserves a legacy integration assertion.
+# Direct cache access verifies source-format integration state.
 # pylint: disable=protected-access
 # pyright: reportPrivateUsage=false
 

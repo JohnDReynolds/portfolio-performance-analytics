@@ -12,7 +12,7 @@ from ppar.audit import source_loader
 from ppar.audit.portfolio_performance import SnapshotKey
 from ppar.audit.specification import AuditSpecification
 from ppar.errors import PpaError
-import ppar.utilities as util
+import ppar.common as util
 
 
 class SecurityMasterLoader:

@@ -720,13 +720,10 @@ and `ti` scenarios.
 
 ## Slice 5 — Exact case and optional missing-cost work — Complete
 
-- **Slice 5A — complete:** added a versioned
-  `extract_contract.transaction_semantics_case: exact` capability for exact
-  transaction-rule keys and native context-condition values. Maintained
-  configurations can preserve legacy behavior explicitly with
-  `legacy_case_insensitive`; omission now uses the fail-closed exact mode and
-  packaged extract contract. Exact mode disables
-  code-only compatibility inference, keeps
+- **Slice 5A — complete:** exact transaction-rule keys and native
+  context-condition values are now invariant. The retired case-insensitive
+  compatibility option and code-only default meanings have been removed.
+  Exact matching keeps
   lowercase and uppercase rules distinct, and leaves an unmatched uppercase
   posted-transaction code unknown rather than treating it as a cancellation.
   A focused site fixture gives `by` and `BY` separate explicit economic meanings;

@@ -15,7 +15,7 @@ from pathlib import Path
 import polars as pl
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
 from ppar.audit import conservation as _pc_conservation
 from ppar.audit import extract_contract as _pc_extract_contract
 from ppar.audit import lineage as _pc_lineage
@@ -739,10 +739,6 @@ def _report_bundle_transaction_semantics(
         comparison_path,
         comparison_level=comparison_level,
     )
-    exact_case = _pc_extract_contract.transaction_semantics_exact_case(
-        specification.values,
-        specification_path=specification.path,
-    )
     loader = TransactionsLoader(specification)
     snapshot_keys: tuple[SnapshotKey, SnapshotKey] = ("a", "b")
     frames = [
@@ -752,11 +748,7 @@ def _report_bundle_transaction_semantics(
     ]
     return transaction_semantics_summary(
         frames,
-        rule_codes=transaction_rule_codes(
-            specification.values,
-            exact_case=exact_case,
-        ),
-        exact_case=exact_case,
+        rule_codes=transaction_rule_codes(specification.values),
     )
 
 

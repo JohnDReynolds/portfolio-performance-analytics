@@ -27,7 +27,7 @@ from ppar.audit import source_loader
 from ppar.audit.specification import AuditSpecification
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.transactions import TransactionsLoader
-import ppar.utilities as util
+import ppar.common as util
 
 _CURRENCY_COLUMNS: Final[tuple[str, ...]] = (
     pc_cols.CURRENCY,

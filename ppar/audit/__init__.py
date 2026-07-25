@@ -14,10 +14,7 @@ from ppar.audit import schema
 from ppar.audit.fx_rates import FxRatesLoader
 from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
 from ppar.audit.holdings import HoldingsLoader
-from ppar.audit.report import (
-    write_audit_report_bundle,
-    write_audit_review_workbook,
-)
+from ppar.audit.report import write_audit_report_bundle
 from ppar.audit.runner import (
     compact_findings_table,
     compare_snapshots,
@@ -32,6 +29,7 @@ from ppar.audit.specification import (
     AuditSpecification,
 )
 from ppar.audit.transactions import TransactionsLoader
+from ppar.audit.workbook_tables import write_audit_review_workbook
 __all__ = [
     # Source-data loaders and comparison specification objects.
     "ComparisonFile",

@@ -12,7 +12,7 @@ from typing import cast
 import polars as pl
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit import conservation as _pc_conservation
@@ -281,7 +281,6 @@ def write_audit_review_workbook(
     findings: pl.DataFrame,
     output_path: util.PathLike,
     *,
-    top_evidence_limit: int = 10,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
@@ -294,7 +293,6 @@ def write_audit_review_workbook(
             ``findings_to_polars``.
         output_path: Destination workbook path. Parent directories are created
             when needed.
-        top_evidence_limit: Reserved for parity with bundle/report writers.
         comparison_path: Optional path to the comparison YAML. When provided,
             the ``Performance Difference Causes`` sheet can name the exact file to update
             for missing attribution setup.
@@ -314,7 +312,6 @@ def write_audit_review_workbook(
         top-evidence, and findings output used by the HTML/CSV reports. It does
         not add comparison logic.
     """
-    del top_evidence_limit
     return _pc_workbook.write_review_workbook_sheets(
         audit_review_workbook_sheets(
             findings,
@@ -2484,7 +2481,6 @@ def _workbook_changed_item_row(
         row,
         review_guidance,
         impact_status=impact_status,
-        comparison_path=comparison_path,
     )
     if explanation_issues:
         dataset_field = _guidance.dataset_field(row) or "unknown source field"
@@ -2521,7 +2517,6 @@ def _workbook_changed_item_row(
             estimated_impact,
             row_use,
             impact_status,
-            comparison_path=comparison_path,
         ),
         _layout.REVIEW_GUIDANCE: review_guidance,
         _pc_findings.DATASET: row.get(_pc_findings.DATASET),

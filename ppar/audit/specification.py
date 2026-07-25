@@ -28,7 +28,7 @@ from ppar.audit.performance_comparison.methods import (
     ReturnReconstructionValueSource,
 )
 from ppar.audit.run_settings import audit_settings
-import ppar.utilities as util
+import ppar.common as util
 
 _SNAPSHOT_A_KEY: Final[str] = "a"
 _SNAPSHOT_B_KEY: Final[str] = "b"
@@ -62,7 +62,6 @@ _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
 _EXTRACT_CONTRACT_SUPPORTED_KEYS: Final[frozenset[str]] = frozenset(
     {
         "enforce_ambiguous_axys_flows",
-        "transaction_semantics_case",
         "path",
     }
 )
@@ -98,8 +97,32 @@ _RETIRED_PERFORMANCE_OUTPUT_KEYS: Final[frozenset[str]] = frozenset(
 _RETIRED_SOURCE_MAPPING_KEYS: Final[frozenset[str]] = frozenset(
     f"{file_name}_columns" for file_name in _SUPPORTED_FILE_KEYS
 )
+_SUPPORTED_ROOT_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "audit",
+        _COMPARISON_KEY,
+        "data_issues",
+        "evidence_only_impact_methods",
+        _EXTRACT_CONTRACT_KEY,
+        _FILES_KEY,
+        "fx_rate_impact_methods",
+        "holding_impact_methods",
+        _PORTFOLIO_RETURN_RECONSTRUCTION_KEY,
+        "price_impact_methods",
+        _SECURITY_RETURN_RECONSTRUCTION_KEY,
+        "security_return_impact_methods",
+        _SNAPSHOTS_KEY,
+        "suppressions",
+        _TOLERANCES_KEY,
+        "transaction_impact_methods",
+        "transaction_rules",
+    }
+)
 PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
 SECURITY_COMPARISON_LEVEL: Final[str] = "security"
+SECURITY_PERFORMANCE_UNAVAILABLE_REASON: Final[str] = (
+    "security_performance_unavailable"
+)
 COMPARISON_LEVELS: Final[frozenset[str]] = frozenset(
     {PORTFOLIO_COMPARISON_LEVEL, SECURITY_COMPARISON_LEVEL}
 )
@@ -287,6 +310,7 @@ class AuditSpecification:
         self._validate_removed_cash_configuration()
         self._validate_retired_performance_output_configuration()
         self._validate_data_issues_configuration()
+        self._validate_root_keys()
         self.comparison_level = self._comparison_level(comparison_level)
         self.portfolio_return_reconstruction = (
             self._portfolio_return_reconstruction()
@@ -310,6 +334,26 @@ class AuditSpecification:
             validate_data_issues_config(self.values)
         except ValueError as error:
             raise PpaError(self._error_message(str(error)), 504) from error
+
+    def _validate_root_keys(self) -> None:
+        """Reject unknown top-level configuration keys.
+
+        Raises:
+            PpaError: If the YAML root contains a key that no Audit component
+                consumes.
+        """
+        unsupported = sorted(
+            str(key) for key in self.values if key not in _SUPPORTED_ROOT_KEYS
+        )
+        if unsupported:
+            raise PpaError(
+                self._error_message(
+                    "YAML has unsupported top-level keys: "
+                    + ", ".join(unsupported)
+                    + "."
+                ),
+                504,
+            )
 
     def _validate_retired_source_mapping_keys(self) -> None:
         """Reject mappings retired by the nested ``files`` grammar."""
@@ -894,12 +938,23 @@ class AuditSpecification:
                 ("b", comparison_file.snapshot_b_path),
             ):
                 if not util.file_path_exists(file_path):
+                    context: dict[str, object] = {
+                        "dataset": comparison_file.name,
+                        "snapshot": snapshot_key,
+                        "path": str(file_path),
+                    }
+                    if (
+                        comparison_file.name == _SECURITY_PERFORMANCE_KEY
+                        and self.comparison_level == SECURITY_COMPARISON_LEVEL
+                    ):
+                        context["reason"] = SECURITY_PERFORMANCE_UNAVAILABLE_REASON
                     raise PpaError(
                         self._error_message(
                             f"files.{comparison_file.name} is required but "
                             f"snapshot {snapshot_key} is missing {file_path}."
                         ),
                         802,
+                        context=context,
                     )
 
     def _validate_reconstruction_files(self) -> None:

@@ -13,7 +13,7 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.source_files import source_file_columns
-import ppar.utilities as util
+import ppar.common as util
 
 _SECURITY_ID_KEY: Final = "security_id"
 _COMPONENTS_KEY: Final = "components"

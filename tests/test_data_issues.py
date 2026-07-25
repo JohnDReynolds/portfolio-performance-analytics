@@ -18,6 +18,22 @@ from ppar.audit.config_validation import validate_config
 from ppar.audit.data_issues import checks as data_issues
 from ppar.errors import PpaError
 
+_COMMON_TRANSACTION_RULES = """
+transaction_rules:
+  by:
+    transaction_category: buy
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  sl:
+    transaction_category: sell
+    cash_flow_sign: positive
+    performance_flow_sign: performance
+  dv:
+    transaction_category: income
+    cash_flow_sign: positive
+    performance_flow_sign: performance
+"""
+
 
 class TestDataIssues(unittest.TestCase):
     """Validate source-data consistency checks used by the Data Issues sheet."""
@@ -350,6 +366,18 @@ class TestDataIssues(unittest.TestCase):
                 ],
                 transaction_rules="""
                 transaction_rules:
+                  by:
+                    transaction_category: buy
+                    cash_flow_sign: negative
+                    performance_flow_sign: performance
+                  sl:
+                    transaction_category: sell
+                    cash_flow_sign: positive
+                    performance_flow_sign: performance
+                  dv:
+                    transaction_category: income
+                    cash_flow_sign: positive
+                    performance_flow_sign: performance
                   pa:
                     - when:
                         transaction_security_type: fius
@@ -854,6 +882,10 @@ class TestDataIssues(unittest.TestCase):
                 ],
                 transaction_rules="""
                 transaction_rules:
+                  by:
+                    transaction_category: buy
+                    cash_flow_sign: negative
+                    performance_flow_sign: performance
                   ti:
                     when:
                       transaction_security_type: csus
@@ -945,6 +977,10 @@ class TestDataIssues(unittest.TestCase):
                 ],
                 transaction_rules="""
                 transaction_rules:
+                  by:
+                    transaction_category: buy
+                    cash_flow_sign: negative
+                    performance_flow_sign: performance
                   ti:
                     when:
                       transaction_security_type: csus
@@ -1012,7 +1048,6 @@ class TestDataIssues(unittest.TestCase):
         issues = data_issues._deliver_in_original_cost_incomplete_issues(
             rows,
             config,
-            exact_case=True,
         )
 
         self.assertEqual(len(issues), 1)
@@ -1052,7 +1087,6 @@ class TestDataIssues(unittest.TestCase):
         issues = data_issues._deliver_in_original_cost_incomplete_issues(
             rows,
             config,
-            exact_case=True,
         )
         normalized_review_keys = {
             str(issue[data_issues.REVIEW_KEY]).replace("_SCALE_001", "")
@@ -1239,6 +1273,10 @@ class TestDataIssues(unittest.TestCase):
                 """,
                 transaction_rules="""
                 transaction_rules:
+                  dv:
+                    transaction_category: income
+                    cash_flow_sign: positive
+                    performance_flow_sign: performance
                   pa:
                     - when:
                         transaction_security_type: fius
@@ -1441,7 +1479,7 @@ def _write_site(
     security_master_rows: list[str] | None = None,
     split_rows: list[str] | None = None,
     data_issues_config: str = "data_issues: {}",
-    transaction_rules: str = "",
+    transaction_rules: str = _COMMON_TRANSACTION_RULES,
 ) -> Path:
     """Write a minimal performance-comparison site and return its YAML path."""
     root.mkdir(parents=True, exist_ok=True)
@@ -1571,7 +1609,6 @@ def _write_site(
         """
         extract_contract:
           enforce_ambiguous_axys_flows: true
-          transaction_semantics_case: legacy_case_insensitive
         transaction_impact_methods:
           external_flow:
             method: evidence_only

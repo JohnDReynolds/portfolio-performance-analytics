@@ -10,20 +10,19 @@ import sys
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as _pc_cols
-from ppar.audit.performance_comparison.compare import PerformanceComparison
 from ppar.audit.data_issues.config import (
     data_issues_config_summary,
     required_transaction_columns,
     security_master_filter_fields,
 )
-from ppar.audit.extract_contract import (
-    extract_contract_summary,
-    transaction_semantics_exact_case,
-)
-from ppar.audit.performance_comparison.findings import findings_to_polars
-from ppar.audit.runner import validate_yaml_setup_complete
+from ppar.audit.extract_contract import extract_contract_summary
+from ppar.audit.runner import AuditComparisonViews, validate_yaml_setup_complete
 from ppar.audit.security_master import SecurityMasterLoader
-from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
+from ppar.audit.specification import (
+    AuditSpecification,
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+)
 from ppar.audit.source_data_contract import (
     comparison_required_dataset_names,
     source_data_contract_summary,
@@ -54,10 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
-        summary = validate_config(
-            args.comparison_path,
-            require_complete_yaml_setup=not args.allow_incomplete_yaml,
-        )
+        summary = validate_config(args.comparison_path)
     except PpaError as error:
         print(f"Config validation failed: {args.comparison_path}", file=sys.stderr)
         print(f"- {error}", file=sys.stderr)
@@ -67,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Snapshot A: {summary['snapshot_a']}")
     print(f"Snapshot B: {summary['snapshot_b']}")
     print(f"Configured datasets: {summary['dataset_names']}")
+    print(f"Validated report levels: {summary['validated_report_levels']}")
     print(f"Minimum required datasets: {summary['minimum_required_datasets']}")
     print(f"Required source-data columns: {summary['required_source_data_columns']}")
     print(f"Missing optional files: {summary['missing_optional_files']}")
@@ -141,10 +138,21 @@ def _validate_config(
         comparison_path,
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
     )
-    comparison = PerformanceComparison(specification)
-    findings = findings_to_polars(comparison.compare())
+    comparison_views = AuditComparisonViews(comparison_path)
+    findings = comparison_views.findings(PORTFOLIO_COMPARISON_LEVEL)
     if require_complete_yaml_setup:
         validate_yaml_setup_complete(findings)
+    validated_levels = [PORTFOLIO_COMPARISON_LEVEL]
+    security_file = specification.files.get(_pc_cols.SECURITY_PERFORMANCE)
+    if (
+        security_file is not None
+        and security_file.snapshot_a_path.is_file()
+        and security_file.snapshot_b_path.is_file()
+    ):
+        security_findings = comparison_views.findings(SECURITY_COMPARISON_LEVEL)
+        if require_complete_yaml_setup:
+            validate_yaml_setup_complete(security_findings)
+        validated_levels.append(SECURITY_COMPARISON_LEVEL)
     transaction_preview = _validate_transactions(specification)
     _validate_security_master(specification)
     contract_summary = extract_contract_summary(
@@ -170,6 +178,7 @@ def _validate_config(
         "snapshot_a": specification.snapshot_a.path,
         "snapshot_b": specification.snapshot_b.path,
         "dataset_names": dataset_names,
+        "validated_report_levels": ", ".join(validated_levels),
         "minimum_required_datasets": ", ".join(
             comparison_required_dataset_names(specification)
         ),
@@ -252,17 +261,9 @@ def _validate_transactions(
             )
         checked += 1
         frames.append(frame)
-    exact_case = transaction_semantics_exact_case(
-        specification.values,
-        specification_path=specification.path,
-    )
     summary = transaction_semantics_summary(
         frames,
-        rule_codes=transaction_rule_codes(
-            specification.values,
-            exact_case=exact_case,
-        ),
-        exact_case=exact_case,
+        rule_codes=transaction_rule_codes(specification.values),
     )
     return {
         "files_checked": checked,
@@ -389,15 +390,6 @@ def _argument_parser() -> argparse.ArgumentParser:
         "comparison_path",
         type=Path,
         help="Path to an Audit YAML file.",
-    )
-    parser.add_argument(
-        "--allow-incomplete-yaml",
-        action="store_true",
-        help=(
-            "Validate file/schema/contract shape even when changed source-data "
-            "fields are not explicitly classified by additive, evidence-only, "
-            "or suppression YAML."
-        ),
     )
     return parser
 

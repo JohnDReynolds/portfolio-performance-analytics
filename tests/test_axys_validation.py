@@ -350,6 +350,20 @@ class TestAxysValidation(unittest.TestCase):
                 "classification under analytics",
             )
 
+    def test_unknown_root_setting_raises_error_504(self) -> None:
+        """Typos in top-level Analytics sections fail closed."""
+        specification = _fixture_specification()
+        specification["classification"] = {"Security": {}}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path),
+                "unsupported top-level keys: classification",
+            )
+
     def test_retired_source_settings_raise_error_504(self) -> None:
         """The former top-level source settings fail with migration guidance."""
         specification = _fixture_specification()

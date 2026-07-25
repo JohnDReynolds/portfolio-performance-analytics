@@ -36,22 +36,17 @@ SHORT_SIDE_REQUIRED_EVIDENCE: Final[tuple[str, ...]] = (
 
 def transaction_backlog_gate(
     code: object,
-    *,
-    exact_case: bool = False,
 ) -> str:
     """Return the explicit backlog gate for one transaction code.
 
     Args:
         code: Source transaction code.
-        exact_case: Preserve native case instead of using legacy lowercase
-            boundary matching.
-
     Returns:
         ``"capital_return_policy"`` for return-of-capital or principal-paydown
         rows, ``"short_side_evidence"`` for short-sale or cover-short rows, and
         ``"not_backlog_gate"`` otherwise.
     """
-    normalized = transaction_code_matching_key(code, exact_case=exact_case)
+    normalized = transaction_code_matching_key(code)
     if normalized in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES:
         return "capital_return_policy"
     if normalized in SHORT_SIDE_BACKLOG_TRANSACTION_CODES:

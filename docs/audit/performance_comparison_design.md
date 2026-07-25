@@ -345,21 +345,15 @@ transaction matching, preferably by `transaction_id`.
 - `corporate_action`
 - `unknown`
 
-The comparison loader can infer this category from common transaction codes
-when the source does not provide a category. For Axys/APX-shaped demo data, the
-source `transaction_code` values remain native lower-case codes such as `by`,
-`sl`, `dv`, `in`, `dp`, `wd`, `rc`, and `pd`. YAML rules map those source codes
-to normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
-`corporate_action`. The normalized category is an explanation label and a rule
-selector; it does not replace the source transaction code in the audit trail.
-Transaction-code normalization is limited to semantic classification and
-rule-coverage checks for legacy configurations. By default, transaction-rule
-keys and native `when` values match stripped source text by exact case,
-compatibility inference from code alone is disabled, and unmatched uppercase
-codes remain unknown. A maintained site may explicitly request
-`legacy_case_insensitive` behavior. Neither mode assigns cancellation meaning to
-uppercase codes. Reviewer handoff artifacts preserve native transaction-code
-case.
+For Axys/APX-shaped demo data, source `transaction_code` values remain native
+lower-case codes such as `by`, `sl`, `dv`, `in`, `dp`, `wd`, `rc`, and `pd`.
+Explicit YAML rules map those source codes to normalized categories such as
+`buy`, `sell`, `income`, `external_flow`, and `corporate_action`. The normalized
+category is an explanation label and rule selector; it does not replace the
+source transaction code in the audit trail. Rule keys and native `when` values
+match stripped source text by exact case. PPAR does not infer meaning from code
+alone, unmatched codes remain unknown, and uppercase does not imply
+cancellation. Reviewer handoff artifacts preserve native transaction-code case.
 
 `cash_flow_sign` and `performance_flow_sign` are optional source-supplied
 semantics. They should not be inferred from transaction code in the first pass.
@@ -508,19 +502,14 @@ gated. Current diagnostic messages include:
   `portfolio period`, `nonzero begin_market_value denominator`, or
   `in-period flow date`.
 
-Planned external-flow method names remain reserved and rejected until their
-formulas and YAML inputs are implemented, except for the narrow `modified_dietz`
-method:
+The supported external-flow methods are `evidence_only` and the narrow
+`modified_dietz` method. Any other method name is rejected:
 
 - `modified_dietz`: Requires flow timing convention, day-count convention,
   beginning/end inclusion rule, denominator source, and
   `double_count_policy`.
-- `subperiod_linked`: Requires subperiod boundary rule, linking formula, and
-  large-flow threshold or explicit breakpoints.
-- `unweighted_flow_delta`: Requires explicit reviewer acknowledgement that no
-  day-weighting applies and a denominator source.
 
-Each future method must define whether transaction deltas are independent of
+Any added method must define whether transaction deltas are independent of
 portfolio-level `flow` deltas or only explanatory cross-checks. This prevents
 double counting when portfolio performance rows already include the external
 flow effect.
@@ -1013,7 +1002,6 @@ files:
 
 extract_contract:
   enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: legacy_case_insensitive
 
 transaction_impact_methods:
   external_flow:

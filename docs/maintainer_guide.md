@@ -112,8 +112,8 @@ workflows. Broader scenario coverage lives under `tests/data/axys`.
 | --- | --- | --- | --- | --- |
 | Workbook demos | `axys_apx_audit.yaml` | `snapshot_a` | `snapshot_b` | Shared portfolio/security demo spec. Setup-generated scripts select the primary review level. |
 
-For the maintained XLSX workbook smoke paths and expected output, use
-[`ppar/setup_templates/axys_apx_audit/README.md`](../ppar/setup_templates/axys_apx_audit/README.md).
+For the maintained XLSX workbook smoke paths and expected output, use the
+[packaged Audit demo guide](audit/packaged_demo.md).
 For the validation fixture matrix, use
 [`tests/data/axys/README.md`](../tests/data/axys/README.md).
 
@@ -135,7 +135,8 @@ lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 | `scripts/operational_demo_data/audit_period_split_plan.csv` | Empty split backlog. Add rows only when a future scenario makes a period too crowded again. |
 | `scripts/operational_demo_data/rebuild_audit_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
 | `ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
-| `ppar/setup_templates/axys_apx_audit/README.md` | User-facing demo story and setup guidance. |
+| `ppar/setup_templates/axys_apx_audit/README.md` | Canonical README copied into every generated Audit workspace. |
+| `docs/audit/packaged_demo.md` | Maintainer-facing demo story, expected output, and accounting-scenario guidance. |
 | `ppar.audit.cli.validate_demo_matrix` | Test-only scenario coverage guardrail. It does not define the packaged demo story. |
 
 When changing packaged demo behavior, edit the generator/scenario source first,
@@ -205,6 +206,10 @@ take several minutes.
 `scripts/audit_scale_baseline_500x.json` records the current machine-dependent
 500x timing, memory, phase, row-count, and output-size observations. It is an
 optimization reference, not permission to adjust the established scale gate.
+The 500x Audit timing gate compares the full workload with a 100x timing
+reference. Expected growth is 5.00x, with a warning above 5.25x and failure
+above 5.50x. The separate 1x run remains the financial and output-equivalence
+reference, so the timing method does not weaken result validation.
 
 For an on-demand larger-input stress check, run:
 
@@ -218,8 +223,9 @@ unchanged 100,000-row production ceiling. The combined command retains the
 established Analytics large-site workload at 500x because the new level targets
 Audit input scaling. It does not replace the 500x release-candidate gate. Its
 separately measured runtime caps are 85x for a warning and 95x for a failure;
-the fully changed 10x through 500x workloads use the measured `1 + scale / 7`
-growth curve with 5% warning and 10% failure margins.
+the fully changed 10x through 100x workloads use the measured
+`1 + scale / 7.64` growth curve with 5% warning and 10% failure margins. The
+fully changed 500x workload uses the 100x reference and caps described above.
 
 By default, subcommand output is captured and only printed if a command fails.
 Use `--verbose` when you want the full underlying command output.
@@ -363,15 +369,29 @@ Use this after generating report/workbook output.
 ```
 
 Use this before report generation when you are editing YAML.
-By default, it rejects changed source-data fields that lack additive,
-evidence-only, or suppression YAML. Use `--allow-incomplete-yaml` only for
-diagnostic checks of intentionally incomplete fixtures.
+It rejects changed source-data fields that lack additive, evidence-only, or
+suppression YAML. During development, maintainers can call the lower-level
+Python validation API with `require_complete_yaml_setup=False` to inspect an
+intentionally incomplete fixture; normal commands always enforce complete
+setup.
 
 ### Run Project Checks
 
 ```bash
 ./.venv/bin/python scripts/check_project.py --quick
 ```
+
+Install the tested maintainer environment with the repository constraint set:
+
+```bash
+./.venv/bin/python -m pip install \
+  --constraint constraints/ci.txt \
+  --editable ".[analytics,dev]"
+```
+
+`constraints/ci.txt` pins the Python 3.12 CI and release-candidate environment.
+Update it deliberately alongside dependency upgrades; normal package installs
+continue to use the compatible lower bounds in `pyproject.toml`.
 
 Use the full check before a larger handoff:
 

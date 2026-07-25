@@ -94,7 +94,6 @@ def main(argv: list[str] | None = None) -> int:
                 title=settings.title or report.title,
                 include_workbook=settings.include_workbook,
                 include_html_output=settings.include_html_output,
-                require_complete_yaml_setup=not settings.allow_incomplete_yaml,
                 require_causal_attribution=settings.require_causal_attribution,
                 comparison_path=SPECIFICATIONS_PATH,
                 comparison_level=report.comparison_level,

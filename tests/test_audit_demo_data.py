@@ -94,6 +94,7 @@ _PACKAGED_AXYS_DIRECTORY = (
     _REPO_ROOT / "ppar" / "setup_templates" / "axys_apx_audit"
 )
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
+_PACKAGED_DEMO_GUIDE_PATH = Path("docs/audit/packaged_demo.md")
 _DEMO_EXTRACT_AVAILABILITY_PATH = _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 _PACKAGED_DEMO_TRANSACTION_CODES = {
     "ai",
@@ -310,7 +311,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_readme_documents_transaction_coverage_map(self) -> None:
         """The packaged demo README names packaged, test-only, and backlog rows."""
-        text = _PACKAGED_AXYS_README_PATH.read_text(encoding="utf-8")
+        text = _PACKAGED_DEMO_GUIDE_PATH.read_text(encoding="utf-8")
 
         for expected_text in [
             "Current transaction coverage by home",
@@ -333,7 +334,7 @@ class TestAuditDemoData(unittest.TestCase):
 
     def test_packaged_demo_readme_matches_current_restatement_story(self) -> None:
         """The main packaged README keeps scenario descriptions current."""
-        text = _PACKAGED_AXYS_README_PATH.read_text(encoding="utf-8")
+        text = _PACKAGED_DEMO_GUIDE_PATH.read_text(encoding="utf-8")
 
         for expected_text in [
             "The controlled restatement includes",

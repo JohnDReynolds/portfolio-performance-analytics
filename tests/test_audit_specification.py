@@ -48,7 +48,6 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
         "files": {"portfolio_performance": "portperf.csv"},
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "tolerances": {
             "return": 0.000001,
@@ -63,6 +62,20 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
 
 class TestAuditSpecification(unittest.TestCase):
     """Verify comparison specification parsing and file preflight behavior."""
+
+    def test_unknown_root_key_is_rejected(self) -> None:
+        """Typos in top-level Audit sections fail closed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["holding_impact_method"] = {}
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "unsupported top-level keys: holding_impact_method",
+            ):
+                AuditSpecification(path)
 
     def test_financially_material_root_settings_are_required(self) -> None:
         """Omitted comparison and tolerance choices fail closed."""
@@ -94,7 +107,7 @@ class TestAuditSpecification(unittest.TestCase):
                 self.assertIn(expected_message, str(context.exception))
 
     def test_extract_contract_omission_uses_fail_closed_defaults(self) -> None:
-        """The packaged contract, enforcement, and exact matching are defaults."""
+        """The packaged contract and ambiguous-flow enforcement are defaults."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -108,7 +121,6 @@ class TestAuditSpecification(unittest.TestCase):
             )
 
         self.assertTrue(settings.enforce_ambiguous_axys_flows)
-        self.assertEqual(settings.transaction_semantics_case, "exact")
         self.assertIn("demo_extract_availability.yaml", settings.path)
 
     def test_extract_contract_override_must_be_a_mapping(self) -> None:
@@ -122,25 +134,30 @@ class TestAuditSpecification(unittest.TestCase):
             with self.assertRaisesRegex(PpaError, "extract_contract must be a mapping"):
                 AuditSpecification(path)
 
-    def test_partial_extract_contract_overrides_retain_other_safe_defaults(self) -> None:
-        """Each advanced override leaves the other fail-closed default intact."""
-        legacy = extract_contract_settings(
-            {
-                "extract_contract": {
-                    "transaction_semantics_case": "legacy_case_insensitive"
-                }
-            },
-            specification_path="comparison.yaml",
-        )
+    def test_partial_extract_contract_override_retains_safe_default(self) -> None:
+        """The explicit context opt-out does not change the packaged contract."""
         local_opt_out = extract_contract_settings(
             {"extract_contract": {"enforce_ambiguous_axys_flows": False}},
             specification_path="comparison.yaml",
         )
 
-        self.assertTrue(legacy.enforce_ambiguous_axys_flows)
-        self.assertEqual(legacy.transaction_semantics_case, "legacy_case_insensitive")
         self.assertFalse(local_opt_out.enforce_ambiguous_axys_flows)
-        self.assertEqual(local_opt_out.transaction_semantics_case, "exact")
+        self.assertIn("demo_extract_availability.yaml", local_opt_out.path)
+
+    def test_retired_transaction_semantics_case_is_rejected(self) -> None:
+        """The removed case-insensitive compatibility setting fails closed."""
+        with self.assertRaisesRegex(
+            PpaError,
+            "unsupported keys: transaction_semantics_case",
+        ):
+            extract_contract_settings(
+                {
+                    "extract_contract": {
+                        "transaction_semantics_case": "legacy_case_insensitive"
+                    }
+                },
+                specification_path="comparison.yaml",
+            )
 
     def test_comparison_tolerances_require_finite_nonnegative_numbers(self) -> None:
         """Invalid explicit comparison tolerances never acquire a fallback."""

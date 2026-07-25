@@ -17,6 +17,7 @@ from ppar.errors import PpaError
 from ppar.audit import (
     write_audit_report_bundle,
 )
+from ppar.audit import atomic_directory as _atomic_directory
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import source_loader
 from ppar.audit import workbook_tables as _pc_workbook_tables
@@ -31,8 +32,9 @@ from ppar.audit.run_settings import (
 from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
+    SECURITY_PERFORMANCE_UNAVAILABLE_REASON,
 )
-import ppar.utilities as util
+import ppar.common as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _CSV_REVIEW_ARTIFACTS: Final[tuple[str, ...]] = (
@@ -87,7 +89,6 @@ def run_report(
     exclude_suppressed: bool | None = None,
     include_reconstruction_diagnostics: bool | None = None,
     require_causal_attribution: bool | None = None,
-    allow_incomplete_yaml: bool = False,
     include_workbook: bool | None = None,
     include_html_output: bool | None = None,
     expand_all_supporting_files: bool | None = None,
@@ -104,8 +105,6 @@ def run_report(
         include_reconstruction_diagnostics: Optional one-run reconstruction-
             diagnostics override.
         require_causal_attribution: Optional one-run causal-attribution override.
-        allow_incomplete_yaml: Whether diagnostic output may bypass the complete
-            YAML setup guardrail.
         include_workbook: Optional one-run XLSX-output override.
         include_html_output: Optional one-run HTML-output override.
             When both primary presentation formats are disabled, Audit promotes
@@ -139,7 +138,6 @@ def run_report(
         exclude_suppressed=exclude_suppressed,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         require_causal_attribution=require_causal_attribution,
-        allow_incomplete_yaml=allow_incomplete_yaml,
         include_workbook=include_workbook,
         include_html_output=include_html_output,
         expand_all_supporting_files=expand_all_supporting_files,
@@ -152,58 +150,103 @@ def run_report(
     }
     output_root = settings.output_directory
     data_issues = _data_issue_checks.data_issues_table(config_path)
+    reconstruction_cache = _pc_workbook_reconstruction.WorkbookReconstructionCache(
+        config_path
+    )
     comparison_views = AuditComparisonViews(
         config_path,
         include_suppressed=not settings.exclude_suppressed,
         require_causal_attribution=settings.require_causal_attribution,
+        reconstruction_cache=reconstruction_cache,
     )
-    reconstruction_cache = _pc_workbook_reconstruction.WorkbookReconstructionCache(
-        config_path
-    )
-    result["portfolio_report_paths"] = _write_report_bundle(
-        config_path,
-        comparison_views.findings(PORTFOLIO_COMPARISON_LEVEL),
-        output_root / PORTFOLIO_COMPARISON_LEVEL,
-        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
-        title=settings.title,
-        top_evidence_limit=top_evidence_limit,
-        include_reconstruction_diagnostics=settings.include_reconstruction_diagnostics,
-        require_causal_attribution=settings.require_causal_attribution,
-        allow_incomplete_yaml=settings.allow_incomplete_yaml,
-        _data_issues=data_issues,
-        include_workbook=settings.include_workbook,
-        include_html_output=settings.include_html_output,
-        expand_all_supporting_files=settings.expand_all_supporting_files,
-        _reconstruction_cache=reconstruction_cache,
-    )
-    result["review_paths"].extend(result["portfolio_report_paths"])
+    portfolio_findings = comparison_views.findings(PORTFOLIO_COMPARISON_LEVEL)
+    security_findings: pl.DataFrame | None
     try:
-        result["security_report_paths"] = _write_report_bundle(
+        security_findings = comparison_views.findings(SECURITY_COMPARISON_LEVEL)
+    except PpaError as error:
+        if not _is_missing_security_data(error):
+            raise
+        security_findings = None
+        result["security_status"] = (
+            "skipped because files.security_performance is not available"
+        )
+
+    managed_levels = (
+        PORTFOLIO_COMPARISON_LEVEL,
+        SECURITY_COMPARISON_LEVEL,
+    )
+    with _atomic_directory.staged_children(
+        output_root,
+        managed_levels,
+    ) as staging_root:
+        staged_portfolio_paths = _write_report_bundle(
             config_path,
-            comparison_views.findings(SECURITY_COMPARISON_LEVEL),
-            output_root / SECURITY_COMPARISON_LEVEL,
-            comparison_level=SECURITY_COMPARISON_LEVEL,
+            portfolio_findings,
+            staging_root / PORTFOLIO_COMPARISON_LEVEL,
+            comparison_level=PORTFOLIO_COMPARISON_LEVEL,
             title=settings.title,
             top_evidence_limit=top_evidence_limit,
-            include_reconstruction_diagnostics=(
-                settings.include_reconstruction_diagnostics
-            ),
+            include_reconstruction_diagnostics=settings.include_reconstruction_diagnostics,
             require_causal_attribution=settings.require_causal_attribution,
-            allow_incomplete_yaml=settings.allow_incomplete_yaml,
             _data_issues=data_issues,
             include_workbook=settings.include_workbook,
             include_html_output=settings.include_html_output,
             expand_all_supporting_files=settings.expand_all_supporting_files,
             _reconstruction_cache=reconstruction_cache,
         )
-        result["review_paths"].extend(result["security_report_paths"])
-    except PpaError as error:
-        if not _is_missing_security_data(error):
-            raise
-        result["security_status"] = (
-            "skipped because files.security_performance is not available"
+        staged_security_paths = (
+            _write_report_bundle(
+                config_path,
+                security_findings,
+                staging_root / SECURITY_COMPARISON_LEVEL,
+                comparison_level=SECURITY_COMPARISON_LEVEL,
+                title=settings.title,
+                top_evidence_limit=top_evidence_limit,
+                include_reconstruction_diagnostics=(
+                    settings.include_reconstruction_diagnostics
+                ),
+                require_causal_attribution=settings.require_causal_attribution,
+                _data_issues=data_issues,
+                include_workbook=settings.include_workbook,
+                include_html_output=settings.include_html_output,
+                expand_all_supporting_files=settings.expand_all_supporting_files,
+                _reconstruction_cache=reconstruction_cache,
+            )
+            if security_findings is not None
+            else []
         )
+
+    result["portfolio_report_paths"] = _remap_review_paths(
+        staged_portfolio_paths,
+        staging_root=staging_root,
+        output_root=output_root,
+    )
+    result["review_paths"].extend(result["portfolio_report_paths"])
+    if security_findings is not None:
+        result["security_report_paths"] = _remap_review_paths(
+            staged_security_paths,
+            staging_root=staging_root,
+            output_root=output_root,
+        )
+        result["review_paths"].extend(result["security_report_paths"])
     return result
+
+
+def _remap_review_paths(
+    paths: list[Path],
+    *,
+    staging_root: Path,
+    output_root: Path,
+) -> list[Path]:
+    """Return final promoted paths for staged primary review artifacts."""
+    return [
+        _atomic_directory.remap_staged_path(
+            path,
+            staging_root=staging_root,
+            destination_root=output_root,
+        )
+        for path in paths
+    ]
 
 
 def _argument_parser(
@@ -318,7 +361,6 @@ def script_run_settings(
         exclude_suppressed=None,
         include_reconstruction_diagnostics=None,
         require_causal_attribution=None,
-        allow_incomplete_yaml=False,
         include_workbook=include_workbook,
         include_html_output=include_html_output,
         expand_all_supporting_files=(
@@ -356,7 +398,6 @@ def _write_report_bundle(
     top_evidence_limit: int,
     include_reconstruction_diagnostics: bool,
     require_causal_attribution: bool,
-    allow_incomplete_yaml: bool,
     _data_issues: Any,
     include_workbook: bool,
     include_html_output: bool,
@@ -376,7 +417,6 @@ def _write_report_bundle(
         top_evidence_limit=top_evidence_limit,
         include_workbook=include_workbook,
         include_html_output=include_html_output,
-        require_complete_yaml_setup=not allow_incomplete_yaml,
         require_causal_attribution=require_causal_attribution,
         comparison_path=config_path,
         comparison_level=comparison_level,
@@ -421,10 +461,9 @@ def _write_report_bundle(
 
 def _is_missing_security_data(error: PpaError) -> bool:
     """Return whether a security report failed because secperf is absent."""
-    message = str(error)
     return (
-        "files.security_performance" in message
-        and ("is required" in message or "is missing" in message)
+        error.context.get("reason")
+        == SECURITY_PERFORMANCE_UNAVAILABLE_REASON
     )
 
 

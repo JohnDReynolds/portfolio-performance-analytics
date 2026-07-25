@@ -42,9 +42,6 @@ asking reviewers to inspect extra workbooks.
   background portfolio that should not create false positives.
 - `validation/ppar_audit_modified_dietz.yaml`: Tests Modified
   Dietz external-flow cross-check diagnostics.
-- `validation/ppar_audit_policy_gap_demo.yaml`: Tests
-  missing-YAML setup guidance for omitted transaction rules, impact methods,
-  and reconstruction inputs.
 - `validation/ppar_audit_suppressed.yaml`: Tests
   active-vs-suppressed finding behavior and audit visibility.
 
@@ -59,9 +56,6 @@ Validate the scenario matrix with:
 | Scenario | YAML | Expected reviewer action | Status |
 | --- | --- | --- | --- |
 | Clean/no issue | `baseline` | No Problems-grid row. | Covered |
-| Missing transaction method | `policy_gap` | Configure `transaction_impact_methods`. | Covered |
-| Missing denominator | `policy_gap` | Set `denominator_source`. | Covered |
-| Missing transaction sign/flow semantics | `policy_gap` | Define sign/flow semantics. | Covered |
 | Low-confidence estimate | `multi` | Decide whether the estimate is acceptable. | Covered |
 | Context-only evidence | `multi` | Review context without treating it as impact. | Covered |
 | Modified Dietz cross-check | `modified_dietz` | Review cross-check. | Covered |

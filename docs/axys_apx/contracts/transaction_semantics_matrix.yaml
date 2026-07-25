@@ -30,6 +30,8 @@ required_matrix_codes:
   - ";"
   - epus
   - exus
+non_runtime_matrix_codes:
+  - ";"
 ambiguous_external_flow_codes:
   - li
   - lo
@@ -38,10 +40,8 @@ ambiguous_external_flow_codes:
   - wd
 matching_rules:
   preserve_native_case: true
-  current_semantics_rule_case_behavior: versioned_exact_mode_with_legacy_compatibility_default
-  required_semantics_rule_case_capability: exact_case_when_source_contract_requires
-  case_insensitive_matching_requires_versioned_site_contract: true
-  legacy_case_insensitive_default_is_compatibility_exception: true
+  current_semantics_rule_case_behavior: exact_native_case
+  code_only_default_meanings: false
   exact_case_fixture: site_variants/exact_case_rules
   cancellation_requires_explicit_source_stage: true
   source_transaction_id: preferred_when_present_and_trustworthy

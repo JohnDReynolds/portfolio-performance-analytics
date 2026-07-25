@@ -11,7 +11,7 @@ from ppar.audit import schema as pc_cols
 from ppar.audit import source_loader
 from ppar.audit.portfolio_performance import SnapshotKey
 from ppar.audit.specification import AuditSpecification
-import ppar.utilities as util
+import ppar.common as util
 
 
 class SplitsLoader:

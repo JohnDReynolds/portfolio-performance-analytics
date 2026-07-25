@@ -183,13 +183,6 @@ _SECURITY_TRANSACTION_FLOW_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DAY_COUNT_KEY: frozenset({ModifiedDietzDayCount.ACTUAL_DAYS.value}),
     _INCLUSION_RULE_KEY: frozenset({ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value}),
 }
-_RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
-    {
-        _MODIFIED_DIETZ_METHOD,
-        "subperiod_linked",
-        "unweighted_flow_delta",
-    }
-)
 _PERFORMANCE_AMOUNT_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
@@ -1377,18 +1370,13 @@ def _raise_unsupported_external_flow_method(
     specification: AuditSpecification,
     method: object,
 ) -> None:
-    """Raise for external-flow methods that are not implemented yet."""
-    method_text = str(method)
-    reserved_note = ""
-    if method_text in _RESERVED_EXTERNAL_FLOW_METHODS:
-        reserved_note = " The method name is reserved but not implemented."
+    """Raise for an unsupported external-flow method."""
     raise PpaError(
         (
             f"{specification.path}: "
             f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
-            f"{_METHOD_KEY} must be {_EVIDENCE_ONLY_METHOD!r} until an "
-            "external-flow impact formula is explicitly supported."
-            f"{reserved_note}"
+            f"{_METHOD_KEY} must be {_EVIDENCE_ONLY_METHOD!r} or "
+            f"{_MODIFIED_DIETZ_METHOD!r}; received {method!r}."
         ),
         504,
     )

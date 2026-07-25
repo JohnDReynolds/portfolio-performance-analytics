@@ -41,7 +41,6 @@ portfolio_return_reconstruction:
 
 extract_contract:
   enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: legacy_case_insensitive
 
 transaction_rules:
   DEP:

@@ -19,9 +19,10 @@ from ppar.audit.portfolio_performance import (
 )
 from ppar.audit.specification import (
     SECURITY_COMPARISON_LEVEL,
+    SECURITY_PERFORMANCE_UNAVAILABLE_REASON,
     AuditSpecification,
 )
-import ppar.utilities as util
+import ppar.common as util
 
 
 class SecurityPerformanceLoader:
@@ -61,7 +62,16 @@ class SecurityPerformanceLoader:
         )
         if path is None or not util.file_path_exists(path):
             if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
-                raise PpaError(self._error_message(util.file_path_error(path or "")), 802)
+                raise PpaError(
+                    self._error_message(util.file_path_error(path or "")),
+                    802,
+                    context={
+                        "dataset": pc_cols.SECURITY_PERFORMANCE,
+                        "snapshot": snapshot_key,
+                        "path": str(path or ""),
+                        "reason": SECURITY_PERFORMANCE_UNAVAILABLE_REASON,
+                    },
+                )
             return None
         cached = source_loader.cached_normalized_frame(
             self._specification.path,

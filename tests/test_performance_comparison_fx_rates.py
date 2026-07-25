@@ -52,7 +52,6 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
         "files": {"portfolio_performance": "portperf.csv"},
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "tolerances": {
             "return": 0.000001,

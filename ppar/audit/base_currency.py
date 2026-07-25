@@ -8,7 +8,7 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
-import ppar.utilities as util
+import ppar.common as util
 
 _NORMALIZED_PORTFOLIO_ID = "_ppar_normalized_portfolio_id"
 _NORMALIZED_ROW_CURRENCY = "_ppar_normalized_row_currency"

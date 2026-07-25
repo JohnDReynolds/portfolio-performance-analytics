@@ -376,7 +376,6 @@ class TestWorkbookGuidance(unittest.TestCase):
                 "by 32.40."
             ),
             impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
-            comparison_path=None,
         )
 
         self.assertTrue(any("must begin" in issue for issue in issues))
@@ -406,7 +405,6 @@ class TestWorkbookGuidance(unittest.TestCase):
                 row,
                 explanation,
                 impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
-                comparison_path=None,
             ),
             (),
         )

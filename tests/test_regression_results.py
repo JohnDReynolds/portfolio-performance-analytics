@@ -1,6 +1,6 @@
 """Fixture-based regression tests for calculated report results and exports."""
 
-# Legacy compatibility checks exercise internal calculated frames.
+# Calculation regression checks exercise internal calculated frames.
 # pylint: disable=protected-access
 # pyright: reportPrivateUsage=false
 

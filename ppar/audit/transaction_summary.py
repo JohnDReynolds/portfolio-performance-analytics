@@ -17,7 +17,6 @@ def transaction_semantics_summary(
     frames: Iterable[pl.DataFrame],
     *,
     rule_codes: set[str] | None = None,
-    exact_case: bool = False,
 ) -> dict[str, object]:
     """Return structured transaction semantics summary metadata.
 
@@ -25,9 +24,6 @@ def transaction_semantics_summary(
         frames: Transaction-like DataFrames with normalized transaction columns.
         rule_codes: Optional normalized transaction-code rules configured in
             YAML.
-        exact_case: Compare observed codes to YAML keys by exact native case
-            instead of using the legacy case-insensitive key.
-
     Returns:
         JSON-serializable transaction summary fields.
     """
@@ -51,12 +47,7 @@ def transaction_semantics_summary(
         {
             code
             for code in observed_codes
-            if (
-                transaction_code_matching_key(code, exact_case=True)
-                if exact_case
-                else normalized_transaction_code(code)
-            )
-            not in rule_codes
+            if transaction_code_matching_key(code) not in rule_codes
         }
         if rule_codes is not None
         else set()
@@ -71,12 +62,12 @@ def transaction_semantics_summary(
 
 
 def transaction_codes(frame: pl.DataFrame) -> set[str]:
-    """Return normalized transaction codes observed in a transaction-like frame."""
+    """Return native-case transaction codes in a transaction-like frame."""
     if _pc_cols.TRANSACTION_CODE not in frame.columns:
         return set()
     codes = set()
     for value in frame.get_column(_pc_cols.TRANSACTION_CODE):
-        code = normalized_transaction_code(value)
+        code = native_transaction_code(value)
         if code:
             codes.add(code)
     return codes
@@ -96,32 +87,16 @@ def native_transaction_codes(frame: pl.DataFrame) -> set[str]:
 
 def transaction_rule_codes(
     values: Mapping[str, object],
-    *,
-    exact_case: bool = False,
 ) -> set[str]:
-    """Return normalized transaction code keys configured in YAML rules."""
+    """Return native-case transaction code keys configured in YAML rules."""
     rules_value = values.get("transaction_rules", {})
     if not isinstance(rules_value, dict):
         return set()
     return {
         code
         for raw_code in rules_value
-        if (
-            code := (
-                transaction_code_matching_key(raw_code, exact_case=True)
-                if exact_case
-                else normalized_transaction_code(raw_code)
-            )
-        )
+        if (code := transaction_code_matching_key(raw_code))
     }
-
-
-def normalized_transaction_code(value: object) -> str:
-    """Return an uppercase transaction code, or blank for missing values."""
-    if value is None:
-        return ""
-    code = str(value).strip().upper()
-    return code if code else ""
 
 
 def native_transaction_code(value: object) -> str:

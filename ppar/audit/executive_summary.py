@@ -14,7 +14,7 @@ from typing import Final, TypedDict
 
 import polars as pl
 
-import ppar.utilities as util
+import ppar.common as util
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit.data_issues import checks as data_issue_checks

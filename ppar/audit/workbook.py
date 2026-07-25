@@ -14,7 +14,7 @@ from typing import Any
 import polars as pl
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit import executive_summary as _executive_summary

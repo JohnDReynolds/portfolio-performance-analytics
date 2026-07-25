@@ -41,8 +41,6 @@ class Performance:
             by the performance data.
         classification_items: Optional classification identifier/name pairs
             extracted from source-data rows when a ``name`` column is present.
-        df: Independent compatibility snapshot of ``narrow_df`` retained for
-            callers that access calculated performance rows directly.
         error_message_context: Context string included in validation errors.
         identifiers: Sorted identifiers present in the performance rows.
         name: Optional descriptive name for the performance stream.
@@ -118,7 +116,6 @@ class Performance:
         self._calculate_rows()
         self.identifiers = sorted(self.narrow_df[cols.IDENTIFIER].unique().to_list())
         self._df_overall = pl.DataFrame()
-        self.df = self.narrow_df.clone()
 
     def copy(self) -> "Performance":
         """Return an independent copy of this calculated performance stream.
@@ -137,7 +134,6 @@ class Performance:
         duplicate.narrow_df = self.narrow_df.clone()
         duplicate.identifiers = list(self.identifiers)
         duplicate._df_overall = self._df_overall.clone()
-        duplicate.df = duplicate.narrow_df.clone()
         # pylint: enable=attribute-defined-outside-init,protected-access
         return duplicate
 
@@ -495,7 +491,6 @@ class Performance:
         self._df_overall = pl.DataFrame()
         self.narrow_df = replacement
         self.identifiers = sorted(self.narrow_df[cols.IDENTIFIER].unique().to_list())
-        self.df = self.narrow_df.clone()
 
     def _validated_calculated_rows(self, df: pl.DataFrame) -> pl.DataFrame:
         """Return an owned, validated calculated-row DataFrame."""

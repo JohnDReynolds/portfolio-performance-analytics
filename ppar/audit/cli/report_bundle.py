@@ -52,7 +52,6 @@ def main(argv: list[str] | None = None) -> int:
             title=args.title,
             top_evidence_limit=args.top_evidence_limit,
             include_workbook=args.include_workbook,
-            require_complete_yaml_setup=not args.allow_incomplete_yaml,
             require_causal_attribution=args.require_causal_attribution,
             comparison_path=args.comparison_path,
             comparison_level=comparison_level,
@@ -139,15 +138,6 @@ def _argument_parser() -> argparse.ArgumentParser:
         help=(
             "Write every supporting CSV and JSON file under supporting_files "
             "instead of the default audit_support.zip archive."
-        ),
-    )
-    parser.add_argument(
-        "--allow-incomplete-yaml",
-        action="store_true",
-        help=(
-            "Write a diagnostic bundle even when changed source-data fields are "
-            "not explicitly classified by additive, evidence-only, or suppression "
-            "YAML."
         ),
     )
     parser.add_argument(

@@ -64,7 +64,6 @@ from ppar.audit.transactions import (
     normalize_transaction_cash_flow_sign,
     normalize_transaction_category,
     normalize_transaction_performance_flow_sign,
-    transaction_category_from_code,
     transaction_impact_semantics_available,
 )
 
@@ -144,7 +143,6 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
         "files": {"portfolio_performance": "portperf.csv"},
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "tolerances": {
             "return": 0.000001,
@@ -313,6 +311,13 @@ class TestTransactionsLoader(unittest.TestCase):
                 "portfolio_performance": "portperf.csv",
                 "transactions": "transactions.csv",
             }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 pl.DataFrame(
                     {
@@ -341,6 +346,13 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["files"] = {
                 "portfolio_performance": "portperf.csv",
                 "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "by": {
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
             }
             for snapshot_name in ("snapshot_a", "snapshot_b"):
                 snapshot_path = directory / snapshot_name
@@ -372,8 +384,8 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertTrue(message.startswith("Error 504"))
         self.assertIn("authoritative portfolio_performance", message)
 
-    def test_transaction_category_is_inferred_from_transaction_code(self) -> None:
-        """Transaction codes are labeled with conservative normalized categories."""
+    def test_transaction_category_is_resolved_by_explicit_yaml_rules(self) -> None:
+        """Explicit rules label source transaction codes with reviewed categories."""
         specification = AuditSpecification(_BASELINE_COMPARISON_PATH)
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
@@ -395,28 +407,6 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(normalize_transaction_category("Cash Deposit"), "external_flow")
         self.assertEqual(normalize_transaction_category("fee-expense"), "fee_expense")
         self.assertEqual(normalize_transaction_category(""), "unknown")
-        self.assertEqual(transaction_category_from_code("by"), "buy")
-        self.assertEqual(transaction_category_from_code("sl"), "sell")
-        self.assertEqual(transaction_category_from_code("dv"), "income")
-        self.assertEqual(transaction_category_from_code("in"), "income")
-        self.assertEqual(transaction_category_from_code("wd"), "unknown")
-        self.assertEqual(transaction_category_from_code("li"), "unknown")
-        self.assertEqual(transaction_category_from_code("lo"), "unknown")
-        self.assertEqual(transaction_category_from_code("dp"), "unknown")
-        self.assertEqual(transaction_category_from_code("ai"), "unknown")
-        self.assertEqual(transaction_category_from_code("ti"), "unknown")
-        self.assertEqual(transaction_category_from_code("pa"), "unknown")
-        self.assertEqual(transaction_category_from_code("sa"), "unknown")
-        self.assertEqual(transaction_category_from_code("pd"), "unknown")
-        self.assertEqual(transaction_category_from_code("rc"), "unknown")
-        self.assertEqual(transaction_category_from_code("ss"), "unknown")
-        self.assertEqual(transaction_category_from_code("cs"), "unknown")
-        self.assertEqual(transaction_category_from_code("SELL"), "sell")
-        self.assertEqual(transaction_category_from_code("not-a-real-code"), "unknown")
-        self.assertEqual(
-            transaction_category_from_code("BY", exact_case=True),
-            "unknown",
-        )
 
     def test_fixed_income_transaction_boundary_is_modified_dietz_scoped(self) -> None:
         """Fixed-income helper names safe formula inputs and blocked backlog codes."""
@@ -427,11 +417,9 @@ class TestTransactionsLoader(unittest.TestCase):
                     fixed_income_transaction_boundary(code),
                     "accrued_interest_adjunct",
                 )
-                self.assertEqual(transaction_category_from_code(code), "unknown")
         for code in FIXED_INCOME_BACKLOG_TRANSACTION_CODES:
             with self.subTest(code=code):
                 self.assertEqual(fixed_income_transaction_boundary(code), "backlog")
-                self.assertEqual(transaction_category_from_code(code), "unknown")
 
         self.assertIn(
             "ordinary interest transaction amounts",
@@ -444,7 +432,7 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertIn("amortization/accretion engine", FIXED_INCOME_OUT_OF_SCOPE)
         self.assertIn("yield calculation", FIXED_INCOME_OUT_OF_SCOPE)
         self.assertEqual(
-            fixed_income_transaction_boundary("IN", exact_case=True),
+            fixed_income_transaction_boundary("IN"),
             "not_fixed_income_boundary",
         )
 
@@ -453,12 +441,10 @@ class TestTransactionsLoader(unittest.TestCase):
         for code in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES:
             with self.subTest(code=code):
                 self.assertEqual(transaction_backlog_gate(code), "capital_return_policy")
-                self.assertEqual(transaction_category_from_code(code), "unknown")
 
         for code in SHORT_SIDE_BACKLOG_TRANSACTION_CODES:
             with self.subTest(code=code):
                 self.assertEqual(transaction_backlog_gate(code), "short_side_evidence")
-                self.assertEqual(transaction_category_from_code(code), "unknown")
 
         self.assertIn("performance income", CAPITAL_RETURN_POSSIBLE_ROLES)
         self.assertIn("corporate-action evidence", CAPITAL_RETURN_POSSIBLE_ROLES)
@@ -466,10 +452,7 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertIn("cost-basis or principal context", CAPITAL_RETURN_REQUIRED_EVIDENCE)
         self.assertIn("short security type", SHORT_SIDE_REQUIRED_EVIDENCE)
         self.assertIn("amount and quantity signs", SHORT_SIDE_REQUIRED_EVIDENCE)
-        self.assertEqual(
-            transaction_backlog_gate("RC", exact_case=True),
-            "not_backlog_gate",
-        )
+        self.assertEqual(transaction_backlog_gate("RC"), "not_backlog_gate")
 
     def test_transaction_sign_semantics_use_documented_vocabulary(self) -> None:
         """Transaction sign semantics normalize only recognized source labels."""
@@ -717,6 +700,7 @@ class TestTransactionsLoader(unittest.TestCase):
                         "SEC": ["S1"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["BUY"],
+                        "TRANSACTION_CATEGORY": ["buy"],
                         "CASH_FLOW_SIGN": ["negative"],
                         "PERFORMANCE_FLOW_SIGN": ["performance"],
                     }
@@ -836,6 +820,7 @@ class TestTransactionsLoader(unittest.TestCase):
                         "SEC": ["S1"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["BUY"],
+                        "TRANSACTION_CATEGORY": ["buy"],
                         "CASH_FLOW_SIGN": ["negative"],
                         "PERFORMANCE_FLOW_SIGN": ["performance"],
                     }
@@ -1123,8 +1108,6 @@ class TestTransactionsLoader(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        self.assertEqual(transaction_category_from_code("pa"), "unknown")
-        self.assertEqual(transaction_category_from_code("sa"), "unknown")
         self.assertEqual(
             frame.sort(pc_cols.TRANSACTION_CODE)
             .select(
@@ -1175,7 +1158,6 @@ class TestTransactionsLoader(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        self.assertEqual(transaction_category_from_code("ai"), "unknown")
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
@@ -1220,7 +1202,6 @@ class TestTransactionsLoader(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        self.assertEqual(transaction_category_from_code("epus"), "unknown")
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
@@ -1259,7 +1240,6 @@ class TestTransactionsLoader(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        self.assertEqual(transaction_category_from_code("rc"), "unknown")
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
@@ -1300,7 +1280,6 @@ class TestTransactionsLoader(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        self.assertEqual(transaction_category_from_code("pd"), "unknown")
         self.assertEqual(
             frame.select(
                 pc_cols.TRANSACTION_CODE,
@@ -1341,8 +1320,6 @@ class TestTransactionsLoader(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        self.assertEqual(transaction_category_from_code("ss"), "unknown")
-        self.assertEqual(transaction_category_from_code("cs"), "unknown")
         self.assertEqual(
             frame.sort(pc_cols.TRANSACTION_CODE, descending=True)
             .select(
@@ -1518,6 +1495,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     "CASH_FLOW_SIGN",
                     "PERFORMANCE_FLOW_SIGN",
                 ],
+                version=1,
             )
             configuration = _minimal_specification(directory)
             configuration["files"] = {
@@ -1527,7 +1505,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             rows = {
                 "PORT": ["P1", "P1", "P1", "P1"],
@@ -1624,7 +1601,10 @@ class TestTransactionsLoader(unittest.TestCase):
             TransactionsLoader(specification).load("a")
 
         message = str(context.exception)
-        self.assertIn("ambiguous Axys/APX transaction codes DP, LI, LO, TI, WD", message)
+        self.assertIn(
+            "ambiguous Axys/APX transaction codes dp, li, lo, ti, wd",
+            message,
+        )
         self.assertIn("IMEX transaction code alone is not enough", message)
         self.assertIn("REP/report extract", message)
 
@@ -1757,6 +1737,7 @@ class TestTransactionsLoader(unittest.TestCase):
                     "SPECIAL_SEC_TYPE",
                     "SPECIAL_SEC_SYMBOL",
                 ],
+                version=1,
             )
             configuration = _minimal_specification(directory)
             configuration["files"] = {
@@ -1766,7 +1747,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "dp": [
@@ -1849,7 +1829,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 TransactionsLoader(specification).load("a")
 
             message = str(context.exception)
-            self.assertIn("ambiguous Axys/APX transaction codes WD", message)
+            self.assertIn("ambiguous Axys/APX transaction codes wd", message)
             self.assertIn("IMEX transaction code alone is not enough", message)
             self.assertIn("REP/report extract", message)
 
@@ -1857,7 +1837,7 @@ class TestTransactionsLoader(unittest.TestCase):
         """A local extract contract can define the context fields a site exposes."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
-            _write_extract_contract(directory, ["SRC_DEST_TYPE"])
+            _write_extract_contract(directory, ["SRC_DEST_TYPE"], version=1)
             configuration = _minimal_specification(directory)
             configuration["files"] = {
                 "portfolio_performance": "portperf.csv",
@@ -1866,7 +1846,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "wd": {
@@ -1905,7 +1884,7 @@ class TestTransactionsLoader(unittest.TestCase):
         """A complete matching context rule is the semantic authority."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
-            _write_extract_contract(directory, ["SRC_DEST_TYPE"])
+            _write_extract_contract(directory, ["SRC_DEST_TYPE"], version=1)
             configuration = _minimal_specification(directory)
             configuration["files"] = {
                 "portfolio_performance": "portperf.csv",
@@ -1914,7 +1893,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "li": {
@@ -1931,7 +1909,7 @@ class TestTransactionsLoader(unittest.TestCase):
                         "SEC": ["CASHUSD"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["li"],
-                        "SRC_DEST_TYPE": [" $PTY "],
+                        "SRC_DEST_TYPE": [" $pty "],
                         "TRANSACTION_CATEGORY": ["cash deposit"],
                         "CASH_FLOW_SIGN": ["cash in"],
                     }
@@ -1957,47 +1935,6 @@ class TestTransactionsLoader(unittest.TestCase):
                 TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
             )
 
-    def test_legacy_transaction_rules_remain_case_insensitive(self) -> None:
-        """Omitted case policy preserves existing rule-key and context matching."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            directory = Path(temp_dir)
-            configuration = _minimal_specification(directory)
-            configuration["files"] = {
-                "portfolio_performance": "portperf.csv",
-                "transactions": "transactions.csv",
-            }
-            configuration["transaction_rules"] = {
-                "by": {
-                    "when": {"transaction_security_type": "csus"},
-                    "transaction_category": "fee_expense",
-                    "cash_flow_sign": "negative",
-                    "performance_flow_sign": "performance",
-                }
-            }
-            for snapshot_name in ("snapshot_a", "snapshot_b"):
-                pl.DataFrame(
-                    {
-                        "PORT": ["P1"],
-                        "SEC": ["SEC1"],
-                        "TRANSACTION_DATE": ["2025-01-31"],
-                        "TRAN": ["BY"],
-                        "SEC_TYPE": ["CSUS"],
-                    }
-                ).write_csv(directory / snapshot_name / "transactions.csv")
-            path = _write_yaml(directory, configuration)
-            frame = TransactionsLoader(AuditSpecification(path)).load("a")
-            assert frame is not None
-
-            row = frame.row(0, named=True)
-            self.assertEqual(
-                row[pc_cols.TRANSACTION_CATEGORY],
-                TRANSACTION_CATEGORY_FEE_EXPENSE,
-            )
-            self.assertEqual(
-                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
-                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
-            )
-
     def test_exact_case_rules_distinguish_codes_and_context_values(self) -> None:
         """A versioned contract may give lowercase and uppercase codes distinct roles."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2011,7 +1948,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "exact",
             }
             configuration["transaction_rules"] = {
                 "by": {
@@ -2071,7 +2007,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "exact",
             }
             configuration["transaction_rules"] = {
                 "by": {
@@ -2113,7 +2048,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "exact",
             }
             configuration["transaction_rules"] = {
                 "by": {
@@ -2150,18 +2084,17 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "exact",
             }
             path = _write_yaml(directory, configuration)
 
             with self.assertRaisesRegex(
                 PpaError,
-                "exact transaction semantics require a positive integer contract version",
+                "transaction semantics require a positive integer contract version",
             ):
                 validate_config(path, require_complete_yaml_setup=False)
 
-    def test_invalid_transaction_semantics_case_fails_closed(self) -> None:
-        """Unknown extract-contract case policy is rejected."""
+    def test_retired_transaction_semantics_case_fails_closed(self) -> None:
+        """The retired transaction-semantics compatibility setting is rejected."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -2173,7 +2106,7 @@ class TestTransactionsLoader(unittest.TestCase):
 
             with self.assertRaisesRegex(
                 PpaError,
-                "transaction_semantics_case must be one of",
+                "unsupported keys: transaction_semantics_case",
             ):
                 validate_config(path, require_complete_yaml_setup=False)
 
@@ -2186,7 +2119,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             path = _write_yaml(directory, configuration)
 
@@ -2199,12 +2131,15 @@ class TestTransactionsLoader(unittest.TestCase):
         """A local extract contract cannot name unsupported transaction columns."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
-            _write_extract_contract(directory, ["NOT_AN_AXYS_FIELD"])
+            _write_extract_contract(
+                directory,
+                ["NOT_AN_AXYS_FIELD"],
+                version=1,
+            )
             configuration = _minimal_specification(directory)
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             path = _write_yaml(directory, configuration)
 
@@ -2239,7 +2174,6 @@ class TestTransactionsLoader(unittest.TestCase):
             configuration["extract_contract"] = {
                 "path": "site_extract_contract.yaml",
                 "enforce_ambiguous_axys_flows": True,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             path = _write_yaml(directory, configuration)
 
@@ -2262,7 +2196,6 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             configuration["extract_contract"] = {
                 "enforce_ambiguous_axys_flows": False,
-                "transaction_semantics_case": "legacy_case_insensitive",
             }
             configuration["transaction_rules"] = {
                 "wd": {

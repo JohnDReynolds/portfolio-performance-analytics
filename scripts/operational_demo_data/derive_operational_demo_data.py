@@ -1578,7 +1578,6 @@ files:
 
 extract_contract:
   enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: legacy_case_insensitive
 
 transaction_rules:
   by:
@@ -1589,6 +1588,29 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+  dp:
+    - when:
+        special_security_type: exus
+        special_security_symbol: custfee
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
+  in:
+    transaction_category: income
+    cash_flow_sign: positive
+    performance_flow_sign: performance
+  sl:
+    transaction_category: sell
+    cash_flow_sign: positive
+    performance_flow_sign: performance
+  wd:
+    - when:
+        security_id: causCASHUSD
+        source_destination_type: $pty
+        source_destination_symbol: $cash
+      transaction_category: external_flow
+      cash_flow_sign: negative
+      performance_flow_sign: external
 
 security_return_impact_methods:
   transactions:

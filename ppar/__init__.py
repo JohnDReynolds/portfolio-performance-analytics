@@ -1,4 +1,4 @@
-"""Expose the public PPAR package API."""
+"""Expose the Audit-focused public PPAR package API."""
 
 # Python Imports
 from importlib import import_module
@@ -6,29 +6,28 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ppar.analytics import Analytics, Attribution, Frequency, RiskStatistics, View
+    from ppar.audit import (
+        AuditSpecification,
+        compare_snapshots,
+        write_audit_report_bundle,
+    )
 
 try:
     __version__ = version("ppar")
 except PackageNotFoundError:  # pragma: no cover - only expected outside package metadata
     __version__ = "0+unknown"
 
-_ANALYTICS_EXPORTS = {
-    "Analytics",
-    "Attribution",
-    "Frequency",
-    "RiskStatistics",
-    "View",
+_AUDIT_EXPORTS = {
+    "AuditSpecification",
+    "compare_snapshots",
+    "write_audit_report_bundle",
 }
 
-# Define the public API using __all__.
 __all__ = [
-    "Analytics",
-    "Attribution",
-    "Frequency",
-    "RiskStatistics",
-    "View",
+    "AuditSpecification",
     "__version__",
+    "compare_snapshots",
+    "write_audit_report_bundle",
 ]
 
 
@@ -39,14 +38,14 @@ def __getattr__(name: str) -> Any:
         name: Package-root attribute requested by an importer.
 
     Returns:
-        The requested public Analytics symbol.
+        The requested public Audit symbol.
 
     Raises:
         AttributeError: If ``name`` is not a public lazy export.
     """
-    if name in _ANALYTICS_EXPORTS:
-        analytics = import_module("ppar.analytics")
-        value = getattr(analytics, name)
+    if name in _AUDIT_EXPORTS:
+        audit = import_module("ppar.audit")
+        value = getattr(audit, name)
         globals()[name] = value
         return value
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

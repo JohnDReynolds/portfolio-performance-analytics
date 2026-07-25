@@ -18,7 +18,7 @@ from typing import Any, Final
 import polars as pl
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit.data_issues.config import (
@@ -33,7 +33,6 @@ from ppar.audit.portfolio_performance import (
 from ppar.audit.security_master import SecurityMasterLoader
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
-from ppar.audit.extract_contract import transaction_semantics_exact_case
 from ppar.audit.transaction_policy import (
     transaction_boundary_codes,
     transaction_code_matching_key,
@@ -293,20 +292,12 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
         comparison_path,
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
     )
-    exact_case = transaction_semantics_exact_case(
-        specification.values,
-        specification_path=specification.path,
-    )
     config = _data_issues_config(specification.values)
     portfolio_performance = _snapshot_frames(
-        PortfolioPerformanceLoader(specification),
-        pc_cols.PORTFOLIO_PERFORMANCE,
+        PortfolioPerformanceLoader(specification)
     )
-    holdings = _snapshot_frames(HoldingsLoader(specification), pc_cols.HOLDINGS)
-    transactions = _snapshot_frames(
-        TransactionsLoader(specification),
-        pc_cols.TRANSACTIONS,
-    )
+    holdings = _snapshot_frames(HoldingsLoader(specification))
+    transactions = _snapshot_frames(TransactionsLoader(specification))
     _validate_required_transaction_columns(
         transactions,
         required_columns=required_transaction_columns(specification.values),
@@ -346,20 +337,18 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     split_rows: tuple[dict[str, object], ...] = ()
     if _check_enabled(config, ISSUE_LARGE_PRICE_VARIATION):
         split_rows = _snapshot_rows(
-            _snapshot_frames(SplitsLoader(specification), pc_cols.SPLITS)
+            _snapshot_frames(SplitsLoader(specification))
         )
     rows.extend(
         _duplicate_transaction_issues(
             transaction_rows,
             config,
-            exact_case=exact_case,
         )
     )
     rows.extend(
         _deliver_in_original_cost_incomplete_issues(
             transaction_rows,
             config,
-            exact_case=exact_case,
         )
     )
     rows.extend(_holdings_nonpositive_price_issues(holding_rows, config))
@@ -382,7 +371,6 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
             transaction_rows,
             holding_rows,
             config,
-            exact_case=exact_case,
         )
     )
     rows.extend(
@@ -390,7 +378,6 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
             holding_rows,
             transaction_rows,
             config,
-            exact_case=exact_case,
         )
     )
     rows.extend(_holdings_accrued_rate_issues(holding_rows, config))
@@ -412,7 +399,7 @@ def _issues_table(rows: list[dict[str, object]]) -> pl.DataFrame:
     )
 
 
-def _snapshot_frames(loader: Any, dataset_name: str) -> tuple[pl.DataFrame, ...]:
+def _snapshot_frames(loader: Any) -> tuple[pl.DataFrame, ...]:
     """Load Snapshot A and Snapshot B frames for one optional dataset."""
     frames: list[pl.DataFrame] = []
     for snapshot_key, snapshot_label in _snapshot_labels():
@@ -463,8 +450,6 @@ def _validate_required_transaction_columns(
 def _deliver_in_original_cost_incomplete_issues(
     transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
-    *,
-    exact_case: bool,
 ) -> list[dict[str, object]]:
     """Return configured deliver-ins with incomplete original-cost evidence."""
     check_name = ISSUE_DELIVER_IN_ORIGINAL_COST_INCOMPLETE
@@ -474,7 +459,7 @@ def _deliver_in_original_cost_incomplete_issues(
     row_filter = _row_filter(
         config,
         check_name,
-        exact_native_case=exact_case,
+        exact_native_case=True,
     )
     rows: list[dict[str, object]] = []
     occurrence_counts: dict[tuple[str, ...], int] = {}
@@ -762,8 +747,6 @@ def _format_tolerance_number(value: float) -> str:
 def _duplicate_transaction_issues(
     transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
-    *,
-    exact_case: bool,
 ) -> list[dict[str, object]]:
     """Return exact duplicate transaction issues."""
     check_name = ISSUE_DUPLICATE_TRANSACTIONS
@@ -780,10 +763,7 @@ def _duplicate_transaction_issues(
             _text(row.get(pc_cols.PORTFOLIO_ID)),
             _date(row.get(pc_cols.TRANSACTION_DATE)),
             _text(row.get(pc_cols.SECURITY_ID)),
-            transaction_code_matching_key(
-                row.get(pc_cols.TRANSACTION_CODE),
-                exact_case=exact_case,
-            ),
+            transaction_code_matching_key(row.get(pc_cols.TRANSACTION_CODE)),
             _number(row.get(pc_cols.AMOUNT)),
             _number(row.get(pc_cols.QUANTITY)),
             _number(row.get(pc_cols.PRICE)),
@@ -1608,7 +1588,7 @@ def _price_range_issues(
     """Return price-range issues from same-snapshot same-date security groups."""
     tolerance = _tolerance(config, check_name)
     rows: list[dict[str, object]] = []
-    for (snapshot, as_of_date, security_id), group_rows in groups.items():
+    for (snapshot, _as_of_date, security_id), group_rows in groups.items():
         prices = [_number(row.get(pc_cols.PRICE)) for row in group_rows]
         numeric_prices = [price for price in prices if price is not None]
         if len(numeric_prices) < 2:
@@ -1644,8 +1624,6 @@ def _same_day_rate_issues(
     transactions: Sequence[Mapping[str, object]],
     holdings: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
-    *,
-    exact_case: bool,
 ) -> list[dict[str, object]]:
     """Return same-day same-security transaction-rate issues."""
     enabled_checks = (
@@ -1666,7 +1644,6 @@ def _same_day_rate_issues(
                 transaction_codes=_DIVIDEND_CODES,
                 issue_type=ISSUE_DIVIDEND_RATE,
                 dataset_field="transactions.amount",
-                exact_case=exact_case,
             )
         )
     if enabled_checks[1]:
@@ -1679,7 +1656,6 @@ def _same_day_rate_issues(
                 transaction_codes=_ACCRUAL_CODES,
                 issue_type=ISSUE_PA_SA_RATE,
                 dataset_field="transactions.amount",
-                exact_case=exact_case,
             )
         )
     return rows
@@ -1696,7 +1672,6 @@ def _transaction_rate_issues(
     transaction_codes: frozenset[str],
     issue_type: str,
     dataset_field: str,
-    exact_case: bool,
 ) -> list[dict[str, object]]:
     """Return transaction-rate issues for a configured transaction-code family."""
     if not _check_enabled(config, check_name):
@@ -1706,10 +1681,7 @@ def _transaction_rate_issues(
     row_filter = _row_filter(config, check_name)
     groups: dict[tuple[str, dt.date, str, str], list[Mapping[str, object]]] = {}
     for row in transactions:
-        code = transaction_code_matching_key(
-            row.get(pc_cols.TRANSACTION_CODE),
-            exact_case=exact_case,
-        )
+        code = transaction_code_matching_key(row.get(pc_cols.TRANSACTION_CODE))
         if code not in transaction_codes:
             continue
         if not row_filter.allows(row):
@@ -1803,8 +1775,6 @@ def _missing_dividend_issues(
     holdings: Sequence[Mapping[str, object]],
     transactions: Sequence[Mapping[str, object]],
     config: Mapping[str, object],
-    *,
-    exact_case: bool,
 ) -> list[dict[str, object]]:
     """Return portfolios that appear to be missing same-date dividends."""
     check_name = ISSUE_MISSING_DIVIDEND
@@ -1815,10 +1785,7 @@ def _missing_dividend_issues(
     dividend_rows = [
         row
         for row in transactions
-        if transaction_code_matching_key(
-            row.get(pc_cols.TRANSACTION_CODE),
-            exact_case=exact_case,
-        )
+        if transaction_code_matching_key(row.get(pc_cols.TRANSACTION_CODE))
         in _DIVIDEND_CODES
     ]
     holdings_by_security: dict[tuple[str, str], list[Mapping[str, object]]] = {}
@@ -1887,7 +1854,6 @@ def _missing_dividend_issues(
             snapshot=snapshot,
             security_id=security_id,
             dividend_date=dividend_date,
-            exact_case=exact_case,
         )
         for portfolio_id in held_portfolios:
             if (
@@ -1965,7 +1931,6 @@ def _held_portfolios(
     snapshot: str,
     security_id: str,
     dividend_date: dt.date,
-    exact_case: bool,
 ) -> tuple[str, ...]:
     """Return portfolios that conservatively appear eligible for a dividend."""
     by_portfolio: dict[str, list[Mapping[str, object]]] = {}
@@ -1993,7 +1958,6 @@ def _held_portfolios(
                 start_date=previous_date,
                 dividend_date=dividend_date,
                 beginning_quantity=_number(previous_row.get(pc_cols.QUANTITY)),
-                exact_case=exact_case,
             ):
                 continue
             held_portfolios.append(portfolio_id)
@@ -2007,7 +1971,6 @@ def _missing_dividend_position_qualifies(
     start_date: dt.date,
     dividend_date: dt.date,
     beginning_quantity: float | None,
-    exact_case: bool,
 ) -> bool:
     """Return whether a portfolio qualifies for conservative dividend review."""
     has_beginning_position = _positive(beginning_quantity)
@@ -2017,8 +1980,7 @@ def _missing_dividend_position_qualifies(
         if transaction_date is None or not start_date < transaction_date < dividend_date:
             continue
         transaction_code = transaction_code_matching_key(
-            row.get(pc_cols.TRANSACTION_CODE),
-            exact_case=exact_case,
+            row.get(pc_cols.TRANSACTION_CODE)
         )
         if transaction_code not in _BUY_CODES:
             return False

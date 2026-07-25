@@ -25,7 +25,7 @@ from ppar.axys_apx.security_identity import (
 )
 from ppar.errors import PpaError
 from ppar.source_files import source_file_columns
-import ppar.utilities as util
+import ppar.common as util
 
 ColumnAliases: TypeAlias = dict[str, tuple[str, ...]]
 _SourceFrameCache: TypeAlias = dict[Path, pl.DataFrame]

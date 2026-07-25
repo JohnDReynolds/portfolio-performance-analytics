@@ -33,23 +33,18 @@ FIXED_INCOME_OUT_OF_SCOPE: Final[tuple[str, ...]] = (
 
 def fixed_income_transaction_boundary(
     code: object,
-    *,
-    exact_case: bool = False,
 ) -> str:
     """Return fixed-income boundary treatment for one transaction code.
 
     Args:
         code: Source transaction code.
-        exact_case: Preserve native case instead of using legacy lowercase
-            boundary matching.
-
     Returns:
         ``"safe_income"`` for ordinary interest rows,
         ``"accrued_interest_adjunct"`` for promoted purchase/sale accrued
         interest adjuncts, ``"backlog"`` for fixed-income rows that still need
         more evidence, and ``"not_fixed_income_boundary"`` otherwise.
     """
-    normalized = transaction_code_matching_key(code, exact_case=exact_case)
+    normalized = transaction_code_matching_key(code)
     if normalized in FIXED_INCOME_SAFE_TRANSACTION_CODES:
         return "safe_income"
     if normalized in FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES:

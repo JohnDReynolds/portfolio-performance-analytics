@@ -19,9 +19,6 @@ CONTEXTUAL_PACKAGED_TRANSACTION_CODES: Final[frozenset[str]] = (
 AMBIGUOUS_CONTEXT_REQUIRED_TRANSACTION_CODES: Final[frozenset[str]] = (
     transaction_boundary_codes("ambiguous_context_required")
 )
-REVIEW_ONLY_TEST_TRANSACTION_CODES: Final[frozenset[str]] = (
-    transaction_boundary_codes("review_only_test")
-)
 CONTEXT_ONLY_TRANSACTION_CODES: Final[frozenset[str]] = transaction_boundary_codes(
     "context_only"
 )
@@ -34,21 +31,16 @@ TRANSACTION_BOUNDARY_REGISTRY: Final = transaction_boundary_registry()
 
 def transaction_boundary_groups(
     code: object,
-    *,
-    exact_case: bool = False,
 ) -> tuple[str, ...]:
     """Return boundary groups containing one transaction code.
 
     Args:
         code: Source transaction code.
-        exact_case: Preserve native case instead of using legacy lowercase
-            boundary matching.
-
     Returns:
-        Boundary group names containing the normalized code. Unknown, blank, and
+        Boundary group names containing the native-case code. Unknown, blank, and
         unregistered codes return an empty tuple.
     """
-    normalized = transaction_code_matching_key(code, exact_case=exact_case)
+    normalized = transaction_code_matching_key(code)
     if not normalized:
         return ()
     return tuple(

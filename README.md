@@ -2,16 +2,14 @@
 
 **Explain why reported portfolio performance changed.**
 
-PPAR Audit turns changed portfolio and security returns into a structured,
-evidence-backed investigation. It compares two portfolio-accounting snapshots,
-quantifies supported causes across holdings, transactions, prices, FX, and related
-data, flags suspicious source-data relationships, and produces reviewer-ready Excel
-and HTML reports.
+PPAR Audit answers a difficult operational question: "Why did my reported portfolio
+performance change?" It compares two portfolio-accounting snapshots, quantifies
+supported causes across holdings, transactions, prices, FX, and related data, flags
+suspicious source-data relationships, and produces reviewer-ready Excel and HTML
+reports. When the available evidence is insufficient, the unexplained difference
+stays visible for human review.
 
-When a difference cannot be explained safely, PPAR Audit keeps it visible for human
-review rather than manufacturing certainty.
-
-- Everything runs locally, so client data stays inside the client's environment.
+- Everything runs locally, so portfolio data stays inside your environment.
 - The Python implementation supports automated batch runs and local customization.
 - Standard output includes XLSX, HTML, CSV, JSON, and compact evidence bundles.
 
@@ -48,9 +46,10 @@ Install the PPAR package:
 pip install ppar
 ```
 
-Create a local PPAR Audit workspace. The workspace includes demonstration data so
-you can run the complete workflow before replacing the CSV files with approved
-exports from your own environment.
+Create a local PPAR Audit workspace. The workspace includes PPAR-normalized
+demonstration data modeled on Axys/APX source and report data, so you can run the
+complete workflow before replacing the CSV files with reviewed exports from your
+own environment.
 
 ```bash
 ppar setup ./my_ppar_audit
@@ -63,8 +62,8 @@ ppar audit ./my_ppar_audit
 ```
 
 Follow the `Customizing With Your Own Data` section in
-`./my_ppar_audit/README.md` when you are ready to configure the workspace for a
-local site.
+`./my_ppar_audit/README.md` when you are ready to customize the workspace with
+your own data.
 
 ```text
 my_ppar_audit/
@@ -89,14 +88,13 @@ my_ppar_audit/
     splits.csv
 ```
 
-Existing combined workspaces remain runnable. For example, a workspace previously
-created under `my_ppar_data/audit` can still be passed directly to `ppar audit`.
-
 ---
 
 ## Inputs
 
-The source-data files are typically IMEX-style CSV exports:
+The demonstration files are PPAR-normalized CSVs modeled on Axys/APX data.
+Production inputs may come from reviewed REP, IMEX, custom-report, or other
+controlled exports:
 
 - portfolio performance;
 - security performance;
@@ -110,10 +108,10 @@ Audit uses two source-data snapshots. Snapshot A is normally the older or origin
 state and Snapshot B is normally the newer or restated state, but neither snapshot
 is presumed correct.
 
-PPAR normalizes those files through YAML, so each site can configure its local field
-names, transaction-code treatment, comparison tolerances, and report assumptions.
-The setup-created `ppar.yaml` keeps normal choices in its `audit:` section. Each
-runtime setting is documented beside an exact one-run command-line override.
+PPAR normalizes those files through a customizable `ppar.yaml` file, so each site
+can configure its local field names, transaction-code treatment, comparison
+tolerances, and report assumptions. The setup-created file documents these choices
+in place.
 
 The configured file and accounting contracts fail closed when required source
 treatment is missing or ambiguous. Optional evidence does not silently expand the
@@ -138,15 +136,6 @@ output/
     source_detail.csv
     audit_support.zip
 ```
-
-The workspace's `audit:` settings enable both XLSX and HTML output. For a one-run
-format change, use `--html-only`, `--xlsx-only`, or `--csv-only`. CSV-only output
-promotes
-`performance_differences.csv`, `performance_difference_causes.csv`,
-`data_issues.csv`, and `source_detail.csv` to each report directory.
-
-Use `--expand-supporting-files` to replace each `audit_support.zip` with an
-expanded `supporting_files/` directory.
 
 To prevent unusably large artifacts, Audit stops with a nonzero exit code before
 writing a report when any primary review table would exceed 100,000 rows. The error
@@ -176,7 +165,7 @@ assurance opinion.
 ## Additional Repository Capability
 
 This repository also contains
-[`ppar.analytics`](docs/analytics/README.md), a maintained module for benchmark
-attribution, contribution, and ex-post risk reporting. It is retained for future
-PPAR packaging but is not part of the current PPAR Audit validation program or
-default onboarding workflow.
+[`ppar.analytics`](docs/analytics/README.md), a maintained module for
+benchmark-relative performance attribution, contribution, and ex-post risk
+reporting. It is retained for future PPAR packaging but is not part of the current
+PPAR Audit validation program or default onboarding workflow.

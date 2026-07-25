@@ -17,7 +17,13 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-import ppar.errors as errs
+from ppar.common import (
+    ENCODING,
+    PathLike,
+    file_basename_without_extension,
+    file_path_error,
+    file_path_exists,
+)
 from ppar.errors import PpaError
 
 __all__ = [
@@ -51,7 +57,6 @@ __all__ = [
 ]
 
 # Types for type-checking.
-PathLike: TypeAlias = str | Path
 AllDataSources: TypeAlias = PathLike | dict[str, str] | pd.DataFrame | pl.DataFrame
 ClassificationDataSource: TypeAlias = AllDataSources
 MappingDataSource: TypeAlias = AllDataSources
@@ -64,7 +69,6 @@ DEFAULT_ANNUAL_RISK_FREE_RATE = 0.03  # 3%
 DEFAULT_CONFIDENCE_LEVEL = 0.95  # 95%
 DEFAULT_CURRENCY_SYMBOL = "$"
 DEFAULT_PORTFOLIO_VALUE = 100_000  # $100,000
-ENCODING = "utf-8"
 _UNDEFINED_RETURN = -1.0
 _T = TypeVar("_T")
 
@@ -198,47 +202,6 @@ def date_str(date: dt.date) -> str:
         The date formatted as ``yyyy-mm-dd``.
     """
     return date.strftime(DATE_FORMAT_STRING)
-
-
-def file_basename_without_extension(file_path: PathLike) -> str:
-    """Return a file name without its directory or extension.
-
-    Args:
-        file_path: The file path to evaluate.
-
-    Returns:
-        The base file name before the first period in the file name.
-    """
-    return Path(file_path).name.split(".")[0]
-
-
-def file_path_error(file_path: PathLike) -> str:
-    """Return the appropriate file path error message.
-
-    Args:
-        file_path: The file path that failed validation.
-
-    Returns:
-        The empty-path error message if ``file_path`` is empty; otherwise, the
-        missing-file error message with ``file_path`` appended.
-    """
-    is_blank_path = isinstance(file_path, str) and not file_path.strip()
-    return errs.ERRORS[804] if is_blank_path else f"{errs.ERRORS[802]}{file_path}"
-
-
-def file_path_exists(file_path: PathLike) -> bool:
-    """Return whether a non-empty file path exists and points to a file.
-
-    Args:
-        file_path: The file path to test.
-
-    Returns:
-        True if ``file_path`` is non-empty, exists, and is a file; otherwise,
-        False.
-    """
-    if isinstance(file_path, str) and not file_path.strip():
-        return False
-    return Path(file_path).is_file()
 
 
 def normalize_optional_string(value: str | None) -> str | None:

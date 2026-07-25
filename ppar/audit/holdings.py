@@ -17,7 +17,7 @@ from ppar.audit.portfolio_performance import (
     SnapshotKey,
 )
 from ppar.audit.specification import AuditSpecification
-import ppar.utilities as util
+import ppar.common as util
 
 
 def _performance_calculation_configured(

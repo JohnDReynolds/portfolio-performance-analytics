@@ -38,7 +38,8 @@ import ppar.audit.schema as pc_cols
 from ppar.audit.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
 )
-import ppar.utilities as util
+from ppar.audit.workbook_reconstruction import WorkbookReconstructionCache
+import ppar.common as util
 
 __all__ = [
     "compact_findings_table",
@@ -71,6 +72,7 @@ class AuditComparisonViews:
         *,
         include_suppressed: bool = True,
         require_causal_attribution: bool = False,
+        reconstruction_cache: WorkbookReconstructionCache | None = None,
     ) -> None:
         """Initialize one lazy, canonical comparison run.
 
@@ -79,10 +81,16 @@ class AuditComparisonViews:
             include_suppressed: Whether returned views include suppressed rows.
             require_causal_attribution: Whether returned views must have all
                 setup needed by supported causal-attribution methods.
+            reconstruction_cache: Optional run-scoped reconstruction results
+                shared with report construction.
         """
         self.specification_path = specification_path
         self.include_suppressed = include_suppressed
         self.require_causal_attribution = require_causal_attribution
+        self._reconstruction_cache = (
+            reconstruction_cache
+            or WorkbookReconstructionCache(specification_path)
+        )
         self._comparisons: dict[str, PerformanceComparison] = {}
         self._view_tables: dict[str, pl.DataFrame] = {}
         self._shared_findings: list[Finding] | None = None
@@ -143,7 +151,8 @@ class AuditComparisonViews:
                 comparison_level=comparison_level,
             )
             self._comparisons[comparison_level] = PerformanceComparison(
-                specification
+                specification,
+                reconstruction_cache=self._reconstruction_cache,
             )
         return self._comparisons[comparison_level]
 

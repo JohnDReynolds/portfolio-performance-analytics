@@ -18,7 +18,7 @@ import polars as pl
 from ppar.errors import PpaError
 from ppar.audit import (
     compare_snapshots,
-    write_audit_report_bundle,
+    write_audit_report_bundle as _write_audit_report_bundle,
 )
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import workbook_tables as _pc_workbook_tables
@@ -63,6 +63,12 @@ _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
     ("BALANCED", "2026-05-09", "2026-05-14", "Partly Explained"),
     ("INCOME", "2026-04-01", "2026-04-30", "Unexplained"),
 }
+
+
+def write_audit_report_bundle(*args: Any, **kwargs: Any) -> dict[str, Path]:
+    """Write expanded supporting artifacts for workbook contract assertions."""
+    kwargs.setdefault("expand_all_supporting_files", True)
+    return _write_audit_report_bundle(*args, **kwargs)
 
 
 def _header_values(worksheet: Any) -> list[object]:

@@ -28,7 +28,7 @@ from ppar.audit.specification import (
     SecurityReturnReconstruction,
 )
 from ppar.audit.transactions import TransactionsLoader
-import ppar.utilities as util
+import ppar.common as util
 
 RECONSTRUCTION_REVIEW_KEY: Final[str] = "review_key"
 RECONSTRUCTION_PORTFOLIO_ID: Final[str] = pc_cols.PORTFOLIO_ID

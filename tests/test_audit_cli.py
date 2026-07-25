@@ -21,6 +21,7 @@ import yaml
 from ppar.errors import PpaError
 from ppar.analytics import cli as _analytics_cli
 from ppar.audit.cli import site_report as _site_report
+from ppar.audit.config_validation import validate_config
 
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_audit_restatement.yaml"
@@ -481,7 +482,11 @@ class TestAuditCli(unittest.TestCase):
             self.assertNotIn("run_security_comparison.py", readme)
             self.assertIn("Audit compares two snapshots", readme)
             self.assertIn("### Getting Data from Axys/APX", readme)
-            self.assertIn("Start with the comments under `files:`", readme)
+            self.assertIn("Start by reviewing the comments under `files:`", readme)
+            self.assertIn(
+                "The report labels that outcome as **Fully Explained**",
+                readme,
+            )
             self.assertIn("use a REP performance or attribution", readme)
             self.assertIn("try IMEX first", readme)
             self.assertIn("source/destination and special-security context", readme)
@@ -1368,10 +1373,12 @@ class TestAuditCli(unittest.TestCase):
                 mock.patch.object(
                     _site_report,
                     "_write_report_bundle",
-                    side_effect=(
-                        [site_directory / "portfolio_audit.xlsx"],
-                        [site_directory / "security_audit.xlsx"],
-                    ),
+                    side_effect=lambda _config, _findings, output, **kwargs: [
+                        output
+                        / (
+                            f"{kwargs['comparison_level']}_audit.xlsx"
+                        )
+                    ],
                 ) as write_report_bundle,
             ):
                 _site_report.run_report(site_directory)
@@ -1409,10 +1416,83 @@ class TestAuditCli(unittest.TestCase):
                     _site_report,
                     "_write_report_bundle",
                     return_value=[site_directory / "portfolio_audit.xlsx"],
-                ),
+                ) as write_report_bundle,
             ):
                 with self.assertRaisesRegex(PpaError, "malformed security data"):
                     _site_report.run_report(site_directory)
+
+        write_report_bundle.assert_not_called()
+
+    def test_site_report_write_failure_preserves_both_previous_views(self) -> None:
+        """A late security write failure does not promote the portfolio view."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory)
+            _write_audit_run_settings(site_directory / "ppar.yaml")
+            output_root = site_directory / "output"
+            for level in ("portfolio", "security"):
+                level_directory = output_root / level
+                level_directory.mkdir(parents=True)
+                (level_directory / "sentinel.txt").write_text(
+                    f"previous {level}",
+                    encoding="utf-8",
+                )
+
+            comparison_views = mock.Mock()
+            comparison_views.findings.side_effect = [
+                mock.sentinel.portfolio_findings,
+                mock.sentinel.security_findings,
+            ]
+
+            def staged_write(
+                _config: Path,
+                _findings: object,
+                output_directory: Path,
+                *,
+                comparison_level: str,
+                **_kwargs: object,
+            ) -> list[Path]:
+                if comparison_level == "security":
+                    raise PpaError("late security write failure", None)
+                output_directory.mkdir(parents=True)
+                review_path = output_directory / "portfolio_audit.xlsx"
+                review_path.write_text("candidate", encoding="utf-8")
+                return [review_path]
+
+            with (
+                mock.patch.object(
+                    _site_report,
+                    "AuditComparisonViews",
+                    return_value=comparison_views,
+                ),
+                mock.patch.object(
+                    _site_report._data_issue_checks,
+                    "data_issues_table",
+                    return_value=mock.sentinel.data_issues,
+                ),
+                mock.patch.object(
+                    _site_report,
+                    "_write_report_bundle",
+                    side_effect=staged_write,
+                ),
+                self.assertRaisesRegex(PpaError, "late security write failure"),
+            ):
+                _site_report.run_report(site_directory)
+
+            self.assertEqual(
+                (output_root / "portfolio" / "sentinel.txt").read_text(
+                    encoding="utf-8"
+                ),
+                "previous portfolio",
+            )
+            self.assertEqual(
+                (output_root / "security" / "sentinel.txt").read_text(
+                    encoding="utf-8"
+                ),
+                "previous security",
+            )
+            self.assertFalse(
+                (output_root / "portfolio" / "portfolio_audit.xlsx").exists()
+            )
 
     def test_audit_skips_unavailable_security_performance(self) -> None:
         """The standard run writes portfolio output and skips unavailable security."""
@@ -1425,6 +1505,12 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             )
             audit_directory = site_directory
+            stale_security_directory = audit_directory / "output" / "security"
+            stale_security_directory.mkdir(parents=True)
+            (stale_security_directory / "stale.txt").write_text(
+                "older run",
+                encoding="utf-8",
+            )
             (audit_directory / "snapshot_a" / "secperf.csv").unlink()
             (audit_directory / "snapshot_b" / "secperf.csv").unlink()
 
@@ -1823,7 +1909,6 @@ class TestAuditCli(unittest.TestCase):
                     "Script Bundle Report",
                     "--top-evidence-limit",
                     "2",
-                    "--allow-incomplete-yaml",
                 ),
                 check=True,
                 capture_output=True,
@@ -1916,26 +2001,6 @@ class TestAuditCli(unittest.TestCase):
             )
             self.assertEqual(review_summary["entrypoints"], manifest["review_entrypoints"])
 
-    def test_bundle_cli_module_requires_complete_yaml_by_default(self) -> None:
-        """The bundle CLI fails before writing reports from incomplete YAML."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "bundle"
-
-            result = subprocess.run(
-                _module_command(
-                    _BUNDLE_MODULE,
-                    str(_RESTATEMENT_COMPARISON_PATH),
-                    str(output_directory),
-                ),
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("YAML setup is incomplete", result.stderr)
-        self.assertFalse(output_directory.exists())
-
     def test_bundle_cli_module_accepts_supported_attribution_setup_alias(self) -> None:
         """The clearer strict-setup alias preserves current strict semantics."""
         with tempfile.TemporaryDirectory() as directory:
@@ -2026,6 +2091,10 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Config validation passed:", result.stdout)
         self.assertIn("Configured datasets:", result.stdout)
         self.assertIn(
+            "Validated report levels: portfolio, security",
+            result.stdout,
+        )
+        self.assertIn(
             "Minimum required datasets: holdings, portfolio_performance, "
             "security_master, security_performance, transactions",
             result.stdout,
@@ -2088,43 +2157,50 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Transaction semantics sources:", result.stdout)
         self.assertEqual(result.stderr, "")
 
-    def test_validate_config_cli_module_rejects_incomplete_yaml_by_default(self) -> None:
-        """The config validator rejects report YAML that would write misleading output."""
-        result = subprocess.run(
-            _module_command(
-                _VALIDATE_CONFIG_MODULE,
-                str(_RESTATEMENT_COMPARISON_PATH),
-            ),
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+    def test_validate_config_checks_available_security_view(self) -> None:
+        """Security policy errors fail preflight before a standard site run."""
+        with tempfile.TemporaryDirectory() as directory:
+            configuration = yaml.safe_load(
+                _PORTFOLIO_COMPARISON_PATH.read_text(encoding="utf-8")
+            )
+            packaged_directory = _PACKAGED_AXYS_APX_DATA_PATH.resolve()
+            configuration["snapshots"]["a"]["path"] = str(
+                packaged_directory / "snapshot_a"
+            )
+            configuration["snapshots"]["b"]["path"] = str(
+                packaged_directory / "snapshot_b"
+            )
+            del configuration["security_return_impact_methods"]
+            comparison_path = Path(directory) / "comparison.yaml"
+            comparison_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
 
-        self.assertEqual(result.returncode, 1)
-        self.assertEqual(result.stdout, "")
-        self.assertIn("Config validation failed:", result.stderr)
-        self.assertIn("YAML setup is incomplete", result.stderr)
-        self.assertIn("transactions.amount", result.stderr)
+            with self.assertRaisesRegex(
+                PpaError,
+                "security_return_impact_methods is required",
+            ):
+                validate_config(
+                    comparison_path,
+                    require_complete_yaml_setup=False,
+                )
 
-    def test_validate_config_cli_module_allows_diagnostic_incomplete_yaml(self) -> None:
-        """Incomplete YAML validation remains available with an explicit flag."""
+    def test_validate_config_cli_rejects_incomplete_yaml_bypass(self) -> None:
+        """Normal config validation does not expose an incomplete-setup bypass."""
         result = subprocess.run(
             _module_command(
                 _VALIDATE_CONFIG_MODULE,
                 str(_RESTATEMENT_COMPARISON_PATH),
                 "--allow-incomplete-yaml",
             ),
-            check=True,
+            check=False,
             capture_output=True,
             text=True,
         )
 
-        self.assertIn("Config validation passed:", result.stdout)
-        self.assertIn(
-            "Transaction codes without YAML rules: BUY, DIV, INT, SELL, SPLIT",
-            result.stdout,
-        )
-        self.assertEqual(result.stderr, "")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("unrecognized arguments: --allow-incomplete-yaml", result.stderr)
 
     def test_validate_config_cli_module_reports_invalid_yaml_contract(self) -> None:
         """The CLI config validator exits nonzero for malformed YAML contracts."""
@@ -2169,8 +2245,6 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Demo matrix validation passed:", result.stdout)
         self.assertIn("Demo matrix coverage includes ambiguous-flow", result.stdout)
         self.assertIn("Clean/no issue", result.stdout)
-        self.assertIn("Missing transaction method", result.stdout)
-        self.assertIn("Missing transaction rules", result.stdout)
         self.assertIn("Single-restatement transaction rows", result.stdout)
         self.assertIn("Transaction rules amount explanation", result.stdout)
         self.assertIn("Context-only evidence", result.stdout)
@@ -2192,7 +2266,6 @@ class TestAuditCli(unittest.TestCase):
                 _BUNDLE_MODULE,
                 str(_RESTATEMENT_COMPARISON_PATH),
                 str(output_directory),
-                "--allow-incomplete-yaml",
                 "--expand-all-supporting-files",
             ),
             check=True,

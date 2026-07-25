@@ -1,6 +1,6 @@
 """Integration tests for consolidation across dates and report frequencies."""
 
-# Legacy result checks exercise internal calculated frames.
+# Calculation regression checks exercise internal calculated frames.
 # pylint: disable=protected-access
 # pyright: reportPrivateUsage=false
 

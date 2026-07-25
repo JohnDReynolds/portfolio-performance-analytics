@@ -760,9 +760,3 @@ evidence_only_impact_methods:
 # Requires context before ambiguous Axys/APX codes acquire flow meaning.
 # Default: true
 #   enforce_ambiguous_axys_flows: true
-
-# Parameter: extract_contract.transaction_semantics_case
-# Controls case matching for transaction codes and condition values.
-# Default: exact
-# Accepted values: exact, legacy_case_insensitive
-#   transaction_semantics_case: exact

@@ -31,7 +31,6 @@ def _required_yaml_settings() -> dict[str, object]:
         "comparison": {"level": "portfolio"},
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "tolerances": {
             "return": 0.000001,

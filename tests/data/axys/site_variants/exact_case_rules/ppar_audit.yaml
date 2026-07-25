@@ -19,7 +19,6 @@ files:
 extract_contract:
   path: site_extract_contract.yaml
   enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: exact
 
 tolerances:
   return: 0.000001

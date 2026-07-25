@@ -29,7 +29,6 @@ files:
 
 extract_contract:
   enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: legacy_case_insensitive
 
 fx_rate_impact_methods:
   fx_rate:
@@ -52,6 +51,10 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+  SPLIT:
+    transaction_category: corporate_action
+    cash_flow_sign: none
+    performance_flow_sign: neutral
 
 transaction_impact_methods:
   # External-flow rows remain review evidence unless a supported diagnostic

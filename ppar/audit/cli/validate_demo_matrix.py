@@ -59,7 +59,6 @@ _MULTI_YAML = "ppar_audit_multi_restatement.yaml"
 _PACKAGED_DEMO_YAML = "axys_apx_audit.yaml"
 _SITE_VARIANT_YAML = "ppar_audit.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_audit_modified_dietz.yaml"
-_POLICY_GAP_YAML = "ppar_audit_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_audit_suppressed.yaml"
 
 
@@ -156,7 +155,6 @@ def _validate_demo_matrix(
     modified_dietz_findings = compare_snapshots(
         scenario_directory / _MODIFIED_DIETZ_YAML
     )
-    policy_gap_findings = compare_snapshots(scenario_directory / _POLICY_GAP_YAML)
     suppressed_findings = compare_snapshots(scenario_directory / _SUPPRESSED_YAML)
     suppressed_active_findings = compare_snapshots(
         scenario_directory / _SUPPRESSED_YAML,
@@ -167,8 +165,6 @@ def _validate_demo_matrix(
     restatement_causes = _workbook_underlying_causes_table(restatement_findings)
     restatement_raw_audit_trail = _workbook_raw_audit_trail_table(restatement_findings)
     transaction_rules_causes = _workbook_underlying_causes_table(transaction_rules_findings)
-    multi_causes = _workbook_underlying_causes_table(multi_findings)
-    policy_gap_causes = _workbook_underlying_causes_table(policy_gap_findings)
     context_evidence = _context_evidence_table(multi_findings)
     modified_dietz_cross_checks = (
         _pc_explain.portfolio_period_transaction_cross_checks(modified_dietz_findings)
@@ -183,7 +179,6 @@ def _validate_demo_matrix(
             restatement_causes,
             restatement_raw_audit_trail,
             transaction_rules_causes,
-            policy_gap_causes,
             context_evidence,
             snapshot_directory,
             multi_findings,
@@ -238,7 +233,6 @@ def _baseline_and_attribution_checks(
     restatement_causes: pl.DataFrame,
     restatement_raw_audit_trail: pl.DataFrame,
     transaction_rules_causes: pl.DataFrame,
-    policy_gap_causes: pl.DataFrame,
     context_evidence: pl.DataFrame,
     snapshot_directory: Path,
     multi_findings: pl.DataFrame,
@@ -253,18 +247,6 @@ def _baseline_and_attribution_checks(
     """Return baseline, attribution, and report-surface matrix checks."""
     return [
         _check_no_portfolio_differences(baseline_portfolio_changes),
-        _check_workbook_column(
-            "Missing transaction method",
-            policy_gap_causes,
-            "review_guidance",
-            "Add YAML configuration to count it as explained",
-        ),
-        _check_workbook_column(
-            "Missing transaction rules",
-            policy_gap_causes,
-            "review_guidance",
-            "Add YAML configuration to count it as explained",
-        ),
         _check_transaction_rows_visible(restatement_causes, restatement_raw_audit_trail),
         _check_transaction_rules_explain_amount(transaction_rules_causes),
         _check_non_empty_table(
@@ -672,7 +654,7 @@ def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
     except PpaError as error:
         message = str(error)
         if (
-            "ambiguous Axys/APX transaction codes DP, LI, LO, TI, WD" in message
+            "ambiguous Axys/APX transaction codes dp, li, lo, ti, wd" in message
             and "IMEX transaction code alone is not enough" in message
         ):
             return _ScenarioCheck(

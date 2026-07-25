@@ -127,7 +127,6 @@ def _required_yaml_settings() -> dict[str, object]:
         "comparison": {"level": "portfolio"},
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "tolerances": {
             "return": 0.000001,
@@ -193,6 +192,13 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
         "files": {
             "portfolio_performance": "portperf.csv",
             "transactions": "transactions.csv",
+        },
+        "transaction_rules": {
+            "BUY": {
+                "transaction_category": "buy",
+                "cash_flow_sign": "negative",
+                "performance_flow_sign": "performance",
+            },
         },
     }
     specification_path = directory / "ppar_audit.yaml"
@@ -283,6 +289,13 @@ def _write_duplicate_transaction_fallback_specification(directory: Path) -> Path
             "portfolio_performance": "portperf.csv",
             "transactions": "transactions.csv",
         },
+        "transaction_rules": {
+            "BUY": {
+                "transaction_category": "buy",
+                "cash_flow_sign": "negative",
+                "performance_flow_sign": "performance",
+            },
+        },
     }
     specification_path = directory / "ppar_audit.yaml"
     test_util.write_audit_test_yaml(specification_path, specification)
@@ -328,6 +341,13 @@ def _write_transaction_singleton_duplicate_specification(
             "portfolio_performance": "portperf.csv",
             "transactions": "transactions.csv",
         },
+        "transaction_rules": {
+            "BUY": {
+                "transaction_category": "buy",
+                "cash_flow_sign": "negative",
+                "performance_flow_sign": "performance",
+            },
+        },
     }
     specification_path = directory / "ppar_audit.yaml"
     test_util.write_audit_test_yaml(specification_path, specification)
@@ -371,6 +391,14 @@ def _write_transaction_case_sensitive_singleton_specification(
             "portfolio_performance": "portperf.csv",
             "transactions": "transactions.csv",
         },
+        "transaction_rules": {
+            code: {
+                "transaction_category": "buy",
+                "cash_flow_sign": "negative",
+                "performance_flow_sign": "performance",
+            }
+            for code in {snapshot_a_code, snapshot_b_code}
+        },
     }
     specification_path = directory / "ppar_audit.yaml"
     test_util.write_audit_test_yaml(specification_path, specification)
@@ -389,9 +417,9 @@ def _write_transaction_period_specification(directory: Path) -> Path:
         )
         (snapshot_path / "transactions.csv").write_text(
             "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
-            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            "AMOUNT,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
             f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount},"
-            "cash out,external\n",
+            "buy,cash out,external\n",
             encoding="utf-8",
         )
 
@@ -427,9 +455,9 @@ def _write_security_transaction_period_specification(directory: Path) -> Path:
         )
         (snapshot_path / "transactions.csv").write_text(
             "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
-            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            "AMOUNT,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
             f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount},"
-            "cash out,performance\n",
+            "buy,cash out,performance\n",
             encoding="utf-8",
         )
 
@@ -509,9 +537,9 @@ def _write_transaction_outside_period_specification(directory: Path) -> Path:
         )
         (snapshot_path / "transactions.csv").write_text(
             "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
-            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            "AMOUNT,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
             f"TXN1,PORT_A,AAPL,2025-06-15,2025-06-16,BUY,1,100.00,{amount},"
-            "cash out,performance\n",
+            "buy,cash out,performance\n",
             encoding="utf-8",
         )
 
@@ -563,9 +591,9 @@ def _write_transaction_changed_period_fallback_specification(
         )
         (snapshot_path / "transactions.csv").write_text(
             "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
-            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            "AMOUNT,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
             f"TXN1,PORT_A,AAPL,2025-05-01,2025-05-02,BUY,1,100.00,{amount},"
-            "cash out,performance\n",
+            "buy,cash out,performance\n",
             encoding="utf-8",
         )
 
@@ -1641,9 +1669,10 @@ class TestPerformanceComparison(unittest.TestCase):
                 transaction_path = Path(temp_dir) / snapshot_name / "transactions.csv"
                 transaction_path.write_text(
                     "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
-                    "PRICE,AMOUNT,COMMISSION,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "PRICE,AMOUNT,COMMISSION,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,"
+                    "PERFORMANCE_FLOW_SIGN\n"
                     "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
-                    f"100.00,{commission},cash out,external\n",
+                    f"100.00,{commission},buy,cash out,external\n",
                     encoding="utf-8",
                 )
             configuration = yaml.safe_load(
@@ -1678,9 +1707,10 @@ class TestPerformanceComparison(unittest.TestCase):
                 transaction_path = Path(temp_dir) / snapshot_name / "transactions.csv"
                 transaction_path.write_text(
                     "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
-                    "PRICE,AMOUNT,COMMISSION,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "PRICE,AMOUNT,COMMISSION,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,"
+                    "PERFORMANCE_FLOW_SIGN\n"
                     "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
-                    f"100.00,{commission},cash out,external\n",
+                    f"100.00,{commission},buy,cash out,external\n",
                     encoding="utf-8",
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
@@ -2113,36 +2143,30 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn(expected_message, str(context.exception))
 
-    def test_transaction_external_flow_future_methods_remain_rejected(self) -> None:
-        """Future method names are reserved until their formulas are implemented."""
-        for method in ("subperiod_linked", "unweighted_flow_delta"):
-            with self.subTest(method=method):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    specification_path = _write_transaction_period_specification(
-                        Path(temp_dir)
-                    )
-                    configuration = yaml.safe_load(
-                        specification_path.read_text(encoding="utf-8")
-                    )
-                    configuration["transaction_impact_methods"] = {
-                        **_default_transaction_impact_methods(),
-                        "external_flow": {"method": method}
-                    }
-                    specification_path.write_text(
-                        yaml.safe_dump(configuration),
-                        encoding="utf-8",
-                    )
+    def test_transaction_external_flow_unknown_method_is_rejected(self) -> None:
+        """External-flow methods outside the supported set fail closed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(
+                Path(temp_dir)
+            )
+            configuration = yaml.safe_load(
+                specification_path.read_text(encoding="utf-8")
+            )
+            configuration["transaction_impact_methods"] = {
+                **_default_transaction_impact_methods(),
+                "external_flow": {"method": "unsupported"}
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
 
-                    with self.assertRaises(PpaError) as context:
-                        PerformanceComparison(
-                            AuditSpecification(specification_path)
-                        )
+            with self.assertRaises(PpaError) as context:
+                PerformanceComparison(AuditSpecification(specification_path))
 
-                    self.assertIn("external_flow.method", str(context.exception))
-                    self.assertIn(
-                        "reserved but not implemented",
-                        str(context.exception),
-                    )
+            message = str(context.exception)
+            self.assertIn("external_flow.method", message)
+            self.assertIn("'evidence_only' or 'modified_dietz'", message)
 
     def test_transaction_modified_dietz_cross_check_estimate_is_loaded(self) -> None:
         """A fully shaped Modified Dietz policy emits review-only estimates."""
@@ -2245,9 +2269,10 @@ class TestPerformanceComparison(unittest.TestCase):
                 )
                 transaction_path.write_text(
                     "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
-                    "PRICE,AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "PRICE,AMOUNT,TRANSACTION_CATEGORY,CASH_FLOW_SIGN,"
+                    "PERFORMANCE_FLOW_SIGN\n"
                     "TXN1,PORT_A,AAPL,2025-06-15,2025-06-16,BUY,1,100.00,"
-                    f"{amount},cash out,external\n",
+                    f"{amount},buy,cash out,external\n",
                     encoding="utf-8",
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))

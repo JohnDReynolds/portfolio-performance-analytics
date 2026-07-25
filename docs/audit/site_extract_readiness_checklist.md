@@ -18,27 +18,21 @@ system.
 
 ## Transaction Code And Context Case
 
-New or reviewed site contracts should declare a positive integer `version` and
-may require exact native-case semantics:
+New or reviewed site contracts must declare a positive integer `version`.
+Transaction codes and native condition values always use exact-case matching:
 
 ```yaml
 extract_contract:
   path: site_extract_contract.yaml
   enforce_ambiguous_axys_flows: true
-  transaction_semantics_case: exact
 ```
 
-With `exact`, YAML transaction-rule keys and native `when` values match source
-text after whitespace trimming without changing case. `by` and `BY`, or `Desk`
-and `DESK`, can therefore have different explicitly reviewed meanings. Built-in
-code-only compatibility inference is disabled, so an unmatched uppercase code
-remains unknown; uppercase does not mean cancellation. The referenced extract
-contract must contain `version: 1` or another positive integer.
-
-When `extract_contract` or `transaction_semantics_case` is omitted, PPAR uses
-the packaged contract and exact-case matching. A maintained site that needs
-legacy case-insensitive rule behavior must request it explicitly; that override
-does not establish a source contract for cancellation or new site mappings.
+YAML transaction-rule keys and native `when` values match source text after
+whitespace trimming without changing case. `by` and `BY`, or `Desk` and `DESK`,
+can therefore have different explicitly reviewed meanings. PPAR does not infer
+meaning from transaction code alone, so an unmatched code remains unknown and
+uppercase does not mean cancellation. When `extract_contract` is omitted, PPAR
+uses the packaged contract.
 
 ## IMEX With Context Fields
 

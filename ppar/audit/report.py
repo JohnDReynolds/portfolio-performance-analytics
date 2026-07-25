@@ -12,8 +12,9 @@ import shutil
 import polars as pl
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
 from ppar.errors import PpaError
+from ppar.audit import atomic_directory as _atomic_directory
 from ppar.audit import bundle as _pc_bundle
 from ppar.audit import conservation as _pc_conservation
 from ppar.audit import executive_summary as _executive_summary
@@ -34,7 +35,6 @@ from ppar.audit.specification import PORTFOLIO_COMPARISON_LEVEL
 
 __all__ = [
     "write_audit_report_bundle",
-    "write_audit_review_workbook",
 ]
 
 _COUNT = "count"
@@ -463,14 +463,92 @@ def write_audit_report_bundle(
     *,
     title: str = "Audit Report",
     top_evidence_limit: int = 10,
-    include_workbook: bool = False,
+    include_workbook: bool = True,
     include_html_output: bool = True,
     require_complete_yaml_setup: bool = True,
     require_causal_attribution: bool = False,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
-    expand_all_supporting_files: bool = True,
+    expand_all_supporting_files: bool = False,
+    _data_issues: pl.DataFrame | None = None,
+    _reconstruction_cache: (
+        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
+    ) = None,
+) -> dict[str, Path]:
+    """Write and atomically promote one validated Audit report bundle.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots``.
+        output_directory: Final destination directory.
+        title: Report title for generated review artifacts.
+        top_evidence_limit: Maximum top-evidence rows per portfolio period.
+        include_workbook: Whether to include an XLSX review workbook.
+        include_html_output: Whether to include the browser report.
+        require_complete_yaml_setup: Whether incomplete field treatment blocks
+            output.
+        require_causal_attribution: Whether incomplete supported causal setup
+            blocks output.
+        comparison_path: Optional Audit YAML path for report context.
+        comparison_level: Portfolio or security review level.
+        include_reconstruction_diagnostics: Whether to include detailed
+            reconstruction artifacts.
+        expand_all_supporting_files: Whether supporting files remain expanded.
+        _data_issues: Optional run-scoped Data Issues table.
+        _reconstruction_cache: Optional run-scoped reconstruction cache.
+
+    Returns:
+        Artifact paths below the final promoted directory.
+
+    Raises:
+        PpaError: If report construction, validation, or promotion fails.
+
+    Notes:
+        Existing output remains unchanged unless the complete staged bundle
+        passes validation and is successfully promoted.
+    """
+    destination = Path(output_directory)
+    with _atomic_directory.staged_directory(destination) as staging_directory:
+        staged_paths = _write_audit_report_bundle_in_place(
+            findings,
+            staging_directory,
+            title=title,
+            top_evidence_limit=top_evidence_limit,
+            include_workbook=include_workbook,
+            include_html_output=include_html_output,
+            require_complete_yaml_setup=require_complete_yaml_setup,
+            require_causal_attribution=require_causal_attribution,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            expand_all_supporting_files=expand_all_supporting_files,
+            _data_issues=_data_issues,
+            _reconstruction_cache=_reconstruction_cache,
+        )
+    return {
+        name: _atomic_directory.remap_staged_path(
+            path,
+            staging_root=staging_directory,
+            destination_root=destination,
+        )
+        for name, path in staged_paths.items()
+    }
+
+
+def _write_audit_report_bundle_in_place(
+    findings: pl.DataFrame,
+    output_directory: util.PathLike,
+    *,
+    title: str = "Audit Report",
+    top_evidence_limit: int = 10,
+    include_workbook: bool = True,
+    include_html_output: bool = True,
+    require_complete_yaml_setup: bool = True,
+    require_causal_attribution: bool = False,
+    comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
+    expand_all_supporting_files: bool = False,
     _data_issues: pl.DataFrame | None = None,
     _reconstruction_cache: (
         _pc_workbook_reconstruction.WorkbookReconstructionCache | None
@@ -487,7 +565,7 @@ def write_audit_report_bundle(
             portfolio period in ``top_evidence.csv``.
         include_workbook: Whether to include an XLSX review workbook.
         include_html_output: Whether to include the browser HTML review report.
-            Defaults to true for public API compatibility.
+            Defaults to true.
         require_complete_yaml_setup: Whether every changed source-data field
             that ppar knows how to classify must have explicit additive,
             evidence-only, or suppression YAML before bundle artifacts are
@@ -508,9 +586,7 @@ def write_audit_report_bundle(
             CSV and JSON files in ``supporting_files``. ``source_detail.csv`` is
             always written at the report root and is never duplicated in the
             supporting directory or archive. When false, the validated supporting
-            directory is stored in ``audit_support.zip``. The public Python API
-            retains its expanded default for compatibility; user-facing commands
-            default to compact output.
+            directory is stored in ``audit_support.zip``.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
@@ -842,47 +918,6 @@ def _report_bundle_tables(
         name: _with_period_review_key(table)
         for name, table in tables.items()
     }
-
-
-def write_audit_review_workbook(
-    findings: pl.DataFrame,
-    output_path: util.PathLike,
-    *,
-    top_evidence_limit: int = 10,
-    comparison_path: util.PathLike | None = None,
-    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
-    include_reconstruction_diagnostics: bool = False,
-    _reconstruction_cache: (
-        _pc_workbook_reconstruction.WorkbookReconstructionCache | None
-    ) = None,
-) -> Path:
-    """Write an XLSX workbook for performance comparison review.
-
-    Args:
-        findings: Findings table returned by ``compare_snapshots`` or
-            ``findings_to_polars``.
-        output_path: Destination workbook path. Parent directories are created
-            when needed.
-        top_evidence_limit: Reserved for parity with bundle/report writers.
-        comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Performance Difference Causes`` sheet can name the exact file to update
-            for missing attribution setup.
-        comparison_level: Primary performance-result level for presentation.
-        include_reconstruction_diagnostics: Whether to include interim
-            reconstruction diagnostic sheets.
-
-    Returns:
-        Normalized workbook path.
-    """
-    return _pc_workbook_tables.write_audit_review_workbook(
-        findings,
-        output_path,
-        top_evidence_limit=top_evidence_limit,
-        comparison_path=comparison_path,
-        comparison_level=comparison_level,
-        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-        _reconstruction_cache=_reconstruction_cache,
-    )
 
 
 def _needs_review_summary_table(

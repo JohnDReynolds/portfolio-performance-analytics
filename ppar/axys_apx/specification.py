@@ -53,6 +53,15 @@ _RETIRED_SOURCE_KEYS = frozenset(
         "security_master_columns",
     }
 )
+_SUPPORTED_ROOT_KEYS = frozenset(
+    {
+        _ANALYTICS_KEY,
+        "classifications",
+        _FILES_KEY,
+        "mappings",
+        "security_id",
+    }
+)
 
 
 class AxysSpecification:
@@ -94,6 +103,7 @@ class AxysSpecification:
                 504,
             )
         self._validate_retired_source_keys()
+        self._validate_root_keys()
         self._validate_files()
 
     def resolve_path(self, file_path: util.PathLike) -> Path:
@@ -346,6 +356,21 @@ class AxysSpecification:
             ),
             504,
         )
+
+    def _validate_root_keys(self) -> None:
+        """Reject unknown top-level Analytics configuration keys."""
+        unsupported = sorted(
+            str(key) for key in self.values if key not in _SUPPORTED_ROOT_KEYS
+        )
+        if unsupported:
+            raise PpaError(
+                self._error_message(
+                    "YAML has unsupported top-level keys: "
+                    + ", ".join(unsupported)
+                    + "."
+                ),
+                504,
+            )
 
     def _file_definition(self, file_name: str) -> dict[str, Any]:
         """Return one previously validated source-file definition."""

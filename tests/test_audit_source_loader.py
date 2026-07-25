@@ -611,7 +611,6 @@ def _write_source_loader_specification(directory: Path) -> Path:
         },
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-            "transaction_semantics_case": "legacy_case_insensitive",
         },
         "fx_rate_impact_methods": {
             "fx_rate": {"method": "evidence_only"},

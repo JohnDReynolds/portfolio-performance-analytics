@@ -22,6 +22,7 @@ import yaml
 # Project Imports
 import ppar
 import ppar.analytics.schema as core_schema
+import ppar.common as common
 import ppar.errors as core_errors
 import ppar.utilities as util
 from ppar import audit, axys_apx
@@ -303,6 +304,12 @@ def _reconstruction_float(row: dict[str, object], column: str) -> float:
     return float(value)
 
 
+def _normalized_requirement_name(requirement: str) -> str:
+    """Return one PEP 503-style package name from a requirement or constraint."""
+    name = re.split(r"[<>=!~;\[]", requirement, maxsplit=1)[0].strip()
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 class TestPackageMetadata(unittest.TestCase):
     """Verify package dependency metadata is complete and intentionally scoped."""
 
@@ -330,17 +337,77 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("pyyaml", pyproject_dependencies)
         self.assertIn("openpyxl", pyproject_dependencies)
         self.assertNotIn("matplotlib", pyproject_dependencies)
+        self.assertNotIn("numpy", pyproject_dependencies)
+        self.assertNotIn("pandas", pyproject_dependencies)
+        self.assertNotIn("pyarrow", pyproject_dependencies)
         self.assertNotIn("seaborn", pyproject_dependencies)
         self.assertNotIn("scipy", pyproject_dependencies)
         self.assertEqual(
             analytics_dependencies,
-            {"matplotlib", "seaborn"},
+            {
+                "lxml",
+                "matplotlib",
+                "numpy",
+                "pandas",
+                "pyarrow",
+                "seaborn",
+            },
         )
         self.assertIn("polars>=1.24.0", pyproject["project"]["dependencies"])
         self.assertNotIn("charts", optional_dependencies)
         self.assertNotIn("excel", optional_dependencies)
         self.assertIn("pytest", dev_dependencies)
         self.assertNotIn("scipy-stubs", dev_dependencies)
+
+    def test_ci_constraints_cover_every_direct_requirement(self) -> None:
+        """The reproducible CI environment pins every declared requirement."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+        project = pyproject["project"]
+        direct_requirements = [
+            *pyproject["build-system"]["requires"],
+            *project["dependencies"],
+            *(
+                requirement
+                for group in project["optional-dependencies"].values()
+                for requirement in group
+            ),
+        ]
+        constraint_lines = Path("constraints/ci.txt").read_text(
+            encoding=util.ENCODING
+        ).splitlines()
+        pinned_constraints = {
+            _normalized_requirement_name(line)
+            for line in constraint_lines
+            if line and not line.startswith("#")
+        }
+
+        self.assertTrue(
+            {
+                _normalized_requirement_name(requirement)
+                for requirement in direct_requirements
+            }.issubset(pinned_constraints)
+        )
+        self.assertTrue(
+            all(
+                "==" in line
+                for line in constraint_lines
+                if line and not line.startswith("#")
+            )
+        )
+
+    def test_ci_runs_the_maintained_release_candidate_gate(self) -> None:
+        """CI delegates to the deterministic runner that owns the 500x gate."""
+        workflow = Path(".github/workflows/release-candidate.yml").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("constraints/ci.txt", workflow)
+        self.assertIn("--editable \".[analytics,dev]\"", workflow)
+        self.assertIn("scripts/check_release_candidate.py", workflow)
+        self.assertIn("scripts/check_project.py", workflow)
+        self.assertIn("--build", workflow)
+        self.assertNotIn("--skip-project-check", workflow)
 
     def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
         """Build metadata uses current setuptools license fields."""
@@ -383,23 +450,20 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_demo_review_guidance_matches_current_bundle_shape(self) -> None:
         """Public docs describe report files as review surfaces and CSVs as audit aids."""
         root_readme = Path("README.md").read_text(encoding=util.ENCODING)
-        axys_readme = Path("ppar/setup_templates/axys_apx_audit/README.md").read_text(
+        demo_guide = Path("docs/audit/packaged_demo.md").read_text(
             encoding=util.ENCODING
         )
-        normalized_axys_readme = " ".join(axys_readme.split())
+        normalized_demo_guide = " ".join(demo_guide.split())
 
         self.assertIn("portfolio_audit.xlsx", root_readme)
-        self.assertIn("--html-only", root_readme)
-        self.assertIn("--xlsx-only", root_readme)
-        self.assertIn("--csv-only", root_readme)
         self.assertNotIn("Open `portfolio_audit.xlsx` when present", root_readme)
         self.assertNotIn("CSV artifacts support audit traceability", root_readme)
-        self.assertIn("html audit for browser review", axys_readme.lower())
-        self.assertIn("CSV artifacts", axys_readme)
-        self.assertIn("supporting detail and traceability", axys_readme)
+        self.assertIn("html audit for browser review", demo_guide.lower())
+        self.assertIn("CSV artifacts", demo_guide)
+        self.assertIn("supporting detail and traceability", demo_guide)
         self.assertNotIn("same review model in a browser", root_readme)
-        self.assertNotIn("same review model in a browser", axys_readme)
-        self.assertIn("Open `portfolio_audit.xlsx`", normalized_axys_readme)
+        self.assertNotIn("same review model in a browser", demo_guide)
+        self.assertIn("Open `portfolio_audit.xlsx`", normalized_demo_guide)
 
     def test_manifest_keeps_source_distribution_resources(self) -> None:
         """The source distribution manifest includes checkout scripts and demo data."""
@@ -533,7 +597,6 @@ class TestPackageMetadata(unittest.TestCase):
             "# Parameter: audit.reconstruction_diagnostics",
             "# Parameter: data_issues.deliver_in_original_cost_incomplete",
             "# Parameter: suppressions",
-            "# Parameter: extract_contract.transaction_semantics_case",
             "All values are required",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -607,7 +670,6 @@ class TestPackageMetadata(unittest.TestCase):
                 "data_issues.large_price_variation.rules[].enabled",
                 "extract_contract.enforce_ambiguous_axys_flows",
                 "extract_contract.path",
-                "extract_contract.transaction_semantics_case",
                 "files.<optional_dataset>.required",
                 "snapshots.<snapshot>.schema",
                 "suppressions",
@@ -880,16 +942,13 @@ class TestPackageMetadata(unittest.TestCase):
 
         for expected_text in [
             "# PPAR Audit Workspace",
-            "ppar setup ./my_ppar_audit",
-            "ppar audit ./my_ppar_audit",
-            "Output goes here:",
-            "output/portfolio/portfolio_audit.xlsx",
-            "output/security/security_audit.xlsx",
-            "my_ppar_audit/",
+            "ppar audit .",
+            "output/portfolio",
+            "output/security",
             "README.md",
             "run_audit.py",
-            "Customizing",
-            "--overwrite",
+            "Customizing With Your Own Data",
+            "Fully Explained",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, readme)
@@ -1160,12 +1219,12 @@ class TestPackageMetadata(unittest.TestCase):
         source_contract = Path(
             "docs/audit/demo_source_contract.md"
         )
-        demo_readme = Path("ppar/setup_templates/axys_apx_audit/README.md")
+        demo_guide = Path("docs/audit/packaged_demo.md")
 
         self.assertTrue(template_path.exists())
         self.assertIn(
             template_path.as_posix(),
-            demo_readme.read_text(encoding=util.ENCODING),
+            demo_guide.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
             "axys_apx/contracts/templates/site_extract_contract.yaml",
@@ -1609,8 +1668,16 @@ class TestPackageMetadata(unittest.TestCase):
                 label="required_matrix_codes",
             )
         )
+        non_runtime_codes = set(
+            _yaml_string_list(
+                matrix_yaml["non_runtime_matrix_codes"],
+                label="non_runtime_matrix_codes",
+            )
+        )
 
-        self.assertLessEqual(matrix_codes, registered_transaction_codes())
+        registered_codes = registered_transaction_codes()
+        self.assertLessEqual(matrix_codes - non_runtime_codes, registered_codes)
+        self.assertTrue(non_runtime_codes.isdisjoint(registered_codes))
         self.assertEqual(
             transaction_boundary_groups("in"),
             ("packaged_formula", "fixed_income_safe"),
@@ -1627,7 +1694,7 @@ class TestPackageMetadata(unittest.TestCase):
             "fixed_income_accrued_interest",
             transaction_boundary_groups("sa"),
         )
-        self.assertIn("review_only_test", transaction_boundary_groups(";"))
+        self.assertEqual(transaction_boundary_groups(";"), ())
         self.assertIn("context_only", transaction_boundary_groups("exus"))
         self.assertIn("standalone_backlog", transaction_boundary_groups("epus"))
         self.assertIn("fixed_income_backlog", transaction_boundary_groups("pd"))
@@ -1644,7 +1711,6 @@ class TestPackageMetadata(unittest.TestCase):
                 "fixed_income_safe",
                 "fixed_income_accrued_interest",
                 "ambiguous_context_required",
-                "review_only_test",
                 "context_only",
                 "fixed_income_backlog",
                 "capital_return_backlog",
@@ -2017,8 +2083,8 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(expected_text, guide)
 
     def test_axys_demo_readme_uses_current_report_sheet_names(self) -> None:
-        """The packaged Axys README names the current workbook review path."""
-        readme = Path("ppar/setup_templates/axys_apx_audit/README.md").read_text(
+        """The packaged demo guide names the current workbook review path."""
+        readme = Path("docs/audit/packaged_demo.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -2573,9 +2639,6 @@ class TestPackageMetadata(unittest.TestCase):
         matrix = Path("tests/data/axys/README.md").read_text(encoding=util.ENCODING)
         expected_scenarios = {
             "Clean/no issue": "baseline",
-            "Missing transaction method": "policy_gap",
-            "Missing denominator": "policy_gap",
-            "Missing transaction sign/flow semantics": "policy_gap",
             "Low-confidence estimate": "multi",
             "Context-only evidence": "multi",
             "Modified Dietz cross-check": "modified_dietz",
@@ -2596,10 +2659,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Planned", matrix)
 
     def test_axys_demo_readme_documents_field_role_model(self) -> None:
-        """The packaged Axys/APX demo README describes the user-facing role model."""
-        matrix = Path(
-            "ppar/setup_templates/axys_apx_audit/README.md"
-        ).read_text(encoding=util.ENCODING)
+        """The packaged Axys/APX demo guide describes the field-role model."""
+        matrix = Path("docs/audit/packaged_demo.md").read_text(
+            encoding=util.ENCODING
+        )
         expected_terms = {
             "performance_input",
             "input_component",
@@ -2652,8 +2715,14 @@ class TestPackageMetadata(unittest.TestCase):
         )
         contracts = performance_source_data_contract.source_data_contract()
 
-        self.assertIn("IMEX-style CSV exports", root_readme)
-        self.assertIn("PPAR normalizes those files through YAML", root_readme)
+        self.assertIn(
+            "Production inputs may come from reviewed REP, IMEX, custom-report",
+            root_readme,
+        )
+        self.assertIn(
+            "PPAR normalizes those files through a customizable `ppar.yaml`",
+            root_readme,
+        )
         self.assertIn("## Minimum Source-Data Contract", contract_doc)
         self.assertIn("stops before producing a report", contract_doc)
         self.assertIn("performance calculation is configured", contract_doc)
@@ -2866,20 +2935,13 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
     def test_public_audit_report_import_contract(self) -> None:
-        """The report module exposes only report rendering and writing helpers."""
-        expected_exports = {
-            "write_audit_report_bundle",
-            "write_audit_review_workbook",
-        }
+        """The report module exposes only the complete bundle writer."""
+        expected_exports = {"write_audit_report_bundle"}
 
         self.assertEqual(set(audit_report.__all__), expected_exports)
         self.assertIs(
             write_audit_report_bundle,
             audit_report.write_audit_report_bundle,
-        )
-        self.assertIs(
-            write_audit_review_workbook,
-            audit_report.write_audit_review_workbook,
         )
         self.assertNotIn(
             "report_bundle_validation_issues",
@@ -2909,15 +2971,19 @@ class TestPackageMetadata(unittest.TestCase):
         """Core helper modules export every intentional public module name."""
         module_paths = {
             core_schema: Path("ppar/analytics/schema.py"),
+            common: Path("ppar/common.py"),
             core_errors: Path("ppar/errors.py"),
             util: Path("ppar/utilities.py"),
         }
 
         for module, path in module_paths.items():
             with self.subTest(module=module.__name__):
+                expected_exports = _declared_public_module_names(path)
+                if module is util:
+                    expected_exports.update(common.__all__)
                 self.assertEqual(
                     set(module.__all__),
-                    _declared_public_module_names(path),
+                    expected_exports,
                 )
 
     def test_analytics_schema_has_no_top_level_compatibility_module(self) -> None:
@@ -2934,10 +3000,11 @@ class TestPackageMetadata(unittest.TestCase):
         subprocess.run([sys.executable, "-c", command], check=True)
 
     def test_audit_import_does_not_load_optional_analytics_dependencies(self) -> None:
-        """Audit imports remain independent of optional chart and SciPy packages."""
+        """Audit imports remain independent of Analytics dependencies."""
         command = (
             "import sys; import ppar.audit; "
-            "optional = {'matplotlib', 'seaborn', 'scipy'}; "
+            "optional = {'lxml', 'matplotlib', 'numpy', 'pandas', 'pyarrow', "
+            "'seaborn', 'scipy'}; "
             "raise SystemExit(1 if optional.intersection(sys.modules) else 0)"
         )
 
@@ -2952,13 +3019,14 @@ class TestPackageMetadata(unittest.TestCase):
 
         subprocess.run([sys.executable, "-c", command], check=True)
 
-    def test_package_root_lazy_analytics_exports_still_work(self) -> None:
-        """Package-root Analytics exports remain available on demand."""
+    def test_package_root_lazy_audit_exports_work(self) -> None:
+        """Package-root convenience exports match the Audit product surface."""
         command = (
-            "from ppar import Analytics, Attribution, Frequency, RiskStatistics, View; "
+            "from ppar import AuditSpecification, compare_snapshots, "
+            "write_audit_report_bundle; "
             "raise SystemExit(0 if all("
             "obj is not None for obj in "
-            "(Analytics, Attribution, Frequency, RiskStatistics, View)"
+            "(AuditSpecification, compare_snapshots, write_audit_report_bundle)"
             ") else 1)"
         )
 

@@ -41,6 +41,3 @@ Related YAML demos:
 
 - `ppar_audit_multi_restatement.yaml` supplies explicit
   contribution and transaction policies and is the default report-bundle demo.
-- `ppar_audit_policy_gap_demo.yaml` reuses this snapshot but
-  intentionally leaves selected policy inputs unresolved so Problems-grid
-  action wording can be reviewed without duplicating CSV data.

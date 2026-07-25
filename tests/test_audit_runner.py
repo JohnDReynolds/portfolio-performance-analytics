@@ -15,6 +15,7 @@ from ppar.audit import (
     compare_snapshots,
     summarize_findings,
 )
+from ppar.audit import workbook_reconstruction
 from ppar.audit.performance_comparison.compare import PerformanceComparison
 from ppar.audit.performance_comparison.findings import (
     DATASET,
@@ -46,6 +47,7 @@ from ppar.audit.performance_comparison.return_reconstruction import (
     portfolio_return_reconstruction_checks,
     security_return_reconstruction_checks,
 )
+from ppar.audit.performance_comparison import return_reconstruction
 from ppar.audit.runner import AuditComparisonViews
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_audit.yaml")
@@ -135,6 +137,49 @@ class TestAuditRunner(unittest.TestCase):
                 _PACKAGED_COMPARISON_PATH,
                 comparison_level="portfolio",
             ),
+        )
+
+    def test_audit_views_share_reconstruction_results_with_reports(self) -> None:
+        """Comparison and report views calculate each reconstruction table once."""
+        cache = workbook_reconstruction.WorkbookReconstructionCache(
+            _PACKAGED_COMPARISON_PATH
+        )
+        with (
+            mock.patch.object(
+                return_reconstruction,
+                "portfolio_return_reconstruction_checks",
+                wraps=return_reconstruction.portfolio_return_reconstruction_checks,
+            ) as portfolio_checks_spy,
+            mock.patch.object(
+                return_reconstruction,
+                "security_return_reconstruction_checks",
+                wraps=return_reconstruction.security_return_reconstruction_checks,
+            ) as security_checks_spy,
+        ):
+            views = AuditComparisonViews(
+                _PACKAGED_COMPARISON_PATH,
+                reconstruction_cache=cache,
+            )
+            views.findings("portfolio")
+            views.findings("security")
+
+            cache.portfolio_checks()
+            full_security_checks = cache.security_checks()
+            first_security_row = full_security_checks.row(0, named=True)
+            active_key = (
+                first_security_row[PORTFOLIO_ID],
+                first_security_row[FROM_DATE],
+                first_security_row[THRU_DATE],
+                first_security_row[SECURITY_ID],
+            )
+            scoped_security_checks = cache.security_checks([active_key])
+
+        self.assertEqual(portfolio_checks_spy.call_count, 1)
+        self.assertEqual(security_checks_spy.call_count, 1)
+        self.assertEqual(scoped_security_checks.height, 1)
+        self.assertEqual(
+            scoped_security_checks.row(0, named=True),
+            first_security_row,
         )
 
     def test_packaged_views_use_reconstructed_denominators_and_weights(self) -> None:

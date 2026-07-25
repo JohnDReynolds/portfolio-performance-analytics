@@ -164,8 +164,18 @@ class TestScaleCheck(unittest.TestCase):
             + workload["site_level_input_rows"],
         )
         self.assertEqual(
-            gate["scale_divisor"],
-            check_scale._AUDIT_LARGE_SITE_SCALE_DIVISOR,
+            workload["timing_reference_input_rows"],
+            workload["portfolio_scaled_input_rows"]
+            * workload["timing_reference_scale"]
+            + workload["site_level_input_rows"],
+        )
+        self.assertEqual(
+            workload["timing_reference_scale"],
+            check_scale._AUDIT_RELEASE_TIMING_REFERENCE_SCALE,
+        )
+        self.assertEqual(
+            gate["expected_ratio_at_500x"],
+            workload["scale"] / workload["timing_reference_scale"],
         )
         self.assertEqual(
             gate["warning_multiplier"],
@@ -450,11 +460,16 @@ class TestScaleCheck(unittest.TestCase):
     def test_audit_caps_reflect_observed_sublinear_growth(self) -> None:
         """Audit large-site and long-history caps catch meaningful regressions."""
         self.assertEqual(
-            check_scale._audit_large_site_scaling_result(100, 1.0, 15.0),
-            ("PASS", 15.0, 16.05, 16.814285714285717),
+            check_scale._audit_large_site_scaling_result(100, 1.0, 14.0),
+            (
+                "PASS",
+                14.0,
+                14.7934554973822,
+                15.497905759162306,
+            ),
         )
-        with self.assertRaisesRegex(RuntimeError, "16.81x time-ratio error cap"):
-            check_scale._audit_large_site_scaling_result(100, 1.0, 16.82)
+        with self.assertRaisesRegex(RuntimeError, "15.50x time-ratio error cap"):
+            check_scale._audit_large_site_scaling_result(100, 1.0, 15.50)
 
         self.assertEqual(
             check_scale._audit_history_scaling_result(1.0, 1.61),
@@ -470,13 +485,19 @@ class TestScaleCheck(unittest.TestCase):
     def test_audit_stress_caps_preserve_measured_headroom(self) -> None:
         """The 500x and controlled 1000x caps catch meaningful regressions."""
         status, ratio, warning_ratio, error_ratio = (
-            check_scale._audit_large_site_scaling_result(500, 1.0, 75.0)
+            check_scale._audit_large_site_scaling_result(500, 1.0, 5.30)
         )
 
-        self.assertEqual(status, "PASS")
-        self.assertEqual(ratio, 75.0)
-        self.assertAlmostEqual(warning_ratio, 76.05)
-        self.assertAlmostEqual(error_ratio, 79.67142857142858)
+        self.assertEqual(status, "WARN")
+        self.assertEqual(ratio, 5.30)
+        self.assertEqual(warning_ratio, 5.25)
+        self.assertEqual(error_ratio, 5.50)
+        with self.assertRaisesRegex(RuntimeError, "5.50x time-ratio error cap"):
+            check_scale._audit_large_site_scaling_result(500, 1.0, 5.51)
+
+        self.assertEqual(check_scale._audit_timing_reference_scale(100), 1)
+        self.assertEqual(check_scale._audit_timing_reference_scale(500), 100)
+        self.assertEqual(check_scale._audit_timing_reference_scale(1000), 1)
 
         status, ratio, warning_ratio, error_ratio = (
             check_scale._audit_large_site_scaling_result(1000, 1.0, 90.0)

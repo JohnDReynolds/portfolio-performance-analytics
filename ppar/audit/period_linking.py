@@ -13,7 +13,7 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
-import ppar.utilities as util
+import ppar.common as util
 
 DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,

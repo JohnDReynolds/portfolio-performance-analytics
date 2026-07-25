@@ -55,10 +55,14 @@ _SCALING_WARNING_MULTIPLIER = 1.05
 _SCALING_FAILURE_MULTIPLIER = 1.10
 _ANALYTICS_SCALING_WARNING_RATIO = 1.05
 _ANALYTICS_SCALING_FAILURE_RATIO = 1.10
-# The 10x through 500x measurements follow approximately ``1 + scale / 7``.
-# The 5% warning and 10% failure margins remain explicit regression headroom,
-# rather than preserving the much looser pre-optimization growth curve.
-_AUDIT_LARGE_SITE_SCALE_DIVISOR = 7.0
+# Routine 10x through 100x measurements follow approximately
+# ``1 + scale / 7.64``. The release-candidate workload instead compares 500x
+# with 100x so process startup improvements cannot make a faster 500x run look
+# like a regression. Its 5% warning and 10% failure margins are applied to the
+# expected 5.0x workload ratio.
+_AUDIT_LARGE_SITE_SCALE_DIVISOR = 7.64
+_AUDIT_RELEASE_CANDIDATE_SCALE = 500
+_AUDIT_RELEASE_TIMING_REFERENCE_SCALE = 100
 _EXTREME_AUDIT_WARNING_RATIO = 85.0
 _EXTREME_AUDIT_FAILURE_RATIO = 95.0
 _AUDIT_HISTORY_WARNING_RATIO = 1.75
@@ -197,18 +201,23 @@ def _sublinear_scaling_result(
 
 def _audit_large_site_scaling_result(
     factor: int,
-    baseline_elapsed: float,
+    reference_elapsed: float,
     scaled_elapsed: float,
 ) -> tuple[str, float, float, float]:
     """Return tighter caps for the observed Audit large-site growth curve."""
     warning_ratio, error_ratio = _audit_large_site_caps(factor)
-    if baseline_elapsed <= 0:
-        raise ValueError("Audit large-site baseline time must be greater than zero.")
-    ratio = scaled_elapsed / baseline_elapsed
+    reference_scale = _audit_timing_reference_scale(factor)
+    if reference_elapsed <= 0:
+        raise ValueError("Audit large-site reference time must be greater than zero.")
+    ratio = scaled_elapsed / reference_elapsed
+    reference_label = (
+        "baseline" if reference_scale == 1 else f"reference_{reference_scale}x"
+    )
     if ratio > error_ratio:
         raise RuntimeError(
             f"Audit large-site exceeded the {error_ratio:.2f}x time-ratio error cap: "
-            f"baseline={baseline_elapsed:.2f}s, scaled={scaled_elapsed:.2f}s, "
+            f"{reference_label}={reference_elapsed:.2f}s, "
+            f"scaled={scaled_elapsed:.2f}s, "
             f"ratio={ratio:.2f}x."
         )
     status = "WARN" if ratio > warning_ratio else "PASS"
@@ -219,16 +228,27 @@ def _audit_large_site_caps(factor: int) -> tuple[float, float]:
     """Return measured-curve caps for one Audit large-site workload.
 
     The controlled 1000x fixture has materially fewer changed rows than the
-    fully changed 10x through 500x fixtures, so it has separately measured
-    caps instead of extrapolating either workload beyond its observed shape.
+    fully changed fixtures, so it has separately measured caps. The 500x
+    release-candidate gate uses 100x as its timing reference; routine scales
+    continue to use the measured startup-relative growth curve.
     """
     if factor == _EXTREME_AUDIT_SCALE:
         return _EXTREME_AUDIT_WARNING_RATIO, _EXTREME_AUDIT_FAILURE_RATIO
-    expected_ratio = 1.0 + factor / _AUDIT_LARGE_SITE_SCALE_DIVISOR
+    if factor == _AUDIT_RELEASE_CANDIDATE_SCALE:
+        expected_ratio = factor / _AUDIT_RELEASE_TIMING_REFERENCE_SCALE
+    else:
+        expected_ratio = 1.0 + factor / _AUDIT_LARGE_SITE_SCALE_DIVISOR
     return (
         expected_ratio * _SCALING_WARNING_MULTIPLIER,
         expected_ratio * _SCALING_FAILURE_MULTIPLIER,
     )
+
+
+def _audit_timing_reference_scale(factor: int) -> int:
+    """Return the timing-reference scale for an Audit large-site workload."""
+    if factor == _AUDIT_RELEASE_CANDIDATE_SCALE:
+        return _AUDIT_RELEASE_TIMING_REFERENCE_SCALE
+    return 1
 
 
 def _audit_history_scaling_result(
@@ -278,13 +298,18 @@ def _print_scale_result(
     status: str = "PASS",
     warning_cap: str = "none",
     error_cap: str,
+    reference_scale: int = 1,
 ) -> None:
     """Print one consistent baseline, scaled, ratio, and limits summary."""
     row_ratio = scaled_rows / baseline_rows
     time_ratio = scaled_elapsed / baseline_elapsed
     print(f"{status} {scenario} {factor}x")
+    reference_label = "baseline 1x" if reference_scale == 1 else (
+        f"reference {reference_scale}x"
+    )
     print(
-        f"  baseline 1x: rows={baseline_rows:,}, time={baseline_elapsed:.2f}s"
+        f"  {reference_label}: rows={baseline_rows:,}, "
+        f"time={baseline_elapsed:.2f}s"
     )
     print(
         f"  scaled {factor}x: rows={scaled_rows:,}, time={scaled_elapsed:.2f}s"
@@ -302,10 +327,18 @@ def _print_timeout_result(
     timeout_seconds: float,
     warning_ratio: float,
     error_ratio: float,
+    *,
+    reference_scale: int = 1,
 ) -> None:
     """Print a consistent failed summary when a scaled subprocess times out."""
     print(f"FAIL {scenario} {factor}x")
-    print(f"  baseline 1x: rows={baseline_rows:,}, time={baseline_elapsed:.2f}s")
+    reference_label = "baseline 1x" if reference_scale == 1 else (
+        f"reference {reference_scale}x"
+    )
+    print(
+        f"  {reference_label}: rows={baseline_rows:,}, "
+        f"time={baseline_elapsed:.2f}s"
+    )
     print(
         f"  scaled {factor}x: rows={scaled_rows:,}, "
         f"time=>{timeout_seconds:.2f}s (timed out)"
@@ -674,8 +707,10 @@ def _check_analytics(workspace: Path, scale: int) -> tuple[int, float]:
 def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
     """Run scaled Audit and validate its portfolio and security bundles."""
     baseline_path = workspace / "audit_baseline"
+    reference_path = workspace / "audit_timing_reference"
     scaled_path = workspace / "audit_scaled"
     _require_workspace_path(workspace, baseline_path)
+    _require_workspace_path(workspace, reference_path)
     _require_workspace_path(workspace, scaled_path)
     changed_portfolios = _audit_changed_portfolio_scope(scale)
     baseline_site, baseline_rows = _prepare_audit(
@@ -691,8 +726,20 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
     baseline_elapsed = _run(
         [sys.executable, "-m", "ppar.cli", "audit", baseline_site]
     )
+    reference_scale = _audit_timing_reference_scale(scale)
+    reference_rows = baseline_rows
+    reference_elapsed = baseline_elapsed
+    if reference_scale != 1:
+        reference_site, reference_rows = _prepare_audit(
+            reference_path,
+            reference_scale,
+            changed_portfolios=changed_portfolios,
+        )
+        reference_elapsed = _run(
+            [sys.executable, "-m", "ppar.cli", "audit", reference_site]
+        )
     warning_ratio, error_ratio = _audit_large_site_caps(scale)
-    timeout_seconds = _scaled_timeout(baseline_elapsed, error_ratio)
+    timeout_seconds = _scaled_timeout(reference_elapsed, error_ratio)
     try:
         elapsed = _run(
             [sys.executable, "-m", "ppar.cli", "audit", site],
@@ -702,12 +749,13 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
         _print_timeout_result(
             "Audit large-site",
             scale,
-            baseline_rows,
+            reference_rows,
             row_count,
-            baseline_elapsed,
+            reference_elapsed,
             timeout_seconds,
             warning_ratio,
             error_ratio,
+            reference_scale=reference_scale,
         )
         raise RuntimeError(
             "Audit large-site exceeded its execution-time error cap."
@@ -732,19 +780,20 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
         audit_scale_contract.print_output_metrics(report_name, scaled_report_path)
     status, _, warning_ratio, error_ratio = _audit_large_site_scaling_result(
         scale,
-        baseline_elapsed,
+        reference_elapsed,
         elapsed,
     )
     _print_scale_result(
         "Audit large-site",
         scale,
-        baseline_rows,
+        reference_rows,
         row_count,
-        baseline_elapsed,
+        reference_elapsed,
         elapsed,
         status=status,
         warning_cap=f">{warning_ratio:.2f}x",
         error_cap=f">{error_ratio:.2f}x",
+        reference_scale=reference_scale,
     )
     return row_count, elapsed
 

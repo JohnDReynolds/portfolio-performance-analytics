@@ -22,6 +22,7 @@ is not current implementation authority.
 
 | Document | Purpose |
 | --- | --- |
+| [Packaged Audit Demo Guide](packaged_demo.md) | Documents maintained demo scenarios, expected review output, and maintainer checks. |
 | [Demo Source Contract](demo_source_contract.md) | Defines the packaged Audit demo source and fixture boundary. |
 | [Site Extract Readiness Checklist](site_extract_readiness_checklist.md) | Guides site-specific Axys/APX source-contract review before report generation. |
 

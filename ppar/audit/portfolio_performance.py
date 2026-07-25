@@ -16,7 +16,7 @@ from ppar.audit.currency_basis import normalize_currency_columns
 from ppar.audit.period_linking import validate_portfolio_periods
 from ppar.audit import source_loader
 from ppar.audit.specification import AuditSpecification
-import ppar.utilities as util
+import ppar.common as util
 
 SnapshotKey = Literal["a", "b"]
 

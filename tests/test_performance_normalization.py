@@ -158,13 +158,6 @@ class TestPerformanceNormalization(unittest.TestCase):
         with self.assertRaises(PpaError):
             performance.reset_narrow_df(inconsistent)
 
-    def test_legacy_df_snapshot_cannot_mutate_narrow_rows(self) -> None:
-        """The compatibility ``df`` snapshot does not share mutable state."""
-        performance = Performance(_narrow_performance_df())
-        performance.df[0, cols.TOTAL_RETURN] = 999.0
-
-        self.assertNotEqual(performance.period_totals()[cols.TOTAL_RETURN].item(0), 999.0)
-
     def test_overall_rows_are_a_defensive_copy(self) -> None:
         """Mutating an overall result cannot alter its cached calculation."""
         performance = Performance(_narrow_performance_df())

@@ -13,7 +13,7 @@ from ppar.audit.currency_basis import normalize_currency_columns
 from ppar.audit import source_loader
 from ppar.audit.portfolio_performance import SnapshotKey
 from ppar.audit.specification import AuditSpecification
-import ppar.utilities as util
+import ppar.common as util
 
 
 _OPTIONAL_KEY_COLUMNS = (

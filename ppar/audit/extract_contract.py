@@ -18,7 +18,7 @@ import yaml
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit.transaction_policy import transaction_boundary_codes
-import ppar.utilities as util
+import ppar.common as util
 
 _CONTRACT_RESOURCE: Final[str] = "ppar.setup_templates"
 _CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axys_apx_audit"
@@ -29,15 +29,9 @@ _AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = transaction_boundary_codes(
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
 _PATH_KEY: Final[str] = "path"
 _ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY: Final[str] = "enforce_ambiguous_axys_flows"
-_TRANSACTION_SEMANTICS_CASE_KEY: Final[str] = "transaction_semantics_case"
 _DEFAULT_ENFORCE_AMBIGUOUS_AXYS_FLOWS: Final[bool] = True
-_TRANSACTION_SEMANTICS_CASE_EXACT: Final[str] = "exact"
-_TRANSACTION_SEMANTICS_CASE_LEGACY: Final[str] = "legacy_case_insensitive"
-_TRANSACTION_SEMANTICS_CASE_VALUES: Final[frozenset[str]] = frozenset(
-    {
-        _TRANSACTION_SEMANTICS_CASE_EXACT,
-        _TRANSACTION_SEMANTICS_CASE_LEGACY,
-    }
+_SUPPORTED_EXTRACT_CONTRACT_KEYS: Final[frozenset[str]] = frozenset(
+    {_PATH_KEY, _ENFORCE_AMBIGUOUS_AXYS_FLOWS_KEY}
 )
 
 
@@ -49,14 +43,11 @@ class ExtractContractSettings:
         path: Filesystem path for a local contract, or packaged resource label.
         enforce_ambiguous_axys_flows: Whether ambiguous Axys/APX transaction codes
             require source/destination and special-security context fields.
-        transaction_semantics_case: Case-matching mode for transaction-rule
-            codes and native context-condition values.
         contract: Parsed extract-contract YAML.
     """
 
     path: str
     enforce_ambiguous_axys_flows: bool
-    transaction_semantics_case: str
     contract: dict[str, Any]
 
 
@@ -137,9 +128,8 @@ def extract_contract_settings(
             paths and report validation errors.
 
     Returns:
-        Resolved extract-contract settings. Omitted safety and case-matching
-        choices use the fail-closed defaults; omitting ``path`` selects the
-        packaged contract.
+        Resolved extract-contract settings. Omitted safety choices use the
+        fail-closed defaults; omitting ``path`` selects the packaged contract.
 
     Raises:
         PpaError: If ``extract_contract`` has an invalid shape, contains an
@@ -149,6 +139,17 @@ def extract_contract_settings(
     if not isinstance(raw_settings, dict):
         raise PpaError(
             f"{specification_path}: extract_contract must be a mapping.",
+            504,
+        )
+    unsupported_keys = sorted(
+        set(raw_settings) - _SUPPORTED_EXTRACT_CONTRACT_KEYS
+    )
+    if unsupported_keys:
+        raise PpaError(
+            (
+                f"{specification_path}: extract_contract has unsupported keys: "
+                f"{', '.join(unsupported_keys)}."
+            ),
             504,
         )
 
@@ -165,24 +166,6 @@ def extract_contract_settings(
             504,
         )
 
-    case_value = raw_settings.get(
-        _TRANSACTION_SEMANTICS_CASE_KEY,
-        _TRANSACTION_SEMANTICS_CASE_EXACT,
-    )
-    if (
-        not isinstance(case_value, str)
-        or case_value not in _TRANSACTION_SEMANTICS_CASE_VALUES
-    ):
-        allowed = ", ".join(sorted(_TRANSACTION_SEMANTICS_CASE_VALUES))
-        raise PpaError(
-            (
-                f"{specification_path}: extract_contract."
-                f"{_TRANSACTION_SEMANTICS_CASE_KEY} must be one of {allowed}; "
-                f"received {case_value!r}."
-            ),
-            504,
-        )
-
     raw_path = raw_settings.get(_PATH_KEY)
     if raw_path is None:
         contract = _load_packaged_extract_contract()
@@ -191,15 +174,13 @@ def extract_contract_settings(
             contract_label=_packaged_contract_label(),
             require_ambiguous_flow_context=enforce_value,
         )
-        _validate_exact_case_contract_version(
+        _validate_contract_version(
             contract,
-            case_value=case_value,
             contract_label=_packaged_contract_label(),
         )
         return ExtractContractSettings(
             path=_packaged_contract_label(),
             enforce_ambiguous_axys_flows=enforce_value,
-            transaction_semantics_case=case_value,
             contract=contract,
         )
     if not isinstance(raw_path, str) or not raw_path.strip():
@@ -215,40 +196,15 @@ def extract_contract_settings(
         contract_label=str(contract_path),
         require_ambiguous_flow_context=enforce_value,
     )
-    _validate_exact_case_contract_version(
+    _validate_contract_version(
         contract,
-        case_value=case_value,
         contract_label=str(contract_path),
     )
     return ExtractContractSettings(
         path=str(contract_path),
         enforce_ambiguous_axys_flows=enforce_value,
-        transaction_semantics_case=case_value,
         contract=contract,
     )
-
-
-def transaction_semantics_exact_case(
-    values: Mapping[str, Any],
-    *,
-    specification_path: util.PathLike,
-) -> bool:
-    """Return whether transaction semantics use exact native-case matching.
-
-    Args:
-        values: Parsed comparison YAML settings.
-        specification_path: Comparison YAML path used to resolve and validate
-            the selected extract contract.
-
-    Returns:
-        ``True`` only when the versioned extract-contract configuration selects
-        exact-case transaction semantics. The setting is required.
-    """
-    settings = extract_contract_settings(
-        values,
-        specification_path=specification_path,
-    )
-    return settings.transaction_semantics_case == _TRANSACTION_SEMANTICS_CASE_EXACT
 
 
 def validate_transaction_extract_contract(
@@ -287,13 +243,7 @@ def validate_transaction_extract_contract(
     if pc_cols.TRANSACTION_CODE not in frame.columns:
         return
 
-    ambiguous_codes = _observed_ambiguous_codes(
-        frame,
-        exact_case=(
-            settings.transaction_semantics_case
-            == _TRANSACTION_SEMANTICS_CASE_EXACT
-        ),
-    )
+    ambiguous_codes = _observed_ambiguous_codes(frame)
     if not ambiguous_codes:
         return
 
@@ -350,16 +300,13 @@ def extract_contract_summary(
 
 def _observed_ambiguous_codes(
     frame: pl.DataFrame,
-    *,
-    exact_case: bool,
 ) -> list[str]:
     """Return ambiguous Axys/APX transaction codes observed in a frame."""
     observed: set[str] = set()
     for value in frame.get_column(pc_cols.TRANSACTION_CODE):
         native_code = _native_transaction_code(value)
-        matching_code = native_code if exact_case else native_code.lower()
-        if matching_code in _AXYS_AMBIGUOUS_FLOW_CODES:
-            observed.add(native_code if exact_case else native_code.upper())
+        if native_code in _AXYS_AMBIGUOUS_FLOW_CODES:
+            observed.add(native_code)
     return sorted(observed)
 
 
@@ -449,20 +396,17 @@ def _required_bool(
     return value
 
 
-def _validate_exact_case_contract_version(
+def _validate_contract_version(
     contract: Mapping[str, Any],
     *,
-    case_value: object,
     contract_label: str,
 ) -> None:
-    """Require a versioned source contract before exact-case matching."""
-    if case_value != _TRANSACTION_SEMANTICS_CASE_EXACT:
-        return
+    """Require a versioned source contract for transaction semantics."""
     version = contract.get("version")
     if not isinstance(version, int) or isinstance(version, bool) or version < 1:
         raise PpaError(
             (
-                f"{contract_label}: exact transaction semantics require a "
+                f"{contract_label}: transaction semantics require a "
                 "positive integer contract version."
             ),
             504,

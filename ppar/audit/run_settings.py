@@ -36,7 +36,6 @@ class AuditRunSettings:
             diagnostics are included.
         require_causal_attribution: Whether supported changed periods require
             complete causal-method setup.
-        allow_incomplete_yaml: Whether the CLI-only diagnostic bypass is active.
         include_workbook: Whether each report level writes XLSX.
         include_html_output: Whether each report level writes HTML.
         expand_all_supporting_files: Whether supporting artifacts are expanded
@@ -48,7 +47,6 @@ class AuditRunSettings:
     exclude_suppressed: bool
     include_reconstruction_diagnostics: bool
     require_causal_attribution: bool
-    allow_incomplete_yaml: bool
     include_workbook: bool
     include_html_output: bool
     expand_all_supporting_files: bool
@@ -100,7 +98,6 @@ def resolve_settings(
     exclude_suppressed: bool | None,
     include_reconstruction_diagnostics: bool | None,
     require_causal_attribution: bool | None,
-    allow_incomplete_yaml: bool,
     include_workbook: bool | None,
     include_html_output: bool | None,
     expand_all_supporting_files: bool | None,
@@ -115,7 +112,6 @@ def resolve_settings(
         exclude_suppressed: One-run suppression-display override.
         include_reconstruction_diagnostics: One-run diagnostics override.
         require_causal_attribution: One-run causal-attribution guard override.
-        allow_incomplete_yaml: CLI-only diagnostic safety bypass.
         include_workbook: One-run XLSX-output override.
         include_html_output: One-run HTML-output override.
         expand_all_supporting_files: One-run supporting-file layout override.
@@ -149,7 +145,6 @@ def resolve_settings(
             values,
             "require_causal_attribution",
         ),
-        allow_incomplete_yaml=allow_incomplete_yaml,
         include_workbook=_boolean_setting(
             include_workbook,
             values,

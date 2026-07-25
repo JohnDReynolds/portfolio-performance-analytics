@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 # Project imports
-import ppar.utilities as util
+import ppar.common as util
 from ppar.audit import schema as audit_schema
 from ppar.audit import workbook_layout as layout
 from ppar.audit import workbook_reconstruction

@@ -89,8 +89,6 @@ from ppar.audit.performance_comparison.modified_dietz import (
 from ppar.audit.performance_comparison.return_reconstruction import (
     BEGIN_VALUE_A,
     DERIVED_DENOMINATOR_A,
-    portfolio_return_reconstruction_checks,
-    security_return_reconstruction_checks,
 )
 from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
 from ppar.audit.holdings import HoldingsLoader
@@ -109,6 +107,7 @@ from ppar.audit.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     TransactionsLoader,
 )
+from ppar.audit.workbook_reconstruction import WorkbookReconstructionCache
 
 _PORTFOLIO_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
@@ -283,6 +282,8 @@ class PerformanceComparison:
         _fx_rates_loader: Loader for normalized FX rate rows.
         _splits_loader: Loader for optional normalized split-factor rows.
         _transactions_loader: Loader for normalized transaction rows.
+        _reconstruction_cache: Run-scoped portfolio and security
+            reconstruction results.
         _transaction_impact_policies: YAML-configured transaction impact
             policies keyed by performance-flow treatment.
         _holding_impact_policies: YAML-configured holding impact policy
@@ -295,11 +296,18 @@ class PerformanceComparison:
             labels keyed by dataset and source column.
     """
 
-    def __init__(self, specification: AuditSpecification) -> None:
+    def __init__(
+        self,
+        specification: AuditSpecification,
+        *,
+        reconstruction_cache: WorkbookReconstructionCache | None = None,
+    ) -> None:
         """Initialize a performance comparison.
 
         Args:
             specification: Parsed comparison specification.
+            reconstruction_cache: Optional run-scoped reconstruction results
+                shared by portfolio, security, and report views.
         """
         _field_roles.assert_comparison_fields_classified(_COMPARISON_FIELDS_BY_DATASET)
         self._specification = specification
@@ -309,6 +317,10 @@ class PerformanceComparison:
         self._fx_rates_loader = FxRatesLoader(specification)
         self._splits_loader = SplitsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
+        self._reconstruction_cache = (
+            reconstruction_cache
+            or WorkbookReconstructionCache(specification.path)
+        )
         self._transaction_impact_policies = _transaction_impact_policies(specification)
         self._security_return_impact_policies = _security_return_impact_policies(specification)
         self._holding_impact_policies = _holding_impact_policies(specification)
@@ -1980,7 +1992,7 @@ class PerformanceComparison:
         """Return holdings/transactions-derived portfolio denominators."""
         if self._portfolio_denominator_cache is not None:
             return self._portfolio_denominator_cache
-        checks = portfolio_return_reconstruction_checks(self._specification.path)
+        checks = self._reconstruction_cache.portfolio_checks()
         denominators: dict[tuple[object, ...], float] = {}
         for row in checks.iter_rows(named=True):
             value = row.get(DERIVED_DENOMINATOR_A)
@@ -2004,7 +2016,7 @@ class PerformanceComparison:
         if self._security_loader.load("a") is None:
             self._security_denominator_cache = {}
             return self._security_denominator_cache
-        checks = security_return_reconstruction_checks(self._specification.path)
+        checks = self._reconstruction_cache.security_checks()
         denominators: dict[tuple[object, ...], float] = {}
         for row in checks.iter_rows(named=True):
             value = row.get(DERIVED_DENOMINATOR_A)
@@ -2126,9 +2138,7 @@ class PerformanceComparison:
         if self._security_loader.load("a") is None:
             self._security_weight_cache = {}
             return self._security_weight_cache
-        portfolio_checks = portfolio_return_reconstruction_checks(
-            self._specification.path
-        )
+        portfolio_checks = self._reconstruction_cache.portfolio_checks()
         portfolio_begin_values: dict[tuple[object, object, object], float] = {}
         for row in portfolio_checks.iter_rows(named=True):
             value = row.get(BEGIN_VALUE_A)
@@ -2141,9 +2151,7 @@ class PerformanceComparison:
                     row.get(pc_cols.THRU_DATE),
                 )
             ] = float(value)
-        security_checks = security_return_reconstruction_checks(
-            self._specification.path
-        )
+        security_checks = self._reconstruction_cache.security_checks()
         weights: dict[tuple[object, object, object, object], float] = {}
         for row in security_checks.iter_rows(named=True):
             security_value = row.get(BEGIN_VALUE_A)

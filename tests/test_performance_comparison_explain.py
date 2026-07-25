@@ -617,7 +617,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[MEDIUM_CONFIDENCE_ESTIMATE_COUNT], 0)
         self.assertIsNone(row[ESTIMATED_RETURN_IMPACT_TOTAL])
         self.assertIn(ROOT_CAUSE_TRANSACTION_ACTIVITY, row[EVIDENCE_ONLY_AREAS])
-        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
+        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "yaml_rule: 3")
         self.assertNotIn("return denominator", row[MISSING_IMPACT_INPUTS])
         self.assertEqual(row[MISSING_IMPACT_INPUTS], "")
         self.assertEqual(row[IMPACT_COVERAGE_STATUS], "evidence_only")
@@ -701,10 +701,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertAlmostEqual(row[AMOUNT_DELTA], -100.0)
         self.assertAlmostEqual(row[QUANTITY_DELTA], 1.0)
         self.assertAlmostEqual(row[PRICE_DELTA], 0.5)
-        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
+        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "yaml_rule: 3")
         self.assertEqual(
             row[MISSING_IMPACT_INPUTS],
-            "return denominator, transaction sign and flow semantics",
+            "return denominator",
         )
 
     def test_transaction_matching_diagnostics_explain_id_and_fallback_counts(
