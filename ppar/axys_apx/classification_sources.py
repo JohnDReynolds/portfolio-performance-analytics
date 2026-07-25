@@ -160,7 +160,7 @@ class AxysClassificationSourceLoader:
                 source_frame,
                 construction,
                 output_column=_CONSTRUCTED_SECURITY_ID_COLUMN,
-                dataset_name="security_reference",
+                dataset_name="security_master",
                 source_path=file_path,
                 error_message=self._error_message,
             )
@@ -574,7 +574,7 @@ class AxysClassificationSourceLoader:
             )
         construction = security_id_construction(
             self._specification.values,
-            "security_reference",
+            "security_master",
             self._error_message,
             file_name=_SECURITY_MASTER_FILE_KEY,
         )

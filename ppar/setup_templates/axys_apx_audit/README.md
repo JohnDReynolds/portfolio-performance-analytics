@@ -74,11 +74,10 @@ securities; the JPM and AAPL examples use the documented real dates and rates.
 Intentional Snapshot A errors remain clearly bounded Audit/Data Issues scenarios
 rather than claims about the public-market source.
 
-Setup creates `ppar.yaml` in the workspace root. It keeps normal run settings
-in one `audit:` section. Every setting in that section includes a matching one-run CLI
-example. Save the normal choice in YAML and use the command-line form only when
-one invocation needs to differ. Audit keeps `--allow-incomplete-yaml` CLI-only
-because it is a diagnostic safety bypass, not a reproducible normal-run choice.
+Setup creates `ppar.yaml` in the workspace root. It keeps normal presentation,
+review-policy, and diagnostic settings in one `audit:` section. Save those
+reproducible choices in YAML. The public command accepts only straightforward
+one-run changes to the output location, title, format, and supporting-file layout.
 Audit validation checks minimum required datasets, required normalized columns,
 complete YAML treatment for changed source-data fields, and the strict Data Issues check
 contract before report bundles are written. Unknown Data Issues issue types, unsupported
@@ -93,18 +92,18 @@ single-view tools must select their level explicitly. Required datasets use
 their standard filenames when their `files.*` keys are omitted. Genuinely
 optional evidence remains explicitly configured so file presence alone cannot
 expand the findings or accounting-policy surface. Audit YAML still requires all
-eight comparison tolerances. Omitted extract-contract settings use the packaged
+six comparison tolerances. Omitted extract-contract settings use the packaged
 contract, ambiguous-flow enforcement, and exact-case matching. Configuring
 `transactions`, `holdings`, or `fx_rates` requires the complete corresponding
 transaction, holding/price, or FX impact-policy block.
 The opt-in `large_price_variation` check instead uses a strict nonempty list of
 uniquely identified rules. Each rule can use scalar-or-list exact-match filters,
-an explicitly configured inclusive-period calendar-day minimum, and an explicitly
-configured decimal minimum variation. It
-combines linked boundary holdings with inclusive trade-date transaction prices
-and uses optional `splits.csv` factors to put prices on the period-ending share
-basis. The packaged common-stock rule uses a 30 percent tolerance and real dated
-observations without injecting a price or market value.
+and requires an explicitly configured decimal minimum variation. Every
+established period with at least two comparable positive observations is
+eligible. The check combines linked boundary holdings with inclusive trade-date
+transaction prices and uses optional `splits.csv` factors to put prices on the
+period-ending share basis. The packaged common-stock rule uses a 30 percent
+tolerance and real dated observations without injecting a price or market value.
 The opt-in `deliver_in_original_cost_incomplete` check reviews only an explicit
 transaction-code, security-type, and source/destination population. It requires
 both original-cost source columns in both snapshots, treats zero cost as
@@ -114,7 +113,7 @@ but the primary demo transactions deliberately omit those optional columns so
 they are not mistaken for Performance Comparison requirements. Focused tests
 cover the enabled check end to end.
 Optional `secmast.csv` fields can qualify Data Issues populations through
-`security_reference.*` filters. Those joins and values preserve exact source
+`security_master.*` filters. Those joins and values preserve exact source
 case and fail closed when required reference evidence is missing; they do not
 change performance calculations. The workspace includes only `Security Symbol`,
 `Security Type`, and `Asset Class Code`, because those are the only reference
@@ -161,25 +160,25 @@ If `files.security_performance` is unavailable, the portfolio bundle is still
 created and the command reports that security output was skipped. Other
 security-generation failures remain fatal.
 
-The workspace `audit:` settings generate XLSX and HTML. Override that choice for
-one run to generate HTML without XLSX:
+The workspace `audit:` settings generate XLSX and HTML. For one run, generate
+HTML without XLSX with:
 
 ```bash
-ppar audit ./my_ppar_audit --no-xlsx-output
+ppar audit ./my_ppar_audit --html-only
 ```
 
-Generate XLSX without HTML with `--no-html-output`. Supplying both options
-creates a CSV-only audit with `performance_differences.csv`,
+Use `--xlsx-only` for XLSX without HTML. Use `--csv-only` to create an audit
+with `performance_differences.csv`,
 `performance_difference_causes.csv`, `data_issues.csv`, and
 `source_detail.csv` at each report root.
 
 `source_detail.csv` always stays at the report root. It is never duplicated in
 `supporting_files/` or `audit_support.zip`. Use
-`--expand-all-supporting-files` to retain the remaining supporting CSV and JSON
+`--expand-supporting-files` to retain the remaining supporting CSV and JSON
 files individually when needed:
 
 ```bash
-ppar audit ./my_ppar_audit --expand-all-supporting-files
+ppar audit ./my_ppar_audit --expand-supporting-files
 ```
 
 Open `portfolio_audit.xlsx` or `security_audit.xlsx` for review, use the matching
@@ -234,10 +233,10 @@ Data used:
 - Snapshot A: `snapshot_a`
 - Snapshot B: `snapshot_b`
 - Files: Axys/APX-style portfolio performance, security performance,
-  transactions, holdings, and optional security reference.
+  transactions, holdings, and optional security master.
 - `secmast.csv` is snapshot-specific Data Issues enrichment. The packaged
   nonpositive-price, stale-price, classification-mismatch, and fixed-income
-  rate checks use reviewed `security_reference` qualifiers without affecting
+  rate checks use reviewed `security_master` qualifiers without affecting
   Modified Dietz, choosing an authoritative classification, or assigning
   transaction semantics.
 - `portperf.csv.BASE_CURRENCY` is authoritative for each portfolio. PPAR fills
@@ -261,9 +260,8 @@ Data used:
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
 - YAML: maps source transaction codes (`by`, `sl`, `dv`, `ai`, `in`, `pa`, `pd`,
-  `sa`, `rc`, `dp`, `li`, `ti`, `lo`, `wd`, and `;`) to normalized categories such
-  as `buy`, `sell`, `income`, `fee_expense`, `external_flow`, and
-  `corporate_action`.
+  `sa`, `rc`, `dp`, `li`, `ti`, `lo`, and `wd`) to normalized categories such as
+  `buy`, `sell`, `income`, `fee_expense`, `external_flow`, and `corporate_action`.
   Reviewer-facing explanations preserve the source code rather than uppercasing
   or replacing it with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
@@ -293,8 +291,8 @@ Data used:
   | --- | --- |
   | Packaged demo rows | `by`, `sl`, short-side `ss`/`cs`, ordinary and reinvested `dv`, contextual margin-interest `ai`, `in`, fixed-income accrued-interest `pa`/`sa`, equity/security return-of-capital `rc`, MBS principal-paydown `pd`, fee/withholding-like `dp`, external-security `ti`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
   | Packaged split-factor rows | CVNA `splits.csv` row in Snapshot B, used as context evidence for central split processing. |
-  | YAML rules reserved for runtime guards | `;` locally materialized corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
-  | Test-only fixtures | Internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, the alternate `dp` plus `epus expense` context, and local-override examples for context-dependent codes. |
+  | YAML branches reserved for runtime guards | Non-packaged conditional branches for ambiguous flow codes. |
+  | Test-only fixtures | Neutral review-only `;` markers, internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, the alternate `dp` plus `epus expense` context, and local-override examples for context-dependent codes. |
   | Evidence-blocked backlog | Code-only `ai`/`ti`, standalone `epus`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary 91282Y2Y1

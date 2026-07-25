@@ -194,7 +194,7 @@
     "On 2026-07-15, the Audit large-site curve was deliberately tightened from 1 + scale / 4 to 1 + scale / 7 after reviewing measured 10x through 500x results; the warning and failure margins remain 5 and 10 percent.",
     "The detailed phase profile remains the Phase A baseline; later gate observations show optimization progress.",
     "The Phase O gate measures the finalized default with both XLSX and HTML enabled, so it remains comparable with the earlier phases.",
-    "Phase E adds independent --no-xlsx-output and --no-html-output controls; supplying both produces promoted CSV-only review files without weakening the row ceiling or financial assertions.",
+    "Phase E adds mutually exclusive --html-only, --xlsx-only, and --csv-only output modes without weakening the row ceiling or financial assertions.",
     "Phase F preserves every raw source-detail value while projecting non-presentation columns in bulk and classifying each presentation row once.",
     "Phase G keeps base-currency and period-boundary assertions active in production while evaluating them with Polars expressions instead of Python row dictionaries.",
     "Phase H reuses the FX portfolio-period index and appends lineage metadata column-wise while preserving byte-identical SHA-256 finding fingerprints.",

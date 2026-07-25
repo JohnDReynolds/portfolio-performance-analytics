@@ -365,7 +365,7 @@ from Custodial Integrator, AIA, conversion, and connector workflows.
 
 | Area | Public evidence | Role | Confidence | Boundary |
 |---|---|---|---:|---|
-| Security information | `sec.inf` | Security reference used to map/generate valid imports. | Verified for CI | Full layout Unknown. |
+| Security information | `sec.inf` | Security master used to map/generate valid imports. | Verified for CI | Full layout Unknown. |
 | Security types | `type.inf` | Type reference used with security master. | Verified for CI | Full type dictionary Unknown. |
 | Transactions | `topost.trn` | Trade Blotter import/append file. | Verified for CI | Full Trade Blotter layout Unknown. |
 | Positions | `ptopost.trn`, `.pos` | Position Post input/replacement position files. | Verified for CI | Native holdings mechanics Unknown. |
@@ -401,7 +401,7 @@ environment instead of hard-coding a universal schema:
 
 | Design rule | Reason |
 |---|---|
-| Use IMEX for operational/reference data where a stable object/export exists. | Strongest evidence is for security reference, security types, transactions, prices, and positions. |
+| Use IMEX for operational/reference data where a stable object/export exists. | Strongest evidence is for security master, security types, transactions, prices, and positions. |
 | Use REP/Replang/custom reports for user-visible report values. | Performance and classification tie-outs may be report-shaped or recalculated. |
 | Preserve original source field labels and row lineage. | Client installs, versions, and templates may differ. |
 | Maintain a versioned `imex_catalog`. | Public evidence does not prove one universal IMEX schema. |

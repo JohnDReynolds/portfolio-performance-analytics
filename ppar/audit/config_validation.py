@@ -14,7 +14,7 @@ from ppar.audit.performance_comparison.compare import PerformanceComparison
 from ppar.audit.data_issues.config import (
     data_issues_config_summary,
     required_transaction_columns,
-    security_reference_filter_fields,
+    security_master_filter_fields,
 )
 from ppar.audit.extract_contract import (
     extract_contract_summary,
@@ -22,7 +22,7 @@ from ppar.audit.extract_contract import (
 )
 from ppar.audit.performance_comparison.findings import findings_to_polars
 from ppar.audit.runner import validate_yaml_setup_complete
-from ppar.audit.security_reference import SecurityReferenceLoader
+from ppar.audit.security_master import SecurityMasterLoader
 from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
 from ppar.audit.source_data_contract import (
     comparison_required_dataset_names,
@@ -146,7 +146,7 @@ def _validate_config(
     if require_complete_yaml_setup:
         validate_yaml_setup_complete(findings)
     transaction_preview = _validate_transactions(specification)
-    _validate_security_reference(specification)
+    _validate_security_master(specification)
     contract_summary = extract_contract_summary(
         specification.values,
         specification_path=specification.path,
@@ -161,8 +161,8 @@ def _validate_config(
         include_security_performance=(
             specification.security_return_reconstruction is not None
         ),
-        include_security_reference=bool(
-            security_reference_filter_fields(specification.values)
+        include_security_master=bool(
+            security_master_filter_fields(specification.values)
         ),
     )
     data_issues_summary = data_issues_config_summary(specification.values)
@@ -275,20 +275,20 @@ def _validate_transactions(
     }
 
 
-def _validate_security_reference(specification: AuditSpecification) -> None:
+def _validate_security_master(specification: AuditSpecification) -> None:
     """Validate fields required by configured reference qualifiers."""
-    required_columns = security_reference_filter_fields(specification.values)
+    required_columns = security_master_filter_fields(specification.values)
     if not required_columns:
         return
 
-    loader = SecurityReferenceLoader(specification)
+    loader = SecurityMasterLoader(specification)
     for snapshot_key in ("a", "b"):
         frame = loader.load(snapshot_key)
         if frame is None:
             raise PpaError(
                 (
-                    "Data Issues security_reference.* filters require "
-                    f"files.security_reference in snapshot {snapshot_key}.  |  "
+                    "Data Issues security_master.* filters require "
+                    f"files.security_master in snapshot {snapshot_key}.  |  "
                     f"audit_specification_path={specification.path}"
                 ),
                 504,
@@ -297,7 +297,7 @@ def _validate_security_reference(specification: AuditSpecification) -> None:
         if missing_columns:
             raise PpaError(
                 (
-                    f"security_reference for snapshot {snapshot_key} is missing "
+                    f"security_master for snapshot {snapshot_key} is missing "
                     f"filter columns: {', '.join(missing_columns)}.  |  "
                     f"audit_specification_path={specification.path}"
                 ),

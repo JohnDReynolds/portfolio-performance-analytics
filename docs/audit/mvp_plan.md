@@ -83,13 +83,13 @@ reviewer meaning for every implemented issue type. The conservative
 checks are off by default. The row-level checks
 require a nonempty `only` population when explicitly enabled. The stale-price
 check also requires an explicit positive
-`minimum_calendar_days` and reviewed `security_reference.security_type`
+`minimum_calendar_days` and reviewed `security_master.security_type`
 population. The transaction-price check requires a transaction-code filter and
-a reviewed security-reference type or asset-class qualifier. The mismatch
-check requires the reviewed `security_reference.security_type` population it
+a reviewed security-master type or asset-class qualifier. The mismatch
+check requires the reviewed `security_master.security_type` population it
 compares against. `large_price_variation` instead requires a nonempty list of
 uniquely identified rules when enabled; each rule may define its own filters,
-inclusive-period minimum days, and decimal minimum variation tolerance.
+and requires a decimal minimum variation tolerance.
 
 ## 2.3 Current cause vocabulary
 
@@ -118,21 +118,20 @@ Users can already control each optional Data Issues check through:
 - `percent_tolerance`.
 
 The issue-specific `large_price_variation` block adds uniquely identified
-named rules with rule-level filters, inclusive `minimum_calendar_days`, and a
-decimal `minimum_tolerance`. It does not make named rules available to unrelated
-checks.
+named rules with rule-level filters and a decimal `minimum_tolerance`. It does
+not make named rules available to unrelated checks.
 
 YAML also controls transaction semantics, impact methods, evidence-only fields,
 tolerances, and suppressions.
 
 Financially consequential configuration no longer falls back to internal values.
-Every Audit YAML explicitly names the comparison level, all eight comparison
+Every Audit YAML explicitly names the comparison level, all six comparison
 tolerances, and both extract-contract safety choices. A configured transaction,
 holding, or FX dataset also requires its complete applicable transaction,
 holding/price, or FX impact-policy block. The maintained configurations spell out
 their former effective values, preserving executable behavior while making those
 choices reviewable. Each `large_price_variation` rule likewise explicitly names
-`minimum_calendar_days` and `minimum_tolerance`.
+`minimum_tolerance`.
 
 Data Issues configuration is now a strict, enumerated, fail-closed product
 contract. Malformed sections/checks/filters, unknown issue types or fields,
@@ -365,7 +364,7 @@ normalized data, subject to founder approval and fixture review:
    issue as performance explanation arithmetic.
 2. **`transactions_nonpositive_price` — founder accepted.** A
    nonzero-quantity transaction has a zero or negative price inside an explicit
-   transaction-code and reviewed security-reference population. The check is
+   transaction-code and reviewed security-master population. The check is
    opt-in, accepts no tolerance, does not infer transaction meaning, and ignores
    missing prices and zero-quantity rows.
 3. **`holdings_quantity_value_mismatch`** — quantity and market value have a
@@ -394,10 +393,10 @@ packaged demo adopted dated real-market prices, dividends, and splits:
    are normalized to the period-ending share basis using same-snapshot split
    factors. The rule reports one maximum variation when
    `(maximum - minimum) / minimum` strictly exceeds `minimum_tolerance`.
-   `minimum_calendar_days` uses inclusive day count
-   `(thru_date - from_date) + 1`. Both thresholds are required in each rule.
-   The packaged common-stock rule uses one calendar day and a decimal tolerance
-   of `0.30`. A raw discontinuity remains visible when split evidence is missing.
+   Every established period with at least two comparable positive observations
+   is eligible regardless of calendar length. The packaged common-stock rule
+   uses a decimal tolerance of `0.30`. A raw discontinuity remains visible when
+   split evidence is missing.
 
 The following remain deferred without stronger source evidence:
 
@@ -425,11 +424,11 @@ surface remains too large for the current bounded implementation.
   analytical status.
 - Demo coverage and fixture isolation checks protect the intended story.
 
-## 6.5 Security-reference-enabled scenarios
+## 6.5 Security-master-enabled scenarios
 
-The optional `security_reference` dataset adds reviewed classification context;
+The optional `security_master` dataset adds reviewed classification context;
 it does not create transaction semantics. In the current runtime,
-`security_reference.*` values are available only as exact-match `only` and
+`security_master.*` values are available only as exact-match `only` and
 `exclude` qualifiers for Data Issues checks. A reference row must therefore not
 cause PPAR to assign a transaction category, cash-flow sign, or performance
 treatment by itself.
@@ -440,8 +439,8 @@ The following additional demo scenarios are defensible with that boundary:
    `transactions_nonpositive_price` demonstrates a nonpositive buy price inside
    an explicit reviewed price-bearing security population. It combines the
    transaction-code population with a
-   `security_reference.asset_class_code` or
-   `security_reference.security_type` qualifier so cash, unpriced corporate
+   `security_master.asset_class_code` or
+   `security_master.security_type` qualifier so cash, unpriced corporate
    actions, and other site-specific conventions remain outside the rule.
 2. **Reference-scoped fixed-income rate review — implemented.** The packaged
    `holdings_accrued_rate` and `pa_sa_rate` configurations include a reviewed
@@ -450,7 +449,7 @@ The following additional demo scenarios are defensible with that boundary:
 3. **Transaction-versus-reference security-type mismatch — founder accepted.**
    The opt-in `transaction_security_type_mismatch` issue
    compares the transaction row's exact-case `transaction_security_type` with
-   the snapshot security reference for the same exact-case security identifier.
+   the snapshot security master for the same exact-case security identifier.
    This is not
    expressible as a field-to-field comparison with today's filters and
    therefore requires a new issue type. It requires a nonempty population,
@@ -459,7 +458,7 @@ The following additional demo scenarios are defensible with that boundary:
    that either classification is universally correct.
 
 A later, separately approved extension could allow an explicitly named
-`security_reference.*` field in `transaction_rules.*.when`. That would support
+`security_master.*` field in `transaction_rules.*.when`. That would support
 site-scoped variants when an otherwise usable transaction extract lacks its own
 security-type column. It could corroborate the already evidenced contextual
 handling of `ai`, `pa`/`sa`, `pd`, `li`/`lo`, and `dp`/`wd`; it would not prove a
@@ -682,7 +681,7 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
   false-positive controls.
 - **Slice 3B — founder accepted:** added
   `transactions_nonpositive_price`, requiring transaction-code and reviewed
-  security-reference populations, and reference-scoped the existing fixed-
+  security-master populations, and reference-scoped the existing fixed-
   income rate checks.
 - **Slice 3C — founder accepted:** added the exact-case
   `transaction_security_type_mismatch` issue defined in Section 6.5 with an
@@ -692,7 +691,7 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
   and an isolated two-snapshot GOOGL source-price anomaly.
 - **Slice 3E — founder accepted:** added split-normalized,
   period-level `large_price_variation` with uniquely identified overlapping
-  rules, scalar-or-list source filters, inclusive period days, strict decimal
+  rules, scalar-or-list source filters, inclusive period boundaries, strict decimal
   thresholds, deterministic evidence selection, and real-market demo findings.
 
 ## Slice 4 — Required current-capability Axys/APX scenarios — Implemented for founder review

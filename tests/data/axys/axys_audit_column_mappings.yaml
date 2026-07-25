@@ -51,7 +51,7 @@ files:
       portfolio_code: PORTFOLIO_CODE
       security_return: SEC_RETURN
 
-  security_reference:
+  security_master:
     columns:
       identifier: SECURITY_ID
       security_name: SECURITY_NAME
@@ -108,18 +108,6 @@ files:
       fx_rate: FX_RATE
       rate_source: SOURCE
       rate_type: RATE_TYPE
-
-# =========================
-# Security Master
-# =========================
-  security_master:
-    path: snapshots/axys_a/secmast.csv
-    columns:
-      # Security identifier matched to security performance rows.
-      identifier_column: SECURITY_ID
-
-      # Security display name used in reports.
-      security_name: SECURITY_NAME
 
 # =========================
 # Classifications

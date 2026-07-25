@@ -348,8 +348,8 @@ transaction matching, preferably by `transaction_id`.
 The comparison loader can infer this category from common transaction codes
 when the source does not provide a category. For Axys/APX-shaped demo data, the
 source `transaction_code` values remain native lower-case codes such as `by`,
-`sl`, `dv`, `in`, `dp`, `wd`, and `;`. YAML rules map those source codes to
-normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
+`sl`, `dv`, `in`, `dp`, `wd`, `rc`, and `pd`. YAML rules map those source codes
+to normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
 `corporate_action`. The normalized category is an explanation label and a rule
 selector; it does not replace the source transaction code in the audit trail.
 Transaction-code normalization is limited to semantic classification and
@@ -920,7 +920,7 @@ available; the starter YAML therefore does not choose one primary level.
 Lower-level single-view calls must supply a comparison level directly or retain
 an explicit `comparison.level` in their specialized YAML. Extract-contract
 omission uses the packaged contract, ambiguous-flow enforcement, and exact-case
-matching. All eight comparison tolerances remain mandatory. When
+matching. All six comparison tolerances remain mandatory. When
 `transactions`, `holdings`, or `fx_rates` is configured, the corresponding
 transaction, holding/price, or FX impact-policy block must be complete.
 
@@ -1052,8 +1052,6 @@ fx_rate_impact_methods:
 
 tolerances:
   return: 0.000001
-  contribution: 0.000001
-  weight: 0.000001
   market_value: 0.01
   quantity: 0.000001
   price: 0.000001

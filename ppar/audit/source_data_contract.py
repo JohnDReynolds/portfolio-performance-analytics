@@ -8,7 +8,7 @@ from typing import Final
 
 # Project imports
 from ppar.audit import schema as pc_cols
-from ppar.audit.data_issues.config import security_reference_filter_fields
+from ppar.audit.data_issues.config import security_master_filter_fields
 from ppar.audit.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
@@ -82,11 +82,11 @@ _SOURCE_DATA_CONTRACT: Final[tuple[SourceDataDatasetContract, ...]] = (
         required_when="FX-rate rows are used as source-data evidence",
     ),
     SourceDataDatasetContract(
-        name=pc_cols.SECURITY_REFERENCE,
-        required_columns=pc_cols.SECURITY_REFERENCE_REQUIRED_COLUMNS,
-        optional_columns=pc_cols.SECURITY_REFERENCE_OPTIONAL_COLUMNS,
+        name=pc_cols.SECURITY_MASTER,
+        required_columns=pc_cols.SECURITY_MASTER_REQUIRED_COLUMNS,
+        optional_columns=pc_cols.SECURITY_MASTER_OPTIONAL_COLUMNS,
         required_when=(
-            "a Data Issues filter references security_reference fields"
+            "a Data Issues filter references security_master fields"
         ),
     ),
 )
@@ -119,8 +119,8 @@ def comparison_required_dataset_names(
         required_names.update({pc_cols.HOLDINGS, pc_cols.TRANSACTIONS})
     if specification.security_return_reconstruction is not None:
         required_names.add(pc_cols.SECURITY_PERFORMANCE)
-    if security_reference_filter_fields(specification.values):
-        required_names.add(pc_cols.SECURITY_REFERENCE)
+    if security_master_filter_fields(specification.values):
+        required_names.add(pc_cols.SECURITY_MASTER)
     return tuple(sorted(required_names))
 
 
@@ -129,7 +129,7 @@ def source_data_contract_summary(
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_sources: bool = False,
     include_security_performance: bool = False,
-    include_security_reference: bool = False,
+    include_security_master: bool = False,
 ) -> dict[str, str]:
     """Return compact source-data contract strings for CLI and tests.
 
@@ -140,8 +140,8 @@ def source_data_contract_summary(
             transaction datasets required by return reconstruction.
         include_security_performance: Whether security performance is required
             by security comparison or security return reconstruction.
-        include_security_reference: Whether Data Issues filters require
-            security-reference qualifiers.
+        include_security_master: Whether Data Issues filters require
+            security-master qualifiers.
 
     Returns:
         A compact dictionary containing required dataset and required-column
@@ -156,8 +156,8 @@ def source_data_contract_summary(
         required_names.update({pc_cols.HOLDINGS, pc_cols.TRANSACTIONS})
     if include_security_performance:
         required_names.add(pc_cols.SECURITY_PERFORMANCE)
-    if include_security_reference:
-        required_names.add(pc_cols.SECURITY_REFERENCE)
+    if include_security_master:
+        required_names.add(pc_cols.SECURITY_MASTER)
     contracts_by_name = {contract.name: contract for contract in _SOURCE_DATA_CONTRACT}
     calculation_required_columns = {
         pc_cols.HOLDINGS: pc_cols.HOLDINGS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS,

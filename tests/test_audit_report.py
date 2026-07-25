@@ -89,8 +89,6 @@ def _required_yaml_settings() -> dict[str, object]:
         },
         "tolerances": {
             "return": 0.000001,
-            "contribution": 0.000001,
-            "weight": 0.000001,
             "market_value": 0.01,
             "quantity": 0.000001,
             "price": 0.000001,
@@ -610,7 +608,7 @@ class TestAuditReport(unittest.TestCase):
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("`source_detail.csv`", readme)
             self.assertIn("`audit_support.zip`", readme)
-            self.assertIn("`--expand-all-supporting-files`", readme)
+            self.assertIn("`--expand-supporting-files`", readme)
 
             paths["source_detail"].write_text("changed\n", encoding="utf-8")
             self.assertIn(
@@ -666,7 +664,7 @@ class TestAuditReport(unittest.TestCase):
                         ],
                     },
                     "expanded_directory": "supporting_files",
-                    "expand_option": "--expand-all-supporting-files",
+                    "expand_option": "--expand-supporting-files",
                 },
                 "manifest_version": 9,
                 "normalization_version": 1,

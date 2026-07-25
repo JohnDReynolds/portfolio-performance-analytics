@@ -30,7 +30,7 @@ from ppar.audit.portfolio_performance import (
     PortfolioPerformanceLoader,
     SnapshotKey,
 )
-from ppar.audit.security_reference import SecurityReferenceLoader
+from ppar.audit.security_master import SecurityMasterLoader
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
 from ppar.audit.extract_contract import transaction_semantics_exact_case
@@ -119,7 +119,7 @@ _FILTER_FIELD_ALIASES: Final[dict[str, str]] = {
     "source_destination_type": pc_cols.SOURCE_DESTINATION_TYPE,
     "source_destination_symbol": pc_cols.SOURCE_DESTINATION_SYMBOL,
 }
-_SECURITY_REFERENCE_PREFIX: Final[str] = f"{pc_cols.SECURITY_REFERENCE}."
+_SECURITY_MASTER_PREFIX: Final[str] = f"{pc_cols.SECURITY_MASTER}."
 _HOLDING_FILTER_ISSUES: Final[frozenset[str]] = frozenset(
     {
         ISSUE_HOLDINGS_ACCRUED_RATE,
@@ -240,14 +240,12 @@ class _LargePriceVariationRule:
 
     Attributes:
         rule_id: Stable configuration and review-key identity.
-        minimum_calendar_days: Minimum inclusive performance-period length.
         minimum_tolerance: Minimum decimal price variation, such as ``0.20``.
         holdings_filter: Filters applicable to holdings observations.
         transactions_filter: Filters applicable to transaction observations.
     """
 
     rule_id: str
-    minimum_calendar_days: int
     minimum_tolerance: float
     holdings_filter: _RowFilter
     transactions_filter: _RowFilter
@@ -319,9 +317,9 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
         return _issues_table(rows)
     transaction_rows = _snapshot_rows(transactions)
     holding_rows = _snapshot_rows(holdings)
-    reference_requirements = _security_reference_requirements(config)
+    reference_requirements = _security_master_requirements(config)
     if reference_requirements:
-        reference_maps = _security_reference_maps(
+        reference_maps = _security_master_maps(
             specification,
             required_columns=frozenset(
                 column
@@ -330,7 +328,7 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
             ),
         )
         if reference_requirements.get(pc_cols.HOLDINGS):
-            holding_rows = _enrich_with_security_reference(
+            holding_rows = _enrich_with_security_master(
                 holding_rows,
                 reference_maps,
                 reference_requirements[pc_cols.HOLDINGS],
@@ -338,7 +336,7 @@ def data_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
                 specification=specification,
             )
         if reference_requirements.get(pc_cols.TRANSACTIONS):
-            transaction_rows = _enrich_with_security_reference(
+            transaction_rows = _enrich_with_security_master(
                 transaction_rows,
                 reference_maps,
                 reference_requirements[pc_cols.TRANSACTIONS],
@@ -559,7 +557,7 @@ def _snapshot_labels() -> tuple[tuple[SnapshotKey, str], ...]:
     return (("a", _SNAPSHOT_A_LABEL), ("b", _SNAPSHOT_B_LABEL))
 
 
-def _security_reference_requirements(
+def _security_master_requirements(
     config: Mapping[str, object],
 ) -> dict[str, frozenset[str]]:
     """Return reference columns required by enabled holding/transaction filters."""
@@ -571,12 +569,12 @@ def _security_reference_requirements(
         check_name = issue_type.value
         if not _check_enabled(config, check_name):
             continue
-        fields = _security_reference_filter_fields(_check_config(config, check_name))
+        fields = _security_master_filter_fields(_check_config(config, check_name))
         if check_name == ISSUE_LARGE_PRICE_VARIATION:
             fields = frozenset(
                 field
                 for rule_config in _large_price_variation_rule_configs(config)
-                for field in _security_reference_filter_fields(rule_config)
+                for field in _security_master_filter_fields(rule_config)
             )
             requirements[pc_cols.HOLDINGS].update(fields)
             requirements[pc_cols.TRANSACTIONS].update(fields)
@@ -592,7 +590,7 @@ def _security_reference_requirements(
     }
 
 
-def _security_reference_filter_fields(
+def _security_master_filter_fields(
     check_config: Mapping[str, object],
 ) -> frozenset[str]:
     """Return normalized reference fields used by one check's filters."""
@@ -600,18 +598,18 @@ def _security_reference_filter_fields(
     for filter_key in ("only", "exclude"):
         for field_name, _ in _filter_mapping(check_config.get(filter_key, {})):
             normalized = field_name.strip().lower()
-            if normalized.startswith(_SECURITY_REFERENCE_PREFIX):
-                fields.add(normalized.removeprefix(_SECURITY_REFERENCE_PREFIX))
+            if normalized.startswith(_SECURITY_MASTER_PREFIX):
+                fields.add(normalized.removeprefix(_SECURITY_MASTER_PREFIX))
     return frozenset(fields)
 
 
-def _security_reference_maps(
+def _security_master_maps(
     specification: AuditSpecification,
     *,
     required_columns: frozenset[str],
 ) -> dict[str, dict[str, dict[str, object]]]:
-    """Return exact-case security-reference rows keyed by snapshot and security."""
-    loader = SecurityReferenceLoader(specification)
+    """Return exact-case security-master rows keyed by snapshot and security."""
+    loader = SecurityMasterLoader(specification)
     reference_maps: dict[str, dict[str, dict[str, object]]] = {}
     for snapshot_key, snapshot_label in _snapshot_labels():
         frame = loader.load(snapshot_key)
@@ -619,7 +617,7 @@ def _security_reference_maps(
             raise PpaError(
                 (
                     f"{specification.path}: Data Issues filters reference "
-                    "security_reference fields, but files.security_reference is "
+                    "security_master fields, but files.security_master is "
                     f"missing for snapshot {snapshot_key}."
                 ),
                 504,
@@ -628,7 +626,7 @@ def _security_reference_maps(
         if missing_columns:
             raise PpaError(
                 (
-                    f"{specification.path}: security_reference for snapshot "
+                    f"{specification.path}: security_master for snapshot "
                     f"{snapshot_key} is missing filter columns: "
                     f"{', '.join(missing_columns)}."
                 ),
@@ -641,7 +639,7 @@ def _security_reference_maps(
     return reference_maps
 
 
-def _enrich_with_security_reference(
+def _enrich_with_security_master(
     rows: Sequence[Mapping[str, object]],
     reference_maps: Mapping[str, Mapping[str, Mapping[str, object]]],
     required_columns: frozenset[str],
@@ -660,7 +658,7 @@ def _enrich_with_security_reference(
                 (
                     f"{specification.path}: {dataset_name} security_id "
                     f"{security_id!r} in {snapshot} has no exact-case "
-                    "security_reference row required by a Data Issues filter."
+                    "security_master row required by a Data Issues filter."
                 ),
                 504,
             )
@@ -670,13 +668,13 @@ def _enrich_with_security_reference(
             if value is None or not str(value).strip():
                 raise PpaError(
                     (
-                        f"{specification.path}: security_reference security_id "
+                        f"{specification.path}: security_master security_id "
                         f"{security_id!r} in {snapshot} has no value for "
                         f"{column!r}, required by a Data Issues filter."
                     ),
                     504,
                 )
-            enriched_row[f"{_SECURITY_REFERENCE_PREFIX}{column}"] = value
+            enriched_row[f"{_SECURITY_MASTER_PREFIX}{column}"] = value
         enriched_rows.append(enriched_row)
     return tuple(enriched_rows)
 
@@ -1047,8 +1045,6 @@ def _large_price_variation_issues(
             prior_thru_date = thru_date
 
             for rule in rules:
-                if inclusive_period_days < rule.minimum_calendar_days:
-                    continue
                 for security_id in security_ids:
                     observations = _period_price_observations(
                         holding_securities.get(security_id, ()),
@@ -1131,13 +1127,9 @@ def _large_price_variation_rules(
     rules: list[_LargePriceVariationRule] = []
     for raw_rule in _large_price_variation_rule_configs(config):
         rule_id = _text(raw_rule.get("rule_id"))
-        minimum_days = raw_rule.get("minimum_calendar_days")
         minimum_tolerance = raw_rule.get("minimum_tolerance")
         if (
             not rule_id
-            or isinstance(minimum_days, bool)
-            or not isinstance(minimum_days, int)
-            or minimum_days <= 0
             or isinstance(minimum_tolerance, bool)
             or not isinstance(minimum_tolerance, (int, float))
         ):
@@ -1145,7 +1137,6 @@ def _large_price_variation_rules(
         rules.append(
             _LargePriceVariationRule(
                 rule_id=rule_id,
-                minimum_calendar_days=minimum_days,
                 minimum_tolerance=float(minimum_tolerance),
                 holdings_filter=_large_price_variation_filter(
                     raw_rule,
@@ -1546,7 +1537,7 @@ def _transaction_security_type_mismatch_issues(
         return []
 
     row_filter = _row_filter(config, check_name)
-    reference_field = f"{_SECURITY_REFERENCE_PREFIX}{pc_cols.SECURITY_TYPE}"
+    reference_field = f"{_SECURITY_MASTER_PREFIX}{pc_cols.SECURITY_TYPE}"
     rows: list[dict[str, object]] = []
     for row in transactions:
         if not row_filter.allows(row):
@@ -1564,20 +1555,20 @@ def _transaction_security_type_mismatch_issues(
         if not transaction_type:
             comparison = (
                 "has a blank transactions.transaction_security_type while "
-                f"security_reference.security_type is {reference_type!r}"
+                f"security_master.security_type is {reference_type!r}"
             )
         elif transaction_type.casefold() == reference_type.casefold():
             comparison = (
                 "has transactions.transaction_security_type "
                 f"{transaction_type!r}, which differs "
-                "only by case from security_reference.security_type "
+                "only by case from security_master.security_type "
                 f"{reference_type!r}"
             )
         else:
             comparison = (
                 "has transactions.transaction_security_type "
                 f"{transaction_type!r} and "
-                f"security_reference.security_type {reference_type!r}"
+                f"security_master.security_type {reference_type!r}"
             )
         rows.append(
             _issue_row(
@@ -1586,7 +1577,7 @@ def _transaction_security_type_mismatch_issues(
                 as_of_date=transaction_date,
                 dataset_field=(
                     "transactions.transaction_security_type -> "
-                    "security_reference.security_type"
+                    "security_master.security_type"
                 ),
                 security_id=security_id,
                 issue_type=check_name,
@@ -2208,7 +2199,7 @@ def _compiled_filters(
     compiled: list[_CompiledFilter] = []
     for field_name, raw_values in _filter_mapping(filter_config):
         exact_case = exact_native_case or field_name.strip().lower().startswith(
-            _SECURITY_REFERENCE_PREFIX
+            _SECURITY_MASTER_PREFIX
         )
         values = _text_filter_values(raw_values, exact_case=exact_case)
         if values:
@@ -2248,7 +2239,7 @@ def _field_matches(
     raw_values: object,
 ) -> bool:
     """Return whether one row field matches one scalar-or-list filter."""
-    exact_case = field_name.strip().lower().startswith(_SECURITY_REFERENCE_PREFIX)
+    exact_case = field_name.strip().lower().startswith(_SECURITY_MASTER_PREFIX)
     values = _text_filter_values(raw_values, exact_case=exact_case)
     if not values:
         return False
@@ -2271,7 +2262,7 @@ def _filter_mapping(filter_config: object) -> tuple[tuple[str, object], ...]:
 def _filter_column_name(field_name: str) -> str:
     """Return the normalized row column name for a YAML filter field."""
     normalized_name = field_name.strip().lower()
-    if normalized_name.startswith(_SECURITY_REFERENCE_PREFIX):
+    if normalized_name.startswith(_SECURITY_MASTER_PREFIX):
         return normalized_name
     if "." in normalized_name:
         normalized_name = normalized_name.rsplit(".", maxsplit=1)[-1]
@@ -2311,7 +2302,7 @@ def _reference_context_row(
         {
             key: value
             for key, value in source_row.items()
-            if key.startswith(_SECURITY_REFERENCE_PREFIX)
+            if key.startswith(_SECURITY_MASTER_PREFIX)
         }
     )
     return enriched

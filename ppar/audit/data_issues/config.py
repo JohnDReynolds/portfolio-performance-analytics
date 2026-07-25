@@ -57,7 +57,7 @@ _DELIVER_IN_POPULATION_FIELDS: Final[frozenset[str]] = frozenset(
 _DELIVER_IN_REQUIRED_TRANSACTION_COLUMNS: Final[frozenset[str]] = frozenset(
     {pc_cols.ORIGINAL_COST, pc_cols.ORIGINAL_COST_DATE}
 )
-_SECURITY_REFERENCE_FILTER_FIELDS: Final[frozenset[str]] = frozenset(
+_SECURITY_MASTER_FILTER_FIELDS: Final[frozenset[str]] = frozenset(
     {
         "security_name",
         "ticker",
@@ -75,8 +75,8 @@ _SECURITY_REFERENCE_FILTER_FIELDS: Final[frozenset[str]] = frozenset(
 )
 _PRICE_BEARING_REFERENCE_FILTERS: Final[frozenset[str]] = frozenset(
     {
-        "security_reference.asset_class_code",
-        "security_reference.security_type",
+        "security_master.asset_class_code",
+        "security_master.security_type",
     }
 )
 
@@ -130,16 +130,16 @@ def validate_data_issues_config(values: Mapping[str, object]) -> None:
         )
 
 
-def security_reference_filter_fields(
+def security_master_filter_fields(
     values: Mapping[str, object],
 ) -> frozenset[str]:
-    """Return security-reference fields named by Data Issues filters.
+    """Return security-master fields named by Data Issues filters.
 
     Args:
         values: Parsed and validated comparison YAML root mapping.
 
     Returns:
-        Normalized field names following the ``security_reference.`` prefix.
+        Normalized field names following the ``security_master.`` prefix.
     """
     _, raw_config = _configured_section(values)
     if not isinstance(raw_config, Mapping):
@@ -171,7 +171,7 @@ def security_reference_filter_fields(
                     continue
                 for field_name in raw_filter:
                     normalized = str(field_name).strip().lower()
-                    prefix = "security_reference."
+                    prefix = "security_master."
                     if normalized.startswith(prefix):
                         fields.add(normalized.removeprefix(prefix))
     return frozenset(fields)
@@ -354,7 +354,6 @@ def _validate_large_price_variation_rule(
         _ENABLED_KEY,
         _ONLY_KEY,
         _EXCLUDE_KEY,
-        _MINIMUM_CALENDAR_DAYS_KEY,
         _MINIMUM_TOLERANCE_KEY,
     }
     unsupported_keys = sorted(
@@ -371,9 +370,7 @@ def _validate_large_price_variation_rule(
     if _ENABLED_KEY in raw_rule:
         _validate_boolean(raw_rule[_ENABLED_KEY], f"{path}.enabled")
     missing_keys = [
-        key
-        for key in (_MINIMUM_CALENDAR_DAYS_KEY, _MINIMUM_TOLERANCE_KEY)
-        if key not in raw_rule
+        key for key in (_MINIMUM_TOLERANCE_KEY,) if key not in raw_rule
     ]
     if missing_keys:
         raise ValueError(
@@ -386,10 +383,6 @@ def _validate_large_price_variation_rule(
                 raw_rule[filter_key],
                 f"{path}.{filter_key}",
             )
-    _validate_positive_integer(
-        raw_rule[_MINIMUM_CALENDAR_DAYS_KEY],
-        f"{path}.{_MINIMUM_CALENDAR_DAYS_KEY}",
-    )
     _validate_tolerance(
         raw_rule[_MINIMUM_TOLERANCE_KEY],
         f"{path}.{_MINIMUM_TOLERANCE_KEY}",
@@ -403,7 +396,7 @@ def _validate_large_price_filter_names(value: object, path: str) -> None:
     supported_namespaces = {
         "holdings",
         "transactions",
-        "security_reference",
+        "security_master",
     }
     for field_name in value:
         normalized = str(field_name).strip().lower()
@@ -446,7 +439,7 @@ def _validate_security_type_comparison_population(
     normalized_fields = {
         _normalized_filter_field_name(str(field_name)) for field_name in only_filter
     }
-    required_field = "security_reference.security_type"
+    required_field = "security_master.security_type"
     if required_field not in normalized_fields:
         raise ValueError(
             f"{path}.only must include {required_field} when {path}.enabled is true."
@@ -463,7 +456,7 @@ def _validate_stale_price_population(
     normalized_fields = {
         _normalized_filter_field_name(str(field_name)) for field_name in only_filter
     }
-    required_field = "security_reference.security_type"
+    required_field = "security_master.security_type"
     if required_field not in normalized_fields:
         raise ValueError(
             f"{path}.only must include {required_field} when {path}.enabled is true."
@@ -494,9 +487,9 @@ def _validate_deliver_in_population(
 
 
 def _normalized_filter_field_name(field_name: str) -> str:
-    """Return a canonical native or security-reference filter field name."""
+    """Return a canonical native or security-master filter field name."""
     normalized = field_name.strip().lower()
-    if normalized.startswith("security_reference."):
+    if normalized.startswith("security_master."):
         return normalized
     return normalized.rsplit(".", maxsplit=1)[-1]
 
@@ -546,8 +539,8 @@ def _validate_filter(value: object, path: str) -> None:
             raise ValueError(f"{path} field names must be nonempty strings.")
         normalized_field = field_name.strip().lower()
         namespace, separator, normalized_name = normalized_field.rpartition(".")
-        if separator and namespace == "security_reference":
-            supported = normalized_name in _SECURITY_REFERENCE_FILTER_FIELDS
+        if separator and namespace == "security_master":
+            supported = normalized_name in _SECURITY_MASTER_FILTER_FIELDS
         else:
             supported = normalized_name in _FILTER_FIELD_ALIASES
         if not supported:

@@ -443,7 +443,7 @@ REP32, standard reports, macros, and RepLang are verified extraction mechanisms 
 
 ### 7.1 Supported Conceptual Model
 
-The available evidence supports a conceptual security-reference model, not a full native schema.
+The available evidence supports a conceptual security-master model, not a full native schema.
 
 ```text
 External security identifiers
@@ -892,6 +892,6 @@ This chapter uses repository research and cited public evidence.
 
 ## Research Provenance
 
-The deep IMEX security-reference conclusions are incorporated into Section
+The deep IMEX security-master conclusions are incorporated into Section
 5.5. Their granular supporting claims and confidence boundaries remain in
 `../evidence/Research_04_Security_Master.md`.

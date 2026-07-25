@@ -165,7 +165,7 @@ PPAR Analytics uses:
 
 - portfolio performance;
 - security performance;
-- security reference and classification data; and
+- security master and classification data; and
 - portfolio-to-benchmark mappings.
 
 The setup-created `ppar.yaml` maps local filenames and columns, selects the

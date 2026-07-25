@@ -72,7 +72,7 @@ data_issues:
     enabled: true
     only:
       transactions.transaction_security_type: csus
-      security_reference.asset_class_code: EQ
+      security_master.asset_class_code: EQ
     exclude:
       portfolio_id:
         - TEST_PORTFOLIO
@@ -85,8 +85,7 @@ data_issues:
       - rule_id: common_stock_30_percent
         only:
           transactions.transaction_code: [by, sl]
-          security_reference.security_type: csus
-        minimum_calendar_days: 1
+          security_master.security_type: csus
         minimum_tolerance: 0.30
 
   deliver_in_original_cost_incomplete:
@@ -106,10 +105,10 @@ Interpretation:
 - Conservative opt-in issue types declare that policy in the registry.
   `holdings_nonpositive_price` requires `enabled: true` and a nonempty `only`
   population. `transactions_nonpositive_price` additionally requires an exact
-  transaction-code population and either `security_reference.security_type` or
-  `security_reference.asset_class_code` in `only`.
+  transaction-code population and either `security_master.security_type` or
+  `security_master.asset_class_code` in `only`.
   `transaction_security_type_mismatch` requires the exact
-  `security_reference.security_type` population it compares against.
+  `security_master.security_type` population it compares against.
   `holdings_stale_price` also requires that reference population plus an
   explicit positive integer `minimum_calendar_days` threshold.
   `deliver_in_original_cost_incomplete` requires transaction code, security
@@ -119,8 +118,8 @@ Interpretation:
   an exact-case transaction source contract.
 - `large_price_variation` is off by default and uses an issue-specific nonempty
   `rules` list. Every rule has a unique lowercase snake-case `rule_id`; optional
-  rule-level `enabled`, `only`, `exclude`, `minimum_calendar_days`, and
-  `minimum_tolerance` settings do not become controls for unrelated checks.
+  rule-level `enabled`, `only`, and `exclude` settings and the required
+  `minimum_tolerance` do not become controls for unrelated checks.
 - `only`: optional exact-match include filters. A row must match every listed
   field to enter the check.
 - `exclude`: optional exact-match exclude filters. A row is dropped when it
@@ -130,13 +129,13 @@ Interpretation:
   or dataset-qualified names such as
   `transactions.transaction_security_type` and
   `transactions.transaction_code`. Optional security-master qualifiers use the
-  explicit `security_reference.*` namespace.
+  explicit `security_master.*` namespace.
 - Within one `large_price_variation` rule, values in a filter list are OR,
   different `only` fields are AND, and any matching `exclude` field removes an
   observation. `holdings.*` and `transactions.*` filters apply only to that
   observation source, so a transaction-code population does not discard the
   beginning and ending holdings prices. Common entity and
-  `security_reference.*` filters apply to both sources.
+  `security_master.*` filters apply to both sources.
 - Tolerances stay per issue type because noisy fields need different limits.
 
 This section is a strict fail-closed contract. The comparison specification is
@@ -152,7 +151,7 @@ rejected before source loading or report generation when:
   population; or
 - `large_price_variation` has missing, duplicate, or malformed rule IDs, a
   malformed/nonempty-rules violation, an unknown rule key or dataset namespace,
-  a nonpositive calendar-day minimum, or an invalid decimal tolerance.
+  or an invalid decimal tolerance.
 
 Supported native filter fields are `snapshot`, `portfolio`/`portfolio_id`,
 `security`/`security_id`, `transaction_security_type`, `asset_class`,
@@ -163,19 +162,19 @@ values retain the established case-insensitive comparison behavior except when
 the enabled original-cost check runs under an exact-case transaction source
 contract; that check then compares all native population fields by exact case.
 
-When `files.security_reference` is configured, a Data Issues filter may also
-use `security_reference.security_name`, `ticker`, `cusip`, `isin`,
+When `files.security_master` is configured, a Data Issues filter may also
+use `security_master.security_name`, `ticker`, `cusip`, `isin`,
 `security_type`, `asset_class_code`, `asset_class_name`, `sector_code`,
 `sector`, `country_code`, `country`, or `currency`. These fields are a separate
 reference namespace: `transactions.transaction_security_type` means the
 transaction-context value carried by a transaction row, while
-`security_reference.security_type` means the identity/classification value
+`security_master.security_type` means the identity/classification value
 joined from `secmast.csv` for the same snapshot.
 
 Reference joins and reference-filter values preserve exact source case. This is
 deliberately stricter than the compatibility behavior for established native
 row filters. A configured reference filter fails closed when either snapshot
-lacks `files.security_reference`, the referenced column is absent, a relevant
+lacks `files.security_master`, the referenced column is absent, a relevant
 source security has no exact-case reference row, a required reference value is
 blank, or an exact-case security identifier is duplicated. The reference data
 only qualifies Data Issues populations; it does not enter Modified Dietz,
@@ -200,8 +199,8 @@ accept unused tolerance keys. Only `holdings_stale_price` accepts
 
 The thirteenth optional check, `large_price_variation`, accepts only top-level
 `enabled` and `rules`. Rule IDs are output provenance and part of the review
-key. Rule defaults are one inclusive calendar day and decimal tolerance `0.20`.
-Rule order is canonicalized by ID so reordering YAML does not change output.
+key. Each rule requires a decimal `minimum_tolerance`. Rule order is
+canonicalized by ID so reordering YAML does not change output.
 
 ### Initial Checks
 
@@ -219,7 +218,7 @@ normalized datasets, and easy to explain:
    quantity is nonzero. The rule does not infer that a configured transaction
    code is universally price-bearing.
 3. `transaction_security_type_mismatch`: for each transaction row in an
-   explicitly configured `security_reference.security_type` population,
+   explicitly configured `security_master.security_type` population,
    compare the transaction and snapshot-reference types using exact source
    case. The issue reports both text values in its explanation, distinguishes
    case-only differences, and does not choose which classification is correct.
@@ -235,15 +234,15 @@ normalized datasets, and easy to explain:
    ending holding price, and positive eligible transaction prices whose
    normalized trade date is within the current inclusive boundaries. Missing
    boundary holdings are allowed, but at least two comparable positive
-   observations are required. Period length is
-   `(thru_date - from_date).days + 1`; periods shorter than the rule minimum are
-   discarded. Split factors with `observation_date < split_date <= thru_date`
-   divide the earlier raw price so all observations use the period-ending share
-   basis. A split-date transaction is treated as post-split. Conflicting
-   same-date factors and nonpositive factors fail closed. The maximum variation
-   is `(maximum adjusted price - minimum adjusted price) / minimum adjusted
-   price`; equality with the tolerance does not report. Conflicting nonblank
-   price currencies are not compared. Multiple matching rules each emit one
+   observations are required. Every established period is eligible regardless
+   of calendar length. Split factors with
+   `observation_date < split_date <= thru_date` divide the earlier raw price so
+   all observations use the period-ending share basis. A split-date transaction
+   is treated as post-split. Conflicting same-date factors and nonpositive
+   factors fail closed. The maximum variation is
+   `(maximum adjusted price - minimum adjusted price) / minimum adjusted price`;
+   equality with the tolerance does not report. Conflicting nonblank price
+   currencies are not compared. Multiple matching rules each emit one
    independently identified row.
 6. `deliver_in_original_cost_incomplete`: for each transaction in the explicit
    transaction-code, security-type, and source/destination population, report
@@ -282,7 +281,7 @@ negative prices. Sites should include only a population where positive price is
 an understood source-data requirement, and should use `exclude` for known
 exceptions. A finding means “review this valuation or population,” not “the
 security or transaction is conclusively mispriced.” Transaction checks must
-also name the site-reviewed transaction-code population; the security reference
+also name the site-reviewed transaction-code population; the security master
 qualifies that population but does not assign transaction semantics.
 
 The stale-price check is also a review signal rather than a market-data
@@ -306,7 +305,7 @@ unless this check is enabled. They do not enter performance calculations or add
 columns to any user-facing report; findings use the existing Data Issues
 schema.
 
-The optional security-reference dataset makes carefully scoped classification
+The optional security-master dataset makes carefully scoped classification
 qualifiers available now. Continue to defer checks that require additional
 economic attributes, event histories, or ledger evidence:
 

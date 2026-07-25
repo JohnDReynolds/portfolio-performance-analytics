@@ -200,7 +200,7 @@ def report_bundle_contract() -> dict[str, object]:
                 ],
             },
             "expanded_directory": SUPPORTING_FILES_DIRECTORY,
-            "expand_option": "--expand-all-supporting-files",
+            "expand_option": "--expand-supporting-files",
         },
         "required_artifacts": list(REPORT_BUNDLE_REQUIRED_ARTIFACTS),
         "primary_review_artifact_modes": {
@@ -420,7 +420,7 @@ def _archived_supporting_files_readme_lines(
         f"- `{PROMOTED_SOURCE_DETAIL}`: reviewer-friendly finding-level audit trail.",
         f"- `{AUDIT_SUPPORT_ARCHIVE}`: validated supporting bundle, including "
         "findings, lineage, diagnostics, manifest, and review-handoff metadata.",
-        "- Regenerate with `--expand-all-supporting-files` when individual supporting "
+        "- Regenerate with `--expand-supporting-files` when individual supporting "
         "CSV and JSON files are needed.",
     ]
     if csv_only_output:

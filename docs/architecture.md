@@ -178,7 +178,7 @@ active row-level evidence used for audit and troubleshooting; it is supporting
 detail rather than an ordinary review sheet.
 
 The complete supporting evidence is stored compactly in `audit_support.zip` by
-default. `--expand-all-supporting-files` writes the same validated artifacts as
+default. `--expand-supporting-files` writes the same validated artifacts as
 individual files under `supporting_files/`.
 
 Optional reconstruction diagnostics are secondary. They help debug reported

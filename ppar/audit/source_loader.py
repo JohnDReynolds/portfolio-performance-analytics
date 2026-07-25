@@ -48,7 +48,7 @@ _FINANCIAL_VALIDATION_CACHE: ContextVar[set[Path] | None] = ContextVar(
 _SCHEMA_FILE_KEYS = {
     pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance",
     pc_cols.SECURITY_PERFORMANCE: "security_performance",
-    pc_cols.SECURITY_REFERENCE: "security_reference",
+    pc_cols.SECURITY_MASTER: "security_master",
     pc_cols.HOLDINGS: "holdings",
     pc_cols.TRANSACTIONS: "transactions",
     pc_cols.SPLITS: "splits",
@@ -77,7 +77,7 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "return": pc_cols.SECURITY_RETURN,
         "security_return": pc_cols.SECURITY_RETURN,
     },
-    pc_cols.SECURITY_REFERENCE: {
+    pc_cols.SECURITY_MASTER: {
         "identifier": pc_cols.SECURITY_ID,
         "security_id": pc_cols.SECURITY_ID,
         "security_symbol": _IDENTITY_SECURITY_SYMBOL_COLUMN,

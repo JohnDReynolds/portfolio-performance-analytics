@@ -353,7 +353,7 @@ def _require_workspace_path(workspace: Path, path: Path) -> None:
 
 def _expanded_selected_analytics_frames(
     security_performance: pl.DataFrame,
-    security_reference: pl.DataFrame,
+    security_master: pl.DataFrame,
     scale: int,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Return proportionally scaled performance and aligned reference rows."""
@@ -369,7 +369,7 @@ def _expanded_selected_analytics_frames(
             )
         )
         reference_copies.append(
-            security_reference.with_columns(
+            security_master.with_columns(
                 (pl.col("Security Symbol") + suffix).alias("Security Symbol"),
                 (pl.col("Security Name") + suffix).alias("Security Name"),
             )
@@ -535,10 +535,10 @@ def _prepare_selected_analytics(directory: Path, scale: int) -> tuple[Path, int]
     (directory / "axys_apx_analytics.yaml").rename(directory / "ppar.yaml")
 
     security_performance = pl.read_csv(directory / "secperf.csv")
-    security_reference = pl.read_csv(directory / "secmast.csv")
+    security_master = pl.read_csv(directory / "secmast.csv")
     expanded_performance, expanded_reference = _expanded_selected_analytics_frames(
         security_performance,
-        security_reference,
+        security_master,
         scale,
     )
     expanded_performance.write_csv(directory / "secperf.csv")

@@ -66,21 +66,6 @@ files:
       gain_loss: GAIN_LOSS
       period_id: PERIOD_ID
 
-  security_reference:
-    columns:
-      identifier: SECURITY_ID
-      security_name: SECURITY_NAME
-      ticker: TICKER
-      cusip: CUSIP
-      isin: ISIN
-      asset_class_code: ASSET_CLASS_CODE
-      asset_class_name: ASSET_CLASS_DESC
-      sector_code: SECTOR_CODE
-      sector: SECTOR_DESC
-      country_code: COUNTRY_CODE
-      country: COUNTRY_DESC
-      currency: CURRENCY_CODE
-
   holdings:
     columns:
       portfolio_code: PORT

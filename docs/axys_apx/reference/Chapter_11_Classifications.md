@@ -75,7 +75,7 @@ Axys classification extraction must keep security identity separate from classif
 |---|---|---|---:|
 | Axys Symbol | ByAllAccounts CI uses Axys Symbol in security translation. | Required join key in integration context. | Verified for CI context |
 | Axys Security Type / Type | ByAllAccounts CI uses Axys Security Type with symbol. | Required join key in integration context; not the same as asset class. | Verified for CI context |
-| `sec.inf` | CI uses Axys Security Information from `sec.inf`; Morningstar conversion research identifies `sec.inf` as Axys securities file. | Possible security-reference source; classification fields inside it are not established. | Verified for file/use; classification fields Unknown |
+| `sec.inf` | CI uses Axys Security Information from `sec.inf`; Morningstar conversion research identifies `sec.inf` as Axys securities file. | Possible security-master source; classification fields inside it are not established. | Verified for file/use; classification fields Unknown |
 | `type.inf` | CI uses Axys Security Type Information from `type.inf`; Morningstar identifies `type.inf` as security type file. | Security type metadata source; not a complete asset-class/sector dictionary. | Verified for file/use; classification mapping Unknown |
 | Duplicate symbol/type situations | CI evidence describes duplicate/ambiguous matching when same symbol has multiple types or ticker/CUSIP are both used as symbols. | Classification joins based only on ticker/symbol can be wrong. | Verified for CI context |
 
@@ -170,7 +170,7 @@ Do not treat the reserved-prefix rule as a universal Axys reporting, IMEX, REP, 
 |---|---|---|---:|
 | APX Symbol | ByAllAccounts CI uses APX Symbol in security translation. | Required join key in integration context. | Verified for CI context |
 | APX Security Type / Type | ByAllAccounts CI uses APX Security Type with symbol. | Required join key in integration context; not the same as custom classification/sector. | Verified for CI context |
-| `sec.inf` | CI uses APX Security Information from `sec.inf`; later research says APX CI uses `apxix.exe` to export Security (`sec.inf`) data. | Possible integration/security-reference file; classification fields not established. | Verified for CI context; native classification fields Unknown |
+| `sec.inf` | CI uses APX Security Information from `sec.inf`; later research says APX CI uses `apxix.exe` to export Security (`sec.inf`) data. | Possible integration/security-master file; classification fields not established. | Verified for CI context; native classification fields Unknown |
 | `type.inf` | CI uses APX Security Type Information from `type.inf`; later research says APX CI uses `apxix.exe` to export Security Type (`type.inf`) data. | Security type metadata source; not a classification dictionary unless proven. | Verified for CI context; classification mapping Unknown |
 | Industry group / industry sector | AdventGuru evidence identifies these as import/reference dependencies. | Lookup/reference dependency; exact native fields Unknown. | Medium Confidence |
 | Duplicate symbol/type situations | CI evidence describes duplicate/ambiguous APX security matching. | Classification joins based only on ticker/symbol can be wrong. | Verified for CI context |
@@ -243,7 +243,7 @@ Do not generalize this rule into APX SQL, APX reporting, APX public views, or na
 
 | Data need | Axys IMEX status | APX IMEX status | Confidence |
 |---|---|---|---:|
-| Security master / security reference export | `sec.inf` export/use verified in CI context; native IMEX object name Unknown | `sec.inf` export/use verified in CI context; native object name Unknown | Verified for CI file use; object Unknown |
+| Security master export | `sec.inf` export/use verified in CI context; native IMEX object name Unknown | `sec.inf` export/use verified in CI context; native object name Unknown | Verified for CI file use; object Unknown |
 | Security type export | `type.inf` export/use verified in CI context; native IMEX object name Unknown | `type.inf` export/use verified in CI context; native object name Unknown | Verified for CI file use; object Unknown |
 | Asset class export | Not established | Not established | Unknown |
 | Sector export | Not established | Not established | Unknown |
@@ -270,8 +270,8 @@ Do not generalize this rule into APX SQL, APX reporting, APX public views, or na
 |---|---|
 | Axys IMEX object list / help / screenshots | Whether classification-related objects exist and what they are called. |
 | APX IMEX object list / help / screenshots | Same for APX. |
-| Sample Axys security master/security reference IMEX export | Whether asset class, sector, industry, country, region, or custom classification are exported. |
-| Sample APX security master/security reference IMEX export | Same for APX. |
+| Sample Axys security master IMEX export | Whether asset class, sector, industry, country, region, or custom classification are exported. |
+| Sample APX security master IMEX export | Same for APX. |
 | Sample classification lookup export | Whether classification code/name/hierarchy/sort order exists outside security master. |
 | Successful classification import sample and logs | Whether classification values can be imported/updated and required fields. |
 
@@ -659,7 +659,7 @@ Referenced external source categories from the supplied research include:
 | Priority | Unknown | Axys | APX | Evidence needed |
 |---:|---|---:|---:|---|
 | 1 | Where are security classifications stored? | Unknown | Unknown | Security master docs, APX SQL dictionary, IMEX export, REP source, sample data. |
-| 1 | Exact IMEX object names for classification/security reference export. | Unknown | Unknown | IMEX manuals, object lists, screenshots, `.ini`/definition files. |
+| 1 | Exact IMEX object names for classification/security master export. | Unknown | Unknown | IMEX manuals, object lists, screenshots, `.ini`/definition files. |
 | 1 | Exact field names for asset class, sector, industry, country, region, custom classification. | Unknown | Unknown | Vendor field dictionary, IMEX/REP exports, APX public views. |
 | 1 | Exact REP/Replang field tokens for classifications. | Unknown | Unknown | `.REP` source, Report Writer docs, RepLang Programmer's Guide. |
 | 1 | Whether classification assignments are historical/effective-dated. | Unknown | Unknown | Vendor docs or controlled before/after tests. |
@@ -674,8 +674,8 @@ Referenced external source categories from the supplied research include:
 
 | Requested artifact | Why it matters |
 |---|---|
-| Sample Axys IMEX export of security master/security reference data | Confirms whether classification fields appear and what they are called. |
-| Sample APX IMEX export of security master/security reference data | Confirms APX field names and export structure. |
+| Sample Axys IMEX export of security master data | Confirms whether classification fields appear and what they are called. |
+| Sample APX IMEX export of security master data | Confirms APX field names and export structure. |
 | Axys/APX IMEX object list or screenshots | Confirms object names and supported import/export paths. |
 | REP/Replang source for holdings by asset class | Confirms report field tokens and grouping logic. |
 | REP/Replang source for performance by asset class/sector/country/region | Confirms performance classification reporting behavior. |

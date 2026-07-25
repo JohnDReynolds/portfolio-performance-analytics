@@ -890,7 +890,7 @@ Raw audit evidence:
 - cost and cost-basis fields;
 - broker;
 - settlement date, unless a future supported rule makes it performance-relevant;
-- security reference data;
+- security master data;
 - any changed field that is not part of the supported performance explanation
   model.
 
@@ -1052,7 +1052,7 @@ transactions
 valuation marks / prices
 reported accrual amounts
 cash-account rules
-security reference data
+security master data
 ```
 
 The generator should then derive:

@@ -400,7 +400,7 @@ class TestSourceLoader(unittest.TestCase):
                 frame,
                 construction,
                 output_column="security_id",
-                dataset_name="security_reference",
+                dataset_name="security_master",
                 source_path="secmast.csv",
                 error_message=lambda message: message,
             )
@@ -618,8 +618,6 @@ def _write_source_loader_specification(directory: Path) -> Path:
         },
         "tolerances": {
             "return": 0.000001,
-            "contribution": 0.000001,
-            "weight": 0.000001,
             "market_value": 0.01,
             "quantity": 0.000001,
             "price": 0.000001,

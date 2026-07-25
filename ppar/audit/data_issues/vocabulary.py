@@ -150,7 +150,7 @@ DATA_ISSUE_REGISTRY: Final[
             category=DataIssueCategory.PRICE,
             mandatory=False,
             default_enabled=False,
-            required_datasets=("holdings", "security_reference"),
+            required_datasets=("holdings", "security_master"),
             supports_absolute_tolerance=False,
             supports_percent_tolerance=False,
             reviewer_meaning=(
@@ -193,7 +193,7 @@ DATA_ISSUE_REGISTRY: Final[
             category=DataIssueCategory.PRICE,
             mandatory=False,
             default_enabled=False,
-            required_datasets=("transactions", "security_reference"),
+            required_datasets=("transactions", "security_master"),
             supports_absolute_tolerance=False,
             supports_percent_tolerance=False,
             reviewer_meaning=(
@@ -206,7 +206,7 @@ DATA_ISSUE_REGISTRY: Final[
             category=DataIssueCategory.CLASSIFICATION,
             mandatory=False,
             default_enabled=False,
-            required_datasets=("transactions", "security_reference"),
+            required_datasets=("transactions", "security_master"),
             supports_absolute_tolerance=False,
             supports_percent_tolerance=False,
             reviewer_meaning=(

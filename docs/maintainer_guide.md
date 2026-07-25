@@ -291,8 +291,8 @@ proves the same Python examples that users see in their local workspace:
 
 Open the generated `portfolio_audit.xlsx` or `security_audit.xlsx` when present.
 The maintained `audit:` run-settings section enables the matching HTML audit.
-Use `--no-xlsx-output` for HTML-only output, `--no-html-output` for XLSX-only
-output, or both for promoted CSV-only review files for one run. Keep the CSV
+Use `--html-only` for HTML-only output, `--xlsx-only` for XLSX-only output, or
+`--csv-only` for promoted CSV-only review files for one run. Keep the CSV
 artifacts for supplementary diagnostics and audit traceability.
 
 For the full packaged-demo guardrail pass, run:
@@ -501,12 +501,12 @@ Audit report bundles include these visible files by default:
 - `README.md`: generated bundle handoff notes.
 
 The workspace YAML enables `audit.xlsx_output` and `audit.html_output`.
-`--no-xlsx-output` suppresses XLSX for one run, and `--no-html-output`
-suppresses HTML for one run.
-Supplying both promotes the three canonical review-table CSVs alongside
-`source_detail.csv`; the complete audit evidence remains in `audit_support.zip`.
+`--html-only`, `--xlsx-only`, and `--csv-only` select a nonstandard output
+format for one run. CSV-only output promotes the three canonical review-table
+CSVs alongside `source_detail.csv`; the complete audit evidence remains in
+`audit_support.zip`.
 
-`--expand-all-supporting-files` replaces `audit_support.zip` with the equivalent
+`--expand-supporting-files` replaces `audit_support.zip` with the equivalent
 `supporting_files/` directory for integration and detailed troubleshooting.
 
 The generated bundle README is not source documentation. It describes one

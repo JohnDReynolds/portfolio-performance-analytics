@@ -1585,7 +1585,7 @@ def _security_types_for_symbols(path: Path, symbols: pd.Series) -> pd.Series:
     security_types = symbols.astype(str).map(type_by_symbol)
     if security_types.isna().any():
         missing_symbols = sorted(symbols.loc[security_types.isna()].astype(str).unique())
-        raise ValueError(f"Security reference is missing types for: {missing_symbols}")
+        raise ValueError(f"Security master is missing types for: {missing_symbols}")
     return security_types
 
 

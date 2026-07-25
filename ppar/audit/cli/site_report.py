@@ -57,18 +57,17 @@ def main(
         written.
     """
     args = _argument_parser(prog=prog).parse_args(argv)
+    include_workbook, include_html_output = _output_overrides(args)
     try:
         result = run_report(
             _default_site_directory(args.site_directory),
             output_directory=args.output_directory,
             title=args.title,
-            exclude_suppressed=args.exclude_suppressed,
-            include_reconstruction_diagnostics=args.reconstruction_diagnostics,
-            require_causal_attribution=args.require_causal_attribution,
-            allow_incomplete_yaml=args.allow_incomplete_yaml,
-            include_workbook=args.xlsx_output,
-            include_html_output=args.html_output,
-            expand_all_supporting_files=args.expand_all_supporting_files,
+            include_workbook=include_workbook,
+            include_html_output=include_html_output,
+            expand_all_supporting_files=(
+                True if args.expand_supporting_files else None
+            ),
         )
     except PpaError as error:
         print(f"Report failed: {error}", file=sys.stderr)
@@ -216,7 +215,7 @@ def _argument_parser(
     parser = argparse.ArgumentParser(
         prog=prog,
         allow_abbrev=False,
-        description="Write Audit report bundles for a site setup.",
+        description="Write PPAR Audit review packages.",
         epilog=(
             (
                 "Examples:\n"
@@ -235,84 +234,62 @@ def _argument_parser(
             "site_directory",
             nargs="?",
             type=Path,
-            help="Folder containing ppar.yaml. Defaults to the current folder.",
+            help="Audit workspace containing ppar.yaml. Defaults to the current folder.",
         )
     parser.add_argument(
         "--output-directory",
         type=Path,
-        help="Override YAML audit.output_directory for this run.",
+        help="Write this run's output to a different directory.",
     )
     parser.add_argument(
         "--title",
-        help="Override YAML audit.title for this run.",
+        help="Use one title for both portfolio and security reports.",
     )
-    parser.add_argument(
-        "--xlsx-output",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help=(
-            "Override YAML audit.xlsx_output for this run. Disabling both XLSX "
-            "and HTML writes a CSV-only audit."
-        ),
-    )
-    parser.add_argument(
-        "--exclude-suppressed",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help=(
-            "Override YAML audit.exclude_suppressed for this run. Source-data is "
-            "still processed when suppressed findings are omitted."
-        ),
-    )
-    parser.add_argument(
-        "--reconstruction-diagnostics",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help=(
-            "Override YAML audit.reconstruction_diagnostics for this run. These "
-            "diagnostics show how holdings and flows reproduce reported returns."
-        ),
-    )
-    parser.add_argument(
-        "--html-output",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help=(
-            "Override YAML audit.html_output for this run. Disabling both HTML "
-            "and XLSX writes a CSV-only audit."
-        ),
-    )
-    parser.add_argument(
-        "--expand-all-supporting-files",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help=(
-            "Override YAML audit.expand_all_supporting_files for this run. Expanded "
-            "files replace the compact audit_support.zip archive; source_detail.csv "
-            "always remains at the report root."
-        ),
-    )
-    parser.add_argument(
-        "--require-causal-attribution",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help=(
-            "Override YAML audit.require_causal_attribution for this run. Enabling "
-            "it fails when a changed period lacks setup required by a supported "
-            "explanation method."
-        ),
-    )
-    parser.add_argument(
-        "--allow-incomplete-yaml",
+    output_modes = parser.add_mutually_exclusive_group()
+    output_modes.add_argument(
+        "--html-only",
         action="store_true",
         help=(
-            "Relax validation: allow a diagnostic report when changed fields lack "
-            "explicit additive, evidence-only, or suppression treatment in ppar.yaml. "
-            "The result may be incomplete and is not a finalized audit. Disabled by "
-            "default."
+            "Write HTML without XLSX for this run. The standard run writes both."
+        ),
+    )
+    output_modes.add_argument(
+        "--xlsx-only",
+        action="store_true",
+        help=(
+            "Write XLSX without HTML for this run. The standard run writes both."
+        ),
+    )
+    output_modes.add_argument(
+        "--csv-only",
+        action="store_true",
+        help=(
+            "Write the canonical CSV review tables without XLSX or HTML for "
+            "this run."
+        ),
+    )
+    parser.add_argument(
+        "--expand-supporting-files",
+        action="store_true",
+        help=(
+            "Expand supporting CSV and JSON files instead of writing "
+            "audit_support.zip."
         ),
     )
     return parser
+
+
+def _output_overrides(
+    arguments: argparse.Namespace,
+) -> tuple[bool | None, bool | None]:
+    """Return one-run XLSX and HTML overrides for the selected output mode."""
+    if arguments.html_only:
+        return False, True
+    if arguments.xlsx_only:
+        return True, False
+    if arguments.csv_only:
+        return False, False
+    return None, None
 
 
 def _default_site_directory(site_directory: Path | None) -> Path:
@@ -331,19 +308,22 @@ def script_run_settings(
         prog="python run_audit.py",
         include_site_directory=False,
     ).parse_args(argv)
+    include_workbook, include_html_output = _output_overrides(arguments)
     config_path = (site_directory / _CONFIG_FILE_NAME).resolve()
     return _resolve_settings(
         site_directory,
         _audit_settings(_load_config_values(config_path), required=True),
         output_directory=arguments.output_directory,
         title=arguments.title,
-        exclude_suppressed=arguments.exclude_suppressed,
-        include_reconstruction_diagnostics=arguments.reconstruction_diagnostics,
-        require_causal_attribution=arguments.require_causal_attribution,
-        allow_incomplete_yaml=arguments.allow_incomplete_yaml,
-        include_workbook=arguments.xlsx_output,
-        include_html_output=arguments.html_output,
-        expand_all_supporting_files=arguments.expand_all_supporting_files,
+        exclude_suppressed=None,
+        include_reconstruction_diagnostics=None,
+        require_causal_attribution=None,
+        allow_incomplete_yaml=False,
+        include_workbook=include_workbook,
+        include_html_output=include_html_output,
+        expand_all_supporting_files=(
+            True if arguments.expand_supporting_files else None
+        ),
     )
 
 

@@ -52,8 +52,6 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
         },
         "tolerances": {
             "return": 0.000001,
-            "contribution": 0.000001,
-            "weight": 0.000001,
             "market_value": 0.01,
             "quantity": 0.000001,
             "price": 0.000001,
@@ -160,6 +158,51 @@ class TestAuditSpecification(unittest.TestCase):
                         PpaError,
                         "tolerances.return must be a finite nonnegative number",
                     ):
+                        AuditSpecification(path)
+
+    def test_legacy_unused_tolerances_are_rejected(self) -> None:
+        """Retired contribution and weight tolerances fail as unsupported."""
+        for legacy_key in ("contribution", "weight"):
+            with self.subTest(legacy_key=legacy_key):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    directory = Path(temp_dir)
+                    configuration = _minimal_specification(directory)
+                    tolerances = configuration["tolerances"]
+                    assert isinstance(tolerances, dict)
+                    tolerances[legacy_key] = 0.000001
+                    path = _write_yaml(directory, configuration)
+
+                    with self.assertRaisesRegex(
+                        PpaError,
+                        f"tolerances has unsupported keys: {legacy_key}",
+                    ):
+                        AuditSpecification(path)
+
+    def test_retired_security_dataset_and_filter_names_are_rejected(self) -> None:
+        """The former security dataset spelling has no compatibility path."""
+        retired_name = "_".join(("security", "reference"))
+        scenarios = (
+            ("dataset", "is not supported"),
+            ("filter", "is not a supported filter field"),
+        )
+        for retired_surface, expected_message in scenarios:
+            with self.subTest(retired_surface=retired_surface):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    directory = Path(temp_dir)
+                    configuration = _minimal_specification(directory)
+                    if retired_surface == "dataset":
+                        files = configuration["files"]
+                        assert isinstance(files, dict)
+                        files[retired_name] = "secmast.csv"
+                    else:
+                        configuration["data_issues"] = {
+                            "holdings_price_range": {
+                                "only": {f"{retired_name}.security_type": "csus"}
+                            }
+                        }
+                    path = _write_yaml(directory, configuration)
+
+                    with self.assertRaisesRegex(PpaError, expected_message):
                         AuditSpecification(path)
 
     def test_caller_level_allows_comparison_section_to_be_omitted(self) -> None:
@@ -645,7 +688,6 @@ transaction_impact_methods:
                             "only": {
                                 "transactions.transaction_code": ["by", "sl"],
                             },
-                            "minimum_calendar_days": 1,
                             "minimum_tolerance": 0.20,
                         }
                     ],
@@ -724,10 +766,10 @@ transaction_impact_methods:
             (
                 {
                     "holdings_price_range": {
-                        "only": {"security_reference.transaction_code": "by"}
+                        "only": {"security_master.transaction_code": "by"}
                     }
                 },
-                "data_issues.holdings_price_range.only.security_reference."
+                "data_issues.holdings_price_range.only.security_master."
                 "transaction_code is not a supported filter field",
             ),
             (
@@ -785,14 +827,14 @@ transaction_impact_methods:
                     }
                 },
                 "data_issues.holdings_stale_price.only must include security_"
-                "reference.security_type when data_issues.holdings_stale_price."
+                "master.security_type when data_issues.holdings_stale_price."
                 "enabled is true",
             ),
             (
                 {
                     "holdings_stale_price": {
                         "enabled": True,
-                        "only": {"security_reference.security_type": "csus"},
+                        "only": {"security_master.security_type": "csus"},
                     }
                 },
                 "data_issues.holdings_stale_price.minimum_calendar_days is required "
@@ -802,7 +844,7 @@ transaction_impact_methods:
                 {
                     "holdings_stale_price": {
                         "enabled": True,
-                        "only": {"security_reference.security_type": "csus"},
+                        "only": {"security_master.security_type": "csus"},
                         "minimum_calendar_days": 0,
                     }
                 },
@@ -813,7 +855,7 @@ transaction_impact_methods:
                 {
                     "holdings_stale_price": {
                         "enabled": True,
-                        "only": {"security_reference.security_type": "csus"},
+                        "only": {"security_master.security_type": "csus"},
                         "minimum_calendar_days": 28,
                         "percent_tolerance": 1,
                     }
@@ -861,22 +903,6 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
-                                "minimum_tolerance": 0.20,
-                            }
-                        ],
-                    }
-                },
-                "data_issues.large_price_variation.rules[0] missing required "
-                "keys: minimum_calendar_days",
-            ),
-            (
-                {
-                    "large_price_variation": {
-                        "enabled": True,
-                        "rules": [
-                            {
-                                "rule_id": "common_stock",
-                                "minimum_calendar_days": 1,
                             }
                         ],
                     }
@@ -891,12 +917,10 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
-                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": 0.20,
                             },
                             {
                                 "rule_id": "common_stock",
-                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": 0.20,
                             },
                         ],
@@ -912,14 +936,14 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
-                                "minimum_calendar_days": 0,
+                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": 0.20,
                             }
                         ],
                     }
                 },
-                "data_issues.large_price_variation.rules[0].minimum_calendar_days "
-                "must be a positive integer",
+                "data_issues.large_price_variation.rules[0] has unsupported keys: "
+                "minimum_calendar_days",
             ),
             (
                 {
@@ -928,7 +952,6 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
-                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": True,
                             }
                         ],
@@ -944,7 +967,6 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
-                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": 0.20,
                                 "only": {"portfolio_performance.portfolio_id": "P1"},
                             }
@@ -961,7 +983,6 @@ transaction_impact_methods:
                         "rules": [
                             {
                                 "rule_id": "common_stock",
-                                "minimum_calendar_days": 1,
                                 "minimum_tolerance": 0.20,
                                 "percent_tolerance": 20,
                             }
@@ -982,7 +1003,7 @@ transaction_impact_methods:
                     "transactions_nonpositive_price": {
                         "enabled": True,
                         "only": {
-                            "security_reference.security_type": "csus",
+                            "security_master.security_type": "csus",
                         },
                     }
                 },
@@ -998,7 +1019,7 @@ transaction_impact_methods:
                     }
                 },
                 "data_issues.transactions_nonpositive_price.only must include "
-                "security_reference.asset_class_code or security_reference."
+                "security_master.asset_class_code or security_master."
                 "security_type when data_issues.transactions_nonpositive_price."
                 "enabled is true",
             ),
@@ -1008,7 +1029,7 @@ transaction_impact_methods:
                         "enabled": True,
                         "only": {
                             "transaction_code": "by",
-                            "security_reference.asset_class_code": "EQ",
+                            "security_master.asset_class_code": "EQ",
                         },
                         "percent_tolerance": 1,
                     }
@@ -1030,14 +1051,14 @@ transaction_impact_methods:
                     }
                 },
                 "data_issues.transaction_security_type_mismatch.only must include "
-                "security_reference.security_type when data_issues.transaction_"
+                "security_master.security_type when data_issues.transaction_"
                 "security_type_mismatch.enabled is true",
             ),
             (
                 {
                     "transaction_security_type_mismatch": {
                         "enabled": True,
-                        "only": {"security_reference.security_type": "csus"},
+                        "only": {"security_master.security_type": "csus"},
                         "absolute_tolerance": 0,
                     }
                 },

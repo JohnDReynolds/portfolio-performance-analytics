@@ -321,7 +321,7 @@ class TestAuditDemoData(unittest.TestCase):
             "equity/security return-of-capital `rc`",
             "MBS principal-paydown `pd`",
             "external-cash `lo`, and external-cash `wd`",
-            "YAML rules reserved for runtime guards",
+            "YAML branches reserved for runtime guards",
             "Test-only fixtures",
             "alternate `dp` plus `epus expense` context",
             "Evidence-blocked backlog",
@@ -560,6 +560,7 @@ class TestAuditDemoData(unittest.TestCase):
 
         self.assertTrue(observed_codes.issubset(configured_codes))
         self.assertTrue({"dp", "li", "lo", "wd"}.issubset(configured_codes))
+        self.assertNotIn(";", configured_codes)
 
     def test_packaged_demo_resolves_ambiguous_axys_flow_examples(self) -> None:
         """Packaged ambiguous-code examples resolve only through reviewed context."""

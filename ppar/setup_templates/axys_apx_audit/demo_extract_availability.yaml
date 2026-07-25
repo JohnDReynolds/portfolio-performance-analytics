@@ -1093,14 +1093,14 @@ datasets:
   secmast.csv:
     extraction_requirements:
       dataset: required_only_when_applicable
-      reason: Security reference values qualify Data Issues populations without changing performance calculations.
-      likely_source: IMEX security-information export, a security-master report, or another reviewed security-reference
+      reason: Security master values qualify Data Issues populations without changing performance calculations.
+      likely_source: IMEX security-information export or another reviewed security-master source
         extract.
       required:
       - Security Symbol
       - Security Type
       required_only_when_applicable:
-        Asset Class Code: Required when a Data Issues filter references security_reference.asset_class_code.
+        Asset Class Code: Required when a Data Issues filter references security_master.asset_class_code.
       optional: []
     columns:
       Security Symbol:

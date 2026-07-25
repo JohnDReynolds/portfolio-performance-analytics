@@ -401,8 +401,8 @@ is:
   extract must include the source/destination and special-security context named
   in `ppar.yaml`; otherwise use REP, a custom report, or another reviewed
   source.
-- Security reference: needed only when Data Issues filters use
-  `security_reference.*` qualifiers. Use a reviewed security-information IMEX
+- Security master: needed only when Data Issues filters use
+  `security_master.*` qualifiers. Use a reviewed security-information IMEX
   export, security-master report, or equivalent extract and preserve exact case.
 - FX rates: needed only when a changed FX rate itself must be explained. Use a
   locally validated REP, FX/price, or other controlled rate source.
@@ -488,7 +488,7 @@ ppar analytics {workspace_path}
 
 1. Replace `portperf.csv` with your portfolio-performance export.
 2. Replace `secperf.csv` with your security-performance export.
-3. Replace `secmast.csv` with your security-reference export.
+3. Replace `secmast.csv` with your security-master export.
 4. Edit `ppar.yaml` if your filenames, headers, or report choices differ.
 5. Run `ppar analytics {workspace_path}`.
 

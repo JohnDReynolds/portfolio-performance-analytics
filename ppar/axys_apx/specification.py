@@ -31,7 +31,6 @@ _SUPPORTED_FILE_KEYS = frozenset(
         "portfolio_performance",
         "security_performance",
         "security_master",
-        "security_reference",
         "holdings",
         "transactions",
         "fx_rates",

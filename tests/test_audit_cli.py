@@ -74,8 +74,10 @@ class TestAuditCli(unittest.TestCase):
             stderr.getvalue(),
         )
 
-    def test_audit_yaml_settings_and_cli_overrides_resolve_consistently(self) -> None:
-        """Audit run settings come from YAML unless one run overrides them."""
+    def test_audit_yaml_policy_and_operational_cli_options_resolve_consistently(
+        self,
+    ) -> None:
+        """YAML controls policy while the CLI can change one run's presentation."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory)
             _write_audit_run_settings(site_directory / "ppar.yaml")
@@ -103,9 +105,8 @@ class TestAuditCli(unittest.TestCase):
                     str(site_directory / "one_run"),
                     "--title",
                     "One Run",
-                    "--xlsx-output",
-                    "--no-exclude-suppressed",
-                    "--reconstruction-diagnostics",
+                    "--xlsx-only",
+                    "--expand-supporting-files",
                 ],
             )
 
@@ -119,8 +120,10 @@ class TestAuditCli(unittest.TestCase):
         self.assertEqual(overridden.output_directory, site_directory / "one_run")
         self.assertEqual(overridden.title, "One Run")
         self.assertTrue(overridden.include_workbook)
-        self.assertFalse(overridden.exclude_suppressed)
-        self.assertTrue(overridden.include_reconstruction_diagnostics)
+        self.assertFalse(overridden.include_html_output)
+        self.assertTrue(overridden.exclude_suppressed)
+        self.assertFalse(overridden.include_reconstruction_diagnostics)
+        self.assertTrue(overridden.expand_all_supporting_files)
 
     def test_audit_run_settings_default_missing_and_reject_unknown_keys(self) -> None:
         """Omitted Audit settings default while unknown settings fail closed."""
@@ -155,16 +158,37 @@ class TestAuditCli(unittest.TestCase):
             ):
                 _site_report.script_run_settings(site_directory, [])
 
-    def test_audit_cli_rejects_retired_flag_spellings(self) -> None:
-        """The former inconsistent Audit option names are not aliases."""
+    def test_audit_cli_rejects_removed_policy_and_boolean_flags(self) -> None:
+        """The public command does not retain the superseded override surface."""
         for retired_flag in (
             "--output",
             "--exclude_suppressed",
             "--include-reconstruction-diagnostics",
+            "--xlsx-output",
+            "--no-xlsx-output",
+            "--html-output",
+            "--no-html-output",
+            "--exclude-suppressed",
+            "--no-exclude-suppressed",
+            "--reconstruction-diagnostics",
+            "--no-reconstruction-diagnostics",
+            "--expand-all-supporting-files",
+            "--no-expand-all-supporting-files",
+            "--require-causal-attribution",
+            "--no-require-causal-attribution",
+            "--allow-incomplete-yaml",
         ):
             with self.subTest(retired_flag=retired_flag):
                 with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     _site_report.script_run_settings(Path.cwd(), [retired_flag])
+
+    def test_audit_cli_output_modes_are_mutually_exclusive(self) -> None:
+        """A run selects at most one nonstandard output mode."""
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            _site_report.script_run_settings(
+                Path.cwd(),
+                ["--html-only", "--xlsx-only"],
+            )
 
     def test_analytics_cli_rejects_retired_flag_names(self) -> None:
         """Analytics accepts only CLI names corresponding to YAML settings."""
@@ -297,7 +321,7 @@ class TestAuditCli(unittest.TestCase):
                 "Write Axys/APX analytics reports"
             ),
             _SITE_REPORT_MODULE: (
-                "Write Audit report bundles"
+                "Write PPAR Audit review packages"
             ),
             _BUNDLE_MODULE: (
                 "Write an Audit review artifact bundle."
@@ -505,7 +529,7 @@ class TestAuditCli(unittest.TestCase):
             for file_name in (
                 "portfolio_performance",
                 "security_performance",
-                "security_reference",
+                "security_master",
                 "holdings",
                 "transactions",
                 "splits",
@@ -852,9 +876,8 @@ class TestAuditCli(unittest.TestCase):
             shared_options = [
                 "--title",
                 "Custom Audit",
-                "--exclude-suppressed",
-                "--no-xlsx-output",
-                "--reconstruction-diagnostics",
+                "--html-only",
+                "--expand-supporting-files",
             ]
             subprocess.run(
                 _module_command(
@@ -905,6 +928,12 @@ class TestAuditCli(unittest.TestCase):
             self.assertFalse(
                 (cli_advanced / "portfolio" / "portfolio_audit.xlsx").exists()
             )
+            self.assertTrue(
+                (cli_advanced / "portfolio" / "supporting_files").is_dir()
+            )
+            self.assertFalse(
+                (cli_advanced / "portfolio" / "audit_support.zip").exists()
+            )
 
             audit_help = subprocess.run(
                 [sys.executable, str(script_audit / "run_audit.py"), "--help"],
@@ -915,6 +944,13 @@ class TestAuditCli(unittest.TestCase):
             for option in (
                 "--output-directory",
                 "--title",
+                "--html-only",
+                "--xlsx-only",
+                "--csv-only",
+                "--expand-supporting-files",
+            ):
+                self.assertIn(option, audit_help)
+            for removed_option in (
                 "--no-xlsx-output",
                 "--no-html-output",
                 "--exclude-suppressed",
@@ -922,7 +958,7 @@ class TestAuditCli(unittest.TestCase):
                 "--require-causal-attribution",
                 "--allow-incomplete-yaml",
             ):
-                self.assertIn(option, audit_help)
+                self.assertNotIn(removed_option, audit_help)
             self.assertNotIn("--report", audit_help)
 
     def test_setup_analytics_script_matches_default_cli_workflow(self) -> None:
@@ -1143,16 +1179,12 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             ).stdout
             self.assertNotIn("--report", audit_help)
-            self.assertIn("--no-xlsx-output", audit_help)
-            self.assertIn("--no-html-output", audit_help)
-            self.assertIn(
-                "Disabling both XLSX and HTML writes a CSV-only audit.",
-                audit_help,
-            )
-            self.assertIn(
-                "Override YAML audit.exclude_suppressed for this run.",
-                audit_help,
-            )
+            self.assertIn("--html-only", audit_help)
+            self.assertIn("--xlsx-only", audit_help)
+            self.assertIn("--csv-only", audit_help)
+            self.assertIn("--expand-supporting-files", audit_help)
+            self.assertNotIn("--exclude-suppressed", audit_help)
+            self.assertNotIn("--allow-incomplete-yaml", audit_help)
             self.assertNotIn("{portfolio,security,both}", audit_help)
 
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:
@@ -1234,7 +1266,7 @@ class TestAuditCli(unittest.TestCase):
                 ).exists()
             )
 
-    def test_site_report_can_disable_html_output(self) -> None:
+    def test_site_report_can_write_xlsx_only_output(self) -> None:
         """The production report command can write an XLSX-only audit."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_audit"
@@ -1250,7 +1282,7 @@ class TestAuditCli(unittest.TestCase):
                 _module_command(
                     _SITE_REPORT_MODULE,
                     str(audit_directory),
-                    "--no-html-output",
+                    "--xlsx-only",
                 ),
                 check=True,
                 capture_output=True,
@@ -1265,7 +1297,7 @@ class TestAuditCli(unittest.TestCase):
             self.assertFalse((security_output / "security_audit.html").exists())
 
     def test_site_report_can_write_csv_only_output(self) -> None:
-        """Disabling XLSX and HTML promotes the canonical CSV review files."""
+        """CSV-only mode promotes the canonical CSV review files."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_audit"
             subprocess.run(
@@ -1280,8 +1312,7 @@ class TestAuditCli(unittest.TestCase):
                 _module_command(
                     _SITE_REPORT_MODULE,
                     str(audit_directory),
-                    "--no-xlsx-output",
-                    "--no-html-output",
+                    "--csv-only",
                 ),
                 check=True,
                 capture_output=True,
@@ -1996,7 +2027,7 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Configured datasets:", result.stdout)
         self.assertIn(
             "Minimum required datasets: holdings, portfolio_performance, "
-            "security_performance, security_reference, transactions",
+            "security_master, security_performance, transactions",
             result.stdout,
         )
         self.assertIn("Required source-data columns:", result.stdout)
@@ -2021,7 +2052,7 @@ class TestAuditCli(unittest.TestCase):
         )
         self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn("FX rate impact methods: fx_rate", result.stdout)
-        self.assertIn("Evidence-only impact methods: fx_rates, splits", result.stdout)
+        self.assertIn("Evidence-only impact methods: splits", result.stdout)
         self.assertIn("Data Issues optional checks enabled:", result.stdout)
         self.assertIn("duplicate_transactions", result.stdout)
         self.assertIn("Data Issues mandatory checks: none", result.stdout)
@@ -2031,7 +2062,7 @@ class TestAuditCli(unittest.TestCase):
                 "checks require explicit enablement and issue-specific scope",
                 result.stdout,
             )
-        self.assertIn("Transaction rules configured: 17", result.stdout)
+        self.assertIn("Transaction rules configured: 16", result.stdout)
         self.assertIn(
             "Transaction impact methods: commission, external_flow, performance, "
             "price, quantity",

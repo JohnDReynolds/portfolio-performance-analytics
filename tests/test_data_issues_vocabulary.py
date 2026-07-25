@@ -134,7 +134,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertTrue(stale_price_definition.supports_minimum_calendar_days)
         self.assertEqual(
             stale_price_definition.required_datasets,
-            ("holdings", "security_reference"),
+            ("holdings", "security_master"),
         )
         large_variation_definition = DATA_ISSUE_REGISTRY[
             DataIssueType.LARGE_PRICE_VARIATION
@@ -150,7 +150,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertTrue(transaction_price_definition.requires_only_filter)
         self.assertEqual(
             transaction_price_definition.required_datasets,
-            ("transactions", "security_reference"),
+            ("transactions", "security_master"),
         )
         mismatch_definition = DATA_ISSUE_REGISTRY[
             DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH
@@ -162,7 +162,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
         self.assertTrue(mismatch_definition.requires_only_filter)
         self.assertEqual(
             mismatch_definition.required_datasets,
-            ("transactions", "security_reference"),
+            ("transactions", "security_master"),
         )
 
         mandatory = {

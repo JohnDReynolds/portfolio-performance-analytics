@@ -1,6 +1,6 @@
 """Understand and customize the standard Audit workflow.
 
-The normal command is ``ppar audit ./audit``. This script produces the same
+The normal command is ``ppar audit ./my_ppar_audit``. This script produces the same
 review bundles while showing the comparison and report-writing steps. PPAR
 handles command-line parsing and validation so the example can focus on the
 auditing workflow.
@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     # ---------------------------------------------------------------------
     # Source files, financial policy, Data Issues checks, and normal run choices
     # remain in ppar.yaml where they are reviewable and reproducible. CLI-style
-    # options override matching run choices only for this invocation.
+    # options can change the destination, title, or artifact layout for one run.
     settings = script_run_settings(SITE_DIRECTORY, argv)
 
     # ---------------------------------------------------------------------

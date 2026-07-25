@@ -48,9 +48,9 @@ def write_axys_apx_analytics_demo_data(output_directory: Path) -> list[Path]:
         portfolio_code: _read_performance(config["file_name"])
         for portfolio_code, config in _PORTFOLIOS.items()
     }
-    security_reference = _security_reference(performance_by_portfolio)
+    security_master = _security_master(performance_by_portfolio)
     portperf = _portfolio_performance(performance_by_portfolio)
-    secperf = _security_performance(performance_by_portfolio, security_reference)
+    secperf = _security_performance(performance_by_portfolio, security_master)
 
     output_directory.mkdir(parents=True, exist_ok=True)
     paths = {
@@ -70,8 +70,8 @@ def _read_performance(file_name: str) -> pd.DataFrame:
     )
 
 
-def _security_reference(performance_by_portfolio: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Return an Axys/APX-style security reference file."""
+def _security_master(performance_by_portfolio: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Return an Axys/APX-style security master file."""
     security_names = pd.read_csv(
         _CLASSIFICATION_DIR / "Security.csv",
         header=None,
@@ -159,7 +159,7 @@ def _portfolio_performance(
 
 def _security_performance(
     performance_by_portfolio: dict[str, pd.DataFrame],
-    security_reference: pd.DataFrame,
+    security_master: pd.DataFrame,
 ) -> pd.DataFrame:
     """Return Axys/APX-style security performance rows."""
     frames: list[pd.DataFrame] = []
@@ -192,7 +192,7 @@ def _security_performance(
                 PORTFOLIO_NAME=portfolio_name,
                 CONTRIBUTION=lambda data: data["BEGIN_WEIGHT"] * data["SEC_RETURN"],
             )
-            .merge(security_reference[reference_columns], on="SECURITY_ID", how="left")
+            .merge(security_master[reference_columns], on="SECURITY_ID", how="left")
         )
         frames.append(frame)
     return (

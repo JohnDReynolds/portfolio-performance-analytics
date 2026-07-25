@@ -119,7 +119,7 @@ _AUDIT_TEST_SOURCE_COLUMNS: dict[str, dict[str, tuple[str, ...]]] = {
         "split_date": ("SPLIT_DATE",),
         "split_factor": ("SPLIT_FACTOR",),
     },
-    "security_reference": {
+    "security_master": {
         "security_id": ("SECURITY_ID", "SEC"),
         "security_name": ("SECURITY_NAME",),
         "ticker": ("TICKER",),

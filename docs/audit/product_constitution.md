@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.16 |
+| Version | 1.21 |
 | Date | 2026-07-25 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
@@ -16,6 +16,48 @@
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
 
 ## Change Log
+
+### Version 1.21 — 2026-07-25
+
+- Standardized the user-facing Audit dataset, filter namespace, implementation,
+  documentation, and reports on `security_master` and “security master.”
+- Retired the former dataset and filter name without a compatibility alias;
+  configurations using that old name now fail validation.
+- Aligned Audit terminology with Analytics and the source-system concept while
+  retaining `secmast.csv` as the standard source filename.
+
+### Version 1.20 — 2026-07-25
+
+- Removed the unused `contribution` and `weight` comparison tolerances; the six
+  remaining tolerances correspond directly to fields compared by Audit.
+- Removed a redundant generic FX evidence-only declaration from the packaged
+  workspace. The dedicated FX policy continues to govern the packaged setup.
+- Audited the remaining packaged settings against their runtime consumers; no
+  other orphaned legacy settings were found.
+
+### Version 1.19 — 2026-07-25
+
+- Removed the unconditional `;` transaction rule from the packaged Audit
+  workspace because the marker's meaning is integration- and site-specific.
+- Kept `;` in the transaction-semantics evidence record and test-only review
+  fixture so validated clients can add an explicit local rule when applicable.
+
+### Version 1.18 — 2026-07-25
+
+- Removed the calendar-length gate from `large_price_variation`; every
+  established period is eligible when it has at least two comparable positive
+  observations.
+- Retained each named rule's explicit decimal variation threshold, source
+  filters, split normalization, and currency protections.
+
+### Version 1.17 — 2026-07-25
+
+- Simplified the public Audit command to operational one-run choices for output
+  location, title, format, and supporting-file layout.
+- Kept persistent presentation, review-policy, and diagnostic behavior in
+  `ppar.yaml` instead of exposing every Boolean setting as paired CLI flags.
+- Replaced the independent XLSX and HTML switches with the mutually exclusive
+  `--html-only`, `--xlsx-only`, and `--csv-only` modes.
 
 ### Version 1.16 — 2026-07-25
 
@@ -438,7 +480,7 @@ Current optional checks cover:
   days between supplied observations;
 - nonpositive holding prices inside an explicitly configured population;
 - nonpositive transaction prices inside explicit transaction-code and reviewed
-  security-reference populations;
+  security-master populations;
 - split-normalized maximum holding/transaction price variation within one
   established portfolio period under independently identified named rules;
 - exact-case transaction-versus-reference security-type mismatches inside an

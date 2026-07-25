@@ -375,7 +375,7 @@ design.
 |---|---|---:|
 | REP as fallback | REP/Replang/custom reports are appropriate when IMEX schemas are incomplete or values must match user-visible reports. | High Confidence |
 | Connector evidence | Salentica Data Broker uses Advent standard reports, macros, REP32, RepLang scripting, and installed Advent Client Tools for Axys/APX extraction. | Verified for connector |
-| Best-fit split | Use IMEX first for security reference, security types, transactions, prices, and positions where stable objects exist; use REP for performance, classification performance, and report-specific tie-outs. | Design guidance |
+| Best-fit split | Use IMEX first for security master, security types, transactions, prices, and positions where stable objects exist; use REP for performance, classification performance, and report-specific tie-outs. | Design guidance |
 | Required metadata | REP-derived extracts should record report file/name, version, parameters, layout, row lineage, and stored-vs-recalculated confidence. | Design guidance |
 
 A report label or REP variable does not by itself establish underlying IMEX,

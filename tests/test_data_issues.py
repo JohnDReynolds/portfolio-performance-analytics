@@ -500,13 +500,13 @@ class TestDataIssues(unittest.TestCase):
                     "P2,ABC,2026-03-01,0,10,0,0",
                 ],
                 transaction_rows=[],
-                security_reference_rows=["ABC,csus,EQ"],
+                security_master_rows=["ABC,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   holdings_stale_price:
                     enabled: true
                     only:
-                      security_reference.security_type: csus
+                      security_master.security_type: csus
                     minimum_calendar_days: 28
                 """,
             )
@@ -581,27 +581,22 @@ class TestDataIssues(unittest.TestCase):
                     "P1,2026-02-01,2026-02-01,ABC,by,csus,,,,,10,130,1300,0",
                     "P1,2026-02-01,2026-02-01,ABC,dv,csus,,,,,0,500,100,0",
                 ],
-                security_reference_rows=["ABC,csus,EQ"],
+                security_master_rows=["ABC,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   large_price_variation:
                     enabled: true
                     rules:
                       - rule_id: common_stock_default
-                        minimum_calendar_days: 1
                         minimum_tolerance: 0.20
                         only:
                           transactions.transaction_code: [by, sl]
-                          security_reference.security_type: csus
+                          security_master.security_type: csus
                       - rule_id: common_stock_25_percent
                         only:
                           transactions.transaction_code: [by, sl]
-                          security_reference.security_type: csus
-                        minimum_calendar_days: 1
+                          security_master.security_type: csus
                         minimum_tolerance: 0.25
-                      - rule_id: requires_two_days
-                        minimum_calendar_days: 2
-                        minimum_tolerance: 0.20
                 """,
             )
 
@@ -644,7 +639,6 @@ class TestDataIssues(unittest.TestCase):
             enabled: true
             rules:
               - rule_id: common_stock_default
-                minimum_calendar_days: 1
                 minimum_tolerance: 0.20
         """
         periods = [
@@ -728,10 +722,8 @@ class TestDataIssues(unittest.TestCase):
                     enabled: true
                     rules:
                       - rule_id: exact_20_percent
-                        minimum_calendar_days: 1
                         minimum_tolerance: 0.20
                       - rule_id: below_observed_variation
-                        minimum_calendar_days: 1
                         minimum_tolerance: 0.199
                 """,
             )
@@ -797,7 +789,7 @@ class TestDataIssues(unittest.TestCase):
                     "P5,2026-02-19,2026-02-19,CASH,by,caus,$cash,CASHUSD,,,"
                     "10,0,0,0",
                 ],
-                security_reference_rows=["ABC,csus,EQ", "CASH,caus,CASH"],
+                security_master_rows=["ABC,csus,EQ", "CASH,caus,CASH"],
                 data_issues_config="""
                 data_issues:
                   transactions_nonpositive_price:
@@ -806,7 +798,7 @@ class TestDataIssues(unittest.TestCase):
                       transactions.transaction_code:
                         - by
                         - sl
-                      security_reference.security_type: csus
+                      security_master.security_type: csus
                 """,
             )
 
@@ -1110,13 +1102,13 @@ class TestDataIssues(unittest.TestCase):
                     "P4,2026-02-18,2026-02-18,ABC,by,,$cash,CASHUSD,,,"
                     "10,10,-100,0",
                 ],
-                security_reference_rows=["ABC,csus,EQ"],
+                security_master_rows=["ABC,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   transaction_security_type_mismatch:
                     enabled: true
                     only:
-                      security_reference.security_type: csus
+                      security_master.security_type: csus
                 """,
             )
 
@@ -1182,13 +1174,13 @@ class TestDataIssues(unittest.TestCase):
                     "P1,2026-02-15,2026-02-15,ABC,by,CSUS,$cash,CASHUSD,,,"
                     "10,10,-100,0"
                 ],
-                security_reference_rows=["ABC,csus,EQ", "ABC,fius,FI"],
+                security_master_rows=["ABC,csus,EQ", "ABC,fius,FI"],
                 data_issues_config="""
                 data_issues:
                   transaction_security_type_mismatch:
                     enabled: true
                     only:
-                      security_reference.security_type: csus
+                      security_master.security_type: csus
                 """,
             )
 
@@ -1295,7 +1287,7 @@ class TestDataIssues(unittest.TestCase):
 
         self.assertEqual(dividend_issues.height, 0)
 
-    def test_security_reference_filter_qualifies_rows_with_exact_case(self) -> None:
+    def test_security_master_filter_qualifies_rows_with_exact_case(self) -> None:
         """Reference qualifiers join by security ID and preserve source case."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1306,12 +1298,12 @@ class TestDataIssues(unittest.TestCase):
                     "P2,ABC,2026-02-28,100,10.25,1025,0",
                 ],
                 transaction_rows=[],
-                security_reference_rows=["ABC,csus,EQ"],
+                security_master_rows=["ABC,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   holdings_price_range:
                     only:
-                      security_reference.asset_class_code: EQ
+                      security_master.asset_class_code: EQ
                 """,
             )
             wrong_case_path = _write_site(
@@ -1321,12 +1313,12 @@ class TestDataIssues(unittest.TestCase):
                     "P2,ABC,2026-02-28,100,10.25,1025,0",
                 ],
                 transaction_rows=[],
-                security_reference_rows=["ABC,csus,EQ"],
+                security_master_rows=["ABC,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   holdings_price_range:
                     only:
-                      security_reference.asset_class_code: eq
+                      security_master.asset_class_code: eq
                 """,
             )
 
@@ -1340,7 +1332,7 @@ class TestDataIssues(unittest.TestCase):
         self.assertEqual(matching_issues.height, 4)
         self.assertTrue(wrong_case_issues.is_empty())
 
-    def test_security_reference_filter_requires_dataset(self) -> None:
+    def test_security_master_filter_requires_dataset(self) -> None:
         """A reference-dependent filter fails closed without the dataset."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -1351,14 +1343,14 @@ class TestDataIssues(unittest.TestCase):
                 data_issues:
                   holdings_price_range:
                     only:
-                      security_reference.asset_class_code: EQ
+                      security_master.asset_class_code: EQ
                 """,
             )
 
-            with self.assertRaisesRegex(PpaError, "files.security_reference"):
+            with self.assertRaisesRegex(PpaError, "files.security_master"):
                 data_issues.data_issues_table(comparison_path)
 
-    def test_disabled_security_reference_filter_does_not_require_dataset(self) -> None:
+    def test_disabled_security_master_filter_does_not_require_dataset(self) -> None:
         """A retained filter under a disabled check does not activate enrichment."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
@@ -1370,7 +1362,7 @@ class TestDataIssues(unittest.TestCase):
                   holdings_price_range:
                     enabled: false
                     only:
-                      security_reference.asset_class_code: EQ
+                      security_master.asset_class_code: EQ
                 """,
             )
 
@@ -1381,57 +1373,57 @@ class TestDataIssues(unittest.TestCase):
             set(issues.get_column(data_issues.ISSUE_TYPE).to_list()),
         )
 
-    def test_security_reference_filter_requires_referenced_column(self) -> None:
+    def test_security_master_filter_requires_referenced_column(self) -> None:
         """A qualifier cannot silently evaluate against an absent reference field."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
                 Path(directory),
                 holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
                 transaction_rows=[],
-                security_reference_rows=["ABC,csus,EQ"],
+                security_master_rows=["ABC,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   holdings_price_range:
                     only:
-                      security_reference.ticker: ABC
+                      security_master.ticker: ABC
                 """,
             )
 
             with self.assertRaisesRegex(PpaError, "missing filter columns: ticker"):
                 data_issues.data_issues_table(comparison_path)
 
-    def test_security_reference_join_requires_exact_case_identifier(self) -> None:
+    def test_security_master_join_requires_exact_case_identifier(self) -> None:
         """A differently cased reference identifier cannot qualify a source row."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
                 Path(directory),
                 holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
                 transaction_rows=[],
-                security_reference_rows=["abc,csus,EQ"],
+                security_master_rows=["abc,csus,EQ"],
                 data_issues_config="""
                 data_issues:
                   holdings_price_range:
                     only:
-                      security_reference.asset_class_code: EQ
+                      security_master.asset_class_code: EQ
                 """,
             )
 
-            with self.assertRaisesRegex(PpaError, "no exact-case security_reference"):
+            with self.assertRaisesRegex(PpaError, "no exact-case security_master"):
                 data_issues.data_issues_table(comparison_path)
 
-    def test_security_reference_rejects_duplicate_identifier(self) -> None:
+    def test_security_master_rejects_duplicate_identifier(self) -> None:
         """Reference data must contain one exact-case row per security ID."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
                 Path(directory),
                 holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
                 transaction_rows=[],
-                security_reference_rows=["ABC,csus,EQ", "ABC,fius,FI"],
+                security_master_rows=["ABC,csus,EQ", "ABC,fius,FI"],
                 data_issues_config="""
                 data_issues:
                   holdings_price_range:
                     only:
-                      security_reference.asset_class_code: EQ
+                      security_master.asset_class_code: EQ
                 """,
             )
 
@@ -1446,7 +1438,7 @@ def _write_site(
     transaction_rows: list[str],
     transaction_header: str | None = None,
     portfolio_performance_rows: list[str] | None = None,
-    security_reference_rows: list[str] | None = None,
+    security_master_rows: list[str] | None = None,
     split_rows: list[str] | None = None,
     data_issues_config: str = "data_issues: {}",
     transaction_rules: str = "",
@@ -1490,7 +1482,7 @@ def _write_site(
                   amount: AMOUNT
                   commission: COMMISSION
                   original_cost: ORIGINAL_COST
-              security_reference:
+              security_master:
                 columns:
                   identifier: SECURITY_ID
                   security_type: SECURITY_TYPE
@@ -1530,11 +1522,11 @@ def _write_site(
                 ),
                 transaction_rows,
             )
-        if security_reference_rows is not None:
+        if security_master_rows is not None:
             _write_csv(
                 snapshot_directory / "secmast.csv",
                 "SECURITY_ID,SECURITY_TYPE,ASSET_CLASS_CODE",
-                security_reference_rows,
+                security_master_rows,
             )
         if split_rows is not None:
             _write_csv(
@@ -1552,9 +1544,9 @@ def _write_site(
         )
         if block
     )
-    security_reference_file = (
-        "\n  security_reference: secmast.csv"
-        if security_reference_rows is not None
+    security_master_file = (
+        "\n  security_master: secmast.csv"
+        if security_master_rows is not None
         else ""
     )
     splits_file = "\n  splits: splits.csv" if split_rows is not None else ""
@@ -1574,7 +1566,7 @@ def _write_site(
           holdings: holdings.csv
           transactions: transactions.csv
         """
-    ).strip() + security_reference_file + splits_file
+    ).strip() + security_master_file + splits_file
     policy_yaml = textwrap.dedent(
         """
         extract_contract:
@@ -1610,8 +1602,6 @@ def _write_site(
             weight_source: snapshot_a_weight
         tolerances:
           return: 0.000001
-          contribution: 0.000001
-          weight: 0.000001
           market_value: 0.01
           quantity: 0.000001
           price: 0.000001

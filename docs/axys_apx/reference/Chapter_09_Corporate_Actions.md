@@ -28,7 +28,7 @@ cost-basis/principal context.
 
 ## 1. Overview
 
-Corporate actions in Axys/APX can affect security reference data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.
+Corporate actions in Axys/APX can affect security master data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.
 
 This chapter documents only behavior supported by repository research and cited
 public evidence. It intentionally preserves Unknowns where the evidence does not
@@ -106,7 +106,7 @@ The following table is a technical checklist, not a claim that Axys or APX uses 
 
 ### 3.1 Evidence-Supported Axys File Artifacts
 
-The supplied research identifies several Axys file artifacts that can be relevant to corporate actions, security reference data, pricing, holdings, and transaction conversion.
+The supplied research identifies several Axys file artifacts that can be relevant to corporate actions, security master data, pricing, holdings, and transaction conversion.
 
 | Artifact | Description | Corporate Action Relevance | Confidence |
 |---|---|---|---:|
@@ -507,7 +507,7 @@ Scenario: A portfolio holds 100 shares of XYZ. XYZ has a 2-for-1 split effective
 
 | Required Data | Potential Axys Location | Status |
 |---|---|---:|
-| Security identifier for XYZ | `sec.inf` or transaction/security reference | Exact field Unknown |
+| Security identifier for XYZ | `sec.inf` or transaction/security master | Exact field Unknown |
 | Split effective date | `split.inf` | Exact field Unknown |
 | Split ratio/factor | `split.inf` | Exact field Unknown |
 | Pre-split and post-split prices | `.pri` files | Exact layout and adjustment mechanics Unknown |

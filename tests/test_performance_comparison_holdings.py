@@ -60,8 +60,6 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
         },
         "tolerances": {
             "return": 0.000001,
-            "contribution": 0.000001,
-            "weight": 0.000001,
             "market_value": 0.01,
             "quantity": 0.000001,
             "price": 0.000001,

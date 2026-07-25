@@ -34,7 +34,7 @@ _DEFAULT_SOURCE_PATH: Final = (
     / "performance"
     / "Mega-Cap Alpha Portfolio.csv"
 )
-_DEFAULT_SECURITY_REFERENCE_PATH: Final = (
+_DEFAULT_SECURITY_MASTER_PATH: Final = (
     _REPO_ROOT
     / "ppar"
     / "setup_templates"
@@ -58,7 +58,7 @@ _AXYS_AUDIT_CONFIGURATION_PATH: Final = (
 _AXYS_SCHEMA_KEYS: Final = (
     "portfolio_performance",
     "security_performance",
-    "security_reference",
+    "security_master",
     "holdings",
     "transactions",
     "splits",
@@ -166,14 +166,14 @@ def main() -> None:
     """Write first-pass operational demo data under ``_demo_output``."""
     args = _parse_args()
     source = pd.read_csv(args.source_path, parse_dates=["from_date", "thru_date"])
-    security_reference = pd.read_csv(
-        args.security_reference_path,
+    security_master = pd.read_csv(
+        args.security_master_path,
         header=None,
         names=["identifier", "name"],
     )
     performance = derive_operational_performance(
         source,
-        security_reference=security_reference,
+        security_master=security_master,
         equity_count=args.equity_count,
         period_count=args.period_count,
         cash_sleeve_floor=args.cash_sleeve_floor,
@@ -212,7 +212,7 @@ def main() -> None:
 def derive_operational_performance(
     source: pd.DataFrame,
     *,
-    security_reference: pd.DataFrame,
+    security_master: pd.DataFrame,
     equity_count: int = _EQUITY_COUNT,
     period_count: int = _PERIOD_COUNT,
     cash_sleeve_floor: float = _CASH_SLEEVE_FLOOR,
@@ -221,7 +221,7 @@ def derive_operational_performance(
 
     Args:
         source: Packaged Mega-Cap Alpha Portfolio performance rows.
-        security_reference: Security identifiers and display names from the
+        security_master: Security identifiers and display names from the
             packaged ``Security.csv`` reference file.
         equity_count: Number of high-weight equity names to keep.
         period_count: Number of recent monthly periods to retain.
@@ -239,14 +239,14 @@ def derive_operational_performance(
     if missing_columns:
         raise ValueError(f"Source data is missing columns: {sorted(missing_columns)}")
     reference_columns = {"identifier", "name"}
-    missing_reference_columns = reference_columns.difference(security_reference.columns)
+    missing_reference_columns = reference_columns.difference(security_master.columns)
     if missing_reference_columns:
         raise ValueError(
-            "Security reference data is missing columns: "
+            "Security master data is missing columns: "
             f"{sorted(missing_reference_columns)}"
         )
     source = source.merge(
-        security_reference.loc[:, ["identifier", "name"]],
+        security_master.loc[:, ["identifier", "name"]],
         on="identifier",
         how="left",
         validate="many_to_one",
@@ -255,7 +255,7 @@ def derive_operational_performance(
         source.loc[source["name"].isna(), "identifier"].astype(str).unique()
     )
     if missing_names:
-        raise ValueError(f"Security reference data is missing names for: {missing_names}")
+        raise ValueError(f"Security master data is missing names for: {missing_names}")
 
     periods = (
         source[["from_date", "thru_date"]]
@@ -1139,9 +1139,9 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-path", type=Path, default=_DEFAULT_SOURCE_PATH)
     parser.add_argument(
-        "--security-reference-path",
+        "--security-master-path",
         type=Path,
-        default=_DEFAULT_SECURITY_REFERENCE_PATH,
+        default=_DEFAULT_SECURITY_MASTER_PATH,
     )
     parser.add_argument("--output-directory", type=Path, default=_DEFAULT_OUTPUT_DIRECTORY)
     parser.add_argument(
@@ -1630,8 +1630,6 @@ price_impact_methods:
 
 tolerances:
   return: 0.000001
-  contribution: 0.000001
-  weight: 0.000001
   market_value: 0.01
   quantity: 0.000001
   price: 0.000001

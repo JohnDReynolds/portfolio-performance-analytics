@@ -389,8 +389,9 @@ class TestPackageMetadata(unittest.TestCase):
         normalized_axys_readme = " ".join(axys_readme.split())
 
         self.assertIn("portfolio_audit.xlsx", root_readme)
-        self.assertIn("--no-xlsx-output", root_readme)
-        self.assertIn("--no-html-output", root_readme)
+        self.assertIn("--html-only", root_readme)
+        self.assertIn("--xlsx-only", root_readme)
+        self.assertIn("--csv-only", root_readme)
         self.assertNotIn("Open `portfolio_audit.xlsx` when present", root_readme)
         self.assertNotIn("CSV artifacts support audit traceability", root_readme)
         self.assertIn("html audit for browser review", axys_readme.lower())
@@ -506,7 +507,7 @@ class TestPackageMetadata(unittest.TestCase):
             "rules and impact methods below unchanged",
             "Every setting has a\n  # documented default and may be omitted",
             'Default: "Portfolio Audit Report" and "Security Audit Report"',
-            "Command-line override: --exclude-suppressed",
+            "One-run modes that omit XLSX: --html-only or --csv-only",
             "Usually the original/older source-data extract",
             "Portfolio performance CSV; required",
             "Required columns: Portfolio Code, From Date, Thru Date",
@@ -527,6 +528,7 @@ class TestPackageMetadata(unittest.TestCase):
             "# Price Impact Methods",
             "# Supporting-Evidence Impact Methods",
             "# Comparison Tolerances",
+            "Minimum tolerances used by Audit",
             "# Appendix — Additional Supported Parameters",
             "# Parameter: audit.reconstruction_diagnostics",
             "# Parameter: data_issues.deliver_in_original_cost_incomplete",
@@ -616,6 +618,34 @@ class TestPackageMetadata(unittest.TestCase):
             label="data_issues",
         )
         self.assertNotIn("deliver_in_original_cost_incomplete", data_issues)
+        self.assertEqual(
+            list(data_issues),
+            [
+                "enabled",
+                "dividend_rate",
+                "duplicate_transactions",
+                "holdings_accrued_rate",
+                "holdings_nonpositive_price",
+                "holdings_price_range",
+                "holdings_stale_price",
+                "large_price_variation",
+                "missing_dividend",
+                "pa_sa_rate",
+                "transactions_nonpositive_price",
+                "transactions_price_range",
+                "transaction_security_type_mismatch",
+            ],
+        )
+        tolerances = _yaml_mapping(
+            configuration["tolerances"],
+            label="tolerances",
+        )
+        self.assertEqual(list(tolerances), sorted(tolerances))
+        transaction_rules = _yaml_mapping(
+            configuration["transaction_rules"],
+            label="transaction_rules",
+        )
+        self.assertEqual(list(transaction_rules), sorted(transaction_rules))
         for documented_default in (
             "#   title: null",
             "#   xlsx_output: true",
@@ -639,7 +669,7 @@ class TestPackageMetadata(unittest.TestCase):
             yaml_text.index("  security_performance:"),
             yaml_text.index("  holdings:"),
             yaml_text.index("  transactions:"),
-            yaml_text.index("  security_reference:"),
+            yaml_text.index("  security_master:"),
             yaml_text.index("  fx_rates:"),
             yaml_text.index("  splits:"),
         ]
@@ -761,7 +791,7 @@ class TestPackageMetadata(unittest.TestCase):
             {
                 "portfolio_performance",
                 "security_performance",
-                "security_reference",
+                "security_master",
                 "holdings",
                 "transactions",
                 "splits",
@@ -792,7 +822,7 @@ class TestPackageMetadata(unittest.TestCase):
             if isinstance(settings, dict)
             and isinstance(settings.get("only"), dict)
             and any(
-                str(field).startswith("security_reference.")
+                str(field).startswith("security_master.")
                 for field in settings["only"]
             )
         }
@@ -1025,7 +1055,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`Performance Difference Causes`",
             "`source_detail.csv`",
             "`audit_support.zip`",
-            "`--expand-all-supporting-files`",
+            "`--expand-supporting-files`",
             "Keep new docs rare.",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -1920,7 +1950,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`Performance Difference Causes`",
             "`source_detail.csv`",
             "`audit_support.zip`",
-            "`--expand-all-supporting-files`",
+            "`--expand-supporting-files`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
@@ -2001,7 +2031,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`Performance Difference Causes` sheet",
             "`source_detail.csv`",
             "`audit_support.zip`",
-            "`--expand-all-supporting-files`",
+            "`--expand-supporting-files`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",

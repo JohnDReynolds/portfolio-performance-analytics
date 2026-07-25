@@ -33,7 +33,7 @@ _DATASET_FIELDS: Final = {
 _SECURITY_DATASETS: Final = {
     "holdings",
     "security_performance",
-    "security_reference",
+    "security_master",
     "splits",
     "transactions",
 }
@@ -74,7 +74,7 @@ def security_id_construction(
         dataset_name: Normalized source dataset name.
         error_message: Callback that adds product-specific error context.
         file_name: Optional ``files`` dataset-name override. Analytics uses
-            ``security_master`` for its security-reference source.
+            ``security_master`` for its security-master source.
         error_code: PPAR error code used for invalid configuration.
 
     Returns:
