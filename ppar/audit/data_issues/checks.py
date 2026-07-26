@@ -33,11 +33,11 @@ from ppar.audit.portfolio_performance import (
 from ppar.audit.security_master import SecurityMasterLoader
 from ppar.audit.splits import SplitsLoader
 from ppar.audit.specification import AuditSpecification, PORTFOLIO_COMPARISON_LEVEL
-from ppar.audit.transaction_policy import (
-    transaction_boundary_codes,
-    transaction_code_matching_key,
+from ppar.transaction_codes import transaction_code_matching_key
+from ppar.audit.transactions import (
+    TRANSACTION_CATEGORY_BUY,
+    TransactionsLoader,
 )
-from ppar.audit.transactions import TransactionsLoader
 from ppar.audit.data_issues.vocabulary import DATA_ISSUE_REGISTRY, DataIssueType
 
 SNAPSHOT: Final[str] = "snapshot"
@@ -97,13 +97,6 @@ DATA_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
 _DATA_ISSUES_CONFIG_KEY: Final[str] = DATA_ISSUES_CONFIG_KEY
 _SNAPSHOT_A_LABEL: Final[str] = "Snapshot A"
 _SNAPSHOT_B_LABEL: Final[str] = "Snapshot B"
-_BUY_CODES: Final[frozenset[str]] = transaction_boundary_codes("data_issue_buy")
-_DIVIDEND_CODES: Final[frozenset[str]] = transaction_boundary_codes(
-    "data_issue_dividend"
-)
-_ACCRUAL_CODES: Final[frozenset[str]] = transaction_boundary_codes(
-    "data_issue_accrual"
-)
 _DEFAULT_PERCENT_TOLERANCE: Final[float] = 0.0
 _DEFAULT_ABSOLUTE_TOLERANCE: Final[float] = 0.0
 _FILTER_FIELD_ALIASES: Final[dict[str, str]] = {
@@ -1641,7 +1634,6 @@ def _same_day_rate_issues(
                 holdings_by_key,
                 config,
                 check_name=ISSUE_DIVIDEND_RATE,
-                transaction_codes=_DIVIDEND_CODES,
                 issue_type=ISSUE_DIVIDEND_RATE,
                 dataset_field="transactions.amount",
             )
@@ -1653,7 +1645,6 @@ def _same_day_rate_issues(
                 holdings_by_key,
                 config,
                 check_name=ISSUE_PA_SA_RATE,
-                transaction_codes=_ACCRUAL_CODES,
                 issue_type=ISSUE_PA_SA_RATE,
                 dataset_field="transactions.amount",
             )
@@ -1669,11 +1660,10 @@ def _transaction_rate_issues(
     config: Mapping[str, object],
     *,
     check_name: str,
-    transaction_codes: frozenset[str],
     issue_type: str,
     dataset_field: str,
 ) -> list[dict[str, object]]:
-    """Return transaction-rate issues for a configured transaction-code family."""
+    """Return transaction-rate issues for an explicitly configured population."""
     if not _check_enabled(config, check_name):
         return []
 
@@ -1681,11 +1671,9 @@ def _transaction_rate_issues(
     row_filter = _row_filter(config, check_name)
     groups: dict[tuple[str, dt.date, str, str], list[Mapping[str, object]]] = {}
     for row in transactions:
-        code = transaction_code_matching_key(row.get(pc_cols.TRANSACTION_CODE))
-        if code not in transaction_codes:
-            continue
         if not row_filter.allows(row):
             continue
+        code = transaction_code_matching_key(row.get(pc_cols.TRANSACTION_CODE))
         transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
         security_id = _text(row.get(pc_cols.SECURITY_ID))
         snapshot = _text(row.get(SNAPSHOT))
@@ -1782,11 +1770,13 @@ def _missing_dividend_issues(
         return []
 
     row_filter = _row_filter(config, check_name)
+    candidate_filter = _row_filter(
+        config,
+        check_name,
+        ignored_columns=frozenset({pc_cols.TRANSACTION_CODE}),
+    )
     dividend_rows = [
-        row
-        for row in transactions
-        if transaction_code_matching_key(row.get(pc_cols.TRANSACTION_CODE))
-        in _DIVIDEND_CODES
+        row for row in transactions if row_filter.allows(row)
     ]
     holdings_by_security: dict[tuple[str, str], list[Mapping[str, object]]] = {}
     for row in holdings:
@@ -1863,7 +1853,7 @@ def _missing_dividend_issues(
                 dividend_date,
             ) in dividend_keys:
                 continue
-            if not row_filter.allows(
+            if not candidate_filter.allows(
                 _reference_context_row(
                     representative_row,
                     {
@@ -1979,10 +1969,7 @@ def _missing_dividend_position_qualifies(
         transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
         if transaction_date is None or not start_date < transaction_date < dividend_date:
             continue
-        transaction_code = transaction_code_matching_key(
-            row.get(pc_cols.TRANSACTION_CODE)
-        )
-        if transaction_code not in _BUY_CODES:
+        if row.get(pc_cols.TRANSACTION_CATEGORY) != TRANSACTION_CATEGORY_BUY:
             return False
         if _positive(_number(row.get(pc_cols.QUANTITY))):
             has_pre_dividend_buy = True
@@ -2137,6 +2124,7 @@ def _row_filter(
     check_name: str,
     *,
     exact_native_case: bool = False,
+    ignored_columns: frozenset[str] = frozenset(),
 ) -> _RowFilter:
     """Compile one check's row filters for reuse across all source rows."""
     check_config = _check_config(config, check_name)
@@ -2144,10 +2132,12 @@ def _row_filter(
         only=_compiled_filters(
             check_config.get("only", {}),
             exact_native_case=exact_native_case,
+            ignored_columns=ignored_columns,
         ),
         exclude=_compiled_filters(
             check_config.get("exclude", {}),
             exact_native_case=exact_native_case,
+            ignored_columns=ignored_columns,
         ),
     )
 
@@ -2156,12 +2146,18 @@ def _compiled_filters(
     filter_config: object,
     *,
     exact_native_case: bool = False,
+    ignored_columns: frozenset[str] = frozenset(),
 ) -> tuple[_CompiledFilter, ...]:
     """Normalize a YAML row-filter mapping once for repeated matching."""
     compiled: list[_CompiledFilter] = []
     for field_name, raw_values in _filter_mapping(filter_config):
-        exact_case = exact_native_case or field_name.strip().lower().startswith(
-            _SECURITY_MASTER_PREFIX
+        filter_column = _filter_column_name(field_name)
+        if filter_column in ignored_columns:
+            continue
+        exact_case = (
+            exact_native_case
+            or filter_column == pc_cols.TRANSACTION_CODE
+            or field_name.strip().lower().startswith(_SECURITY_MASTER_PREFIX)
         )
         values = _text_filter_values(raw_values, exact_case=exact_case)
         if values:

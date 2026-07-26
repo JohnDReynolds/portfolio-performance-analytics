@@ -10,7 +10,7 @@ import polars as pl
 
 # Project imports
 from ppar.audit import schema as _pc_cols
-from ppar.audit.transaction_policy import transaction_code_matching_key
+from ppar.transaction_codes import transaction_code_matching_key
 
 
 def transaction_semantics_summary(

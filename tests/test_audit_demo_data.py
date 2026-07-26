@@ -26,7 +26,7 @@ from ppar.audit.performance_comparison.explain import (
 )
 from ppar.audit import schema as pc_cols
 from ppar.audit.config_validation import validate_config
-from ppar.audit.fixed_income import (
+from scripts.transaction_policy_evidence import (
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     fixed_income_transaction_boundary,
 )

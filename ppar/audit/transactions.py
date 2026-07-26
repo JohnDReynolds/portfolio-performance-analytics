@@ -28,7 +28,7 @@ from ppar.audit.portfolio_performance import (
     SnapshotKey,
 )
 from ppar.audit.specification import AuditSpecification
-from ppar.audit.transaction_policy import transaction_code_matching_key
+from ppar.transaction_codes import transaction_code_matching_key
 import ppar.common as util
 
 __all__ = [

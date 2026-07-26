@@ -1,8 +1,138 @@
-Copyright (c) 2026 John D Reynolds
+PPAR Proprietary Evaluation License
 
-All rights reserved.
+Copyright (c) 2026 John D Reynolds. All rights reserved.
 
-This source code and associated files are proprietary and confidential.
-No permission is granted to use, copy, modify, distribute, sublicense, or
-create derivative works from this software, in whole or in part, without
-prior written permission from the copyright holder.
+1. Acceptance
+
+By downloading, installing, copying, accessing, or using PPAR, you agree to
+this license. If you do not agree, do not use PPAR.
+
+2. Ownership
+
+PPAR, including its source code, documentation, examples, demonstrations, and
+related materials, is proprietary software owned by John D Reynolds.
+
+This license gives you limited permission to use PPAR. It does not transfer
+ownership of PPAR or grant any rights other than those expressly stated below.
+
+3. Evaluation Permission
+
+You may install and use PPAR solely for internal evaluation for 45 days
+beginning on the date you first download, install, or access it.
+
+The evaluation permission is:
+
+- Non-exclusive
+- Non-transferable
+- Limited to one individual user within one organization
+- Limited to testing, learning, and determining whether to obtain a commercial
+  license
+
+You may make only those copies reasonably necessary for the permitted
+evaluation.
+
+4. Commercial and Production Use
+
+A separate written commercial license is required before using PPAR:
+
+- In production
+- To perform work for customers or other third parties
+- To provide paid or revenue-generating services
+- As part of another product or service
+- Beyond the evaluation period
+- By more than one user
+- For any purpose other than internal evaluation
+
+For commercial licensing inquiries, contact the copyright owner.
+
+5. Restrictions
+
+Unless you have separate written permission from the copyright owner, you may
+not:
+
+- Redistribute, republish, upload, or otherwise make PPAR available to another
+  person or organization
+- Sell, rent, lease, sublicense, or transfer PPAR
+- Rebrand, white-label, or represent PPAR as your own product
+- Use PPAR or its source code to create, market, or sell a substitute,
+  derivative, or competing product
+- Incorporate PPAR into another product or service
+- Offer PPAR through a hosted service, software-as-a-service offering, service
+  bureau, managed service, or similar arrangement
+- Share PPAR or access to PPAR beyond the user authorized by this license
+- Remove or alter copyright, ownership, licensing, or attribution notices
+- Circumvent licensing or access restrictions
+- Reverse engineer, decompile, or disassemble portions of PPAR that are not
+  provided as source code, except where applicable law expressly permits it
+
+6. Your Data and Results
+
+You retain ownership of the data you provide to PPAR.
+
+You may use reports, calculations, and other results produced from your data
+for your own internal purposes. These rights do not include permission to
+redistribute PPAR itself, its source code, or substantial portions of its
+documentation or examples.
+
+7. Evaluation and Beta Materials
+
+Any unreleased, preview, evaluation, or beta materials provided to you may be
+used only for the authorized evaluation. You may not publish, distribute, or
+use those materials to develop or improve another product.
+
+8. Termination
+
+This license ends automatically when:
+
+- The 30-day evaluation period expires
+- You obtain a separate commercial license
+- You violate any term of this license
+- The copyright owner gives you written notice ending the evaluation
+
+When this license ends, you must stop using PPAR and delete all copies in your
+possession or control.
+
+Sections concerning ownership, restrictions, disclaimers, and liability
+continue to apply after termination.
+
+9. No Warranty
+
+PPAR is provided "as is" and "as available," without warranties of any kind.
+
+To the fullest extent permitted by law, the copyright owner disclaims all
+express and implied warranties, including warranties of merchantability,
+fitness for a particular purpose, accuracy, reliability, and non-infringement.
+
+PPAR may contain errors and should not be treated as financial, accounting,
+investment, legal, or professional advice. You are responsible for reviewing
+and validating its results.
+
+10. Limitation of Liability
+
+To the fullest extent permitted by law, the copyright owner will not be liable
+for any indirect, incidental, special, consequential, or punitive damages, or
+for any loss of data, profits, revenue, business, or opportunity arising from
+PPAR or its use.
+
+The copyright owner's total liability relating to PPAR will not exceed the
+amount you paid for the applicable license. Because the evaluation license is
+provided without charge, liability arising from evaluation use will not exceed
+US $50.
+
+Some jurisdictions do not allow certain warranty exclusions or liability
+limitations. In those jurisdictions, these provisions apply only to the extent
+permitted by law.
+
+11. General Terms
+
+This license is the complete agreement governing the evaluation version of
+PPAR unless you and the copyright owner enter into a separate written
+agreement.
+
+If any provision is found unenforceable, the remaining provisions will
+continue in effect.
+
+Failure to enforce a provision does not waive the right to enforce it later.
+
+Any permission not expressly granted by this license is reserved by the
+copyright owner.

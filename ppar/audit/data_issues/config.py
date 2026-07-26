@@ -55,6 +55,15 @@ _DELIVER_IN_POPULATION_FIELDS: Final[frozenset[str]] = frozenset(
 _DELIVER_IN_REQUIRED_TRANSACTION_COLUMNS: Final[frozenset[str]] = frozenset(
     {pc_cols.ORIGINAL_COST, pc_cols.ORIGINAL_COST_DATE}
 )
+_EXPLICIT_TRANSACTION_POPULATION_CHECKS: Final[frozenset[DataIssueType]] = (
+    frozenset(
+        {
+            DataIssueType.DIVIDEND_RATE,
+            DataIssueType.MISSING_DIVIDEND,
+            DataIssueType.PA_SA_RATE,
+        }
+    )
+)
 _SECURITY_MASTER_FILTER_FIELDS: Final[frozenset[str]] = frozenset(
     {
         "security_name",
@@ -293,6 +302,11 @@ def _validate_check(
         and raw_check.get(_ENABLED_KEY) is True
     ):
         _validate_deliver_in_population(raw_check, path)
+    if (
+        issue_type in _EXPLICIT_TRANSACTION_POPULATION_CHECKS
+        and raw_check.get(_ENABLED_KEY) is True
+    ):
+        _validate_transaction_code_population(raw_check, path)
 
 
 def _validate_large_price_variation(
@@ -411,6 +425,22 @@ def _validate_priced_transaction_population(
         expected_fields = " or ".join(sorted(_PRICE_BEARING_REFERENCE_FILTERS))
         raise ValueError(
             f"{path}.only must include {expected_fields} when {path}.enabled is true."
+        )
+
+
+def _validate_transaction_code_population(
+    raw_check: Mapping[object, object],
+    path: str,
+) -> None:
+    """Require an explicit local transaction-code population."""
+    raw_only = raw_check.get(_ONLY_KEY)
+    only_filter = raw_only if isinstance(raw_only, Mapping) else {}
+    normalized_fields = {
+        _normalized_filter_field_name(str(field_name)) for field_name in only_filter
+    }
+    if "transaction_code" not in normalized_fields:
+        raise ValueError(
+            f"{path}.only must include transaction_code when {path}.enabled is true."
         )
 
 

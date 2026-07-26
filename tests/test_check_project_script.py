@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from zipfile import ZipFile
 
 # Project Imports
 import scripts.check_project as check_project
@@ -155,6 +156,24 @@ class TestCheckProjectScript(unittest.TestCase):
         self.assertTrue(
             all(kwargs["isolate_python_path"] is True for _, kwargs in calls)
         )
+
+    def test_wheel_validation_rejects_removed_transaction_policy(self) -> None:
+        """A stale build tree cannot resurrect deleted runtime policy files."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            clean_wheel = root / "clean.whl"
+            stale_wheel = root / "stale.whl"
+            with ZipFile(clean_wheel, "w") as wheel:
+                wheel.writestr("ppar/audit/transactions.py", "")
+            with ZipFile(stale_wheel, "w") as wheel:
+                wheel.writestr("ppar/audit/transaction_policy.py", "")
+
+            check_project._validate_wheel_contents(clean_wheel)
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "ppar/audit/transaction_policy.py",
+            ):
+                check_project._validate_wheel_contents(stale_wheel)
 
 
 if __name__ == "__main__":

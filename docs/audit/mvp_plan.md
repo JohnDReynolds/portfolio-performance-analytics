@@ -512,7 +512,7 @@ Keep detailed transaction meanings, confidence boundaries, and fixture coverage
 in the canonical Axys/APX sources:
 
 - [`transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml)
-  is the machine-readable implementation contract;
+  is machine-readable research and fixture evidence, not runtime policy;
 - [`transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md)
   is its maintainer-facing companion;
 - [`Chapter_05_Transactions.md`](../axys_apx/reference/Chapter_05_Transactions.md)
@@ -535,7 +535,7 @@ must remain visible; none is asserted as universal Axys/APX behavior.
 |---|---|---|
 | Contextual `ai` margin interest | Promote the existing test-only margin-interest pattern into a coherent packaged scenario: negative amount, explicit margin/security context, `fee_expense`, negative cash sign, and performance treatment under the demo's net basis. | Do not classify code-only `ai`; holdings, cash, and reported performance must tell a consistent financing-cost story. |
 | `dv` + `by` dividend reinvestment | Add matched income and purchase legs, preferably with `dvwash` context, and demonstrate that neither leg becomes an investor external flow or creates double-counted income. | Require aligned dates, security, amounts, wash context, and coherent holdings/cash effects. |
-| Scoped `ti` or `si` deliver-in | Add a site-scoped deliver-in example using explicit source/destination and security context. Public Axys report guidance identifies `li`, `ti`, and `si` as deliver-in cases in that workflow. | Update the transaction-semantics contract before completing the demo; do not infer external capital versus internal transfer from the code alone. |
+| Scoped `ti` or `si` deliver-in | Add a site-scoped deliver-in example using explicit source/destination and security context. Public Axys report guidance identifies `li`, `ti`, and `si` as deliver-in cases in that workflow. | Update `transaction_rules` and the research evidence before completing the demo; do not infer external capital versus internal transfer from the code alone. |
 | Gross dividend plus separate withholding expense | Demonstrate one observed integration representation using a dividend income row and contextual withholding-expense row. | State that the scenario assumes after-tax/net performance; do not claim one standard withholding code or representation. |
 | Alternate contextual fee mapping | Add a site-variant `dp` example using observed `epus expense`-style context alongside the existing `exus custfee` pattern. | Treat `epus` as a configurable token role, not a proven universal standalone transaction code. |
 
@@ -613,7 +613,7 @@ Before this workstream can be marked complete:
 - preserve exact case when the versioned source contract requires it;
 - fail closed for unknown codes or incomplete required transaction policy;
 - prevent unsupported meanings from becoming performance causes;
-- update the canonical transaction-semantics contract and generated companion;
+- update the transaction research matrix and generated companion;
 - add validation, reconstruction, reviewer-output, and false-positive tests;
 - preserve all financial, conservation, explanation-reconciliation, and output
   invariants; and
@@ -700,7 +700,7 @@ The founder accepted the two-table quantity presentation on 2026-07-18.
   gross-dividend-plus-withholding scenarios;
 - added the alternate contextual `dp` plus `epus expense` site fixture without
   promoting `epus` to a standalone code meaning;
-- updated the canonical transaction-semantics contract and generated companion;
+- updated the transaction research matrix and generated companion;
 - derived coherent holdings, cash, performance, and reviewer output through the
   maintained scenario generator; and
 - preserved the SN-03 Fully Explained invariant across leap-year history copies

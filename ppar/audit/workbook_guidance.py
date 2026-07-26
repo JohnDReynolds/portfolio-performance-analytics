@@ -23,10 +23,6 @@ from ppar.audit.transactions import (
     TRANSACTION_CATEGORY_INCOME,
     TRANSACTION_CATEGORY_SELL,
 )
-from ppar.audit.transaction_policy import (
-    transaction_boundary_codes,
-    transaction_code_matching_key,
-)
 
 IMPACT_STATUS_ESTIMATED = "Estimated"
 IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
@@ -906,11 +902,6 @@ def _transaction_quantity_affects_holding_value(
     """Return whether transaction quantity affects a long-position holding value."""
     change_number = rows.number_or_none(rows.row_change_value(row))
     if change_number is None:
-        return False
-    transaction_code = transaction_code_matching_key(
-        row.get(findings.TRANSACTION_CODE)
-    )
-    if transaction_code in transaction_boundary_codes("quantity_holding_neutral"):
         return False
     transaction_category = row.get(findings.TRANSACTION_CATEGORY)
     return transaction_category in {

@@ -107,8 +107,11 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             {
                 DataIssueType.HOLDINGS_NONPOSITIVE_PRICE,
                 DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE,
+                DataIssueType.DIVIDEND_RATE,
                 DataIssueType.HOLDINGS_STALE_PRICE,
                 DataIssueType.LARGE_PRICE_VARIATION,
+                DataIssueType.MISSING_DIVIDEND,
+                DataIssueType.PA_SA_RATE,
                 DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH,
                 DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE,
             },

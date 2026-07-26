@@ -15,6 +15,11 @@ stays visible for human review.
 
 [Download the product overview (PDF)](PPAR.pdf) | [License](LICENSE)
 
+Downloading, installing, accessing, copying, or using PPAR constitutes
+acceptance of the license. The public package grants a time-limited internal
+evaluation license only; production and other commercial use require a separate
+written commercial agreement.
+
 ---
 
 ## What PPAR Audit Answers

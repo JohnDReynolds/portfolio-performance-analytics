@@ -38,21 +38,19 @@ from ppar.audit import runner as audit_runner
 from ppar.audit.performance_comparison import findings as performance_comparison_findings
 from ppar.audit.performance_comparison.methods import TransactionImpactMethod
 from ppar.audit import transactions as audit_transactions
-from ppar.audit.performance_comparison import backlog_gates as performance_backlog_gates
-from ppar.audit import fixed_income as performance_fixed_income
 from ppar.audit import (
     transaction_summary as performance_transaction_summary,
 )
 from ppar.audit import (
     source_data_contract as performance_source_data_contract,
 )
-from ppar.audit.performance_comparison.transaction_boundary_registry import (
-    TRANSACTION_BOUNDARY_REGISTRY,
-    registered_transaction_codes,
-    transaction_boundary_groups,
+from ppar.axys_apx.transaction_safety import (
+    AMBIGUOUS_FLOW_TRANSACTION_CODES,
 )
-from ppar.audit.performance_comparison import (
-    transaction_boundary_registry as performance_boundary_registry,
+from scripts.transaction_policy_evidence import (
+    TRANSACTION_EVIDENCE_GROUPS,
+    registered_transaction_evidence_codes,
+    transaction_evidence_groups,
 )
 from ppar.audit.performance_comparison.return_reconstruction import (
     DERIVED_RETURN_DIFFERENCE,
@@ -1643,8 +1641,8 @@ class TestPackageMetadata(unittest.TestCase):
                             self.assertTrue(fixtures, code)
                         self.assertNotIn("Backlog pending", coverage_notes)
 
-    def test_transaction_boundary_registry_matches_matrix_codes(self) -> None:
-        """The boundary registry covers every matrix row and key overlap."""
+    def test_maintainer_transaction_evidence_matches_matrix_codes(self) -> None:
+        """Maintainer evidence groups cover documented fixture families."""
         matrix_yaml = _load_yaml(
             Path("docs/axys_apx/contracts/transaction_semantics_matrix.yaml")
         )
@@ -1661,34 +1659,34 @@ class TestPackageMetadata(unittest.TestCase):
             )
         )
 
-        registered_codes = registered_transaction_codes()
+        registered_codes = registered_transaction_evidence_codes()
         self.assertLessEqual(matrix_codes - non_runtime_codes, registered_codes)
         self.assertTrue(non_runtime_codes.isdisjoint(registered_codes))
         self.assertEqual(
-            transaction_boundary_groups("in"),
+            transaction_evidence_groups("in"),
             ("packaged_formula", "fixed_income_safe"),
         )
         self.assertIn(
             "ambiguous_context_required",
-            transaction_boundary_groups("wd"),
+            transaction_evidence_groups("wd"),
         )
         self.assertIn(
             "fixed_income_accrued_interest",
-            transaction_boundary_groups("pa"),
+            transaction_evidence_groups("pa"),
         )
         self.assertIn(
             "fixed_income_accrued_interest",
-            transaction_boundary_groups("sa"),
+            transaction_evidence_groups("sa"),
         )
-        self.assertEqual(transaction_boundary_groups(";"), ())
-        self.assertIn("context_only", transaction_boundary_groups("exus"))
-        self.assertIn("standalone_backlog", transaction_boundary_groups("epus"))
-        self.assertIn("fixed_income_backlog", transaction_boundary_groups("pd"))
-        self.assertIn("capital_return_backlog", transaction_boundary_groups("pd"))
-        self.assertIn("short_side_backlog", transaction_boundary_groups("ss"))
-        self.assertEqual(transaction_boundary_groups("not-a-real-code"), ())
+        self.assertEqual(transaction_evidence_groups(";"), ())
+        self.assertIn("context_only", transaction_evidence_groups("exus"))
+        self.assertIn("standalone_backlog", transaction_evidence_groups("epus"))
+        self.assertIn("fixed_income_backlog", transaction_evidence_groups("pd"))
+        self.assertIn("capital_return_backlog", transaction_evidence_groups("pd"))
+        self.assertIn("short_side_backlog", transaction_evidence_groups("ss"))
+        self.assertEqual(transaction_evidence_groups("not-a-real-code"), ())
 
-        registered_groups = set(TRANSACTION_BOUNDARY_REGISTRY)
+        registered_groups = set(TRANSACTION_EVIDENCE_GROUPS)
         self.assertEqual(
             registered_groups,
             {
@@ -1702,11 +1700,16 @@ class TestPackageMetadata(unittest.TestCase):
                 "capital_return_backlog",
                 "short_side_backlog",
                 "standalone_backlog",
-                "data_issue_buy",
-                "data_issue_dividend",
-                "data_issue_accrual",
-                "quantity_holding_neutral",
             },
+        )
+        self.assertEqual(
+            AMBIGUOUS_FLOW_TRANSACTION_CODES,
+            set(
+                _yaml_string_list(
+                    matrix_yaml["ambiguous_external_flow_codes"],
+                    label="ambiguous_external_flow_codes",
+                )
+            ),
         )
 
     def test_demo_transaction_rules_are_known_to_semantics_matrix(self) -> None:
@@ -2120,7 +2123,6 @@ class TestPackageMetadata(unittest.TestCase):
         expected_resources = (
             "README.md",
             "axys_apx_audit.yaml",
-            "transaction_semantics_policy.yaml",
             "snapshot_a/portperf.csv",
             "snapshot_a/secmast.csv",
             "snapshot_b/secmast.csv",
@@ -2130,6 +2132,9 @@ class TestPackageMetadata(unittest.TestCase):
         for resource_path in expected_resources:
             with self.subTest(resource_path=resource_path):
                 self.assertTrue((axys_demo_data / resource_path).is_file())
+        self.assertFalse(
+            (axys_demo_data / "transaction_semantics_policy.yaml").is_file()
+        )
         self.assertFalse((axys_demo_data / "column_mappings.yaml").is_file())
         for resource_path in (
             "axys_apx_analytics.yaml",
@@ -2869,33 +2874,26 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIs(DataIssueType, data_issues.DataIssueType)
 
-    def test_performance_comparison_boundary_helpers_are_submodules(self) -> None:
-        """Boundary helper modules are importable without top-level export churn."""
+    def test_runtime_transaction_helpers_exclude_maintainer_registries(self) -> None:
+        """Installed Audit helpers omit test-only transaction registries."""
         top_level_exports = set(audit.__all__)
         helper_modules = {
-            "backlog_gates": performance_backlog_gates,
-            "fixed_income": performance_fixed_income,
             "source_data_contract": performance_source_data_contract,
-            "transaction_boundary_registry": performance_boundary_registry,
             "transaction_summary": performance_transaction_summary,
         }
 
-        self.assertEqual(
-            performance_fixed_income.fixed_income_transaction_boundary("in"),
-            "safe_income",
-        )
-        self.assertEqual(
-            performance_backlog_gates.transaction_backlog_gate("rc"),
-            "capital_return_policy",
-        )
-        self.assertIn(
-            "packaged_formula",
-            performance_boundary_registry.transaction_boundary_groups("by"),
-        )
         self.assertTrue(
             hasattr(performance_transaction_summary, "transaction_semantics_summary")
         )
         self.assertTrue(top_level_exports.isdisjoint(helper_modules))
+        for removed_module in (
+            "ppar.audit.fixed_income",
+            "ppar.audit.transaction_policy",
+            "ppar.audit.performance_comparison.backlog_gates",
+            "ppar.audit.performance_comparison.transaction_boundary_registry",
+        ):
+            with self.subTest(removed_module=removed_module):
+                self.assertIsNone(importlib.util.find_spec(removed_module))
 
     def test_public_audit_runner_import_contract(self) -> None:
         """The runner module exposes only the compact workflow helper surface."""

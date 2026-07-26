@@ -105,10 +105,14 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.DIVIDEND_RATE: DataIssueDefinition(
             category=DataIssueCategory.INCOME,
-            default_enabled=True,
+            default_enabled=False,
             required_datasets=("transactions", "holdings"),
             **_NUMERIC_CHECK,
-            reviewer_meaning="Same-day dividend rates differ across portfolios.",
+            reviewer_meaning=(
+                "Same-day rates differ across portfolios for the explicitly "
+                "configured dividend population."
+            ),
+            requires_only_filter=True,
         ),
         DataIssueType.HOLDINGS_ACCRUED_RATE: DataIssueDefinition(
             category=DataIssueCategory.ACCRUED_INTEREST,
@@ -162,18 +166,26 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.MISSING_DIVIDEND: DataIssueDefinition(
             category=DataIssueCategory.INCOME,
-            default_enabled=True,
+            default_enabled=False,
             required_datasets=("holdings", "transactions"),
             supports_absolute_tolerance=False,
             supports_percent_tolerance=False,
-            reviewer_meaning="A conservatively eligible position may lack a dividend.",
+            reviewer_meaning=(
+                "A conservatively eligible position may lack a transaction from "
+                "the explicitly configured dividend population."
+            ),
+            requires_only_filter=True,
         ),
         DataIssueType.PA_SA_RATE: DataIssueDefinition(
             category=DataIssueCategory.ACCRUED_INTEREST,
-            default_enabled=True,
+            default_enabled=False,
             required_datasets=("transactions", "holdings"),
             **_NUMERIC_CHECK,
-            reviewer_meaning="Same-day purchase/sale accrued rates differ across portfolios.",
+            reviewer_meaning=(
+                "Same-day rates differ across portfolios for the explicitly "
+                "configured purchase/sale accrued-interest population."
+            ),
+            requires_only_filter=True,
         ),
         DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,

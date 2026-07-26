@@ -34,6 +34,24 @@ transaction_rules:
     performance_flow_sign: performance
 """
 
+_COMMON_DATA_ISSUES_CONFIG = """
+data_issues:
+  dividend_rate:
+    enabled: true
+    only:
+      transaction_code: dv
+  missing_dividend:
+    enabled: true
+    only:
+      transaction_code: dv
+  pa_sa_rate:
+    enabled: true
+    only:
+      transaction_code:
+        - pa
+        - sa
+"""
+
 
 class TestDataIssues(unittest.TestCase):
     """Validate source-data consistency checks used by the Data Issues sheet."""
@@ -1247,8 +1265,8 @@ class TestDataIssues(unittest.TestCase):
             },
         )
 
-    def test_data_issues_issue_type_can_be_disabled(self) -> None:
-        """Each issue type is on by default but can be opted out in YAML."""
+    def test_configured_data_issues_type_can_be_disabled(self) -> None:
+        """An explicitly populated issue type can be opted out in YAML."""
         with tempfile.TemporaryDirectory() as directory:
             comparison_path = _write_site(
                 Path(directory),
@@ -1270,6 +1288,12 @@ class TestDataIssues(unittest.TestCase):
                 data_issues:
                   dividend_rate:
                     enabled: false
+                  pa_sa_rate:
+                    enabled: true
+                    only:
+                      transaction_code:
+                        - pa
+                        - sa
                 """,
                 transaction_rules="""
                 transaction_rules:
@@ -1292,6 +1316,105 @@ class TestDataIssues(unittest.TestCase):
         self.assertNotIn("dividend_rate", issue_types)
         self.assertIn("pa_sa_rate", issue_types)
 
+    def test_transaction_family_checks_are_off_without_explicit_populations(
+        self,
+    ) -> None:
+        """Economic code families are not inferred from an internal registry."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[
+                    "P1,ABC,2026-02-28,100,10,1000,0",
+                    "P2,ABC,2026-02-28,100,10,1000,0",
+                ],
+                transaction_rows=[
+                    "P1,2026-02-15,,ABC,dv,stock,,,,,0,0,50,0",
+                    "P2,2026-02-15,,ABC,dv,stock,,,,,0,0,60,0",
+                    "P1,2026-02-16,,ABC,pa,fius,,,,,0,0,40,0",
+                    "P2,2026-02-16,,ABC,pa,fius,,,,,0,0,45,0",
+                ],
+                data_issues_config="data_issues: {}",
+                transaction_rules="""
+                transaction_rules:
+                  dv:
+                    transaction_category: income
+                    cash_flow_sign: positive
+                    performance_flow_sign: performance
+                  pa:
+                    transaction_category: fee_expense
+                    cash_flow_sign: negative
+                    performance_flow_sign: performance
+                """,
+            )
+
+            issue_types = set(
+                data_issues.data_issues_table(comparison_path)
+                .get_column(data_issues.ISSUE_TYPE)
+                .to_list()
+            )
+
+        self.assertNotIn("dividend_rate", issue_types)
+        self.assertNotIn("missing_dividend", issue_types)
+        self.assertNotIn("pa_sa_rate", issue_types)
+
+    def test_transaction_family_check_requires_explicit_code_population(self) -> None:
+        """Opting into a local transaction family requires exact code selection."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=["P1,ABC,2026-02-28,100,10,1000,0"],
+                transaction_rows=[],
+                data_issues_config="""
+                data_issues:
+                  dividend_rate:
+                    enabled: true
+                    only:
+                      security_id: ABC
+                """,
+            )
+
+            with self.assertRaisesRegex(
+                PpaError,
+                "dividend_rate.only must include transaction_code",
+            ):
+                validate_config(comparison_path, require_complete_yaml_setup=False)
+
+    def test_transaction_family_population_preserves_exact_code_case(self) -> None:
+        """A lowercase configured family does not select an uppercase code."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[
+                    "P1,ABC,2026-02-28,100,10,1000,0",
+                    "P2,ABC,2026-02-28,100,10,1000,0",
+                ],
+                transaction_rows=[
+                    "P1,2026-02-15,,ABC,DV,stock,,,,,0,0,50,0",
+                    "P2,2026-02-15,,ABC,DV,stock,,,,,0,0,60,0",
+                ],
+                data_issues_config="""
+                data_issues:
+                  dividend_rate:
+                    enabled: true
+                    only:
+                      transaction_code: dv
+                """,
+                transaction_rules="""
+                transaction_rules:
+                  DV:
+                    transaction_category: income
+                    cash_flow_sign: positive
+                    performance_flow_sign: performance
+                """,
+            )
+
+            issues = data_issues.data_issues_table(comparison_path)
+
+        self.assertNotIn(
+            "dividend_rate",
+            set(issues.get_column(data_issues.ISSUE_TYPE).to_list()),
+        )
+
     def test_data_issues_issue_filters_support_only_and_exclude(self) -> None:
         """Issue filters support exact-match dataset.field and common field names."""
         with tempfile.TemporaryDirectory() as directory:
@@ -1310,7 +1433,9 @@ class TestDataIssues(unittest.TestCase):
                 data_issues_config="""
                 data_issues:
                   dividend_rate:
+                    enabled: true
                     only:
+                      transactions.transaction_code: dv
                       transactions.transaction_security_type: stock
                       security_id: ABC
                     exclude:
@@ -1478,7 +1603,7 @@ def _write_site(
     portfolio_performance_rows: list[str] | None = None,
     security_master_rows: list[str] | None = None,
     split_rows: list[str] | None = None,
-    data_issues_config: str = "data_issues: {}",
+    data_issues_config: str = _COMMON_DATA_ISSUES_CONFIG,
     transaction_rules: str = _COMMON_TRANSACTION_RULES,
 ) -> Path:
     """Write a minimal performance-comparison site and return its YAML path."""

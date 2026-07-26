@@ -1,6 +1,6 @@
 # Machine-readable companion to transaction_semantics_matrix.md.
-# This is an implementation contract for ppar demo/test coverage, not an
-# official Axys/APX transaction-code dictionary.
+# This is research and fixture evidence for ppar maintainers, not runtime
+# product policy or an official Axys/APX transaction-code dictionary.
 version: 1
 source_document: transaction_semantics_matrix.md
 coverage_statuses:

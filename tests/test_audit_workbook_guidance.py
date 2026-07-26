@@ -268,7 +268,8 @@ class TestWorkbookGuidance(unittest.TestCase):
                 50.0,
                 (
                     "ss: TSLA transactions.quantity increased by 50.00. This affects the "
-                    "performance calculation through transactions.amount."
+                    "performance calculation through transactions.amount and "
+                    "holdings.market_value."
                 ),
             ),
             (
@@ -279,7 +280,8 @@ class TestWorkbookGuidance(unittest.TestCase):
                 50.0,
                 (
                     "cs: TSLA transactions.quantity increased by 50.00. This affects the "
-                    "performance calculation through transactions.amount."
+                    "performance calculation through transactions.amount and "
+                    "holdings.market_value."
                 ),
             ),
             (

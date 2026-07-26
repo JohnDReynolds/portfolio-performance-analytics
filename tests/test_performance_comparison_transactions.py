@@ -20,23 +20,21 @@ from ppar.audit import (
     TransactionsLoader,
 )
 from ppar.audit import schema as pc_cols
-from ppar.audit.performance_comparison.backlog_gates import (
+from scripts.transaction_policy_evidence import (
     CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
     CAPITAL_RETURN_POSSIBLE_ROLES,
     CAPITAL_RETURN_REQUIRED_EVIDENCE,
-    SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
-    SHORT_SIDE_REQUIRED_EVIDENCE,
-    transaction_backlog_gate,
-)
-from ppar.audit.config_validation import validate_config
-from ppar.audit.extract_contract import validate_extract_contract
-from ppar.audit.fixed_income import (
     FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES,
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     FIXED_INCOME_FORMULA_INPUTS,
     FIXED_INCOME_OUT_OF_SCOPE,
+    SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
+    SHORT_SIDE_REQUIRED_EVIDENCE,
     fixed_income_transaction_boundary,
+    transaction_backlog_gate,
 )
+from ppar.audit.config_validation import validate_config
+from ppar.audit.extract_contract import validate_extract_contract
 from ppar.audit.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,

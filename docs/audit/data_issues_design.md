@@ -71,6 +71,7 @@ data_issues:
   dividend_rate:
     enabled: true
     only:
+      transactions.transaction_code: dv
       transactions.transaction_security_type: csus
       security_master.asset_class_code: EQ
     exclude:
@@ -78,6 +79,18 @@ data_issues:
         - TEST_PORTFOLIO
     absolute_tolerance: 0.01
     percent_tolerance: 0.50
+
+  missing_dividend:
+    enabled: true
+    only:
+      transactions.transaction_code: dv
+      security_master.asset_class_code: EQ
+
+  pa_sa_rate:
+    enabled: true
+    only:
+      transactions.transaction_code: [pa, sa]
+      security_master.asset_class_code: FI
 
   large_price_variation:
     enabled: true
@@ -100,8 +113,14 @@ data_issues:
 Interpretation:
 
 - `data_issues.enabled`: master switch for optional consistency checks.
-- The seven established optional issue types are enabled by default when the
-  worksheet is enabled. Set `enabled: false` under one issue type to opt out.
+- Four general consistency checks are enabled by default:
+  `duplicate_transactions`, `holdings_accrued_rate`,
+  `holdings_price_range`, and `transactions_price_range`.
+- Checks whose names imply local economic meaning—`dividend_rate`,
+  `missing_dividend`, and `pa_sa_rate`—are disabled by default. Enabling one
+  requires a nonempty `only` filter containing `transaction_code`. This
+  population selects rows but does not classify them; every selected row must
+  still resolve through source semantics or `transaction_rules`.
 - Conservative opt-in issue types declare that policy in the registry.
   `holdings_nonpositive_price` requires `enabled: true` and a nonempty `only`
   population. `transactions_nonpositive_price` additionally requires an exact
@@ -124,7 +143,10 @@ Interpretation:
   field to enter the check.
 - `exclude`: optional exact-match exclude filters. A row is dropped when it
   matches any listed field.
-- Filter values can be scalars or lists. Field names may be common normalized
+- Filter values can be scalars or lists. Transaction-code filter values preserve
+  exact case, consistent with `transaction_rules`. Other native filters retain
+  their established case-insensitive matching behavior. Field names may be
+  common normalized
   names such as `security_id`, `transaction_security_type`, and `portfolio_id`,
   or dataset-qualified names such as
   `transactions.transaction_security_type` and
@@ -259,17 +281,19 @@ normalized datasets, and easy to explain:
 9. `duplicate_transactions`: for each snapshot, flag exact duplicate
    transaction rows with the same portfolio, date, security, code, amount,
    quantity, and price.
-10. `dividend_rate`: for each snapshot, security, and dividend date, compare
-   same-day same-security dividend rates across portfolios.
-11. `missing_dividend`: for each snapshot, security, and dividend date where at
-   least one portfolio has a dividend, flag other portfolios that
+10. `dividend_rate`: for each snapshot, security, and date represented by the
+   explicitly configured dividend population, compare same-day same-security
+   rates across portfolios.
+11. `missing_dividend`: for each snapshot, security, and date where at least one
+   portfolio has a transaction from the explicitly configured dividend
+   population, flag other portfolios that
    conservatively appear eligible for that dividend. A portfolio qualifies only
    when it has positive beginning-period quantity, or positive buy activity
    before the dividend date, and has no pre-dividend transaction activity other
    than buys.
-12. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
-   same-day same-security purchase-accrued and sale-accrued rates across
-   portfolios.
+12. `pa_sa_rate`: for each snapshot, security, transaction code, and date in the
+   explicitly configured accrued-interest population, compare same-day
+   same-security rates across portfolios.
 13. `holdings_accrued_rate`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.accrued` per unit across
    portfolios.

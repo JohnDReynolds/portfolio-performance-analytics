@@ -16,12 +16,22 @@ import sysconfig
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
+from zipfile import ZipFile
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python"
 _CHECK_CACHE_DIR = _PROJECT_ROOT / ".cache" / "check_project"
 _MPLCONFIGDIR = _CHECK_CACHE_DIR / "matplotlib"
+_REMOVED_TRANSACTION_POLICY_WHEEL_PATHS = frozenset(
+    {
+        "ppar/audit/fixed_income.py",
+        "ppar/audit/performance_comparison/backlog_gates.py",
+        "ppar/audit/performance_comparison/transaction_boundary_registry.py",
+        "ppar/audit/transaction_policy.py",
+        "ppar/setup_templates/axys_apx_audit/transaction_semantics_policy.yaml",
+    }
+)
 
 
 def _format_command(command: Sequence[str | Path]) -> str:
@@ -202,9 +212,31 @@ def _run_installed_wheel_smoke(wheel_path: Path, smoke_root: Path) -> None:
         )
 
 
+def _validate_wheel_contents(wheel_path: Path) -> None:
+    """Reject obsolete transaction-policy files in a candidate wheel.
+
+    Args:
+        wheel_path: Wheel produced by the current build.
+
+    Raises:
+        RuntimeError: If a removed runtime policy file survives in the wheel.
+    """
+    with ZipFile(wheel_path) as wheel:
+        obsolete_paths = sorted(
+            _REMOVED_TRANSACTION_POLICY_WHEEL_PATHS.intersection(wheel.namelist())
+        )
+    if obsolete_paths:
+        raise RuntimeError(
+            "Candidate wheel contains removed transaction-policy files: "
+            f"{', '.join(obsolete_paths)}."
+        )
+
+
 def _run_build_check() -> None:
     """Build distributions and smoke-test the installed candidate wheel."""
     try:
+        # setuptools otherwise reuses deleted files from an ignored prior build tree.
+        shutil.rmtree(_PROJECT_ROOT / "build", ignore_errors=True)
         with tempfile.TemporaryDirectory(prefix="ppar-build-check-") as temp_dir:
             build_directory = Path(temp_dir)
             _run(
@@ -225,6 +257,7 @@ def _run_build_check() -> None:
                     "Build check expected exactly one wheel, found "
                     f"{len(wheel_paths)}."
                 )
+            _validate_wheel_contents(wheel_paths[0])
             _run_installed_wheel_smoke(
                 wheel_paths[0],
                 build_directory / "installed-wheel-smoke",

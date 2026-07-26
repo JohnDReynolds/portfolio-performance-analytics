@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 import sys
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 # Third-party imports
 import polars as pl
 import yaml
@@ -17,7 +21,7 @@ from ppar.audit.performance_comparison import explain as _pc_explain
 from ppar.audit import field_roles as _field_roles
 from ppar.audit.performance_comparison import findings as _pc_findings
 from ppar.audit import schema as _pc_cols
-from ppar.audit.performance_comparison.backlog_gates import (
+from scripts.transaction_policy_evidence import (
     CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
     SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
 )
@@ -34,7 +38,6 @@ from ppar.audit.workbook_tables import (
     _workbook_underlying_causes_table,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
 _DEFAULT_DEMO_DIRECTORY = (
     _REPO_ROOT / "ppar" / "setup_templates" / "axys_apx_audit"
 )

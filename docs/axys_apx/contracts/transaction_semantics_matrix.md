@@ -1,13 +1,13 @@
-# Transaction Semantics Matrix Contract
+# Transaction Semantics Research Matrix
 
-This contract is the implementation-facing transaction matrix for ppar Axys/APX
+This matrix records transaction research and fixture coverage for ppar Axys/APX
 demo and test work. It translates the observed transaction-code evidence in the
 reference chapters into conservative performance-comparison expectations.
 
 It is not an official Axys or APX transaction-code manual. The local reference
 corpus repeatedly shows that code-only interpretation is unsafe. Treat this file
-as a seed contract for demo data, tests, site extract contracts, and local
-mapping review.
+as maintainer evidence for demo data, tests, and local mapping review. It is not
+runtime policy and does not assign economic meaning for an installed workspace.
 
 The machine-readable companion is
 [`transaction_semantics_matrix.yaml`](transaction_semantics_matrix.yaml). Tests use
@@ -23,11 +23,14 @@ transaction-code manual. The intended ownership is:
   semantics, confidence labels, and open questions.
 - `../evidence/Research_05_Transactions.md` preserves granular source claims,
   confidence boundaries, contradictions, and missing-evidence requirements.
-- `transaction_semantics_matrix.yaml` is the implementation contract used by
-  tests, demo fixtures, and validation logic.
+- `transaction_semantics_matrix.yaml` is machine-readable research and fixture
+  evidence used by maintainer tests.
 - This file explains the YAML at a practical level for maintainers.
 
-When this file needs more explanation than a compact contract can comfortably
+Runtime transaction meaning belongs to the workspace's `transaction_rules`.
+The ownership boundary is documented in
+[`../../audit/transaction_policy_ownership.md`](../../audit/transaction_policy_ownership.md).
+When this file needs more explanation than a compact matrix can comfortably
 hold, put the source claim and confidence boundary in the evidence ledger and
 summarize the reader-facing conclusion in Chapter 05.
 

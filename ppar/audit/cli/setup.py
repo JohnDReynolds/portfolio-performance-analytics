@@ -27,6 +27,7 @@ _PACKAGED_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _PACKAGED_ANALYTICS_YAML: Final[str] = "axys_apx_analytics.yaml"
 _PACKAGED_AUDIT_YAML: Final[str] = "axys_apx_audit.yaml"
 _WorkspaceKind = Literal["audit", "analytics", "generic_analytics"]
+_CONFIG_WORKSPACE_KINDS: Final[tuple[_WorkspaceKind, ...]] = ("audit", "analytics")
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
@@ -271,7 +272,7 @@ def _validate_workspace_kind(
             values = None
         if isinstance(values, dict):
             existing_kinds.update(
-                kind for kind in ("audit", "analytics") if kind in values
+                kind for kind in _CONFIG_WORKSPACE_KINDS if kind in values
             )
 
     if not existing_kinds or existing_kinds == {requested_kind}:

@@ -16,6 +16,7 @@ is not current implementation authority.
 | Locate approved historical requirements | [Product Specifications Index](product_specifications_index.md) | Index to retained founder-approved detail; not executable truth |
 | Understand the comparison engine | [Performance Comparison Design](performance_comparison_design.md) | Current technical reference, subordinate to executable behavior |
 | Understand source-data integrity checks | [Data Issues Design](data_issues_design.md) | Current Data Issues technical reference |
+| Understand transaction-policy authority | [Transaction Policy Ownership](transaction_policy_ownership.md) | Client rules, normalized semantics, runtime safety, and research boundaries |
 | Understand non-negotiable safety behavior | [Audit Safety Invariants](safety_invariants.md) | Maintainer-facing safety contract |
 
 ## Implementation and Operator References
@@ -32,9 +33,11 @@ is not current implementation authority.
 | --- | --- |
 | [Validation Partner Strategy](validation_partner_strategy.md) | Assesses potential technical, operational, end-user, and methodology-review partners for private validation of PPAR Audit. |
 
-The machine-readable transaction authority is
-[`../axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml).
-Its maintained human-readable companion is
+Transaction-policy ownership is defined in
+[`transaction_policy_ownership.md`](transaction_policy_ownership.md).
+The machine-readable maintainer evidence matrix is
+[`../axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml);
+its rendered companion is
 [`../axys_apx/contracts/transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md).
 
 ## Historical Material

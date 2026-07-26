@@ -334,10 +334,11 @@ For Python integrations, prefer the package-root workflow helpers:
 `compare_snapshots()`, `write_audit_report_bundle()`,
 `write_audit_review_workbook()`, `report_bundle_contract()`,
 and `report_bundle_validation_issues()`. More specialized policy and
-evidence-pack helpers, such as fixed-income boundaries, backlog gates,
-transaction boundary registry data, transaction summaries, and source-data
-contract validation, are intentionally direct-submodule imports rather than
-package-root exports.
+evidence-pack helpers, such as transaction summaries and source-data contract
+validation, are intentionally direct-submodule imports rather than package-root exports.
+Transaction code-family research and fixture groupings live in
+`scripts/transaction_policy_evidence.py`; installed product code does not import
+them.
 
 ### Validate The Packaged Demo Matrix
 

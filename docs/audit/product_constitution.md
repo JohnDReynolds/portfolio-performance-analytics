@@ -942,8 +942,9 @@ product direction does not convert a future capability into current behavior.
 | [`performance_comparison_design.md`](performance_comparison_design.md) | Deep current/historical implementation design reference |
 | [`roadmap.md`](roadmap.md) | Audit stages, evidence gates, active priorities, deferred directions, and material product questions |
 | [`../archive/roadmap_through_v0.1.5.md`](../archive/roadmap_through_v0.1.5.md) | Frozen pre-restructure engineering journal; historical context only |
-| [`../axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml) | Machine-readable transaction-semantics authority |
-| [`../axys_apx/contracts/transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md) | Rendered transaction-semantics reference |
+| [`transaction_policy_ownership.md`](transaction_policy_ownership.md) | Current ownership of client transaction meaning, normalized semantics, Axys/APX runtime safety, and maintainer evidence |
+| [`../axys_apx/contracts/transaction_semantics_matrix.yaml`](../axys_apx/contracts/transaction_semantics_matrix.yaml) | Machine-readable transaction research and fixture evidence; not runtime policy |
+| [`../axys_apx/contracts/transaction_semantics_matrix.md`](../axys_apx/contracts/transaction_semantics_matrix.md) | Rendered transaction research reference |
 | [`demo_source_contract.md`](demo_source_contract.md) | Packaged-demo source boundary |
 | [`site_extract_readiness_checklist.md`](site_extract_readiness_checklist.md) | Site-extract readiness guidance |
 

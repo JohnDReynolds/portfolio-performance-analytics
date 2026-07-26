@@ -17,14 +17,14 @@ import yaml
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
-from ppar.audit.transaction_policy import transaction_boundary_codes
+from ppar.axys_apx.transaction_safety import AMBIGUOUS_FLOW_TRANSACTION_CODES
 import ppar.common as util
 
 _CONTRACT_RESOURCE: Final[str] = "ppar.setup_templates"
 _CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axys_apx_audit"
 _CONTRACT_FILE_NAME: Final[str] = "demo_extract_availability.yaml"
-_AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = transaction_boundary_codes(
-    "ambiguous_context_required"
+_AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = (
+    AMBIGUOUS_FLOW_TRANSACTION_CODES
 )
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
 _PATH_KEY: Final[str] = "path"

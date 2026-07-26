@@ -194,6 +194,7 @@ Use this rough guide before adding code or docs:
 | Add analytics behavior | `ppar/analytics/` and the Axys/APX Analytics workspace YAML. |
 | Add performance-comparison logic | `ppar/audit/performance_comparison/` plus focused tests under `tests/`. |
 | Add Data Issues behavior | `ppar/audit/data_issues/` plus focused tests under `tests/`. |
+| Change transaction meaning or safety | Start with [`audit/transaction_policy_ownership.md`](audit/transaction_policy_ownership.md); local meaning belongs in `transaction_rules`, while Axys/APX product policy is limited to fail-closed boundaries. |
 | Add transaction coverage | Update evidence/docs first, then test-only fixtures, then packaged demo rows only when realistic. |
 | Add shared maintenance or release policy | `docs/maintainer_guide.md`. |
 | Add Audit product doctrine, direction, or active MVP scope | `docs/audit/product_constitution.md`, `docs/audit/roadmap.md`, or `docs/audit/mvp_plan.md`. |

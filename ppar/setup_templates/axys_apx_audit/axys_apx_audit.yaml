@@ -195,9 +195,10 @@ data_issues:
 
   dividend_rate:
     # Flags same-day dividend rates that differ across portfolios.
-    # Default: enabled. Limited here to common stock.
+    # Default: disabled. Enabled for the explicit local dividend population.
     enabled: true
     only:
+      transactions.transaction_code: dv
       security_master.security_type: csus
     absolute_tolerance: 0.01
     percent_tolerance: 0.5
@@ -255,16 +256,20 @@ data_issues:
 
   missing_dividend:
     # Flags an eligible holding that may be missing a dividend transaction.
-    # Default: enabled. Limited here to common stock.
+    # Default: disabled. Enabled for the explicit local dividend population.
     enabled: true
     only:
+      transactions.transaction_code: dv
       security_master.security_type: csus
 
   pa_sa_rate:
     # Flags purchase/sale accrued rates that differ across portfolios.
-    # Default: enabled. Limited here to fixed income.
+    # Default: disabled. Enabled for the explicit local accrued population.
     enabled: true
     only:
+      transactions.transaction_code:
+        - pa
+        - sa
       security_master.asset_class_code: FI
     absolute_tolerance: 0.000001
     percent_tolerance: 0.5

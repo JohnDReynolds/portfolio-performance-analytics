@@ -26,15 +26,16 @@ This chapter is the canonical reader-facing reference for Axys/APX transaction
 semantics in this repository. Other chapters should describe their local effects
 on holdings, cash, corporate actions, performance, or reporting, but should not
 maintain separate transaction-code dictionaries. When a transaction code appears
-in another chapter, interpret it through this chapter and the implementation
-contract in
+in another chapter, interpret its research context through this chapter and the
+maintainer evidence matrix in
 [`../contracts/transaction_semantics_matrix.yaml`](../contracts/transaction_semantics_matrix.yaml).
+Installed workspaces assign local economic meaning through `transaction_rules`.
 
 The evidence ledger in
 [`../evidence/Research_05_Transactions.md`](../evidence/Research_05_Transactions.md)
 preserves granular source claims, confidence boundaries, contradictions, and
 missing-evidence requirements. If this chapter, the evidence ledger, and the
-implementation contract appear to disagree, treat that as a documentation
+research matrix appear to disagree, treat that as a documentation
 cleanup issue rather than as three independent sources of truth.
 
 ## 1. Overview
