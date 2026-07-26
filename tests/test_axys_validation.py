@@ -335,8 +335,8 @@ class TestAxysValidation(unittest.TestCase):
                 "analytics.classification must be a string",
             )
 
-    def test_removed_defaults_section_raises_error_504(self) -> None:
-        """The retired split defaults section fails with migration guidance."""
+    def test_unknown_defaults_section_raises_error_504(self) -> None:
+        """The unsupported split defaults section fails strict validation."""
         specification = _fixture_specification()
         specification["defaults"] = {"classification": "Country"}
 
@@ -346,8 +346,7 @@ class TestAxysValidation(unittest.TestCase):
                 self,
                 504,
                 _AxysArguments(specifications_path=path),
-                "defaults is not supported; move from_date, thru_date, and "
-                "classification under analytics",
+                "unsupported top-level keys: defaults",
             )
 
     def test_unknown_root_setting_raises_error_504(self) -> None:
@@ -364,8 +363,8 @@ class TestAxysValidation(unittest.TestCase):
                 "unsupported top-level keys: classification",
             )
 
-    def test_retired_source_settings_raise_error_504(self) -> None:
-        """The former top-level source settings fail with migration guidance."""
+    def test_unknown_source_settings_raise_error_504(self) -> None:
+        """Unsupported top-level source settings fail strict validation."""
         specification = _fixture_specification()
         specification["portfolio_performance_path"] = "legacy.csv"
 
@@ -375,7 +374,7 @@ class TestAxysValidation(unittest.TestCase):
                 self,
                 504,
                 _AxysArguments(specifications_path=path),
-                "Retired source settings must move under files.<dataset>.path",
+                "unsupported top-level keys: portfolio_performance_path",
             )
 
     def test_missing_portfolio_error_includes_requested_dates(self) -> None:

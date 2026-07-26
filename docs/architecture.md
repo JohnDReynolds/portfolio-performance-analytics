@@ -104,7 +104,7 @@ context unless explicit YAML policy says otherwise.
 | --- | --- | --- |
 | `ppar/setup_templates/axys_apx_audit` | Audit users and demos | Copied directly into the workspace by default `ppar setup`. |
 | `ppar/setup_templates/axys_apx_analytics` | Analytics users and demos | Copied directly into the workspace by `ppar setup --analytics`. |
-| `ppar/setup_templates/generic_analytics` | Maintainers | Feeds README images, analytics regression tests, and demo-data derivation. It is not the primary onboarding path. |
+| `ppar/setup_templates/generic_analytics` | Optional Generic Analytics users and maintainers | Copied by `ppar setup --generic-analytics`; also feeds README images, analytics regression tests, and demo-data derivation. |
 | `tests/data/axys` | Test authors | Synthetic fixtures for narrow validation and edge-case behavior. |
 | `_demo_output` | Maintainers | Generated local report/image output; not source-data and not shipped as user setup input. |
 

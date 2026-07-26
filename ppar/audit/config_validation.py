@@ -72,10 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"FX rate impact methods: {summary['fx_rate_impact_methods']}")
     print(f"Evidence-only impact methods: {summary['evidence_only_impact_methods']}")
     print(
-        "Data Issues optional checks enabled: "
-        f"{summary['data_issues_optional_checks_enabled']}"
+        "Data Issues checks enabled: "
+        f"{summary['data_issues_checks_enabled']}"
     )
-    print(f"Data Issues mandatory checks: {summary['data_issues_mandatory_checks']}")
     print(f"Data Issues policy: {summary['data_issues_policy']}")
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
@@ -188,10 +187,7 @@ def _validate_config(
         "price_impact_methods": _price_impact_methods(specification),
         "fx_rate_impact_methods": _fx_rate_impact_methods(specification),
         "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
-        "data_issues_optional_checks_enabled": data_issues_summary[
-            "optional_checks_enabled"
-        ],
-        "data_issues_mandatory_checks": data_issues_summary["mandatory_checks"],
+        "data_issues_checks_enabled": data_issues_summary["checks_enabled"],
         "data_issues_policy": data_issues_summary["policy"],
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),

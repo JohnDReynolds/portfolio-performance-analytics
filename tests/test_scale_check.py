@@ -528,6 +528,78 @@ class TestScaleCheck(unittest.TestCase):
             ]
         )
 
+    def test_release_candidate_reuses_audit_demo_health_wrapper(self) -> None:
+        """The release batch delegates shared Audit checks to one wrapper."""
+        runner = mock.create_autospec(
+            check_release_candidate.ReleaseCandidateRunner,
+            instance=True,
+        )
+
+        check_release_candidate._run_audit_demo_health(
+            runner,
+            write_packaged_assets=True,
+        )
+
+        runner.run.assert_called_once_with(
+            [
+                check_release_candidate._VENV_PYTHON,
+                "scripts/check_audit_demo_health.py",
+                "--write-packaged-assets",
+            ]
+        )
+
+    def test_release_candidate_generates_audit_reports_through_site_cli(self) -> None:
+        """Maintained portfolio and security reports use one ``ppar audit`` run."""
+        runner = mock.create_autospec(
+            check_release_candidate.ReleaseCandidateRunner,
+            instance=True,
+        )
+
+        check_release_candidate._run_audit_demo_report_checks(runner)
+
+        self.assertEqual(
+            runner.run.call_args_list,
+            [
+                mock.call(
+                    [
+                        check_release_candidate._VENV_PYTHON,
+                        "-m",
+                        "ppar.cli",
+                        "setup",
+                        check_release_candidate._AUDIT_DEMO_WORKSPACE,
+                        "--overwrite",
+                    ]
+                ),
+                mock.call(
+                    [
+                        check_release_candidate._VENV_PYTHON,
+                        "-m",
+                        "ppar.cli",
+                        "audit",
+                        check_release_candidate._AUDIT_DEMO_WORKSPACE,
+                        "--output-directory",
+                        check_release_candidate._AUDIT_OUTPUT_ROOT,
+                    ]
+                ),
+                mock.call(
+                    [
+                        check_release_candidate._VENV_PYTHON,
+                        "-m",
+                        "ppar.audit.cli.validate_bundle",
+                        check_release_candidate._AUDIT_OUTPUT_ROOT / "portfolio",
+                    ]
+                ),
+                mock.call(
+                    [
+                        check_release_candidate._VENV_PYTHON,
+                        "-m",
+                        "ppar.audit.cli.validate_bundle",
+                        check_release_candidate._AUDIT_OUTPUT_ROOT / "security",
+                    ]
+                ),
+            ],
+        )
+
     def test_release_build_refreshes_product_overview_pdf(self) -> None:
         """Release builds cannot leave PPAR.pdf behind the current README."""
         self.assertEqual(

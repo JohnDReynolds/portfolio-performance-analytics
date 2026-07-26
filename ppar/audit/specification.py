@@ -88,15 +88,6 @@ _DEFAULT_FILE_PATHS: Final[dict[str, str]] = {
     "transactions": "transactions.csv",
     _SECURITY_MASTER_KEY: "secmast.csv",
 }
-_REMOVED_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
-_RETIRED_PERFORMANCE_OUTPUT_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        "contribution_impact_methods",
-    }
-)
-_RETIRED_SOURCE_MAPPING_KEYS: Final[frozenset[str]] = frozenset(
-    f"{file_name}_columns" for file_name in _SUPPORTED_FILE_KEYS
-)
 _SUPPORTED_ROOT_KEYS: Final[frozenset[str]] = frozenset(
     {
         "audit",
@@ -302,13 +293,10 @@ class AuditSpecification:
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
-        self._validate_retired_source_mapping_keys()
         audit_settings(self.values, required=False)
         self._validate_comparison_configuration(comparison_level)
         self._validate_tolerances_configuration()
         self._validate_extract_contract_configuration()
-        self._validate_removed_cash_configuration()
-        self._validate_retired_performance_output_configuration()
         self._validate_data_issues_configuration()
         self._validate_root_keys()
         self.comparison_level = self._comparison_level(comparison_level)
@@ -354,54 +342,6 @@ class AuditSpecification:
                 ),
                 504,
             )
-
-    def _validate_retired_source_mapping_keys(self) -> None:
-        """Reject mappings retired by the nested ``files`` grammar."""
-        retired_keys = sorted(
-            _RETIRED_SOURCE_MAPPING_KEYS.intersection(self.values)
-        )
-        if not retired_keys:
-            return
-        raise PpaError(
-            self._error_message(
-                "Retired source mappings must move under "
-                "files.<dataset>.columns: "
-                + ", ".join(retired_keys)
-                + "."
-            ),
-            504,
-        )
-
-    def _validate_removed_cash_configuration(self) -> None:
-        """Reject the retired standalone cash-dataset policy section.
-
-        Raises:
-            PpaError: If legacy cash impact configuration remains in YAML.
-        """
-        if _REMOVED_CASH_IMPACT_METHODS_KEY not in self.values:
-            return
-        raise PpaError(
-            self._error_message(
-                "cash_impact_methods is not supported; represent cash as holdings "
-                "and use holding_impact_methods."
-            ),
-            504,
-        )
-
-    def _validate_retired_performance_output_configuration(self) -> None:
-        """Reject retired policies for optional performance-output columns."""
-        retired_keys = sorted(
-            _RETIRED_PERFORMANCE_OUTPUT_KEYS.intersection(self.values)
-        )
-        if not retired_keys:
-            return
-        raise PpaError(
-            self._error_message(
-                "Retired optional performance-output configuration is not "
-                "supported: " + ", ".join(retired_keys) + "."
-            ),
-            504,
-        )
 
     def _validate_comparison_configuration(self, override: str | None) -> None:
         """Require a caller or YAML primary comparison level."""

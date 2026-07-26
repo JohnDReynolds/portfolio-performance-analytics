@@ -28,10 +28,13 @@ positioned product when market evidence supports that step.
 - Conventional Analytics source filenames are `portperf.csv`, `secperf.csv`,
   and `secmast.csv`. Vendor-specific source headings require explicit YAML
   mappings; an omitted mapping accepts only the exact normalized field name.
-- The `generic_analytics` dataset remains maintainer/demo infrastructure for
-  README images, analytics regression tests, optional-value tests, and selected
-  operational demo-data derivation.
-- The generic dataset is not the primary new-user onboarding path.
+- `ppar setup ./my_ppar_generic_analytics --generic-analytics` creates a
+  standalone, vendor-neutral Python workspace from the `generic_analytics`
+  dataset.
+- The same dataset supports README images, analytics regression tests,
+  optional-value tests, and selected operational demo-data derivation.
+- Audit remains the default PPAR onboarding path; the Axys/APX workspace remains
+  the primary configured Analytics path.
 - Demo refresh and README image generation are maintained through the
   [refresh guide](analytics_demo_refresh.md).
 
@@ -165,8 +168,9 @@ separately scoped feature slice if it is eventually promoted from the roadmap.
 
 ## Deferred Cleanup
 
-Remove the `generic_analytics` packaged dataset and optional setup script only
-after every remaining maintainer dependency has an accepted replacement:
+Retain the Generic Analytics workspace while it provides a useful vendor-neutral
+Python starting point. If product evidence eventually favors removing it, first
+replace every remaining maintainer dependency:
 
 - README image rendering uses another approved input set;
 - regression and optional-value tests no longer depend on it;

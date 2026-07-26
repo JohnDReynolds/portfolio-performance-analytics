@@ -179,8 +179,8 @@ class TestSourceLoader(unittest.TestCase):
                 [0.01],
             )
 
-    def test_referenced_schema_rejects_retired_mapping_sections(self) -> None:
-        """A referenced schema cannot silently ignore former top-level keys."""
+    def test_referenced_schema_rejects_unknown_mapping_sections(self) -> None:
+        """A referenced schema cannot silently ignore unknown top-level keys."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             schema_path = directory / "legacy_schema.yaml"
@@ -203,7 +203,7 @@ class TestSourceLoader(unittest.TestCase):
 
             with self.assertRaisesRegex(
                 PpaError,
-                "Referenced schema uses retired source mappings",
+                "Referenced schema YAML has unsupported top-level keys",
             ):
                 source_loader.aliases_with_schema_overrides(
                     pc_cols.PORTFOLIO_PERFORMANCE,

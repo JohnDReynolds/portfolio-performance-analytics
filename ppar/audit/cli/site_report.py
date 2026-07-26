@@ -14,18 +14,14 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.audit import (
-    write_audit_report_bundle,
-)
 from ppar.audit import atomic_directory as _atomic_directory
+from ppar.audit import report as _audit_report
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import source_loader
-from ppar.audit import workbook_tables as _pc_workbook_tables
 from ppar.audit import workbook_reconstruction as _pc_workbook_reconstruction
 from ppar.audit.data_issues import checks as _data_issue_checks
 from ppar.audit.runner import AuditComparisonViews
 from ppar.audit.run_settings import (
-    AuditRunSettings,
     audit_settings as _audit_settings,
     resolve_settings as _resolve_settings,
 )
@@ -53,6 +49,7 @@ def main(
 
     Args:
         argv: Optional command-line arguments excluding the executable name.
+        prog: Program name shown in command-line help.
 
     Returns:
         Process exit code. ``0`` indicates that available report bundles were
@@ -252,7 +249,6 @@ def _remap_review_paths(
 def _argument_parser(
     *,
     prog: str = "ppar audit",
-    include_site_directory: bool = True,
 ) -> argparse.ArgumentParser:
     """Return the site report argument parser."""
     parser = argparse.ArgumentParser(
@@ -260,25 +256,17 @@ def _argument_parser(
         allow_abbrev=False,
         description="Write PPAR Audit review packages.",
         epilog=(
-            (
-                "Examples:\n"
-                "  ppar audit ./my_ppar_audit"
-            )
-            if include_site_directory
-            else (
-                "Examples:\n"
-                "  python run_audit.py"
-            )
+            "Examples:\n"
+            "  ppar audit ./my_ppar_audit"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    if include_site_directory:
-        parser.add_argument(
-            "site_directory",
-            nargs="?",
-            type=Path,
-            help="Audit workspace containing ppar.yaml. Defaults to the current folder.",
-        )
+    parser.add_argument(
+        "site_directory",
+        nargs="?",
+        type=Path,
+        help="Audit workspace containing ppar.yaml. Defaults to the current folder.",
+    )
     parser.add_argument(
         "--output-directory",
         type=Path,
@@ -342,33 +330,6 @@ def _default_site_directory(site_directory: Path | None) -> Path:
     return Path.cwd()
 
 
-def script_run_settings(
-    site_directory: Path,
-    argv: list[str] | None = None,
-) -> AuditRunSettings:
-    """Resolve script arguments using the same rules as ``ppar audit``."""
-    arguments = _argument_parser(
-        prog="python run_audit.py",
-        include_site_directory=False,
-    ).parse_args(argv)
-    include_workbook, include_html_output = _output_overrides(arguments)
-    config_path = (site_directory / _CONFIG_FILE_NAME).resolve()
-    return _resolve_settings(
-        site_directory,
-        _audit_settings(_load_config_values(config_path), required=True),
-        output_directory=arguments.output_directory,
-        title=arguments.title,
-        exclude_suppressed=None,
-        include_reconstruction_diagnostics=None,
-        require_causal_attribution=None,
-        include_workbook=include_workbook,
-        include_html_output=include_html_output,
-        expand_all_supporting_files=(
-            True if arguments.expand_supporting_files else None
-        ),
-    )
-
-
 def _load_config_values(config_path: Path) -> dict[str, Any]:
     """Load an Audit YAML file and return its root mapping."""
     if not config_path.exists():
@@ -381,11 +342,6 @@ def _load_config_values(config_path: Path) -> dict[str, Any]:
     if not isinstance(values, dict):
         raise PpaError(f"{config_path} must contain a YAML mapping.", 504)
     return values
-
-
-def is_missing_security_data(error: PpaError) -> bool:
-    """Return whether security output failed because secperf is unavailable."""
-    return _is_missing_security_data(error)
 
 
 def _write_report_bundle(
@@ -410,7 +366,7 @@ def _write_report_bundle(
         if comparison_level == PORTFOLIO_COMPARISON_LEVEL
         else "Security Audit Report"
     )
-    paths = write_audit_report_bundle(
+    paths = _audit_report._write_audit_report_bundle_in_place(
         findings,
         output_directory,
         title=report_title,

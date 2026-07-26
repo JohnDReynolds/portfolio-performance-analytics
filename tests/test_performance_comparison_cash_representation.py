@@ -93,8 +93,8 @@ class TestCashRepresentationContract(unittest.TestCase):
             "holdings.csv",
         )
 
-    def test_legacy_cash_impact_methods_are_rejected(self) -> None:
-        """Legacy cash impact policy cannot survive as ignored configuration."""
+    def test_unknown_cash_impact_methods_are_rejected(self) -> None:
+        """Unknown cash impact policy cannot survive as ignored configuration."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             for snapshot_name in ("snapshot_a", "snapshot_b"):
@@ -117,7 +117,10 @@ class TestCashRepresentationContract(unittest.TestCase):
             path = directory / "ppar.yaml"
             test_util.write_audit_test_yaml(path, configuration)
 
-            with self.assertRaisesRegex(PpaError, "represent cash as holdings"):
+            with self.assertRaisesRegex(
+                PpaError,
+                "YAML has unsupported top-level keys: cash_impact_methods",
+            ):
                 AuditSpecification(path)
 
 

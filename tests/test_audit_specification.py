@@ -652,8 +652,8 @@ transaction_impact_methods:
             ):
                 AuditSpecification(path)
 
-    def test_retired_source_mapping_key_fails_closed(self) -> None:
-        """The former top-level column mappings are not silently ignored."""
+    def test_unknown_source_mapping_key_fails_closed(self) -> None:
+        """Unknown top-level column mappings are not silently ignored."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -662,8 +662,7 @@ transaction_impact_methods:
 
             with self.assertRaisesRegex(
                 PpaError,
-                "Retired source mappings must move under "
-                r"files\.<dataset>\.columns: holdings_columns",
+                "YAML has unsupported top-level keys: holdings_columns",
             ):
                 AuditSpecification(path)
 
@@ -726,8 +725,8 @@ transaction_impact_methods:
 
         self.assertEqual(specification.values["data_issues"], data_issues)
 
-    def test_retired_data_audit_checks_key_is_rejected(self) -> None:
-        """The retired configuration key fails with an actionable replacement."""
+    def test_unknown_data_issues_section_is_rejected(self) -> None:
+        """An unknown top-level Data Issues section fails closed."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)
@@ -739,7 +738,7 @@ transaction_impact_methods:
 
         self.assertTrue(str(context.exception).startswith("Error 504"))
         self.assertIn(
-            "data_audit_checks is no longer supported; use data_issues instead",
+            "YAML has unsupported top-level keys: data_audit_checks",
             str(context.exception),
         )
 

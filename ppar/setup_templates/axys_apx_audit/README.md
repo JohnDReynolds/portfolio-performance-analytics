@@ -83,10 +83,12 @@ extract.
 
 ## Optional Python Script
 
-`run_audit.py` shows the standard Python workflow and is the starting point for
-local customization.
+`run_audit.py` shows how to call the same site-level Audit implementation from
+Python. Use it as the starting point for scheduling, process integration, or
+one-run code customization. Keep source mappings, financial policy, and
+repeatable report settings in `ppar.yaml`.
 
-View the available command-line options:
+View the production command options or the Python example help:
 
 ```bash
 ppar audit -h

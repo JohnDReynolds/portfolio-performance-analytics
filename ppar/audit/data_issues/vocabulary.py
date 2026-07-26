@@ -41,7 +41,6 @@ class DataIssueCategory(StrEnum):
     INCOME = "income"
     ACCRUED_INTEREST = "accrued_interest"
     POSITION_VALUE = "position_value"
-    CORPORATE_ACTION = "corporate_action"
     CLASSIFICATION = "classification"
 
 
@@ -51,10 +50,8 @@ class DataIssueDefinition:
 
     Attributes:
         category: Stable reviewer grouping for the issue.
-        mandatory: Whether the check remains active regardless of optional-check
-            enablement.
-        default_enabled: Whether the check executes when its optional enablement
-            is omitted. Mandatory checks are always enabled.
+        default_enabled: Whether the check executes when its enablement is
+            omitted.
         required_datasets: Normalized datasets needed to evaluate the check.
         supports_absolute_tolerance: Whether the check accepts an absolute
             tolerance in YAML.
@@ -68,7 +65,6 @@ class DataIssueDefinition:
     """
 
     category: DataIssueCategory
-    mandatory: bool
     default_enabled: bool
     required_datasets: tuple[str, ...]
     supports_absolute_tolerance: bool
@@ -89,7 +85,6 @@ DATA_ISSUE_REGISTRY: Final[
     {
         DataIssueType.DUPLICATE_TRANSACTIONS: DataIssueDefinition(
             category=DataIssueCategory.DUPLICATE,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("transactions",),
             supports_absolute_tolerance=False,
@@ -98,7 +93,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.DELIVER_IN_ORIGINAL_COST_INCOMPLETE: DataIssueDefinition(
             category=DataIssueCategory.POSITION_VALUE,
-            mandatory=False,
             default_enabled=False,
             required_datasets=("transactions",),
             supports_absolute_tolerance=False,
@@ -111,7 +105,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.DIVIDEND_RATE: DataIssueDefinition(
             category=DataIssueCategory.INCOME,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("transactions", "holdings"),
             **_NUMERIC_CHECK,
@@ -119,7 +112,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.HOLDINGS_ACCRUED_RATE: DataIssueDefinition(
             category=DataIssueCategory.ACCRUED_INTEREST,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("holdings",),
             **_NUMERIC_CHECK,
@@ -127,7 +119,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.HOLDINGS_NONPOSITIVE_PRICE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
-            mandatory=False,
             default_enabled=False,
             required_datasets=("holdings",),
             supports_absolute_tolerance=False,
@@ -140,7 +131,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.HOLDINGS_PRICE_RANGE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("holdings",),
             **_NUMERIC_CHECK,
@@ -148,7 +138,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.HOLDINGS_STALE_PRICE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
-            mandatory=False,
             default_enabled=False,
             required_datasets=("holdings", "security_master"),
             supports_absolute_tolerance=False,
@@ -162,7 +151,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.LARGE_PRICE_VARIATION: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
-            mandatory=False,
             default_enabled=False,
             required_datasets=("portfolio_performance",),
             supports_absolute_tolerance=False,
@@ -174,7 +162,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.MISSING_DIVIDEND: DataIssueDefinition(
             category=DataIssueCategory.INCOME,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("holdings", "transactions"),
             supports_absolute_tolerance=False,
@@ -183,7 +170,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.PA_SA_RATE: DataIssueDefinition(
             category=DataIssueCategory.ACCRUED_INTEREST,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("transactions", "holdings"),
             **_NUMERIC_CHECK,
@@ -191,7 +177,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.TRANSACTIONS_NONPOSITIVE_PRICE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
-            mandatory=False,
             default_enabled=False,
             required_datasets=("transactions", "security_master"),
             supports_absolute_tolerance=False,
@@ -204,7 +189,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.TRANSACTION_SECURITY_TYPE_MISMATCH: DataIssueDefinition(
             category=DataIssueCategory.CLASSIFICATION,
-            mandatory=False,
             default_enabled=False,
             required_datasets=("transactions", "security_master"),
             supports_absolute_tolerance=False,
@@ -217,7 +201,6 @@ DATA_ISSUE_REGISTRY: Final[
         ),
         DataIssueType.TRANSACTIONS_PRICE_RANGE: DataIssueDefinition(
             category=DataIssueCategory.PRICE,
-            mandatory=False,
             default_enabled=True,
             required_datasets=("transactions",),
             **_NUMERIC_CHECK,

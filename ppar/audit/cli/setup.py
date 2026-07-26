@@ -26,8 +26,7 @@ _PACKAGED_AUDIT_DIRECTORY: Final[str] = "axys_apx_audit"
 _PACKAGED_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _PACKAGED_ANALYTICS_YAML: Final[str] = "axys_apx_analytics.yaml"
 _PACKAGED_AUDIT_YAML: Final[str] = "axys_apx_audit.yaml"
-_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
-_WorkspaceKind = Literal["audit", "analytics"]
+_WorkspaceKind = Literal["audit", "analytics", "generic_analytics"]
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
@@ -47,7 +46,7 @@ _AUDIT_SETUP_FILES: Final[tuple[str, ...]] = (
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the Axys/APX setup command.
+    """Run the PPAR workspace setup command.
 
     Args:
         argv: Optional command-line arguments excluding the executable name.
@@ -61,8 +60,8 @@ def main(argv: list[str] | None = None) -> int:
         result = run_setup(
             args.workspace_directory,
             analytics=args.analytics,
+            generic_analytics=args.generic_analytics,
             overwrite=args.overwrite,
-            include_generic_analytics=args.include_generic_analytics,
         )
     except PpaError as error:
         print(f"Setup failed: {error}", file=sys.stderr)
@@ -76,8 +75,8 @@ def run_setup(
     workspace_directory: Path,
     *,
     analytics: bool = False,
+    generic_analytics: bool = False,
     overwrite: bool = False,
-    include_generic_analytics: bool = False,
 ) -> dict[str, Path | str]:
     """Create one self-contained PPAR workspace.
 
@@ -85,9 +84,9 @@ def run_setup(
         workspace_directory: Folder that will receive the selected workflow.
         analytics: Whether to create an Analytics workspace instead of the
             default Audit workspace.
+        generic_analytics: Whether to create a Generic Analytics Python
+            workspace instead of the default Audit workspace.
         overwrite: Whether to replace existing packaged workspace files.
-        include_generic_analytics: Whether to copy the maintainer-facing generic
-            Analytics sample into an Analytics workspace.
 
     Returns:
         Paths and status labels for the selected workspace.
@@ -97,16 +96,34 @@ def run_setup(
             requested workflow conflicts with an existing workspace, if files
             cannot be written, or if Audit validation fails.
     """
-    if include_generic_analytics and not analytics:
+    if analytics and generic_analytics:
         raise PpaError(
-            "--include-generic-analytics requires --analytics.",
+            "--analytics and --generic-analytics are mutually exclusive.",
             802,
         )
 
     workspace_path = Path(workspace_directory).expanduser()
-    workflow: _WorkspaceKind = "analytics" if analytics else "audit"
+    workflow: _WorkspaceKind = (
+        "generic_analytics"
+        if generic_analytics
+        else "analytics" if analytics else "audit"
+    )
     setup_status = _ensure_directory(workspace_path)
     _validate_workspace_kind(workspace_path, workflow)
+    if generic_analytics:
+        workflow_status, readme_status = _ensure_generic_analytics_workspace(
+            workspace_path,
+            overwrite=overwrite,
+        )
+        return {
+            "workspace_directory": workspace_path,
+            "workflow": workflow,
+            "setup_status": setup_status,
+            "readme_path": workspace_path / "README.md",
+            "readme_status": readme_status,
+            "workflow_status": workflow_status,
+        }
+
     readme_status = (
         _write_text_file(
             workspace_path / "README.md",
@@ -137,13 +154,6 @@ def run_setup(
             "workflow_status": workflow_status,
             "config_path": workspace_path / _CONFIG_FILE_NAME,
         }
-        if include_generic_analytics:
-            generic_path = workspace_path / _GENERIC_ANALYTICS_DIRECTORY
-            result["generic_analytics_status"] = _ensure_generic_analytics_sample(
-                generic_path,
-                overwrite=overwrite,
-            )
-            result["generic_analytics_directory"] = generic_path
         return result
 
     workflow_status = _ensure_audit_workspace(
@@ -178,7 +188,8 @@ def _argument_parser() -> argparse.ArgumentParser:
         epilog=(
             "Examples:\n"
             "  ppar setup ./my_ppar_audit\n"
-            "  ppar setup ./my_ppar_analytics --analytics"
+            "  ppar setup ./my_ppar_analytics --analytics\n"
+            "  ppar setup ./my_ppar_generic_analytics --generic-analytics"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -187,20 +198,24 @@ def _argument_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Folder that will contain the selected PPAR workspace.",
     )
-    parser.add_argument(
+    workflow_options = parser.add_mutually_exclusive_group()
+    workflow_options.add_argument(
         "--analytics",
         action="store_true",
         help="Create a PPAR Analytics workspace instead of a PPAR Audit workspace.",
+    )
+    workflow_options.add_argument(
+        "--generic-analytics",
+        action="store_true",
+        help=(
+            "Create a Generic Analytics Python workspace instead of a PPAR "
+            "Audit workspace."
+        ),
     )
     parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace existing workspace files with packaged files.",
-    )
-    parser.add_argument(
-        "--include-generic-analytics",
-        action="store_true",
-        help=argparse.SUPPRESS,
     )
     return parser
 
@@ -242,24 +257,28 @@ def _validate_workspace_kind(
             802,
         )
 
+    existing_kinds: set[_WorkspaceKind] = set()
+    if (workspace_path / "run_generic_analytics.py").is_file():
+        existing_kinds.add("generic_analytics")
+
     config_path = workspace_path / _CONFIG_FILE_NAME
-    if not config_path.exists():
-        return
-    try:
-        values: Any = yaml.safe_load(config_path.read_text(encoding=util.ENCODING))
-    except yaml.YAMLError:
-        return
-    if not isinstance(values, dict):
-        return
-    existing_kinds = {
-        kind for kind in ("audit", "analytics") if kind in values
-    }
+    if config_path.exists():
+        try:
+            values: Any = yaml.safe_load(
+                config_path.read_text(encoding=util.ENCODING)
+            )
+        except yaml.YAMLError:
+            values = None
+        if isinstance(values, dict):
+            existing_kinds.update(
+                kind for kind in ("audit", "analytics") if kind in values
+            )
+
     if not existing_kinds or existing_kinds == {requested_kind}:
         return
     existing_label = " and ".join(sorted(existing_kinds))
     raise PpaError(
-        f"{workspace_path} contains an existing {existing_label} configuration "
-        "and cannot "
+        f"{workspace_path} contains an existing {existing_label} workspace and cannot "
         f"be initialized as {requested_kind}. Choose a different workspace "
         "directory.",
         802,
@@ -325,14 +344,30 @@ def _ensure_audit_workspace(directory: Path, *, overwrite: bool) -> str:
     return _combined_status(status, config_status)
 
 
-def _ensure_generic_analytics_sample(directory: Path, *, overwrite: bool) -> str:
-    """Copy maintainer-facing generic Analytics sample files into ``directory``."""
+def _ensure_generic_analytics_workspace(
+    directory: Path,
+    *,
+    overwrite: bool,
+) -> tuple[str, str]:
+    """Copy the Generic Analytics workspace files into ``directory``."""
     status = _ensure_directory(directory)
     source_directory = files(_PACKAGED_DEMO_RESOURCE).joinpath(
         _PACKAGED_GENERIC_ANALYTICS_DIRECTORY
     )
-    _copy_resource_tree(source_directory, directory, overwrite=overwrite)
-    return status
+    readme_status = _copy_resource_file(
+        source_directory.joinpath("README.md"),
+        directory / "README.md",
+        overwrite=overwrite,
+    )
+    for resource in source_directory.iterdir():
+        if resource.name == "README.md":
+            continue
+        destination = directory / resource.name
+        if resource.is_dir():
+            _copy_resource_tree(resource, destination, overwrite=overwrite)
+        elif resource.is_file():
+            _copy_resource_file(resource, destination, overwrite=overwrite)
+    return _combined_status(status, readme_status), readme_status
 
 
 def _audit_workspace_config_text(resource: Traversable) -> str:
@@ -455,19 +490,25 @@ def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
     workspace_path = result["workspace_directory"]
     workflow = str(result["workflow"])
+    if workflow == "generic_analytics":
+        print(f"PPAR Generic Analytics workspace ready: {workspace_path}")
+        print()
+        print("To run Generic Analytics:")
+        print(f"  python {Path(workspace_path) / 'run_generic_analytics.py'}")
+        print()
+        print("To customize with your own data:")
+        print(
+            "  Refer to the \"Customizing With Your Own Data\" section in "
+            f"{Path(workspace_path) / 'README.md'}"
+        )
+        return
+
     label = "Analytics" if workflow == "analytics" else "Audit"
     print(f"PPAR {label} workspace ready: {workspace_path}")
     print()
     print(f"To run {label}:")
     print(f"  ppar {workflow} {workspace_path}")
     print()
-    if "generic_analytics_directory" in result:
-        print("To run Generic Analytics:")
-        generic_script_path = (
-            Path(result["generic_analytics_directory"]) / "run_generic_analytics.py"
-        )
-        print(f"  python {generic_script_path}")
-        print()
     if "missing_files" in result:
         print("Next step: add these portfolio source files, then run setup again:")
         print(result["missing_files"])

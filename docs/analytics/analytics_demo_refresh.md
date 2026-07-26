@@ -4,11 +4,11 @@ This maintainer guide documents the refresh workflow for the generic Mega-Cap
 analytics dataset, README story, and README images. Use it when replacing the
 packaged Mega-Cap inputs with a newer or better historical dataset.
 
-The Analytics onboarding path is the dedicated Axys/APX workspace created by
-`ppar setup ./my_ppar_analytics --analytics`. The generic Mega-Cap dataset is
-retained as maintainer/demo
-infrastructure because it feeds README marketing images, analytics regression
-tests, and Axys/APX demo-data derivation.
+The primary Analytics onboarding path is the dedicated Axys/APX workspace
+created by `ppar setup ./my_ppar_analytics --analytics`. The same Mega-Cap
+dataset is also packaged as an optional, vendor-neutral Generic Analytics
+workspace and feeds README marketing images, analytics regression tests, and
+Axys/APX demo-data derivation.
 
 ## Current Demo Shape
 
@@ -130,19 +130,17 @@ Run the demo-data contract and package metadata tests:
   tests/test_package_metadata.py
 ```
 
-Then run the optional generic analytics setup script from a temporary setup
-workspace:
+Then run the Generic Analytics Python example from a temporary setup workspace:
 
 ```bash
 ./.venv/bin/python -m ppar.cli setup \
   /tmp/ppar_generic_smoke \
-  --analytics \
-  --include-generic-analytics
-./.venv/bin/python /tmp/ppar_generic_smoke/generic_analytics/run_generic_analytics.py
+  --generic-analytics
+./.venv/bin/python /tmp/ppar_generic_smoke/run_generic_analytics.py
 ```
 
-Review output under `/tmp/ppar_generic_smoke/generic_analytics/output/`. This
-is a maintainer smoke output, not the primary user setup workspace.
+Review output under `/tmp/ppar_generic_smoke/output/`. The refresh procedure is
+maintainer work; installed users receive the already packaged workspace data.
 
 ### 5. Update README Story
 

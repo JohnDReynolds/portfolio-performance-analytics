@@ -34,7 +34,7 @@ from ppar.audit.workbook_tables import (
     _workbook_underlying_causes_table,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 _DEFAULT_DEMO_DIRECTORY = (
     _REPO_ROOT / "ppar" / "setup_templates" / "axys_apx_audit"
 )

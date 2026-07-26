@@ -25,7 +25,6 @@ import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _ANALYTICS_SECTION: Final[str] = "analytics"
-_REMOVED_DEFAULTS_SECTION: Final[str] = "defaults"
 _MISSING_SETTING: Final[object] = object()
 _DEFAULT_OUTPUT_DIRECTORY: Final[str] = "output"
 _DEFAULT_CLASSIFICATION_NAME: Final[str] = "Security"
@@ -417,11 +416,6 @@ def _load_config_values(config_path: Path) -> dict[str, Any]:
 
 def _analytics_settings(config_values: dict[str, Any]) -> dict[str, Any]:
     """Return the Analytics settings after strict key validation."""
-    if _REMOVED_DEFAULTS_SECTION in config_values:
-        raise PpaError(
-            "defaults is not supported; move its settings under analytics.",
-            504,
-        )
     settings = config_values.get(_ANALYTICS_SECTION)
     if not isinstance(settings, dict):
         raise PpaError(f"{_ANALYTICS_SECTION} must be a mapping.", 504)

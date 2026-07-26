@@ -43,9 +43,8 @@ source checkout with `./.venv/bin/python -m <module>`.
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
 | `scripts/operational_demo_data/rebuild_audit_demo_data.py` | Rebuilds and audits packaged Audit demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
 | `scripts/check_audit_demo_data.py` | Checks the packaged Audit demo data. | Focused demo-data validation. |
-| `ppar.audit.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for an Audit YAML. | Generate review bundles and workbooks. |
 | `ppar.audit.cli.validate_bundle` | Validates a generated report bundle. | Check artifacts plus CSV/HTML/XLSX semantic parity and normalized integrity metadata. |
-| `ppar.audit.cli.validate_demo_matrix` | Validates Performance Comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
+| `scripts/validate_demo_matrix.py` | Validates Performance Comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
 | `ppar.audit.cli.validate_config` | Validates an Audit YAML file. | Catch source-data and YAML setup issues before generating reports. |
 
 ## Maintainer Checks
@@ -99,9 +98,11 @@ places:
   for packaged examples that users and reviewers can run.
 - `ppar/setup_templates/axys_apx_analytics/` is the maintained Analytics
   workspace source copied directly by `ppar setup --analytics`.
-- `ppar/setup_templates/generic_analytics/` is maintainer/demo infrastructure. It
-  feeds README marketing images, analytics regression tests, and operational
-  demo-data derivation; it is not advertised as the primary onboarding path.
+- `ppar/setup_templates/generic_analytics/` is the optional, vendor-neutral
+  Generic Analytics workspace source copied by `ppar setup
+  --generic-analytics`. Its data also feeds README marketing images, analytics
+  regression tests, and operational demo-data derivation. Audit remains the
+  default onboarding path.
 - `tests/data/axys/` is for synthetic Axys/APX snapshots, test-only Audit YAML
   files, and validation matrix fixtures.
 
@@ -132,12 +133,11 @@ lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 | `scripts/operational_demo_data/audit_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and maintainer-only cost context. |
 | `scripts/operational_demo_data/audit_scenario_calendar.csv` | Operational map from physical scenario rows to reviewer story periods. |
 | `scripts/operational_demo_data/audit_scenario_inventory.csv` | Validated semantic contract that keeps each source period within the two-independent-change review target and protects report outcomes plus carry-forward behavior. |
-| `scripts/operational_demo_data/audit_period_split_plan.csv` | Empty split backlog. Add rows only when a future scenario makes a period too crowded again. |
 | `scripts/operational_demo_data/rebuild_audit_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
 | `ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
 | `ppar/setup_templates/axys_apx_audit/README.md` | Canonical README copied into every generated Audit workspace. |
 | `docs/audit/packaged_demo.md` | Maintainer-facing demo story, expected output, and accounting-scenario guidance. |
-| `ppar.audit.cli.validate_demo_matrix` | Test-only scenario coverage guardrail. It does not define the packaged demo story. |
+| `scripts/validate_demo_matrix.py` | Test-only scenario coverage guardrail. It does not define the packaged demo story. |
 
 When changing packaged demo behavior, edit the generator/scenario source first,
 then run:
@@ -147,7 +147,7 @@ then run:
 ./.venv/bin/python -m scripts.operational_demo_data.refresh_audit_market_baseline
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py --write
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
-./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
+./.venv/bin/python scripts/validate_demo_matrix.py
 ```
 
 The market-baseline command is a no-write preview by default. Use `--write`
@@ -194,14 +194,13 @@ health-check command list into a shell. The everyday check is:
 ./.venv/bin/python scripts/check_release_candidate.py
 ```
 
-The default path is intentionally deterministic: it audits packaged demo data,
-checks generated Axys/APX extract-availability docs, builds and validates
-portfolio/security report bundles under `_demo_output/`, runs setup-generated
-smoke scripts in a temporary site directory, validates the scenario matrix, and
-then runs the 500x Analytics/Audit scale regression and project check. It does
-not contact Yahoo for generic analytics data generation and does not rewrite
-tracked packaged CSV assets. The 500x phase is intentionally a hard gate and may
-take several minutes.
+The default path is intentionally deterministic. It invokes the consolidated
+Audit demo-health check, generates both maintained Audit reports through one
+`ppar audit` site run under `_demo_output/audit/`, smoke-tests the
+setup-generated Analytics scripts, and then runs the 500x Analytics/Audit scale regression
+and project check. It does not contact Yahoo for generic analytics
+data generation and does not rewrite tracked packaged CSV assets. The 500x
+phase is intentionally a hard gate and may take several minutes.
 
 `scripts/audit_scale_baseline_500x.json` records the current machine-dependent
 500x timing, memory, phase, row-count, and output-size observations. It is an
@@ -268,27 +267,24 @@ frozen provenance. Do not revise their conclusions or status; only add an
 archival banner, repair a link after a move, or add a new clearly indexed
 historical snapshot. Current guidance must live outside an archive.
 
-`scripts/operational_demo_data/audit_period_split_plan.csv` is intentionally a
-header-only machine-readable backlog when no demo period needs splitting. Do
-not delete it while the rebuild and tests use its empty state as an explicit
-contract; add rows only when the documented density gate requires a split.
-
 ### Run Setup-Generated Smoke Scripts
 
-The preferred source-checkout smoke path creates separate temporary Audit and
-Analytics workspaces and runs the Python scripts copied by `ppar setup`. This
-proves the same Python examples that users see in their local workspace:
+The preferred source-checkout smoke path creates separate temporary Audit,
+Axys/APX Analytics, and Generic Analytics workspaces and runs the Python scripts
+copied by `ppar setup`. This proves the same Python examples that users see in
+their local workspace:
 
 ```bash
 ./.venv/bin/python -m ppar.cli setup /tmp/my_ppar_audit
 ./.venv/bin/python /tmp/my_ppar_audit/run_audit.py
 ./.venv/bin/python -m ppar.cli setup \
   /tmp/my_ppar_analytics \
-  --analytics \
-  --include-generic-analytics
+  --analytics
 ./.venv/bin/python /tmp/my_ppar_analytics/run_analytics.py
-./.venv/bin/python \
-  /tmp/my_ppar_analytics/generic_analytics/run_generic_analytics.py
+./.venv/bin/python -m ppar.cli setup \
+  /tmp/my_ppar_generic_analytics \
+  --generic-analytics
+./.venv/bin/python /tmp/my_ppar_generic_analytics/run_generic_analytics.py
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
   /tmp/my_ppar_audit/output/portfolio
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
@@ -311,21 +307,21 @@ This consolidates the operational rebuild drift audit, extract-availability
 appendix check, setup-generated script execution, bundle validation, and
 packaged scenario-matrix validation.
 
-### Generate A Custom Review Bundle
+### Generate Maintained Audit Demo Reports
 
 ```bash
-./.venv/bin/python -m ppar.audit.cli.report_bundle \
-  ppar/setup_templates/axys_apx_audit/axys_apx_audit.yaml \
-  _demo_output/custom_portfolio \
-  --comparison-level portfolio \
-  --include-workbook \
-  --require-causal-attribution
+./.venv/bin/python -m ppar.cli setup \
+  _demo_output/audit_workspace \
+  --overwrite
+./.venv/bin/python -m ppar.cli audit \
+  _demo_output/audit_workspace \
+  --output-directory _demo_output/audit
 ```
 
-Use this lower-level command when you want to choose a YAML file or output
-directory yourself. Use `--comparison-level security` with the same YAML when
-you want a security-level bundle. The public user-facing path is `ppar setup`
-followed by `ppar audit`.
+This is the same site-level implementation used by `ppar audit` and the
+setup-generated `run_audit.py`. It writes both available report levels in one
+atomic site run. Python integrations that intentionally need one lower-level
+bundle can use `compare_snapshots()` and `write_audit_report_bundle()`.
 
 Code that needs to inspect the generated report-bundle handoff surface should
 use `ppar.audit.report_bundle_contract()`. That helper returns
@@ -346,7 +342,7 @@ package-root exports.
 ### Validate The Packaged Demo Matrix
 
 ```bash
-./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
+./.venv/bin/python scripts/validate_demo_matrix.py
 ```
 
 This is a scenario-coverage check. It is not just a bundle validator; it proves
@@ -356,7 +352,7 @@ that packaged fixtures still demonstrate the documented review situations.
 
 ```bash
 ./.venv/bin/python -m ppar.audit.cli.validate_bundle \
-  _demo_output/audit_portfolio
+  _demo_output/audit/portfolio
 ```
 
 Use this after generating report/workbook output.
@@ -434,7 +430,7 @@ When changing demo data or YAML, also run:
 ```bash
 ./.venv/bin/python scripts/check_audit_demo_data.py
 ./.venv/bin/python scripts/operational_demo_data/rebuild_audit_demo_data.py
-./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
+./.venv/bin/python scripts/validate_demo_matrix.py
 ```
 
 ## Release Readiness
@@ -508,8 +504,8 @@ Generated output normally belongs under `_demo_output/`:
 
 - `_demo_output/generic_analytics`: Core analytics demo HTML/PNG artifacts.
 - `_demo_output/axys_apx_analytics`: Axys/APX-backed analytics demo HTML artifacts.
-- `_demo_output/audit_portfolio`: Portfolio comparison review bundle.
-- `_demo_output/audit_security`: Security comparison review bundle.
+- `_demo_output/audit/portfolio`: Portfolio Audit review bundle.
+- `_demo_output/audit/security`: Security Audit review bundle.
 
 Audit report bundles include these visible files by default:
 

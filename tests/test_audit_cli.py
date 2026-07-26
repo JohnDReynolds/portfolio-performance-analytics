@@ -12,7 +12,6 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
-import zipfile
 
 # Third-party imports
 from openpyxl import load_workbook
@@ -20,8 +19,13 @@ import yaml
 
 from ppar.errors import PpaError
 from ppar.analytics import cli as _analytics_cli
+from ppar.audit import compare_snapshots, write_audit_report_bundle
 from ppar.audit.cli import site_report as _site_report
 from ppar.audit.config_validation import validate_config
+from ppar.audit.run_settings import (
+    audit_settings as _audit_settings,
+    resolve_settings as _resolve_audit_settings,
+)
 
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_audit_restatement.yaml"
@@ -31,10 +35,9 @@ _PORTFOLIO_COMPARISON_PATH = Path(
 )
 _PACKAGED_AXYS_APX_DATA_PATH = Path("ppar/setup_templates/axys_apx_audit")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
-_BUNDLE_MODULE = "ppar.audit.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.audit.cli.validate_bundle"
 _VALIDATE_CONFIG_MODULE = "ppar.audit.cli.validate_config"
-_VALIDATE_DEMO_MATRIX_MODULE = "ppar.audit.cli.validate_demo_matrix"
+_VALIDATE_DEMO_MATRIX_SCRIPT = Path("scripts/validate_demo_matrix.py")
 _SETUP_MODULE = "ppar.audit.cli.setup"
 _SITE_REPORT_MODULE = "ppar.audit.cli.site_report"
 _ANALYTICS_MODULE = "ppar.analytics.cli"
@@ -98,17 +101,47 @@ class TestAuditCli(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            configured = _site_report.script_run_settings(site_directory, [])
-            overridden = _site_report.script_run_settings(
+            configured = _resolve_audit_settings(
                 site_directory,
+                _audit_settings(configuration, required=True),
+                output_directory=None,
+                title=None,
+                exclude_suppressed=None,
+                include_reconstruction_diagnostics=None,
+                require_causal_attribution=None,
+                include_workbook=None,
+                include_html_output=None,
+                expand_all_supporting_files=None,
+            )
+            arguments = _site_report._argument_parser(
+                prog="python run_audit.py",
+            ).parse_args(
                 [
+                    ".",
                     "--output-directory",
                     str(site_directory / "one_run"),
                     "--title",
                     "One Run",
                     "--xlsx-only",
                     "--expand-supporting-files",
-                ],
+                ]
+            )
+            include_workbook, include_html_output = _site_report._output_overrides(
+                arguments
+            )
+            overridden = _resolve_audit_settings(
+                site_directory,
+                _audit_settings(configuration, required=True),
+                output_directory=arguments.output_directory,
+                title=arguments.title,
+                exclude_suppressed=None,
+                include_reconstruction_diagnostics=None,
+                require_causal_attribution=None,
+                include_workbook=include_workbook,
+                include_html_output=include_html_output,
+                expand_all_supporting_files=(
+                    True if arguments.expand_supporting_files else None
+                ),
             )
 
         self.assertEqual(
@@ -138,7 +171,18 @@ class TestAuditCli(unittest.TestCase):
                 yaml.safe_dump(configuration, sort_keys=False),
                 encoding="utf-8",
             )
-            settings = _site_report.script_run_settings(site_directory, [])
+            settings = _resolve_audit_settings(
+                site_directory,
+                _audit_settings(configuration, required=True),
+                output_directory=None,
+                title=None,
+                exclude_suppressed=None,
+                include_reconstruction_diagnostics=None,
+                require_causal_attribution=None,
+                include_workbook=None,
+                include_html_output=None,
+                expand_all_supporting_files=None,
+            )
             self.assertEqual(settings.output_directory, site_directory / "output")
             self.assertIsNone(settings.title)
             self.assertTrue(settings.include_workbook)
@@ -157,7 +201,7 @@ class TestAuditCli(unittest.TestCase):
                 PpaError,
                 "audit has unsupported keys: html_ouput",
             ):
-                _site_report.script_run_settings(site_directory, [])
+                _audit_settings(configuration, required=True)
 
     def test_audit_cli_rejects_removed_policy_and_boolean_flags(self) -> None:
         """The public command does not retain the superseded override surface."""
@@ -181,15 +225,16 @@ class TestAuditCli(unittest.TestCase):
         ):
             with self.subTest(retired_flag=retired_flag):
                 with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-                    _site_report.script_run_settings(Path.cwd(), [retired_flag])
+                    _site_report._argument_parser(
+                        prog="python run_audit.py",
+                    ).parse_args([".", retired_flag])
 
     def test_audit_cli_output_modes_are_mutually_exclusive(self) -> None:
         """A run selects at most one nonstandard output mode."""
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-            _site_report.script_run_settings(
-                Path.cwd(),
-                ["--html-only", "--xlsx-only"],
-            )
+            _site_report._argument_parser(
+                prog="python run_audit.py",
+            ).parse_args([".", "--html-only", "--xlsx-only"])
 
     def test_analytics_cli_rejects_retired_flag_names(self) -> None:
         """Analytics accepts only CLI names corresponding to YAML settings."""
@@ -324,17 +369,11 @@ class TestAuditCli(unittest.TestCase):
             _SITE_REPORT_MODULE: (
                 "Write PPAR Audit review packages"
             ),
-            _BUNDLE_MODULE: (
-                "Write an Audit review artifact bundle."
-            ),
             _VALIDATE_BUNDLE_MODULE: (
                 "Validate an Audit report bundle."
             ),
             _VALIDATE_CONFIG_MODULE: (
                 "Validate an Audit YAML configuration."
-            ),
-            _VALIDATE_DEMO_MATRIX_MODULE: (
-                "Validate performance comparison scenario coverage."
             ),
         }
 
@@ -350,24 +389,20 @@ class TestAuditCli(unittest.TestCase):
                 self.assertIn(expected_description, result.stdout)
                 self.assertIn("-h, --help", result.stdout)
                 self.assertEqual(result.stderr, "")
-                if module_name == _BUNDLE_MODULE:
-                    self.assertIn("--comparison-level", result.stdout)
-                    self.assertIn(
-                        "--include-reconstruction-diagnostics",
-                        result.stdout,
-                    )
-                    self.assertIn("Reconstruction Summary", result.stdout)
-                    self.assertIn("Return", result.stdout)
-                    self.assertIn("Reconstruction Checks", result.stdout)
-                    self.assertIn("Security Return Checks", result.stdout)
                 if module_name == _SETUP_MODULE:
                     self.assertIn("--analytics", result.stdout)
+                    self.assertIn("--generic-analytics", result.stdout)
                     self.assertIn("--overwrite", result.stdout)
                     self.assertNotIn("--guide", result.stdout)
+                    self.assertNotIn("--include-generic-analytics", result.stdout)
                     self.assertIn("usage: ppar setup", result.stdout)
                     self.assertIn("ppar setup ./my_ppar_audit", result.stdout)
                     self.assertIn(
                         "ppar setup ./my_ppar_analytics --analytics",
+                        result.stdout,
+                    )
+                    self.assertIn(
+                        "ppar setup ./my_ppar_generic_analytics --generic-analytics",
                         result.stdout,
                     )
                 if module_name == _ANALYTICS_MODULE:
@@ -438,6 +473,40 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("usage: ppar setup", result.stderr)
         self.assertIn("workspace_directory", result.stderr)
         self.assertNotIn("--guide", result.stderr)
+
+    def test_setup_rejects_retired_and_conflicting_analytics_modes(self) -> None:
+        """Setup exposes only the two current, mutually exclusive opt-in modes."""
+        with tempfile.TemporaryDirectory() as directory:
+            workspace_directory = Path(directory) / "workspace"
+            retired_result = subprocess.run(
+                _module_command(
+                    _SETUP_MODULE,
+                    str(workspace_directory),
+                    "--include-generic-analytics",
+                ),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            conflicting_result = subprocess.run(
+                _module_command(
+                    _SETUP_MODULE,
+                    str(workspace_directory),
+                    "--analytics",
+                    "--generic-analytics",
+                ),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertNotEqual(retired_result.returncode, 0)
+        self.assertIn(
+            "unrecognized arguments: --include-generic-analytics",
+            retired_result.stderr,
+        )
+        self.assertNotEqual(conflicting_result.returncode, 0)
+        self.assertIn("not allowed with argument --analytics", conflicting_result.stderr)
 
     def test_setup_writes_canonical_audit_workspace(self) -> None:
         """Default setup creates one self-describing Audit workspace."""
@@ -510,11 +579,10 @@ class TestAuditCli(unittest.TestCase):
             audit_script = (workspace_directory / "run_audit.py").read_text(
                 encoding="utf-8"
             )
-            self.assertIn(
-                "same command-line options as ``ppar audit``",
-                audit_script,
-            )
-            self.assertIn("``python run_audit.py -h``", audit_script)
+            self.assertIn("from ppar.audit.cli.site_report import run_report", audit_script)
+            self.assertIn("result = run_report(", audit_script)
+            self.assertIn("Optional one-run customization examples", audit_script)
+            self.assertNotIn("site_report.main(", audit_script)
             self.assertFalse(
                 (workspace_directory / "run_portfolio_comparison.py").exists()
             )
@@ -663,7 +731,7 @@ class TestAuditCli(unittest.TestCase):
 
             self.assertNotEqual(mixed_result.returncode, 0)
             self.assertIn(
-                "contains an existing audit configuration",
+                "contains an existing audit workspace",
                 mixed_result.stderr,
             )
             legacy_root = root / "legacy"
@@ -681,29 +749,35 @@ class TestAuditCli(unittest.TestCase):
             self.assertNotEqual(legacy_result.returncode, 0)
             self.assertIn("legacy combined PPAR workspace", legacy_result.stderr)
 
-    def test_setup_can_include_hidden_generic_analytics_sample(self) -> None:
-        """Setup can optionally copy generic analytics infrastructure."""
+    def test_setup_can_create_generic_analytics_workspace(self) -> None:
+        """The explicit Generic Analytics mode creates a standalone workspace."""
         with tempfile.TemporaryDirectory() as directory:
-            workspace_directory = Path(directory) / "my_ppar_analytics"
+            workspace_directory = Path(directory) / "my_ppar_generic_analytics"
 
             result = subprocess.run(
                 _module_command(
                     _SETUP_MODULE,
-                    "--analytics",
-                    "--include-generic-analytics",
                     str(workspace_directory),
+                    "--generic-analytics",
                 ),
                 check=True,
                 capture_output=True,
                 text=True,
             )
 
-            generic_directory = workspace_directory / "generic_analytics"
+            generic_directory = workspace_directory
+            self.assertIn("PPAR Generic Analytics workspace ready:", result.stdout)
             self.assertIn("To run Generic Analytics:", result.stdout)
             self.assertIn(
                 f"python {generic_directory / 'run_generic_analytics.py'}",
                 result.stdout,
             )
+            self.assertTrue((generic_directory / "README.md").exists())
+            readme = (generic_directory / "README.md").read_text(encoding="utf-8")
+            self.assertIn("# PPAR Generic Analytics Workspace", readme)
+            self.assertIn("## Customizing With Your Own Data", readme)
+            self.assertIn("There is no `ppar.yaml`", readme)
+            self.assertFalse((generic_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (generic_directory / "run_generic_analytics.py").exists()
             )
@@ -728,11 +802,63 @@ class TestAuditCli(unittest.TestCase):
                 ).exists()
             )
 
+    def test_setup_rejects_mixing_generic_and_configured_workspaces(self) -> None:
+        """Generic Analytics cannot be combined with Audit or Analytics files."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            generic_directory = root / "my_ppar_generic_analytics"
+            audit_directory = root / "my_ppar_audit"
+            subprocess.run(
+                _module_command(
+                    _SETUP_MODULE,
+                    str(generic_directory),
+                    "--generic-analytics",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(audit_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            audit_into_generic = subprocess.run(
+                _module_command(_SETUP_MODULE, str(generic_directory)),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            generic_into_audit = subprocess.run(
+                _module_command(
+                    _SETUP_MODULE,
+                    str(audit_directory),
+                    "--generic-analytics",
+                ),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(audit_into_generic.returncode, 0)
+            self.assertIn(
+                "contains an existing generic_analytics workspace",
+                audit_into_generic.stderr,
+            )
+            self.assertNotEqual(generic_into_audit.returncode, 0)
+            self.assertIn(
+                "contains an existing audit workspace",
+                generic_into_audit.stderr,
+            )
+
     def test_setup_installed_python_scripts_run_end_to_end(self) -> None:
         """Copied setup scripts are the canonical Python smoke-test path."""
         with tempfile.TemporaryDirectory() as directory:
             audit_directory = Path(directory) / "my_ppar_audit"
             analytics_directory = Path(directory) / "my_ppar_analytics"
+            generic_directory = Path(directory) / "my_ppar_generic_analytics"
             subprocess.run(
                 _module_command(
                     _PPAR_MODULE,
@@ -749,7 +875,17 @@ class TestAuditCli(unittest.TestCase):
                     "setup",
                     str(analytics_directory),
                     "--analytics",
-                    "--include-generic-analytics",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "setup",
+                    str(generic_directory),
+                    "--generic-analytics",
                 ),
                 check=True,
                 capture_output=True,
@@ -759,9 +895,7 @@ class TestAuditCli(unittest.TestCase):
             script_paths = (
                 audit_directory / "run_audit.py",
                 analytics_directory / "run_analytics.py",
-                analytics_directory
-                / "generic_analytics"
-                / "run_generic_analytics.py",
+                generic_directory / "run_generic_analytics.py",
             )
             for script_path in script_paths:
                 with self.subTest(script_path=script_path.name):
@@ -799,8 +933,7 @@ class TestAuditCli(unittest.TestCase):
             )
             self.assertTrue(
                 (
-                    analytics_directory
-                    / "generic_analytics"
+                    generic_directory
                     / "output"
                     / "risk_statistics.html"
                 ).exists()
@@ -876,95 +1009,17 @@ class TestAuditCli(unittest.TestCase):
                     cli_workbook.close()
                     script_workbook.close()
 
-            cli_advanced = root / "cli_advanced"
-            script_advanced = root / "script_advanced"
-            shared_options = [
-                "--title",
-                "Custom Audit",
-                "--html-only",
-                "--expand-supporting-files",
-            ]
-            subprocess.run(
-                _module_command(
-                    _PPAR_MODULE,
-                    "audit",
-                    str(cli_audit),
-                    "--output-directory",
-                    str(cli_advanced),
-                    *shared_options,
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            subprocess.run(
-                [
-                    sys.executable,
-                    str(script_audit / "run_audit.py"),
-                    "--output-directory",
-                    str(script_advanced),
-                    *shared_options,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            cli_advanced_files = {
-                path.relative_to(cli_advanced)
-                for path in cli_advanced.rglob("*")
-                if path.is_file()
-            }
-            self.assertEqual(
-                cli_advanced_files,
-                {
-                    path.relative_to(script_advanced)
-                    for path in script_advanced.rglob("*")
-                    if path.is_file()
-                },
-            )
-            self.assertEqual(
-                (cli_advanced / "portfolio" / "portfolio_audit.html").read_text(
-                    encoding="utf-8"
-                ),
-                (script_advanced / "portfolio" / "portfolio_audit.html").read_text(
-                    encoding="utf-8"
-                ),
-            )
-            self.assertFalse(
-                (cli_advanced / "portfolio" / "portfolio_audit.xlsx").exists()
-            )
-            self.assertTrue(
-                (cli_advanced / "portfolio" / "supporting_files").is_dir()
-            )
-            self.assertFalse(
-                (cli_advanced / "portfolio" / "audit_support.zip").exists()
-            )
-
             audit_help = subprocess.run(
                 [sys.executable, str(script_audit / "run_audit.py"), "--help"],
                 check=True,
                 capture_output=True,
                 text=True,
             ).stdout
-            for option in (
-                "--output-directory",
-                "--title",
-                "--html-only",
-                "--xlsx-only",
-                "--csv-only",
-                "--expand-supporting-files",
-            ):
-                self.assertIn(option, audit_help)
-            for removed_option in (
-                "--no-xlsx-output",
-                "--no-html-output",
-                "--exclude-suppressed",
-                "--reconstruction-diagnostics",
-                "--require-causal-attribution",
-                "--allow-incomplete-yaml",
-            ):
-                self.assertNotIn(removed_option, audit_help)
-            self.assertNotIn("--report", audit_help)
+            self.assertIn("Run Audit through Python", audit_help)
+            self.assertIn("Edit the run_report() call", audit_help)
+            self.assertNotIn("--output-directory", audit_help)
+            self.assertNotIn("--title", audit_help)
+            self.assertNotIn("--html-only", audit_help)
 
     def test_setup_analytics_script_matches_default_cli_workflow(self) -> None:
         """The visible Python example stays equivalent to ``ppar analytics``."""
@@ -1138,7 +1193,7 @@ class TestAuditCli(unittest.TestCase):
                 self.assertIn(yaml_setting, analytics_help)
 
     def test_audit_commands_reject_removed_report_option(self) -> None:
-        """The production command and Python example reject report selection."""
+        """Neither Audit entrypoint restores report selection."""
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory) / "site"
             subprocess.run(
@@ -1184,10 +1239,11 @@ class TestAuditCli(unittest.TestCase):
                 text=True,
             ).stdout
             self.assertNotIn("--report", audit_help)
-            self.assertIn("--html-only", audit_help)
-            self.assertIn("--xlsx-only", audit_help)
-            self.assertIn("--csv-only", audit_help)
-            self.assertIn("--expand-supporting-files", audit_help)
+            self.assertIn("Edit the run_report() call", audit_help)
+            self.assertNotIn("--html-only", audit_help)
+            self.assertNotIn("--xlsx-only", audit_help)
+            self.assertNotIn("--csv-only", audit_help)
+            self.assertNotIn("--expand-supporting-files", audit_help)
             self.assertNotIn("--exclude-suppressed", audit_help)
             self.assertNotIn("--allow-incomplete-yaml", audit_help)
             self.assertNotIn("{portfolio,security,both}", audit_help)
@@ -1726,7 +1782,8 @@ class TestAuditCli(unittest.TestCase):
                 {
                     "review_paths": [
                         Path("_demo_output")
-                        / "audit_portfolio"
+                        / "audit"
+                        / "portfolio"
                         / "portfolio_audit.xlsx",
                     ],
                 }
@@ -1869,167 +1926,6 @@ class TestAuditCli(unittest.TestCase):
                 ).exists()
             )
 
-    def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
-        """Report CLI modules reject surprising negative evidence-row limits."""
-        module_output_args = {
-            _BUNDLE_MODULE: ("bundle",),
-        }
-
-        with tempfile.TemporaryDirectory() as directory:
-            for module_name, output_args in module_output_args.items():
-                with self.subTest(module_name=module_name):
-                    result = subprocess.run(
-                        _module_command(
-                            module_name,
-                            str(_RESTATEMENT_COMPARISON_PATH),
-                            *[str(Path(directory) / value) for value in output_args],
-                            "--top-evidence-limit",
-                            "-1",
-                        ),
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                    )
-
-                    self.assertEqual(result.returncode, 2)
-                    self.assertIn("--top-evidence-limit", result.stderr)
-                    self.assertIn("must be greater than or equal to 0", result.stderr)
-
-    def test_bundle_cli_module_writes_report_bundle(self) -> None:
-        """The bundle CLI writes concise output with complete archived support."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "bundle"
-
-            result = subprocess.run(
-                _module_command(
-                    _BUNDLE_MODULE,
-                    str(_RESTATEMENT_COMPARISON_PATH),
-                    str(output_directory),
-                    "--title",
-                    "Script Bundle Report",
-                    "--top-evidence-limit",
-                    "2",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertIn(str(output_directory), result.stdout)
-            self.assertTrue((output_directory / "portfolio_audit.html").exists())
-            self.assertFalse((output_directory / "report.md").exists())
-            supporting_files = output_directory / "supporting_files"
-            self.assertFalse(supporting_files.exists())
-            self.assertTrue((output_directory / "source_detail.csv").exists())
-            archive_path = output_directory / "audit_support.zip"
-            self.assertTrue(archive_path.exists())
-            report = (output_directory / "portfolio_audit.html").read_text(
-                encoding="utf-8"
-            )
-            self.assertIn("<h1>Script Bundle Report</h1>", report)
-            self.assertIn("Performance Differences", report)
-            self.assertIn("Performance Difference Causes", report)
-
-            with zipfile.ZipFile(archive_path) as archive:
-                self.assertIn("supporting_files/findings.csv", archive.namelist())
-                manifest = json.loads(
-                    archive.read("supporting_files/manifest.json").decode("utf-8")
-                )
-            self.assertEqual(manifest["counts"]["findings"], 11)
-            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
-            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
-            self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
-            self.assertEqual(
-                manifest["artifacts"]["context_evidence"],
-                "supporting_files/context_evidence.csv",
-            )
-            self.assertEqual(
-                manifest["artifacts"]["context_evidence_summary"],
-                "supporting_files/context_evidence_summary.csv",
-            )
-            self.assertEqual(
-                manifest["artifacts"]["html_report"],
-                "portfolio_audit.html",
-            )
-
-    def test_bundle_cli_module_accepts_comparison_level_override(self) -> None:
-        """The bundle CLI can write a security report from a shared YAML file."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "security_bundle"
-
-            result = subprocess.run(
-                _module_command(
-                    _BUNDLE_MODULE,
-                    str(_PORTFOLIO_COMPARISON_PATH),
-                    str(output_directory),
-                    "--comparison-level",
-                    "security",
-                    "--include-workbook",
-                    "--expand-all-supporting-files",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertIn(str(output_directory), result.stdout)
-            self.assertTrue((output_directory / "security_audit.html").exists())
-            self.assertTrue((output_directory / "security_audit.xlsx").exists())
-            supporting_files = output_directory / "supporting_files"
-            manifest = json.loads(
-                (supporting_files / "manifest.json").read_text(encoding="utf-8")
-            )
-            self.assertGreater(manifest["counts"]["findings"], 0)
-            readme = (output_directory / "README.md").read_text(encoding="utf-8")
-            self.assertIn(
-                "source-data differences additively explain each security period",
-                readme,
-            )
-            self.assertEqual(
-                manifest["artifacts"]["review_summary"],
-                "supporting_files/review_summary.json",
-            )
-            self.assertNotIn("report", manifest["artifacts"])
-            review_summary = json.loads(
-                (supporting_files / "review_summary.json").read_text(
-                    encoding="utf-8"
-                )
-            )
-            self.assertEqual(
-                review_summary["review_basis"],
-                "Modified Dietz evidence pack",
-            )
-            self.assertEqual(review_summary["entrypoints"], manifest["review_entrypoints"])
-
-    def test_bundle_cli_module_accepts_supported_attribution_setup_alias(self) -> None:
-        """The clearer strict-setup alias preserves current strict semantics."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "bundle"
-
-            result = subprocess.run(
-                _module_command(
-                    _BUNDLE_MODULE,
-                    str(_PORTFOLIO_COMPARISON_PATH),
-                    str(output_directory),
-                    "--comparison-level",
-                    "portfolio",
-                    "--include-workbook",
-                    "--require-supported-attribution-setup",
-                ),
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertEqual(result.returncode, 0)
-            self.assertIn("Report bundle written to:", result.stdout)
-            self.assertLess(
-                result.stdout.index("Review workbook written to:"),
-                result.stdout.index("HTML report written to:"),
-            )
-            self.assertTrue((output_directory / "portfolio_audit.xlsx").exists())
-            self.assertEqual(result.stderr, "")
-
     def test_validate_bundle_cli_module_accepts_valid_bundle(self) -> None:
         """The bundle validator CLI module accepts a generated bundle."""
         with tempfile.TemporaryDirectory() as directory:
@@ -2122,9 +2018,8 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn("FX rate impact methods: fx_rate", result.stdout)
         self.assertIn("Evidence-only impact methods: splits", result.stdout)
-        self.assertIn("Data Issues optional checks enabled:", result.stdout)
+        self.assertIn("Data Issues checks enabled:", result.stdout)
         self.assertIn("duplicate_transactions", result.stdout)
-        self.assertIn("Data Issues mandatory checks: none", result.stdout)
         self.assertIn(
                 "Data Issues policy: established checks use their configured "
                 "defaults; conservative "
@@ -2233,10 +2128,10 @@ class TestAuditCli(unittest.TestCase):
         self.assertIn("Config validation failed:", result.stderr)
         self.assertIn("performance.method must be", result.stderr)
 
-    def test_validate_demo_matrix_cli_module_accepts_packaged_demos(self) -> None:
-        """The CLI demo matrix validator confirms packaged scenario coverage."""
+    def test_validate_demo_matrix_script_accepts_packaged_demos(self) -> None:
+        """The maintainer script confirms packaged scenario coverage."""
         result = subprocess.run(
-            _module_command(_VALIDATE_DEMO_MATRIX_MODULE),
+            [sys.executable, str(_VALIDATE_DEMO_MATRIX_SCRIPT)],
             check=True,
             capture_output=True,
             text=True,
@@ -2261,16 +2156,12 @@ class TestAuditCli(unittest.TestCase):
 
     def _write_bundle(self, output_directory: Path) -> None:
         """Write a standard report bundle for CLI validation tests."""
-        subprocess.run(
-            _module_command(
-                _BUNDLE_MODULE,
-                str(_RESTATEMENT_COMPARISON_PATH),
-                str(output_directory),
-                "--expand-all-supporting-files",
-            ),
-            check=True,
-            capture_output=True,
-            text=True,
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        write_audit_report_bundle(
+            findings,
+            output_directory,
+            comparison_path=_RESTATEMENT_COMPARISON_PATH,
+            expand_all_supporting_files=True,
         )
 
 

@@ -67,9 +67,9 @@ Public YAML impact method values are centralized in:
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
 - `FxRateImpactMethod`: `evidence_only`.
 
-The retired `contribution_impact_methods` configuration is rejected. Audit no
-longer derives explanation inputs from optional portfolio- or
-security-performance output columns.
+Unknown top-level configuration, including `contribution_impact_methods`, is rejected.
+Audit does not derive explanation inputs from optional portfolio- or security-performance
+output columns.
 Transaction sign/flow semantics are centralized in:
 
 - `TransactionCategory`: `external_flow`, `income`, `fee_expense`, `buy`,
@@ -1076,73 +1076,39 @@ snapshots:
 Each referenced file uses the same nested `files.<dataset>.columns` mappings as
 the common Audit configuration.
 
-### Vendor Preset Design
+### Versioned Axys/APX Audit Profile
 
-Vendor presets are a future convenience layer, not a replacement for explicit
-comparison YAML. The first likely preset is Axys/APX, but the design should support
-multiple vendors and possibly site-specific presets over time.
-
-A preset keyword such as `vendor: axys` should mean "start with ppar's
-versioned Axys/APX preset semantics" rather than "assume all Axys/APX installations
-behave identically." The Axys/APX preset seed is now the accepted packaged Axys/APX
-demo YAML semantics, but preset implementation is deliberately parked until the
-project chooses that lane.
-
-Suggested shape:
+After validation-client evidence identifies stable defaults and genuine client
+choices, Audit may introduce one narrow versioned profile such as:
 
 ```yaml
-comparison:
-  name: May restatement review
-
-vendor: axys
-
-vendor_preset:
-  name: axys
-  version: packaged-demo-2026-07
-
-files:
-  portfolio_performance: portperf.csv
-  security_performance: secperf.csv
-  transactions: transactions.csv
-
-transaction_rules:
-  # Site YAML can override or add rules after the preset is expanded.
+profile: axys_apx_audit_v1
 ```
 
-Preset resolution should be deterministic:
+The profile would reduce repetitive Axys/APX setup without implying that every
+site shares the same transaction meanings or extract behavior. It must not
+become a generic vendor-preset, include, or inheritance system.
+
+Profile resolution must be deterministic:
 
 ```text
-engine defaults < vendor preset < site YAML overrides
+engine defaults < versioned profile < site YAML overrides
 ```
 
-The resolved configuration must be inspectable. `validate_config` or a future
-CLI option such as `--print-resolved-config` should be able to show the
-effective YAML after preset expansion, including which rules came from the
-engine, the vendor preset, and the site YAML. This keeps the feature auditable
-and avoids hidden policy behavior.
+Any implemented profile must:
 
-Preset design guardrails:
+- have an immutable versioned name and fail closed when unknown;
+- keep snapshot paths, source mappings, local transaction meanings, and
+  client-specific filters or suppressions explicit;
+- preserve complete-YAML validation and ambiguous-flow safeguards;
+- use packaged declarative configuration rather than profile-specific Python;
+- retain the resolved effective configuration in the evidence bundle; and
+- provide a way for users and support staff to inspect or export that resolved
+  configuration.
 
-- Presets are design-only until explicit implementation work is approved.
-- Presets must be versioned and tied to a documented source contract.
-- Presets must support multiple vendors without hard-coding Axys/APX assumptions
-  into source-agnostic comparison logic.
-- Site YAML must be able to override, suppress, or extend preset rules with
-  deterministic precedence.
-- Presets must not bypass complete-YAML validation. Changed fields still need
-  additive, evidence-only, or suppression treatment after expansion.
-- Presets must not weaken ambiguous transaction-code safeguards. For Axys/APX-style
-  `dp`, `li`, `lo`, and `wd` rows, required source/destination or
-  special-security context must still be present unless a site explicitly uses
-  a documented local extract contract.
-- The report bundle should record the preset name/version and whether site
-  overrides were applied, so reviewers know which policy layer produced the
-  resolved rules.
-
-This layer is intentionally later than the current Axys/APX demo hardening. The
-Axys/APX demo is accepted as the preset seed, but implementation should remain
-parked until the project deliberately chooses vendor-preset infrastructure as
-the next product lane.
+This profile is deliberately deferred until validation work shows which current
+settings are universal safety behavior, reusable Axys/APX defaults,
+client-required choices, or optional advanced configuration.
 
 ### Column Mapping Defaults
 
@@ -1411,8 +1377,8 @@ performance-file columns and does not invent an estimate. Review-only Modified
 Dietz external-flow cross-checks remain separate from additive explanation
 totals.
 
-The retired `contribution_impact_methods` key is rejected so an old or
-misspelled setup cannot silently restore performance-file-derived estimates.
+Unknown top-level keys are rejected, so `contribution_impact_methods` cannot
+silently restore performance-file-derived estimates.
 The retired portfolio/security market-value continuity issue types are also not
 part of the Data Issues vocabulary; holdings and transaction reconstruction are
 the authoritative valuation and flow evidence.

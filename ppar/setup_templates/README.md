@@ -16,9 +16,10 @@ The public onboarding path starts with the PPAR Audit workspace created by
 
 The Mega-Cap analytics files are generated from historical holdings of the
 iShares S&P 100 ETF as a public, reproducible proxy for a U.S. mega-cap
-benchmark. This dataset remains available for maintainers, regression tests,
-README marketing images, and data-derivation scripts, but it is not the primary
-new-user setup path.
+benchmark. `ppar setup ./my_ppar_generic_analytics --generic-analytics` copies
+these files into a standalone, vendor-neutral Python workspace. The same data
+also supports regression tests, README marketing images, and maintainer
+data-derivation scripts. Audit remains the default onboarding path.
 
 Files:
 
@@ -38,8 +39,8 @@ returns as its cash-return proxy.
 
 ## Refresh Notes
 
-The packaged CSVs are the source of truth for the optional generic Analytics
-setup script, `docs/analytics/README.md`, images under `docs/images/readme/`, and
+The packaged CSVs are the source of truth for the optional Generic Analytics
+workspace, `docs/analytics/README.md`, images under `docs/images/readme/`, and
 selected operational demo derivation scripts. Refresh helpers live under
 `scripts/generic_analytics_demo_data/`; generated files under
 `_demo_output/generic_analytics_data_generation/` are cache/provenance output,

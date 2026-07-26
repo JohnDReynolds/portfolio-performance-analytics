@@ -82,7 +82,7 @@ add columns to Audit reports.
 ## Tested Candidate Override Profiles
 
 Some Axys/APX transaction families are plausible but not safe enough for a
-future core `vendor: axys` preset. ppar keeps these as tested candidate
+future versioned Axys/APX Audit profile. ppar keeps these as tested candidate
 override profiles: copy/adapt examples that show how a site can classify rows
 after local evidence proves the Modified Dietz role.
 

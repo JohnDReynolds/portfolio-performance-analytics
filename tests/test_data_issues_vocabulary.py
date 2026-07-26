@@ -17,7 +17,7 @@ class TestDataIssuesVocabulary(unittest.TestCase):
     """Verify current serialized values and complete issue metadata."""
 
     def test_issue_type_values_preserve_current_serialized_contract(self) -> None:
-        """Every current optional and mandatory issue ID remains unchanged."""
+        """Every current issue ID remains unchanged."""
         self.assertEqual(
             {issue_type.value for issue_type in DataIssueType},
             {
@@ -164,13 +164,6 @@ class TestDataIssuesVocabulary(unittest.TestCase):
             mismatch_definition.required_datasets,
             ("transactions", "security_master"),
         )
-
-        mandatory = {
-            issue_type
-            for issue_type, definition in DATA_ISSUE_REGISTRY.items()
-            if definition.mandatory
-        }
-        self.assertEqual(mandatory, set())
 
 
 if __name__ == "__main__":

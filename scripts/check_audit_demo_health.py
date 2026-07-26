@@ -129,6 +129,14 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="Skip packaged scenario-matrix validation.",
     )
+    parser.add_argument(
+        "--write-packaged-assets",
+        action="store_true",
+        help=(
+            "Rewrite tracked packaged Audit CSV assets after validating the "
+            "derived demo data."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -145,13 +153,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
 
     if not args.skip_rebuild_audit:
-        _run(
-            [
-                _VENV_PYTHON,
-                "scripts/operational_demo_data/"
-                "rebuild_audit_demo_data.py",
-            ]
-        )
+        rebuild_command: list[str | Path] = [
+            _VENV_PYTHON,
+            "scripts/operational_demo_data/rebuild_audit_demo_data.py",
+        ]
+        if args.write_packaged_assets:
+            rebuild_command.append("--write")
+        _run(rebuild_command)
 
     if not args.skip_extract_availability:
         _run(
@@ -173,7 +181,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         _run_setup_generated_smoke_tests()
 
     if not args.skip_demo_matrix:
-        _run([_VENV_PYTHON, "-m", "ppar.audit.cli.validate_demo_matrix"])
+        _run([_VENV_PYTHON, "scripts/validate_demo_matrix.py"])
 
     print("\nPackaged Audit demo health checks passed.", flush=True)
     return 0

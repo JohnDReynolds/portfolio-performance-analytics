@@ -1649,26 +1649,6 @@ class TestAuditDemoData(unittest.TestCase):
         self.assertEqual(income_late_dividend["primary_securities"], ["AAPL"])
         self.assertEqual(income_late_dividend["expected_difference_rows"], 1)
 
-    def test_period_split_plan_has_no_remaining_crowded_periods(self) -> None:
-        """The split backlog is empty because every demo period is in target."""
-        rebuild_module = _load_rebuild_module()
-        calendar = rebuild_module._load_scenario_calendar(
-            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
-        )
-        plan = rebuild_module._load_period_split_plan(
-            rebuild_module._DEFAULT_PERIOD_SPLIT_PLAN_PATH,
-        )
-
-        issues = rebuild_module._audit_period_split_plan(
-            plan=plan,
-            calendar=calendar,
-        )
-
-        self.assertEqual(issues, [])
-        self.assertEqual(len(plan), 0)
-        self.assertEqual(rebuild_module._crowded_scenario_calendar_keys(calendar), set())
-        self.assertEqual(rebuild_module._scenario_period_split_plan_summary(plan), [])
-
     def test_transaction_scenarios_create_expected_holding_impacts(self) -> None:
         """Transaction changes create the expected cash and security adjustments."""
         rebuild_module = _load_rebuild_module()

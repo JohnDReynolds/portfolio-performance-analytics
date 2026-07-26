@@ -1,8 +1,8 @@
-"""Explore the optional, maintainer-oriented generic Analytics workflow.
+"""Explore PPAR Analytics directly from a vendor-neutral Python workflow.
 
-Normal Axys/APX onboarding uses ``ppar analytics`` and the setup-generated
-``analytics/run_analytics.py``. This optional sample demonstrates constructing
-``Analytics`` directly from generic performance CSV files.
+This workspace demonstrates constructing ``Analytics`` directly from generic
+performance CSV files. Axys/APX users can instead use ``ppar analytics`` with
+the setup-generated ``run_analytics.py``.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ SECURITY_CLASSIFICATION_PATH = SITE_DIRECTORY / "classifications" / "Security.cs
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Create analytics output from the optional generic setup data.
+    """Create Analytics output from the generic workspace data.
 
     Returns:
         Process exit code. ``0`` indicates that review files were written.
@@ -133,11 +133,11 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _argument_parser() -> argparse.ArgumentParser:
-    """Return help for the optional generic Python example."""
+    """Return help for the Generic Analytics Python example."""
     return argparse.ArgumentParser(
         prog="python run_generic_analytics.py",
         description=(
-            "Run the optional generic Analytics example. This sample has no "
+            "Run the Generic Analytics Python example. This sample has no "
             "command-line settings; customize the visible Python constants and "
             "workflow instead."
         ),

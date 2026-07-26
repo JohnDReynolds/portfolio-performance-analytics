@@ -21,17 +21,12 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python"
 _CHECK_CACHE_DIR = _PROJECT_ROOT / ".cache" / "check_release_candidate"
-_COMPARISON_YAML = (
-    _PROJECT_ROOT
-    / "ppar"
-    / "setup_templates"
-    / "axys_apx_audit"
-    / "axys_apx_audit.yaml"
-)
+_AUDIT_DEMO_WORKSPACE = _PROJECT_ROOT / "_demo_output" / "audit_workspace"
+_AUDIT_OUTPUT_ROOT = _PROJECT_ROOT / "_demo_output" / "audit"
 _OUTPUT_DIRECTORIES = (
     _PROJECT_ROOT / "_demo_output" / "generic_analytics_data_generation",
-    _PROJECT_ROOT / "_demo_output" / "audit_portfolio",
-    _PROJECT_ROOT / "_demo_output" / "audit_security",
+    _AUDIT_DEMO_WORKSPACE,
+    _AUDIT_OUTPUT_ROOT,
     _PROJECT_ROOT / "_demo_output" / "readme_image_cache",
 )
 
@@ -202,96 +197,68 @@ def _run_generic_data_generation(runner: ReleaseCandidateRunner) -> None:
     )
 
 
-def _run_demo_data_issues(
+def _run_audit_demo_health(
     runner: ReleaseCandidateRunner,
     *,
     write_packaged_assets: bool,
 ) -> None:
-    """Audit or rewrite packaged Axys/APX Audit demo data.
+    """Run the canonical packaged Audit health check.
 
     Args:
+        runner: Release-candidate command runner.
         write_packaged_assets: Whether to pass ``--write`` to the rebuild
             script, updating tracked packaged CSV files after intentional
             source-data changes.
     """
     command: list[str | Path] = [
         _VENV_PYTHON,
-        "scripts/operational_demo_data/rebuild_audit_demo_data.py",
+        "scripts/check_audit_demo_health.py",
     ]
     if write_packaged_assets:
-        command.append("--write")
+        command.append("--write-packaged-assets")
     runner.run(command)
 
 
-def _run_extract_availability_check(runner: ReleaseCandidateRunner) -> None:
-    """Check that rendered Axys/APX contract documents are current."""
+def _run_audit_demo_report_checks(runner: ReleaseCandidateRunner) -> None:
+    """Generate both maintained demo reports through ``ppar audit``."""
     runner.run(
         [
             _VENV_PYTHON,
-            "scripts/render_demo_extract_availability.py",
-            "--check",
+            "-m",
+            "ppar.cli",
+            "setup",
+            _AUDIT_DEMO_WORKSPACE,
+            "--overwrite",
         ]
     )
     runner.run(
         [
             _VENV_PYTHON,
-            "scripts/render_transaction_semantics_matrix.py",
-            "--check",
+            "-m",
+            "ppar.cli",
+            "audit",
+            _AUDIT_DEMO_WORKSPACE,
+            "--output-directory",
+            _AUDIT_OUTPUT_ROOT,
         ]
     )
-
-
-def _run_report_bundle_checks(runner: ReleaseCandidateRunner) -> None:
-    """Generate and validate portfolio and security demo report bundles."""
-    bundle_specs = (
-        (
-            "portfolio",
-            _PROJECT_ROOT / "_demo_output" / "audit_portfolio",
-        ),
-        (
-            "security",
-            _PROJECT_ROOT / "_demo_output" / "audit_security",
-        ),
-    )
-    for comparison_level, output_directory in bundle_specs:
-        runner.run(
-            [
-                _VENV_PYTHON,
-                "-m",
-                "ppar.audit.cli.report_bundle",
-                _COMPARISON_YAML,
-                output_directory,
-                "--comparison-level",
-                comparison_level,
-                "--include-workbook",
-            ]
-        )
+    for comparison_level in ("portfolio", "security"):
         runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
                 "ppar.audit.cli.validate_bundle",
-                output_directory,
+                _AUDIT_OUTPUT_ROOT / comparison_level,
             ]
         )
 
 
-def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
-    """Run scripts copied by ``ppar setup`` in a temporary site workspace."""
+def _run_analytics_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
+    """Run both Analytics scripts copied by ``ppar setup``."""
     with tempfile.TemporaryDirectory(prefix="ppar_release_site_") as directory:
-        audit_directory = Path(directory) / "my_ppar_audit"
         analytics_directory = Path(directory) / "my_ppar_analytics"
+        generic_directory = Path(directory) / "my_ppar_generic_analytics"
 
-        runner.run(
-            [
-                _VENV_PYTHON,
-                "-m",
-                "ppar.cli",
-                "setup",
-                audit_directory,
-            ]
-        )
-        runner.run([_VENV_PYTHON, audit_directory / "run_audit.py"])
         runner.run(
             [
                 _VENV_PYTHON,
@@ -300,34 +267,20 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
                 "setup",
                 analytics_directory,
                 "--analytics",
-                "--include-generic-analytics",
+            ]
+        )
+        runner.run(
+            [
+                _VENV_PYTHON,
+                "-m",
+                "ppar.cli",
+                "setup",
+                generic_directory,
+                "--generic-analytics",
             ]
         )
         runner.run([_VENV_PYTHON, analytics_directory / "run_analytics.py"])
-        runner.run(
-            [
-                _VENV_PYTHON,
-                analytics_directory
-                / "generic_analytics"
-                / "run_generic_analytics.py",
-            ]
-        )
-        runner.run(
-            [
-                _VENV_PYTHON,
-                "-m",
-                "ppar.audit.cli.validate_bundle",
-                audit_directory / "output" / "portfolio",
-            ]
-        )
-        runner.run(
-            [
-                _VENV_PYTHON,
-                "-m",
-                "ppar.audit.cli.validate_bundle",
-                audit_directory / "output" / "security",
-            ]
-        )
+        runner.run([_VENV_PYTHON, generic_directory / "run_generic_analytics.py"])
 
 
 def _release_asset_refresh_scope(
@@ -484,31 +437,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             "--include-generic-data-generation."
         )
 
-    runner.phase(2, "Audit packaged demo data")
-    _run_demo_data_issues(runner, write_packaged_assets=args.write_packaged_assets)
+    runner.phase(2, "Run packaged Audit health checks")
+    _run_audit_demo_health(
+        runner,
+        write_packaged_assets=args.write_packaged_assets,
+    )
     if args.write_packaged_assets:
         runner.asset_note(
             "Packaged Axys/APX Audit CSV assets may have been rewritten."
         )
-    runner.complete("Packaged demo data audit")
+    runner.complete("Packaged Audit health checks")
 
-    runner.phase(3, "Check extract-availability docs")
-    _run_extract_availability_check(runner)
-    runner.complete("Extract-availability docs current")
+    runner.phase(3, "Generate and validate Audit demo reports")
+    _run_audit_demo_report_checks(runner)
+    runner.complete("Portfolio/security Audit demo reports")
 
-    runner.phase(4, "Generate and validate report bundles")
-    _run_report_bundle_checks(runner)
-    runner.complete("Portfolio/security report bundles generated and validated")
+    runner.phase(4, "Smoke-test Analytics setup workspaces")
+    _run_analytics_setup_smoke_tests(runner)
+    runner.complete("Analytics setup workspace scripts")
 
-    runner.phase(5, "Smoke-test setup workspace")
-    _run_setup_smoke_tests(runner)
-    runner.complete("Setup workspace scripts and bundles")
-
-    runner.phase(6, "Validate scenario matrix")
-    runner.run([_VENV_PYTHON, "-m", "ppar.audit.cli.validate_demo_matrix"])
-    runner.complete("Scenario matrix")
-
-    runner.phase(7, "Release-asset refresh")
+    runner.phase(5, "Release-asset refresh")
     refresh_images, refresh_pdf = _release_asset_refresh_scope(
         build=args.build,
         refresh_images=args.refresh_images,
@@ -530,11 +478,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             "--refresh-images refreshes both images and PDF."
         )
 
-    runner.phase(8, "Run release-candidate scale regression checks")
+    runner.phase(6, "Run release-candidate scale regression checks")
     _run_scale_regression_check(runner)
     runner.complete("Analytics/Audit scale regression checks at 500x")
 
-    runner.phase(9, "Run project checks")
+    runner.phase(7, "Run project checks")
     if not args.skip_project_check:
         _run_project_checks(runner, quick=args.quick, build=args.build)
         runner.complete("Project checks")

@@ -100,7 +100,8 @@ _PERFORMANCE_AUDIT_ISSUE_TYPES = {
 _PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
     _REPO_ROOT
     / "_demo_output"
-    / "audit_portfolio"
+    / "audit"
+    / "portfolio"
     / "portfolio_audit.html"
 )
 

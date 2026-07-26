@@ -5,7 +5,7 @@ They are not native Axys schemas. Each variant focuses on ambiguous Axys
 transaction codes whose performance treatment cannot be trusted from code alone.
 Candidate override profiles prove copy/adapt YAML examples for local
 onboarding; they do not promote the transaction code into a packaged Axys demo
-default or future core `vendor: axys` preset.
+default or future versioned Axys/APX Audit profile.
 
 | Variant | Purpose |
 | --- | --- |

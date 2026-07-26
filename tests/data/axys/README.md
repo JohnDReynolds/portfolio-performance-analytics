@@ -22,7 +22,7 @@ the user-facing demo files.
 
 The `validation/` directory is the single home for test-only performance
 comparison YAML scenarios. These files are used by targeted unit tests and by
-`ppar.audit.cli.validate_demo_matrix`. They are not
+`scripts/validate_demo_matrix.py`. They are not
 user-facing demos; they exist to keep specific edge cases covered without
 asking reviewers to inspect extra workbooks.
 
@@ -48,7 +48,7 @@ asking reviewers to inspect extra workbooks.
 Validate the scenario matrix with:
 
 ```bash
-./.venv/bin/python -m ppar.audit.cli.validate_demo_matrix
+./.venv/bin/python scripts/validate_demo_matrix.py
 ```
 
 ## Scenario Matrix

@@ -104,6 +104,34 @@ class TestAuditDemoHealthScript(unittest.TestCase):
         self.assertEqual(len(command_texts), 1)
         self.assertIn("validate_demo_matrix", command_texts[0])
 
+    def test_write_packaged_assets_is_forwarded_to_rebuild(self) -> None:
+        """The release wrapper can request an intentional demo-data rewrite."""
+        commands: list[tuple[str, ...]] = []
+
+        with (
+            patch.object(demo_health, "_require_venv_python"),
+            patch.object(
+                demo_health,
+                "_run",
+                side_effect=lambda command: commands.append(
+                    tuple(str(part) for part in command)
+                ),
+            ),
+        ):
+            exit_code = demo_health.main(
+                [
+                    "--write-packaged-assets",
+                    "--skip-extract-availability",
+                    "--skip-bundles",
+                    "--skip-demo-matrix",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(commands), 1)
+        self.assertIn("rebuild_audit_demo_data.py", _command_text(commands[0]))
+        self.assertEqual(commands[0][-1], "--write")
+
     def test_script_requires_project_venv_python(self) -> None:
         """The script documents and enforces the project virtual environment."""
         self.assertEqual(

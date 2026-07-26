@@ -17,8 +17,6 @@ from ppar.audit.data_issues.vocabulary import (
 )
 
 DATA_ISSUES_CONFIG_KEY: Final[str] = "data_issues"
-_RETIRED_DATA_AUDIT_CONFIG_KEY: Final[str] = "data_audit_checks"
-
 _ENABLED_KEY: Final[str] = "enabled"
 _ONLY_KEY: Final[str] = "only"
 _EXCLUDE_KEY: Final[str] = "exclude"
@@ -92,12 +90,6 @@ def validate_data_issues_config(values: Mapping[str, object]) -> None:
             unsupported key, or unsafe value. Messages include the actionable
             YAML path.
     """
-    if _RETIRED_DATA_AUDIT_CONFIG_KEY in values:
-        raise ValueError(
-            f"{_RETIRED_DATA_AUDIT_CONFIG_KEY} is no longer supported; use "
-            f"{DATA_ISSUES_CONFIG_KEY} instead."
-        )
-
     config_key, raw_config = _configured_section(values)
     if config_key is None:
         return
@@ -178,7 +170,7 @@ def security_master_filter_fields(
 
 
 def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object]:
-    """Return effective Data Issues enablement and mandatory-check policy.
+    """Return effective Data Issues enablement policy.
 
     Args:
         values: Parsed and validated comparison YAML root mapping.
@@ -195,22 +187,15 @@ def data_issues_config_summary(values: Mapping[str, object]) -> dict[str, object
     config = raw_config if isinstance(raw_config, Mapping) else {}
     optional_master_enabled = config.get(_ENABLED_KEY, True)
 
-    optional_checks = [
+    enabled_checks = [
         issue_type.value
         for issue_type, definition in DATA_ISSUE_REGISTRY.items()
-        if not definition.mandatory
-        and optional_master_enabled is True
+        if optional_master_enabled is True
         and _effective_check_enabled(config, issue_type, definition)
-    ]
-    mandatory_checks = [
-        issue_type.value
-        for issue_type, definition in DATA_ISSUE_REGISTRY.items()
-        if definition.mandatory
     ]
     return {
         "optional_master_enabled": optional_master_enabled,
-        "optional_checks_enabled": ", ".join(optional_checks) or "none",
-        "mandatory_checks": ", ".join(mandatory_checks) or "none",
+        "checks_enabled": ", ".join(enabled_checks) or "none",
         "policy": (
             "established checks use their configured defaults; conservative "
             "checks require explicit enablement and issue-specific scope"
@@ -496,7 +481,7 @@ def _normalized_filter_field_name(field_name: str) -> str:
 
 def _supported_check_keys(definition: DataIssueDefinition) -> frozenset[str]:
     """Return YAML keys supported by one registry definition."""
-    keys: set[str] = set() if definition.mandatory else set(_OPTIONAL_CHECK_KEYS)
+    keys = set(_OPTIONAL_CHECK_KEYS)
     if definition.supports_absolute_tolerance:
         keys.add(_ABSOLUTE_TOLERANCE_KEY)
     if definition.supports_percent_tolerance:

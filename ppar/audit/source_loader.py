@@ -772,17 +772,19 @@ def _read_schema_yaml(
             _error_message("Referenced schema YAML must be a mapping.", specification_path),
             504,
         )
-    retired_keys = sorted(
-        str(key)
-        for key in values
-        if isinstance(key, str) and key.endswith("_columns")
-    )
-    if retired_keys:
+    supported_keys = {
+        "analytics",
+        "classifications",
+        "files",
+        "mappings",
+        "security_id",
+    }
+    unsupported_keys = sorted(str(key) for key in values if key not in supported_keys)
+    if unsupported_keys:
         raise PpaError(
             _error_message(
-                "Referenced schema uses retired source mappings; move them under "
-                "files.<dataset>.columns: "
-                + ", ".join(retired_keys)
+                "Referenced schema YAML has unsupported top-level keys: "
+                + ", ".join(unsupported_keys)
                 + ".",
                 specification_path,
             ),

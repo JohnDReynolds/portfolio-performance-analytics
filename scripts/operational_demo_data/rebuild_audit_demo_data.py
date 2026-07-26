@@ -65,9 +65,6 @@ _DEFAULT_SCENARIO_CALENDAR_PATH: Final = (
 _DEFAULT_SCENARIO_INVENTORY_PATH: Final = (
     Path(__file__).resolve().parent / "audit_scenario_inventory.csv"
 )
-_DEFAULT_PERIOD_SPLIT_PLAN_PATH: Final = (
-    Path(__file__).resolve().parent / "audit_period_split_plan.csv"
-)
 _DEFAULT_TRANSACTION_POLICY_PATH: Final = (
     Path(__file__).resolve().parent / "audit_demo_transaction_policy.yaml"
 )
@@ -331,17 +328,6 @@ _MULTICURRENCY_SCENARIO_CALENDAR_KEYS: Final = {
     "multicurrency:BALANCED:SAP.DE:2026-04-15:EUR dividend correction": 1,
     "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP FX correction": 1,
 }
-_PERIOD_SPLIT_PLAN_COLUMNS: Final = [
-    "scenario_key",
-    "portfolio",
-    "current_from_date",
-    "current_thru_date",
-    "planned_from_date",
-    "planned_thru_date",
-    "planned_difference_rows",
-    "notes",
-]
-_PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS: Final = ["planned_difference_rows"]
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
 _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
@@ -593,11 +579,9 @@ def main() -> int:
         transaction_scenarios_path=args.transaction_scenarios_path,
         scenario_calendar_path=args.scenario_calendar_path,
         scenario_inventory_path=args.scenario_inventory_path,
-        period_split_plan_path=args.period_split_plan_path,
     )
     scenario_calendar = _load_scenario_calendar(args.scenario_calendar_path)
     scenario_inventory = _load_scenario_inventory(args.scenario_inventory_path)
-    period_split_plan = _load_period_split_plan(args.period_split_plan_path)
     summary["scenario_calendar_density"] = _scenario_calendar_density(
         scenario_calendar,
     )
@@ -606,9 +590,6 @@ def main() -> int:
     )
     summary["scenario_isolation_matrix"] = _scenario_isolation_matrix(
         scenario_inventory,
-    )
-    summary["scenario_period_split_plan"] = _scenario_period_split_plan_summary(
-        period_split_plan,
     )
     summary["audit_issues"] = [asdict(issue) for issue in audit_issues]
     print(json.dumps(summary, indent=2))
@@ -628,7 +609,6 @@ def audit_demo_data(
     transaction_scenarios_path: Path = _DEFAULT_TRANSACTION_SCENARIOS_PATH,
     scenario_calendar_path: Path = _DEFAULT_SCENARIO_CALENDAR_PATH,
     scenario_inventory_path: Path = _DEFAULT_SCENARIO_INVENTORY_PATH,
-    period_split_plan_path: Path = _DEFAULT_PERIOD_SPLIT_PLAN_PATH,
 ) -> list[AuditIssue]:
     """Return packaged demo-data audit issues.
 
@@ -644,8 +624,6 @@ def audit_demo_data(
             demo periods they are meant to explain.
         scenario_inventory_path: CSV protecting every intentional named
             scenario from silent removal or replacement.
-        period_split_plan_path: CSV mapping crowded period scenario rows to
-            proposed intra-month periods.
 
     Returns:
         Audit issues. An empty list means the checked-in derived performance
@@ -723,12 +701,6 @@ def audit_demo_data(
     issues.extend(
         _audit_generated_causal_story_coverage(
             comparison_path=comparison_path,
-            calendar=scenario_calendar,
-        )
-    )
-    issues.extend(
-        _audit_period_split_plan(
-            plan=_load_period_split_plan(period_split_plan_path),
             calendar=scenario_calendar,
         )
     )
@@ -3309,69 +3281,6 @@ def _validate_scenario_inventory_enum(
         )
 
 
-def _load_period_split_plan(path: Path) -> pd.DataFrame:
-    """Return the validated intra-month period split backlog.
-
-    Args:
-        path: CSV mapping any crowded calendar scenario rows to proposed
-            shorter periods. An empty file means the current demo has no known
-            crowded-period backlog.
-
-    Returns:
-        Validated split-backlog rows in file order.
-
-    Raises:
-        ValueError: If columns, dates, or planned row counts are invalid.
-    """
-    plan = pd.read_csv(path, keep_default_na=False)
-    missing_columns = [
-        column for column in _PERIOD_SPLIT_PLAN_COLUMNS if column not in plan.columns
-    ]
-    extra_columns = [column for column in plan.columns if column not in _PERIOD_SPLIT_PLAN_COLUMNS]
-    if missing_columns or extra_columns:
-        raise ValueError(
-            "Period split plan CSV columns must exactly match "
-            f"{_PERIOD_SPLIT_PLAN_COLUMNS}. "
-            f"Missing={missing_columns}; extra={extra_columns}."
-        )
-
-    required_text_columns = [
-        column
-        for column in _PERIOD_SPLIT_PLAN_COLUMNS
-        if column not in _PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS
-    ]
-    blank_rows = plan[required_text_columns].map(lambda value: not str(value).strip())
-    if bool(blank_rows.any().any()):
-        raise ValueError("Period split plan rows must not have blank key text values.")
-    duplicate_keys = plan.duplicated(["scenario_key"], keep=False)
-    if bool(duplicate_keys.any()):
-        duplicates = plan.loc[duplicate_keys, ["scenario_key"]].to_dict("records")
-        raise ValueError(f"Duplicate period split plan keys are not allowed: {duplicates}.")
-
-    for date_column in (
-        "current_from_date",
-        "current_thru_date",
-        "planned_from_date",
-        "planned_thru_date",
-    ):
-        parsed_dates = pd.to_datetime(plan[date_column], errors="coerce")
-        if bool(parsed_dates.isna().any()):
-            raise ValueError(f"Period split plan {date_column} values must be dates.")
-
-    converted_counts = plan[_PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS].apply(
-        pd.to_numeric,
-        errors="coerce",
-    )
-    if bool(converted_counts.isna().any().any()):
-        raise ValueError("Period split plan expected row counts must be numeric.")
-    plan = plan.copy()
-    for column in _PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS:
-        plan[column] = converted_counts[column].astype(int)
-    if bool((plan["planned_difference_rows"] <= 0).any()):
-        raise ValueError("Period split plan row counts must be positive.")
-    return plan
-
-
 def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
     """Return holdings rounded to the packaged Axys/APX fixture precision."""
     rounded = holdings.copy()
@@ -4055,180 +3964,6 @@ def _scenario_isolation_matrix(inventory: pd.DataFrame) -> list[dict[str, object
     return rows
 
 
-def _audit_period_split_plan(
-    *,
-    plan: pd.DataFrame,
-    calendar: pd.DataFrame,
-) -> list[AuditIssue]:
-    """Return issues for an invalid intra-month period split backlog."""
-    issues: list[AuditIssue] = []
-    calendar_by_key = {str(row.scenario_key): row for row in calendar.itertuples(index=False)}
-    planned_keys = set(plan["scenario_key"].astype(str))
-    for key in sorted(planned_keys - set(calendar_by_key)):
-        issues.append(
-            AuditIssue(
-                check="period_split_plan",
-                detail=f"Period split plan key is not in the scenario calendar: {key}.",
-            )
-        )
-
-    crowded_keys = _crowded_scenario_calendar_keys(calendar)
-    for key in sorted(crowded_keys - planned_keys):
-        issues.append(
-            AuditIssue(
-                check="period_split_plan",
-                detail=f"Crowded-period scenario is missing from split plan: {key}.",
-            )
-        )
-
-    for row in plan.itertuples(index=False):
-        calendar_row = calendar_by_key.get(str(row.scenario_key))
-        if calendar_row is None:
-            continue
-        current_key = (
-            str(row.portfolio),
-            str(row.current_from_date),
-            str(row.current_thru_date),
-        )
-        calendar_key = (
-            str(calendar_row.portfolio),
-            str(calendar_row.from_date),
-            str(calendar_row.thru_date),
-        )
-        if current_key != calendar_key:
-            issues.append(
-                AuditIssue(
-                    check="period_split_plan",
-                    portfolio=str(row.portfolio),
-                    from_date=str(row.current_from_date),
-                    thru_date=str(row.current_thru_date),
-                    detail=(
-                        "Period split plan current period does not match "
-                        f"scenario calendar: {row.scenario_key}."
-                    ),
-                )
-            )
-        current_from = pd.Timestamp(row.current_from_date)
-        current_thru = pd.Timestamp(row.current_thru_date)
-        planned_from = pd.Timestamp(row.planned_from_date)
-        planned_thru = pd.Timestamp(row.planned_thru_date)
-        if planned_from > planned_thru:
-            issues.append(
-                AuditIssue(
-                    check="period_split_plan",
-                    portfolio=str(row.portfolio),
-                    from_date=str(row.planned_from_date),
-                    thru_date=str(row.planned_thru_date),
-                    detail=f"Planned period starts after it ends: {row.scenario_key}.",
-                )
-            )
-        if planned_from < current_from or planned_thru > current_thru:
-            issues.append(
-                AuditIssue(
-                    check="period_split_plan",
-                    portfolio=str(row.portfolio),
-                    from_date=str(row.planned_from_date),
-                    thru_date=str(row.planned_thru_date),
-                    detail=(
-                        "Planned period must stay inside current period: " f"{row.scenario_key}."
-                    ),
-                )
-            )
-
-    for row in _scenario_period_split_plan_summary(plan):
-        if int(row["planned_difference_rows"]) > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS:
-            issues.append(
-                AuditIssue(
-                    check="period_split_plan",
-                    portfolio=str(row["portfolio"]),
-                    from_date=str(row["planned_from_date"]),
-                    thru_date=str(row["planned_thru_date"]),
-                    detail=(
-                        "Planned period exceeds target difference-row density: "
-                        f"{row['planned_difference_rows']}."
-                    ),
-                )
-            )
-    issues.extend(_audit_period_split_plan_overlaps(plan))
-    return issues
-
-
-def _audit_period_split_plan_overlaps(plan: pd.DataFrame) -> list[AuditIssue]:
-    """Return issues for overlapping planned periods inside a current period."""
-    issues: list[AuditIssue] = []
-    period_columns = [
-        "portfolio",
-        "current_from_date",
-        "current_thru_date",
-        "planned_from_date",
-        "planned_thru_date",
-    ]
-    planned_periods = plan[period_columns].drop_duplicates()
-    current_period_columns = ["portfolio", "current_from_date", "current_thru_date"]
-    grouped = planned_periods.groupby(current_period_columns, sort=True, dropna=False)
-    for current_period, current_rows in grouped:
-        portfolio, current_from_date, current_thru_date = (str(value) for value in current_period)
-        sorted_rows = current_rows.assign(
-            _planned_from=pd.to_datetime(current_rows["planned_from_date"]),
-            _planned_thru=pd.to_datetime(current_rows["planned_thru_date"]),
-        ).sort_values(["_planned_from", "_planned_thru"])
-        previous_thru: pd.Timestamp | None = None
-        previous_period = ""
-        for row in sorted_rows.itertuples(index=False):
-            planned_from = pd.Timestamp(row.planned_from_date)
-            planned_thru = pd.Timestamp(row.planned_thru_date)
-            current_period_label = f"{row.planned_from_date}/{row.planned_thru_date}"
-            if previous_thru is not None and planned_from <= previous_thru:
-                issues.append(
-                    AuditIssue(
-                        check="period_split_plan",
-                        portfolio=portfolio,
-                        from_date=str(current_from_date),
-                        thru_date=str(current_thru_date),
-                        detail=(
-                            "Planned periods overlap inside the same current "
-                            f"period: {previous_period} and {current_period_label}."
-                        ),
-                    )
-                )
-            previous_thru = planned_thru
-            previous_period = current_period_label
-    return issues
-
-
-def _crowded_scenario_calendar_keys(calendar: pd.DataFrame) -> set[str]:
-    """Return scenario keys from periods above the simplification target."""
-    crowded_periods = {
-        (row["portfolio"], row["from_date"], row["thru_date"])
-        for row in _scenario_calendar_density(calendar)
-        if row["needs_intra_month_split"]
-    }
-    return {
-        str(row.scenario_key)
-        for row in calendar.itertuples(index=False)
-        if (str(row.portfolio), str(row.from_date), str(row.thru_date)) in crowded_periods
-    }
-
-
-def _scenario_period_split_plan_summary(plan: pd.DataFrame) -> list[dict[str, object]]:
-    """Return planned scenario-row density by proposed intra-month period."""
-    summary_rows: list[dict[str, object]] = []
-    period_columns = ["portfolio", "planned_from_date", "planned_thru_date"]
-    grouped = plan.groupby(period_columns, sort=True, dropna=False)
-    for period_key, period_rows in grouped:
-        portfolio, planned_from_date, planned_thru_date = (str(value) for value in period_key)
-        summary_rows.append(
-            {
-                "portfolio": portfolio,
-                "planned_from_date": planned_from_date,
-                "planned_thru_date": planned_thru_date,
-                "planned_difference_rows": int(period_rows["planned_difference_rows"].sum()),
-                "scenario_keys": sorted(set(period_rows["scenario_key"].astype(str))),
-            }
-        )
-    return summary_rows
-
-
 def _transaction_scenario_calendar_key(
     adjustment: TransactionScenarioAdjustment,
 ) -> str:
@@ -4383,15 +4118,6 @@ def _parse_args() -> argparse.Namespace:
         help=(
             "Independent CSV inventory that prevents intentional named demo "
             "scenarios from being silently removed."
-        ),
-    )
-    parser.add_argument(
-        "--period-split-plan-path",
-        type=Path,
-        default=_DEFAULT_PERIOD_SPLIT_PLAN_PATH,
-        help=(
-            "CSV file mapping any crowded current periods to proposed shorter "
-            "intra-month periods. An empty file means no split backlog remains."
         ),
     )
     parser.add_argument(

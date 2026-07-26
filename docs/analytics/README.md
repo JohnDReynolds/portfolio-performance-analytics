@@ -157,6 +157,17 @@ my_ppar_analytics/
   secmast.csv
 ```
 
+For a vendor-neutral example that constructs `Analytics` directly in Python,
+create the separate Generic Analytics workspace:
+
+```bash
+ppar setup ./my_ppar_generic_analytics --generic-analytics
+python ./my_ppar_generic_analytics/run_generic_analytics.py
+```
+
+This workspace has no `ppar.yaml`. Its visible Python paths and settings are
+intended to be customized into a client-owned runner or integration.
+
 ---
 
 ## Inputs

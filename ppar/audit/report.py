@@ -654,19 +654,10 @@ def _write_audit_report_bundle_in_place(
 
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
-    _remove_obsolete_report_files(bundle_directory)
-    (bundle_directory / _pc_bundle.AUDIT_SUPPORT_ARCHIVE).unlink(missing_ok=True)
-    (bundle_directory / _pc_bundle.PROMOTED_SOURCE_DETAIL).unlink(missing_ok=True)
     supporting_files_directory = (
         bundle_directory / _pc_bundle.SUPPORTING_FILES_DIRECTORY
     )
-    if supporting_files_directory.exists():
-        shutil.rmtree(supporting_files_directory)
     supporting_files_directory.mkdir(parents=True, exist_ok=True)
-    _remove_legacy_root_supporting_files(
-        bundle_directory,
-        table_names=tuple(tables.keys()),
-    )
 
     paths: dict[str, Path] = {}
     html_report_file_name = _pc_review_model.html_report_file_name(comparison_level)
@@ -793,40 +784,6 @@ def _cause_lineage_export_table(causes: pl.DataFrame) -> pl.DataFrame:
         _pc_conservation.COUNTED_CAUSE_OWNER,
     )
     return causes.select([column for column in columns if column in causes.columns])
-
-
-def _remove_legacy_root_supporting_files(
-    bundle_directory: Path,
-    *,
-    table_names: Sequence[str],
-) -> None:
-    """Remove root-level CSV/JSON artifacts from older bundle layouts."""
-    artifact_stems = {
-        "findings",
-        "manifest",
-        "review_summary",
-        *table_names,
-        *_OPTIONAL_REPORT_BUNDLE_TABLE_ARTIFACTS,
-    }
-    for artifact_stem in artifact_stems:
-        for suffix in (".csv", ".json"):
-            legacy_path = bundle_directory / f"{artifact_stem}{suffix}"
-            if legacy_path.is_file():
-                legacy_path.unlink()
-
-
-def _remove_obsolete_report_files(bundle_directory: Path) -> None:
-    """Remove known report files before rebuilding a reused bundle directory."""
-    artifact_stems = {
-        "report",
-        _pc_review_model.PORTFOLIO_AUDIT_FILE_STEM,
-        _pc_review_model.SECURITY_AUDIT_FILE_STEM,
-    }
-    for artifact_stem in artifact_stems:
-        for suffix in (".html", ".xlsx"):
-            obsolete_path = bundle_directory / f"{artifact_stem}{suffix}"
-            if obsolete_path.is_file():
-                obsolete_path.unlink()
 
 
 def _report_bundle_tables(

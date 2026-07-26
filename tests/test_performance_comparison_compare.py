@@ -2571,8 +2571,8 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn(expected_message, str(context.exception))
 
-    def test_contribution_impact_methods_are_rejected_as_retired(self) -> None:
-        """Policies for retired performance-output columns fail closed."""
+    def test_unknown_contribution_impact_methods_are_rejected(self) -> None:
+        """Unknown performance-output policies fail closed."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(
                 Path(temp_dir)
@@ -2590,8 +2590,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
             with self.assertRaisesRegex(
                 PpaError,
-                "Retired optional performance-output configuration.*"
-                "contribution_impact_methods",
+                "YAML has unsupported top-level keys: contribution_impact_methods",
             ):
                 AuditSpecification(specification_path)
 

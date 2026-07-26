@@ -18,7 +18,6 @@ ErrorMessage = Callable[[str], str]
 SourceType = Literal["classification", "mapping"]
 _DefaultDateKey = Literal["from_date", "thru_date"]
 _ANALYTICS_KEY = "analytics"
-_REMOVED_DEFAULTS_KEY = "defaults"
 _DEFAULT_FROM_DATE_KEY: _DefaultDateKey = "from_date"
 _DEFAULT_THRU_DATE_KEY: _DefaultDateKey = "thru_date"
 _DEFAULT_CLASSIFICATION_KEY = "classification"
@@ -43,16 +42,6 @@ _DEFAULT_FILE_PATHS: dict[str, str] = {
     "security_performance": "secperf.csv",
     "security_master": "secmast.csv",
 }
-_RETIRED_SOURCE_KEYS = frozenset(
-    {
-        "portfolio_performance_path",
-        "security_performance_path",
-        "security_master_path",
-        "portfolio_performance_columns",
-        "security_performance_columns",
-        "security_master_columns",
-    }
-)
 _SUPPORTED_ROOT_KEYS = frozenset(
     {
         _ANALYTICS_KEY,
@@ -94,15 +83,6 @@ class AxysSpecification:
         if not isinstance(loaded_yaml, dict):
             raise PpaError(error_message("YAML must be a dictionary"), 504)
         self.values: dict[str, Any] = loaded_yaml
-        if _REMOVED_DEFAULTS_KEY in self.values:
-            raise PpaError(
-                error_message(
-                    "defaults is not supported; move from_date, thru_date, and "
-                    "classification under analytics."
-                ),
-                504,
-            )
-        self._validate_retired_source_keys()
         self._validate_root_keys()
         self._validate_files()
 
@@ -341,21 +321,6 @@ class AxysSpecification:
                     self._error_message(f"files.{file_name}.columns must be a mapping."),
                     504,
                 )
-
-    def _validate_retired_source_keys(self) -> None:
-        """Reject source settings retired by the nested ``files`` grammar."""
-        retired_keys = sorted(_RETIRED_SOURCE_KEYS.intersection(self.values))
-        if not retired_keys:
-            return
-        raise PpaError(
-            self._error_message(
-                "Retired source settings must move under files.<dataset>.path or "
-                "files.<dataset>.columns: "
-                + ", ".join(retired_keys)
-                + "."
-            ),
-            504,
-        )
 
     def _validate_root_keys(self) -> None:
         """Reject unknown top-level Analytics configuration keys."""

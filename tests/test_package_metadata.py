@@ -1049,10 +1049,14 @@ class TestPackageMetadata(unittest.TestCase):
             analytics_readme,
         )
         self.assertIn("ppar analytics ./my_ppar_analytics", analytics_readme)
+        self.assertIn(
+            "ppar setup ./my_ppar_generic_analytics --generic-analytics",
+            analytics_readme,
+        )
         self.assertIn('pip install "ppar[analytics]"', analytics_readme)
 
-    def test_generic_analytics_is_documented_as_maintainer_infrastructure(self) -> None:
-        """Generic analytics remains useful without becoming the setup path."""
+    def test_generic_analytics_is_documented_as_an_optional_workspace(self) -> None:
+        """Generic Analytics is user-facing without displacing Audit onboarding."""
         demo_data_readme = Path("ppar/setup_templates/README.md").read_text(
             encoding=util.ENCODING
         )
@@ -1068,17 +1072,23 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertIn("The public onboarding path starts", demo_data_readme)
         self.assertIn(
-            "not the primary new-user setup path",
+            "ppar setup ./my_ppar_generic_analytics --generic-analytics",
             normalized_demo_data_readme,
         )
-        self.assertIn("maintainer/demo infrastructure", normalized_refresh_guide)
+        self.assertIn(
+            "optional, vendor-neutral Generic Analytics workspace",
+            normalized_refresh_guide,
+        )
         self.assertIn(
             "Installed setup users do not need this refresh path",
             normalized_refresh_guide,
         )
-        self.assertIn("maintainer/demo infrastructure", normalized_maintainer_guide)
         self.assertIn(
-            "not advertised as the primary onboarding path",
+            "ppar setup --generic-analytics",
+            normalized_maintainer_guide,
+        )
+        self.assertIn(
+            "Audit remains the default onboarding path",
             normalized_maintainer_guide,
         )
 
@@ -1524,30 +1534,6 @@ class TestPackageMetadata(unittest.TestCase):
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, overview)
-
-    def test_vendor_preset_design_is_documented_without_runtime_commitment(self) -> None:
-        """Vendor presets stay design-only, auditable, and multi-vendor friendly."""
-        design = Path("docs/audit/performance_comparison_design.md").read_text(
-            encoding=util.ENCODING
-        )
-
-        for expected_text in [
-            "### Vendor Preset Design",
-            "multiple vendors",
-            "vendor: axys",
-            "engine defaults < vendor preset < site YAML overrides",
-            "--print-resolved-config",
-            "preset implementation is deliberately parked",
-            "Presets are design-only until explicit implementation work is approved",
-            "complete-YAML validation",
-            "ambiguous transaction-code safeguards",
-            "report bundle should record the preset name/version",
-            "accepted as the preset seed",
-            "vendor-preset infrastructure",
-            "the next product lane",
-        ]:
-            with self.subTest(expected_text=expected_text):
-                self.assertIn(expected_text, design)
 
     def test_site_extract_readiness_checklist_is_documented(self) -> None:
         """The site extract readiness checklist remains linked from setup docs."""
@@ -2000,10 +1986,11 @@ class TestPackageMetadata(unittest.TestCase):
             "ppar.cli setup /tmp/my_ppar_audit",
             "/tmp/my_ppar_audit/run_audit.py",
             "/tmp/my_ppar_analytics/run_analytics.py",
-            "/tmp/my_ppar_analytics/generic_analytics/run_generic_analytics.py",
+            "/tmp/my_ppar_generic_analytics/run_generic_analytics.py",
+            "--generic-analytics",
             "ppar.audit.cli.validate_bundle",
             "ppar.audit.cli.validate_config",
-            "ppar.audit.cli.validate_demo_matrix",
+            "scripts/validate_demo_matrix.py",
             "scripts/check_audit_demo_health.py",
             "/tmp/my_ppar_audit/output/portfolio",
             "/tmp/my_ppar_audit/output/security",
@@ -2041,9 +2028,7 @@ class TestPackageMetadata(unittest.TestCase):
             "audit_transaction_scenarios.csv",
             "audit_holding_scenarios.csv",
             "audit_scenario_calendar.csv",
-            "audit_period_split_plan.csv",
             "two-independent-change review target",
-            "Empty split backlog",
             "rebuild_audit_demo_data.py",
             "Use `--write` only when you intend to rewrite tracked packaged CSV assets.",
             "Current packaged scenario inventory",
@@ -2119,7 +2104,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`portfolio_performance`: portfolio identifier",
             "`security_performance`: portfolio/security identifiers",
             "authoritative valuation and flow evidence",
-            "retired `contribution_impact_methods`",
+            "including `contribution_impact_methods`, is rejected",
             "Modified Dietz",
             "transaction rules",
         ]:
@@ -2131,6 +2116,7 @@ class TestPackageMetadata(unittest.TestCase):
         demo_data = files("ppar.setup_templates")
         axys_apx_analytics_data = demo_data / "axys_apx_analytics"
         axys_demo_data = demo_data / "axys_apx_audit"
+        generic_analytics_data = demo_data / "generic_analytics"
         expected_resources = (
             "README.md",
             "axys_apx_audit.yaml",
@@ -2153,6 +2139,9 @@ class TestPackageMetadata(unittest.TestCase):
         ):
             with self.subTest(resource_path=f"axys_apx_analytics/{resource_path}"):
                 self.assertTrue((axys_apx_analytics_data / resource_path).is_file())
+        for resource_path in ("README.md", "run_generic_analytics.py"):
+            with self.subTest(resource_path=f"generic_analytics/{resource_path}"):
+                self.assertTrue((generic_analytics_data / resource_path).is_file())
 
     def test_setup_template_scripts_do_not_depend_on_demo_helpers(self) -> None:
         """Installed setup scripts are self-contained tutorial surfaces."""
