@@ -244,11 +244,12 @@ Use these opt-in switches only when the intent is explicit:
 ```
 
 `--build` regenerates `PPAR.pdf` from the current `README.md`, builds the wheel
-and sdist, installs the wheel into a temporary environment outside the source
-checkout, creates separate Audit and Analytics workspaces, runs both installed
-workflows, and runs both Audit bundle validators. This prevents stale overview
-text and catches package-data or import failures that source-checkout tests
-cannot expose.
+and all README images from current generated reports, runs the complete
+release-candidate sequence, installs a temporary wheel outside the source
+checkout, exercises the installed Audit and Analytics workflows, validates both
+Audit bundles, and writes the final Twine-validated wheel and source distribution
+under `dist/`. It cleans the release-generated `_demo_output` directories first.
+This is the single command used to create a distributable release candidate.
 `--refresh-images` regenerates the README PNG/JPG assets as well as `PPAR.pdf`.
 `--include-generic-data-generation` runs the Yahoo-dependent generic analytics
 candidate-data generator.
@@ -436,14 +437,15 @@ When changing demo data or YAML, also run:
 
 ## Release Readiness
 
-Before tagging or publishing, keep the release check small and concrete. The
-current maintained release check is:
+Before tagging or publishing, create the complete release candidate with:
 
 ```bash
 ./.venv/bin/python scripts/check_release_candidate.py --build
 ```
 
-Use this pre-publish checklist after the maintainer decides to release:
+The command stops at the first failure. On success, `dist/` contains exactly one
+Twine-validated wheel and one Twine-validated source distribution. Use this
+pre-publish checklist after the maintainer decides to release:
 
 1. Confirm the working tree is clean.
 2. Confirm `pyproject.toml` is the only package-version authority. The public
@@ -468,22 +470,14 @@ Use this pre-publish checklist after the maintainer decides to release:
    git tag -f "v${PPAR_RELEASE_VERSION}" HEAD
    ```
 
-5. Build fresh artifacts:
-
-   ```bash
-   rm -rf dist
-   ./.venv/bin/python -m build --wheel --sdist --no-isolation --outdir dist
-   ./.venv/bin/python -m twine check \
-     "dist/ppar-${PPAR_RELEASE_VERSION}-py3-none-any.whl" \
-     "dist/ppar-${PPAR_RELEASE_VERSION}.tar.gz"
-   ```
-
-6. Inspect the wheel:
+5. Run `./.venv/bin/python scripts/check_release_candidate.py --build` and
+   confirm that it reports the two release artifacts under `dist/`.
+6. Inspect the resulting wheel:
    - only the `ppar` console script is exposed;
    - Axys/APX Analytics and Audit workspace files are included;
    - `_demo_output`, `scripts`, `tests`, `docs`, and obsolete demo paths are not
      present in the wheel.
-7. Confirm that the release-candidate `--build` check installed the wheel into
+7. Confirm that the release-candidate `--build` check installed a wheel into
    a temporary environment and successfully ran:
 
    ```bash

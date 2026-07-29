@@ -67,6 +67,7 @@ dev = [
     "pylint>=4.0",
     "pyright>=1.1.409",
     "setuptools>=77.0.0",
+    "twine>=6.0",
     "types-PyYAML",
     "types-seaborn",
 ]

@@ -30,14 +30,24 @@ from PIL import Image, ImageChops
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT))
 Image.MAX_IMAGE_PIXELS = None
-_CACHE_DIR = _REPO_ROOT / "_demo_output" / "readme_image_cache"
-os.environ.setdefault("MPLCONFIGDIR", str(_CACHE_DIR / "matplotlib"))
-os.environ.setdefault("XDG_CACHE_HOME", str(_CACHE_DIR / "xdg"))
+_CACHE_ROOT = _REPO_ROOT / "_demo_output" / "readme_image_cache"
+_CACHE_SCOPE = os.environ.get("PPAR_README_IMAGE_CACHE_SCOPE", "direct")
+_CACHE_DIR = _CACHE_ROOT / _CACHE_SCOPE
+# This renderer owns disposable caches. Do not inherit a release wrapper's
+# shared cache because headless Chrome can abort on its stale process state.
+os.environ["MPLCONFIGDIR"] = str(_CACHE_DIR / "matplotlib")
+os.environ["XDG_CACHE_HOME"] = str(_CACHE_DIR / "xdg")
 
 # Project Imports
 from ppar.analytics import Analytics  # noqa: E402
 from ppar.analytics.attribution import Attribution, Chart, View  # noqa: E402
 from ppar.analytics.frequency import Frequency  # noqa: E402
+from ppar.audit import rendering as audit_rendering  # noqa: E402
+from ppar.audit.review_model import (  # noqa: E402
+    DATA_ISSUES_SHEET,
+    PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
+    PERFORMANCE_DIFFERENCES_SHEET,
+)
 import ppar.utilities as util  # noqa: E402
 
 _IMAGE_DIR = _REPO_ROOT / "docs" / "images" / "readme"
@@ -49,10 +59,13 @@ _CHROME_CANDIDATES = (
     "chrome",
 )
 _RENDER_CONFIG = {
-    "OverallAttributionBySecurity": (5200, 7600),
-    "CumulativeAttributionByEconomicSector": (5200, 3600),
-    "OverallAttributionByEconomicSector": (5200, 3200),
-    "RiskStatistics": (3000, 4800),
+    # Analytics screenshots use a 2x device scale. These browser-sized
+    # viewports retain the prior content resolution without allocating a
+    # mostly blank bitmap four times larger than the cropped image.
+    "OverallAttributionBySecurity": (2600, 3800),
+    "CumulativeAttributionByEconomicSector": (2600, 1800),
+    "OverallAttributionByEconomicSector": (2600, 1600),
+    "RiskStatistics": (1500, 2400),
     # This report contains long, wrapping tables. A 1x, browser-sized viewport
     # keeps the text readable and avoids the very large bitmap produced by a
     # wide 2x screenshot.
@@ -83,7 +96,7 @@ _MINIMUM_IMAGE_SIZE_BY_NAME = {
 _PERFORMANCE_AUDIT_SCENARIOS = {
     ("ALPHA", "2026-01-31", "2026-02-27"),
     ("ALPHA", "2026-05-01", "2026-05-29"),
-    ("BALANCED", "2026-04-01", "2026-04-30"),
+    ("BALANCED", "2026-04-01", "2026-04-10"),
     ("BALANCED", "2026-05-09", "2026-05-14"),
     ("INCOME", "2026-01-01", "2026-01-30"),
     ("INCOME", "2026-02-28", "2026-03-31"),
@@ -116,20 +129,34 @@ def main() -> None:
             written.
     """
     args = _parse_args()
+    if args.only in ("all", "analytics"):
+        families = [
+            "analytics-charts",
+            "sector-tables",
+            "security-attribution",
+            "risk-statistics",
+        ]
+        if args.only == "all":
+            families.append("audit")
+        _render_isolated_image_families(families)
+        return
+
     chrome_path = _find_chrome()
     with tempfile.TemporaryDirectory(prefix="ppar_readme_images_") as temp_dir_name:
         temp_dir = Path(temp_dir_name)
-        if args.only in ("all", "analytics"):
-            analytics, sector = _analytics_outputs()
+        if args.only == "analytics-charts":
+            _analytics, sector = _analytics_outputs()
             _write_chart_images(sector)
-            html_paths = _write_html_inputs(temp_dir, analytics, sector)
-            for name, html_path in html_paths.items():
+        if args.only == "sector-tables":
+            _analytics, sector = _analytics_outputs()
+            for name, html_path in _write_sector_table_inputs(
+                temp_dir,
+                sector,
+            ).items():
                 _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
         if args.only == "security-attribution":
-            analytics, sector = _analytics_outputs()
-            html_path = _write_html_inputs(temp_dir, analytics, sector)[
-                "OverallAttributionBySecurity"
-            ]
+            analytics, _sector = _analytics_outputs()
+            html_path = _write_security_attribution_input(temp_dir, analytics)
             _render_cropped_jpg(
                 chrome_path,
                 html_path,
@@ -172,6 +199,8 @@ def _parse_args() -> argparse.Namespace:
         choices=(
             "all",
             "analytics",
+            "analytics-charts",
+            "sector-tables",
             "security-attribution",
             "risk-statistics",
             "audit",
@@ -180,6 +209,31 @@ def _parse_args() -> argparse.Namespace:
         help="Limit rendering to one image family. Defaults to all.",
     )
     return parser.parse_args()
+
+
+def _render_isolated_image_families(families: Sequence[str]) -> None:
+    """Render image families in fresh processes with bounded memory.
+
+    Args:
+        families: Internal ``--only`` values to render in sequence.
+
+    Raises:
+        subprocess.CalledProcessError: If any isolated renderer fails.
+    """
+    for family in families:
+        env = os.environ.copy()
+        env["PPAR_README_IMAGE_CACHE_SCOPE"] = family
+        subprocess.run(
+            [
+                sys.executable,
+                Path(__file__).resolve(),
+                "--only",
+                family,
+            ],
+            cwd=_REPO_ROOT,
+            check=True,
+            env=env,
+        )
 
 
 def _analytics_outputs() -> tuple[Analytics, Attribution]:
@@ -262,34 +316,26 @@ def _write_chart_images(sector: Attribution) -> None:
         print(f"{path.relative_to(_REPO_ROOT)}")
 
 
-def _write_html_inputs(
+def _write_sector_table_inputs(
     temp_dir: Path,
-    analytics: Analytics,
     sector: Attribution,
 ) -> dict[str, Path]:
-    """Write temporary HTML inputs for the README table images.
+    """Write temporary HTML inputs for the sector table images.
 
     Args:
         temp_dir: Temporary directory in which to write HTML files.
-        analytics: Packaged Mega-Cap analytics output.
         sector: Attribution output grouped by Economic Sector.
 
     Returns:
-        Mapping from README image stem to its temporary HTML input path.
+        Mapping from sector README image stem to its temporary HTML input path.
 
     Raises:
         OSError: If an HTML input file cannot be written.
         PpaError: If construction of demonstration analytics output fails.
     """
-    security = analytics.get_attribution(
-        "Security",
-        _classification_data_source("Security"),
-    )
     html_by_name = {
-        "OverallAttributionBySecurity": security.to_html(View.OVERALL_ATTRIBUTION),
         "CumulativeAttributionByEconomicSector": sector.to_html(View.CUMULATIVE_ATTRIBUTION),
         "OverallAttributionByEconomicSector": sector.to_html(View.OVERALL_ATTRIBUTION),
-        "RiskStatistics": analytics.get_riskstatistics().to_html(),
     }
 
     html_paths: dict[str, Path] = {}
@@ -297,10 +343,32 @@ def _write_html_inputs(
         html_path = temp_dir / f"{name}.html"
         with io.open(html_path, "w", encoding=util.ENCODING, newline="\n") as file:
             file.write(html)
-        if name == "OverallAttributionBySecurity":
-            _write_security_attribution_preview(html_path)
         html_paths[name] = html_path
     return html_paths
+
+
+def _write_security_attribution_input(
+    temp_dir: Path,
+    analytics: Analytics,
+) -> Path:
+    """Write the temporary trimmed Security attribution HTML input.
+
+    Args:
+        temp_dir: Temporary directory in which to write the HTML file.
+        analytics: Packaged Mega-Cap analytics output.
+
+    Returns:
+        Temporary Security attribution HTML path.
+    """
+    security = analytics.get_attribution(
+        "Security",
+        _classification_data_source("Security"),
+    )
+    html_path = temp_dir / "OverallAttributionBySecurity.html"
+    with io.open(html_path, "w", encoding=util.ENCODING, newline="\n") as file:
+        file.write(security.to_html(View.OVERALL_ATTRIBUTION))
+    _write_security_attribution_preview(html_path)
+    return html_path
 
 
 def _write_security_attribution_preview(html_path: Path) -> None:
@@ -368,36 +436,47 @@ def _render_png(
         device_scale_factor: Pixel density at which Chrome captures the page.
 
     Raises:
-        subprocess.CalledProcessError: If the Chrome rendering process fails.
+        subprocess.CalledProcessError: If Chrome fails on both attempts.
+        subprocess.TimeoutExpired: If Chrome times out twice without writing
+            the screenshot.
     """
-    command = [
-        chrome_path,
-        "--headless=new",
-        "--disable-gpu",
-        "--disable-background-networking",
-        "--disable-component-update",
-        "--no-first-run",
-        "--no-default-browser-check",
-        "--disable-sync",
-        "--hide-scrollbars",
-        f"--force-device-scale-factor={device_scale_factor}",
-        f"--user-data-dir={user_data_dir}",
-        f"--screenshot={png_path}",
-        f"--window-size={window_size[0]},{window_size[1]}",
-        html_path.resolve().as_uri(),
-    ]
-    try:
-        subprocess.run(
-            command,
-            check=True,
-            timeout=120,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+    for attempt in range(2):
+        attempt_user_data_dir = (
+            user_data_dir
+            if attempt == 0
+            else user_data_dir.with_name(f"{user_data_dir.name}_retry")
         )
-    except subprocess.TimeoutExpired:
-        if png_path.exists() and png_path.stat().st_size > 0:
+        command = [
+            chrome_path,
+            "--headless=new",
+            "--disable-gpu",
+            "--disable-background-networking",
+            "--disable-component-update",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-sync",
+            "--hide-scrollbars",
+            f"--force-device-scale-factor={device_scale_factor}",
+            f"--user-data-dir={attempt_user_data_dir}",
+            f"--screenshot={png_path}",
+            f"--window-size={window_size[0]},{window_size[1]}",
+            html_path.resolve().as_uri(),
+        ]
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                timeout=120,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             return
-        raise
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            if png_path.exists() and png_path.stat().st_size > 0:
+                return
+            if attempt == 1:
+                raise
+            shutil.rmtree(attempt_user_data_dir, ignore_errors=True)
 
 
 def _render_cropped_jpg(
@@ -448,9 +527,15 @@ def _render_cropped_jpg(
 def _write_performance_audit_preview(source_path: Path, destination_path: Path) -> None:
     """Write a shorter README preview without modifying the native report."""
     document = lxml_html.document_fromstring(source_path.read_text(encoding=util.ENCODING))
-    differences = document.get_element_by_id("performance-differences")
-    causes = document.get_element_by_id("performance-difference-causes")
-    issues = document.get_element_by_id("data-audit-issues")
+    differences = document.get_element_by_id(
+        audit_rendering.html_section_id(PERFORMANCE_DIFFERENCES_SHEET)
+    )
+    causes = document.get_element_by_id(
+        audit_rendering.html_section_id(PERFORMANCE_DIFFERENCE_CAUSES_SHEET)
+    )
+    issues = document.get_element_by_id(
+        audit_rendering.html_section_id(DATA_ISSUES_SHEET)
+    )
 
     _retain_scenario_rows(differences)
     _retain_scenario_rows(causes)

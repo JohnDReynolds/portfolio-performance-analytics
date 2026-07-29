@@ -614,7 +614,7 @@ class TestScaleCheck(unittest.TestCase):
                 build=True,
                 refresh_images=False,
             ),
-            (False, True),
+            (True, True),
         )
         self.assertEqual(
             check_release_candidate._release_asset_refresh_scope(
@@ -638,6 +638,53 @@ class TestScaleCheck(unittest.TestCase):
                 check_release_candidate._VENV_PYTHON,
                 "scripts/render_readme_pdf.py",
             ]
+        )
+
+    def test_release_build_creates_and_checks_retained_artifacts(self) -> None:
+        """The release build leaves one Twine-validated wheel and sdist."""
+        runner = mock.create_autospec(
+            check_release_candidate.ReleaseCandidateRunner,
+            instance=True,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            distribution_directory = Path(directory) / "dist"
+
+            def create_build_outputs(command: list[str | Path]) -> None:
+                if "build" not in tuple(str(part) for part in command):
+                    return
+                distribution_directory.mkdir(parents=True, exist_ok=True)
+                (distribution_directory / "ppar-0.1.5-py3-none-any.whl").touch()
+                (distribution_directory / "ppar-0.1.5.tar.gz").touch()
+
+            runner.run.side_effect = create_build_outputs
+            with (
+                mock.patch.object(
+                    check_release_candidate,
+                    "_DIST_DIRECTORY",
+                    distribution_directory,
+                ),
+                mock.patch.object(check_release_candidate.shutil, "rmtree"),
+            ):
+                artifacts = check_release_candidate._create_distribution_artifacts(
+                    runner
+                )
+
+        self.assertEqual(
+            tuple(path.name for path in artifacts),
+            ("ppar-0.1.5-py3-none-any.whl", "ppar-0.1.5.tar.gz"),
+        )
+        self.assertEqual(len(runner.run.call_args_list), 2)
+        build_command = runner.run.call_args_list[0].args[0]
+        twine_command = runner.run.call_args_list[1].args[0]
+        self.assertIn("build", tuple(str(part) for part in build_command))
+        self.assertEqual(
+            tuple(str(part) for part in twine_command[:4]),
+            (
+                str(check_release_candidate._VENV_PYTHON),
+                "-m",
+                "twine",
+                "check",
+            ),
         )
 
 

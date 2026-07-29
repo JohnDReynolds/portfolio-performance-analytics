@@ -1,257 +1,393 @@
 # PPAR Audit Validation Partner Strategy
 
-**Assessment date:** July 21, 2026  
-**Status:** Advisory partner-selection guidance; not product or implementation authority
+| Document field | Value |
+| --- | --- |
+| Assessment date | July 26, 2026 |
+| Status | Advisory partner and channel strategy; not product or implementation authority |
 
 ## Executive Summary
 
-The proposed organizations are strong candidates, but they should not be treated
-as five independent beta-testing users. They naturally divide into technical
-partners, operational partners, and actual end users.
+PPAR Audit should be evaluated as a partner-operated product rather than as
+software sold and supported directly to many individual Axys/APX firms.
 
-The strongest initial relationships would be:
+The preferred model is an **authorized PPAR service partner** relationship:
 
-1. **Quartare / Kevin Shea** as the Axys/APX technical design partner.
-2. **CSSI Solutions** as the real-world operational validation partner.
-3. **Two or three Axys/APX investment firms** as private beta users.
-4. **An independent performance specialist**, such as Longs Peak Advisory or ACA
-   Performance Services, for a bounded methodology review.
-5. **Empaxis / Communify** as a second-wave partner for scale, repeat operations,
-   and outsourced-workflow validation.
+- Empaxis, CSSI Solutions, Quartare, or another qualified partner implements
+  PPAR Audit for its clients.
+- The partner collects and maps client extracts, configures the YAML, reviews
+  findings, communicates with the client, and delivers the resulting service.
+- PPAR maintains the calculation engine, safety invariants, Axys/APX defaults,
+  tested releases, and partner-facing technical documentation.
+- Routine client questions remain with the partner. Only reproducible product
+  defects and core-engine issues escalate to PPAR.
 
-AdventGuru, InfoSystems Integrated, and Quartare should be understood as one
-professional lineage centered on Kevin Shea, rather than as three independent
-validation relationships.
+This model does not eliminate support. It concentrates support into a small
+number of knowledgeable partners instead of requiring PPAR to support many
+individual clients.
 
-## Partner Roles
+PPAR should not initially describe these organizations as ordinary software
+resellers. They would be implementation and service operators selling a
+partner-branded service powered by PPAR.
 
-The terms *validation partner* and *beta-testing user* should not be used
-interchangeably.
+## Strategic Fit
 
-### Validation or Design Partners
+PPAR Audit asks why previously reported portfolio performance changed. It
+compares two portfolio-accounting snapshots, connects supported differences to
+holdings, transactions, prices, FX, and related evidence, identifies Data
+Issues, and retains unexplained residuals for human review.
 
-These are subject-matter experts and service providers that see multiple client
-environments. They can validate Axys/APX authenticity, financial interpretation,
-operational edge cases, and the usefulness of PPAR Audit findings.
+The highly configurable YAML is potentially burdensome for an ordinary user but
+valuable to an experienced Axys/APX implementer. A qualified partner should
+already understand how to determine:
 
-### Private Beta Users
+- local transaction meanings;
+- file and column mappings;
+- portfolio-accounting and performance policies;
+- local performance conventions;
+- client-specific suppressions and tolerances;
+- which findings are operationally meaningful; and
+- how to present conclusions without overstating assurance.
 
-These are investment firms whose employees must install, configure, run, and
-interpret PPAR Audit in an actual workflow. They validate usability,
-documentation, setup burden, false positives, report comprehension, and whether
-the product is useful without assistance from its developers.
+The partner also brings a customer relationship, operational staff, domain
+credibility, and data-handling procedures that PPAR does not intend to build for
+many individual clients.
 
-Consultants and service providers are valuable sources of beta-user introductions,
-but they are not substitutes for direct participation by end users.
+The resulting business model is channel-first:
+
+```text
+Axys/APX client
+    |
+    v
+Authorized PPAR service partner
+    - obtains and maps approved client extracts
+    - configures client YAML
+    - operates PPAR Audit
+    - reviews and delivers findings
+    - provides client support
+    |
+    | reproducible product defects and core-engine questions only
+    v
+PPAR
+    - maintains financial and safety invariants
+    - maintains the calculation engine
+    - maintains versioned Axys/APX defaults
+    - produces tested releases and partner documentation
+```
 
 ## Candidate Assessment
 
-| Candidate | Best role | Overall assessment |
+| Candidate | Best role | Assessment |
 | --- | --- | --- |
-| Quartare / Kevin Shea | Axys/APX technical design partner | Excellent |
-| CSSI Solutions | Operational validation partner | Excellent |
-| Empaxis / Communify | Scaled operations partner | Very good; probably a later phase |
-| AdventGuru | Background and contact channel for Kevin Shea | Not a separate partner |
-| InfoSystems Integrated (`isitc.com`) | Historical predecessor to Quartare | Probably not a current separate candidate |
+| Empaxis | Lead managed-service and commercial delivery partner | Strongest initial channel fit |
+| CSSI Solutions | Implementation and managed-service partner | Also very strong; broad technical and operational capability |
+| Quartare / AdventGuru | Technical validator and boutique delivery partner | Exceptional Axys/APX review capability; delivery scale should be assessed |
 
-### Quartare / Kevin Shea
+### Empaxis
 
-Quartare would be the strongest first contact for validating the parts of PPAR
-Audit that depend on authentic Axys/APX behavior. Its published services include
-Axys/APX extraction through IMEX and APIs, performance-history and composite
-work, reconciliation, conversions, data interfaces, and reporting enhancements.
-That experience is directly relevant to:
+Empaxis appears to be the strongest first managed-service candidate. Its
+published Axys/APX practice includes reconciliation, performance reporting,
+middle- and back-office operations, process automation, and quality control.
+Empaxis also describes a quality-assurance system that identifies reconciliation
+breaks and reporting omissions or inaccuracies.
 
-- IMEX and REP extract realism
-- Security identity and transaction semantics
-- Restatements and historical corrections
-- Axys/APX terminology and reporting conventions
-- Site-contract and YAML usability
-- Difficult accounting and migration scenarios
+PPAR could help Empaxis investigate performance changes and serve additional
+clients without increasing investigative labor proportionally. Its existing
+outsourced operating model is closely aligned with a recurring partner-delivered
+PPAR service.
 
-AdventGuru is Kevin Shea's blog and professional identity. InfoSystems Integrated
-was his earlier company, and Quartare is his current consultancy. These should be
-approached as one expert relationship rather than counted as three independent
-sources of validation.
-
-Sources: [Quartare](https://quartare.com/),
-[AdventGuru](https://adventguru.com/about/)
+Source:
+[Empaxis Axys/APX outsourcing](https://www.empaxis.com/blog/advent-axys-apx-outsourcing-services)
 
 ### CSSI Solutions
 
-CSSI may be the strongest candidate for real-world operational validation. Its
-published services include daily reconciliation, reporting, corporate-action
-processing, operational cleanup, Axys/APX consulting, system integration,
-migrations, and portfolio data work. It also describes supporting environments
-ranging from small advisory firms to installations with thousands of accounts.
+CSSI is another strong implementation and service-channel candidate. Its
+published services combine Axys/APX consulting, reconciliation, reporting,
+operational cleanup, data migration, custom interfaces and extracts, custom
+development, back-office services, and cloud hosting.
 
-This breadth could expose PPAR Audit to the inconsistent practices, difficult
-histories, unusual transactions, and imperfect data that a realistic audit tool
-must handle. CSSI could be particularly valuable for determining whether findings
-are actionable to operations staff rather than merely technically correct.
+This breadth could expose PPAR to realistic histories, local practices, unusual
+transactions, imperfect data, and operational review requirements. CSSI's
+technical capability could also support deeper integration and repeatable
+implementation. Because CSSI develops adjacent solutions, commercial and
+intellectual-property boundaries should be explicit.
 
 Source: [CSSI Solutions](https://cssisolutions.com/)
 
-### Empaxis / Communify
+### Quartare / AdventGuru
 
-Empaxis is also a strong candidate. Its published Axys/APX practice encompasses
-reconciliation, performance reporting, middle- and back-office operations, and
-Advent-experienced or certified personnel. This makes it well positioned to test
-standardized processes, repeat execution, quality-control workflows, and larger
-operating volumes.
+Quartare appears particularly valuable as a technical and methodology
+validator. Kevin Shea publicly describes decades of Advent experience involving
+performance reports, reconciliation tools, data extracts, automation,
+conversions, and SaaS capabilities for Axys/APX users.
 
-Empaxis is now part of Communify. That broader organizational context may produce
-more commercial and procurement considerations than an engagement with Quartare
-or CSSI. Empaxis is therefore best considered after the initial product and
-validation process have been proven.
+Quartare may be the strongest candidate to challenge PPAR's assumptions,
+extract authenticity, transaction interpretation, terminology, and edge-case
+coverage. Its capacity to operate a multi-client service channel may be smaller
+than Empaxis or CSSI and should be evaluated directly rather than assumed.
 
-Sources: [Empaxis Axys/APX outsourcing](https://www.empaxis.com/blog/advent-axys-apx-outsourcing-services),
-[Empaxis](https://www.empaxis.com/)
+AdventGuru is a professional identity and contact channel associated with Kevin
+Shea, not a separate validation relationship.
 
-## Missing Participants
+Source: [AdventGuru](https://adventguru.com/about/)
 
-### Actual Axys/APX Firms
+## Recommended Partner Model
 
-The proposed list consists primarily of consultants and service providers. The
-initial cohort should also include two or three firms that use Axys/APX and will
-operate PPAR Audit themselves. Ideally, the cohort would include:
+The preferred relationship is an **Authorized PPAR Service Partner**, not an
+unrestricted reseller or white-label licensee.
 
-- At least one hands-on performance analyst or operations manager
-- At least one smaller firm without a specialized technology staff
-- One firm with a complicated history involving conversions, mergers, late
-  postings, corporate actions, multi-currency activity, or performance
-  restatements
-- A mix of Axys and APX environments, if practical
+An authorized partner agreement should permit the partner to:
 
-Quartare, CSSI, and Empaxis may be able to introduce suitable clients, but each
-client should participate directly, knowingly, and under an appropriate data-use
-agreement.
+- install and operate PPAR for specifically authorized clients;
+- assign authorized employees to operate and support the service;
+- create and maintain client-specific configurations;
+- process client-approved extracts in an authorized environment;
+- deliver PPAR reports, evidence, and partner analysis as a paid service; and
+- brand its professional service while retaining appropriate PPAR attribution.
 
-### Independent Performance Specialist
+The agreement should not permit the partner to:
 
-An independent performance specialist could review calculation methodology,
-financial interpretation, severity classification, explanation quality, and the
-boundary between anomaly detection and assurance.
+- give PPAR or its source code to clients or other organizations;
+- redistribute or sublicense PPAR generally;
+- white-label PPAR as software developed or owned by the partner;
+- use PPAR to create a competing or substitute product;
+- share access with unapproved affiliates, contractors, or clients; or
+- claim that PPAR provides an audit opinion, GIPS verification, attestation,
+  certification, or other professional assurance.
 
-Two reasonable candidates are:
+The current public evaluation license prohibits hosted, service-bureau,
+multi-user, and commercial use. A separate partner agreement would need to
+grant the precise service-delivery rights required by the authorized partner
+model.
 
-- **Longs Peak Advisory**, which provides investment-performance and GIPS-related
-  services to investment firms and asset owners. It appears well suited to a
-  focused, hands-on review, although no specific Axys/APX specialization was found
-  in the reviewed public material.
-- **ACA Performance Services**, which has substantial performance-validation,
-  methodology, GIPS, and regulatory expertise. It would offer considerable
-  authority and breadth, but may be a more organizationally involved or expensive
-  relationship.
+## Commercial Structure
 
-Neither organization should initially be asked to certify or endorse PPAR Audit.
-The appropriate engagement would be a bounded methodological review.
+A practical commercial structure would combine:
 
-Sources: [Longs Peak Advisory](https://www.longspeakadvisory.com/),
-[ACA Investment Performance Services](https://www.acaglobal.com/advisory/investment-performance/)
+- an annual partner or platform fee;
+- an annual fee for each active end client;
+- a minimum annual commitment after validation; and
+- discounted or waived fees for a tightly controlled initial validation pilot.
 
-## Recommended Validation Cohort
+PPAR should avoid perpetual partner licenses. Pricing should not depend on
+auditing the partner's consulting hours or attempting to calculate a percentage
+of each consulting engagement.
 
-### 1. Quartare / Kevin Shea: Technical Design Partner
+The agreement should be non-exclusive. PPAR should retain ownership of the
+product, generally applicable improvements, safety behavior, and core
+calculation logic. The partner should retain its client relationship,
+confidential client information, and independently developed service materials.
 
-Validate Axys/APX authenticity, extracts, naming, configuration, security and
-transaction semantics, and difficult accounting cases.
+## Support and Responsibility Boundary
 
-### 2. CSSI Solutions: Operational Validation Partner
+### Partner Responsibilities
 
-Exercise PPAR Audit against diverse, deidentified real-world conditions and
-assess whether its findings are useful to operations teams.
+The partner should own:
 
-### 3. Three Axys/APX Firms: Private Beta Users
+- client qualification and contracting;
+- client onboarding;
+- client data authorization and security;
+- extract generation and source review;
+- YAML mapping and client-specific policy choices;
+- normal operation and scheduling;
+- first- and second-level support;
+- investigation and interpretation of findings;
+- communication and presentation to the client; and
+- retention and deletion practices for client data and reports.
 
-Test setup, documentation, usability, false positives, report comprehension,
-repeatability, and the ability to operate without developer assistance.
+### PPAR Responsibilities
 
-### 4. Longs Peak or ACA: Methodology Reviewer
+PPAR should own:
 
-Review financial interpretation, finding language, thresholds, explanations,
-and the distinction between anomaly detection and professional assurance.
+- reproducible product defects;
+- core calculation correctness;
+- financial and safety invariants;
+- versioned Axys/APX defaults and configuration contracts;
+- release testing and compatibility management;
+- partner-facing implementation and technical documentation;
+- documented escalation procedures; and
+- third-level support for issues that cannot be resolved through documented
+  partner procedures.
 
-### 5. Empaxis / Communify: Second-Wave Scale Partner
+PPAR should not be copied on routine client support requests. A partner
+escalation should include a reproducible, minimized support package that omits
+client-confidential data unless the client has expressly authorized its use.
 
-Test standardized outsourced workflows, larger volumes, repeated operations,
-quality-control procedures, and deployment across multiple client environments.
+## Product Requirements for a Partner Channel
 
-## Suggested Engagement Sequence
+A partner-operated model still requires the product to reduce avoidable
+configuration and support work. Important capabilities include:
 
-### Phase 1: Technical Reality Check
+- a versioned Axys/APX Audit configuration profile based on validation evidence;
+- a clear separation between universal safety invariants, reusable Axys/APX
+  defaults, required client decisions, and optional advanced settings;
+- strict preflight validation with actionable error messages;
+- an inspectable effective configuration retained with each run;
+- stable input and output contracts;
+- version and migration guidance for configuration changes;
+- partner onboarding and readiness checklists;
+- deterministic demonstrations and accepted regression scenarios;
+- a minimized diagnostic bundle for partner escalation; and
+- a documented responsibility matrix distinguishing product defects from
+  client-specific configuration and interpretation.
 
-Work with Quartare to review the source contract, representative extracts,
-Axys/APX terminology, security identity, transaction semantics, and important
-edge cases. Resolve authenticity problems before requesting client data.
+The goal is not to hide client decisions. It is to make the configuration
+surface appropriate for an expert implementer and prevent each partner from
+having to rediscover PPAR's stable Axys/APX behavior.
 
-### Phase 2: Controlled Operational Validation
+## Phased Validation and Channel Approach
 
-Work with CSSI on synthetic or deidentified examples representing several real
-operational patterns. Measure false positives, unexplained residuals, missing
-evidence, report usefulness, and time required to investigate findings.
+### Phase 1: Technical Validation
 
-### Phase 3: Private End-User Beta
+Engage Quartare or another strong Axys/APX subject-matter expert to review:
 
-Recruit two or three Axys/APX firms. Require participants to perform setup and
-normal operation from the documentation, with assistance tracked rather than
-silently supplied. Capture both product defects and workflow friction.
+- source and extract authenticity;
+- Axys/APX terminology and common conventions;
+- transaction and security interpretation;
+- performance-history and restatement behavior;
+- YAML usability for an experienced implementer; and
+- representative difficult cases.
 
-### Phase 4: Independent Methodology Review
+This phase is a technical reality check, not a certification or endorsement.
 
-Ask Longs Peak or ACA to review a defined package of calculations, classifications,
-reports, and claims. This review should identify methodological weaknesses without
-being represented as certification, verification, or endorsement.
+### Phase 2: First Managed-Service Pilot
 
-### Phase 5: Scale and Repeatability
+Select Empaxis or CSSI as the lead operating partner and run PPAR against one
+authorized real-client environment. The partner should perform the source
+mapping and YAML configuration while PPAR observes where the product, contracts,
+documentation, or diagnostics require improvement.
 
-Engage Empaxis to evaluate repeated runs, multiple operating teams, larger data
-sets, standardized controls, and deployment across more than one client pattern.
+Measure:
 
-## Partner Selection Criteria
+- implementation hours and assistance required;
+- configuration questions;
+- source-contract gaps;
+- false positives and missed issues;
+- explained and unexplained differences;
+- reviewer usefulness;
+- partner confidence in the evidence; and
+- issues that reached PPAR rather than being resolved by the partner.
 
-Before accepting a validation partner, confirm that it can provide several of the
-following:
+### Phase 3: Partner Independence Test
 
-- Current hands-on Axys/APX experience
-- Ability to produce or interpret representative IMEX or REP extracts
-- Investment-performance and portfolio-accounting expertise
-- Experience with historical corrections and restatements
-- A credible source of expected results or other ground truth
-- Willingness to give structured, critical feedback
-- Permission and governance for every data set used
-- No demand for product exclusivity or ownership of general product improvements
-- A named practitioner who will do the work, not only an executive sponsor
+The lead partner should implement a second client without routine direct
+participation from PPAR.
 
-## Commercial and Data Safeguards
+This is the critical scalability gate. If the second implementation still
+requires extensive founder interpretation, PPAR is not yet ready for a partner
+channel. The observed support should be used to distinguish missing product
+capability from documentation gaps and legitimate client-specific decisions.
 
-Quartare, CSSI, and Empaxis all provide services adjacent to reconciliation,
-performance reporting, operations, or financial technology. That proximity makes
-them knowledgeable, but it also warrants clear engagement boundaries.
+### Phase 4: Second Service Partner
 
-Each relationship should address:
+After the lead partner has completed a repeat implementation, add a second
+service provider. This determines whether PPAR is genuinely partner-operable or
+merely dependent on one firm's institutional knowledge and custom practices.
 
-- Mutual confidentiality obligations
-- No exclusivity
-- Ownership of PPAR Audit and of generally applicable product improvements
-- The treatment of partner-specific materials and confidential feedback
-- Express client authorization before any client data is used
-- Deidentification or execution inside a client-controlled environment whenever
-  practical
-- Data minimization, retention, and deletion requirements
-- Permission requirements for public references, testimonials, or case studies
+No initial partner should receive exclusivity.
 
-PPAR Audit should also be described carefully. It detects, compares, explains,
-and helps investigate portfolio-performance and source-data differences. Unless
-that scope changes through a separate professional process, it does not provide a
-financial-statement audit, GIPS verification, attestation, certification, or
-assurance opinion.
+### Phase 5: Commercial Partner Release
 
-## Conclusion
+Launch a formal partner edition only after the independence test succeeds. The
+release should include:
 
-The proposed shortlist is well chosen. Quartare and CSSI are the strongest
-starting candidates because they provide complementary technical and operational
-perspectives. The essential improvement is to supplement them with actual
-Axys/APX end users and an independent performance-methodology reviewer. Empaxis
-should be retained as a valuable second-wave candidate once the initial product
-and engagement model have been demonstrated.
+- stable and versioned releases;
+- partner installation and implementation documentation;
+- the validated configuration profile;
+- preflight and diagnostic tooling;
+- commercial partner licensing;
+- explicit support and escalation boundaries; and
+- an agreed release and compatibility policy.
+
+## Material Risks and Mitigations
+
+### Support Is Concentrated, Not Eliminated
+
+Partners will still require product support. The model succeeds only when
+partners can resolve client-specific mapping, policy, operation, and
+interpretation questions themselves.
+
+Mitigation: enforce the responsibility boundary and use the second-client
+independence test as a commercial gate.
+
+### Partner Incentives May Conflict
+
+Automation can reduce billable investigative labor. A partner may therefore
+adopt PPAR only if it improves service margin, capacity, consistency, or client
+retention.
+
+Mitigation: position PPAR as a way to scale a recurring managed service, improve
+quality control, and support reviewer-ready delivery rather than simply reduce
+hours.
+
+### Product Feedback May Become Indirect
+
+PPAR may lose direct visibility into how end users understand and act on
+reports.
+
+Mitigation: require structured partner feedback, anonymized implementation
+metrics, periodic product reviews, and permission to observe selected early
+review sessions when the client agrees.
+
+### Partner Dependence
+
+A single partner could become the only source of clients, implementation
+knowledge, and product feedback.
+
+Mitigation: use non-exclusive agreements and add a second partner only after
+the first operating model is repeatable.
+
+### Adjacent Development Capability
+
+The strongest partners already build automation, reconciliation, reporting, and
+data tools. That makes them valuable validators but also capable of developing
+adjacent or competing solutions.
+
+Mitigation: use clear intellectual-property boundaries, retain PPAR attribution,
+restrict competing derivative products, keep future differentiated engine logic
+outside public repositories, and evaluate compiled delivery for the commercial
+engine.
+
+### Product Claims
+
+Partners may be tempted to market PPAR as an audit, certification, or assurance
+service beyond the product's demonstrated scope.
+
+Mitigation: require approved product descriptions and preserve PPAR's current
+boundary: it detects, compares, explains, and helps investigate supported
+performance and source-data differences, but does not itself provide an audit
+opinion, GIPS verification, attestation, certification, or assurance.
+
+## Success Criteria
+
+The partner model is ready for broader commercial use when:
+
+- a qualified partner can configure and operate PPAR for a second client
+  without routine founder involvement;
+- the partner resolves normal source, YAML, policy, and interpretation questions;
+- escalations are limited to reproducible product defects and core-engine
+  questions;
+- client data remains in an approved client- or partner-controlled environment;
+- generated evidence is useful to both the partner and client reviewer;
+- the configuration can be reproduced from its retained effective form;
+- the partner is willing to deliver PPAR as a recurring service; and
+- a second partner can adopt the product without inheriting the first partner's
+  undocumented knowledge.
+
+## Recommendation
+
+PPAR should pursue a channel-first strategy built around a small number of
+expert service partners rather than direct sales and support for many Axys/APX
+firms.
+
+The recommended sequence is:
+
+1. use Quartare as a technical and domain reality check;
+2. use Empaxis or CSSI as the first managed-service pilot partner;
+3. require a second-client independence test;
+4. add a second non-exclusive operating partner; and
+5. launch a formal partner edition only after the support boundary has been
+   demonstrated in practice.
+
+This structure allows PPAR to remain a focused product operation while qualified
+partners own client implementation, configuration, interpretation, and service
+delivery.

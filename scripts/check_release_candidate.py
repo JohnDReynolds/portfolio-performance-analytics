@@ -23,6 +23,7 @@ _VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python"
 _CHECK_CACHE_DIR = _PROJECT_ROOT / ".cache" / "check_release_candidate"
 _AUDIT_DEMO_WORKSPACE = _PROJECT_ROOT / "_demo_output" / "audit_workspace"
 _AUDIT_OUTPUT_ROOT = _PROJECT_ROOT / "_demo_output" / "audit"
+_DIST_DIRECTORY = _PROJECT_ROOT / "dist"
 _OUTPUT_DIRECTORIES = (
     _PROJECT_ROOT / "_demo_output" / "generic_analytics_data_generation",
     _AUDIT_DEMO_WORKSPACE,
@@ -40,12 +41,14 @@ class ReleaseCandidateRunner:
         completed_phases: Names of phases that completed successfully.
         skipped_items: Notes describing checks intentionally skipped by options.
         changed_asset_notes: Notes describing options that may modify tracked files.
+        release_artifacts: Validated distribution files created by this run.
     """
 
     verbose: bool = False
     completed_phases: list[str] = field(default_factory=list)
     skipped_items: list[str] = field(default_factory=list)
     changed_asset_notes: list[str] = field(default_factory=list)
+    release_artifacts: list[Path] = field(default_factory=list)
 
     def phase(self, number: int, name: str) -> None:
         """Print a numbered release-candidate phase heading.
@@ -137,6 +140,14 @@ class ReleaseCandidateRunner:
             print("\nTracked assets may have changed:", flush=True)
             for item in self.changed_asset_notes:
                 print(f"  - {item}", flush=True)
+        if self.release_artifacts:
+            print("\nRelease artifacts:", flush=True)
+            for artifact in self.release_artifacts:
+                relative_path = artifact.relative_to(_PROJECT_ROOT)
+                print(
+                    f"  - {relative_path} ({artifact.stat().st_size:,} bytes)",
+                    flush=True,
+                )
 
 
 def _format_command(command: Sequence[str | Path]) -> str:
@@ -295,10 +306,11 @@ def _release_asset_refresh_scope(
         refresh_images: Whether the caller explicitly requested README images.
 
     Returns:
-        A tuple of ``(refresh_images, refresh_pdf)``. A release build always
-        refreshes the PDF so the product overview cannot lag behind README.md.
+        A tuple of ``(refresh_images, refresh_pdf)``. A release build refreshes
+        every tracked README image and the PDF so release assets cannot lag
+        behind their generated reports or source documentation.
     """
-    return refresh_images, build or refresh_images
+    return build or refresh_images, build or refresh_images
 
 
 def _run_readme_asset_refresh(
@@ -343,6 +355,63 @@ def _run_scale_regression_check(runner: ReleaseCandidateRunner) -> None:
     runner.run([_VENV_PYTHON, "scripts/check_scale.py", "--scale", "500"])
 
 
+def _create_distribution_artifacts(
+    runner: ReleaseCandidateRunner,
+) -> tuple[Path, Path]:
+    """Build and validate the retained wheel and source distribution.
+
+    Args:
+        runner: Release-candidate command runner.
+
+    Returns:
+        Validated wheel and source-distribution paths.
+
+    Raises:
+        RuntimeError: If the build does not create exactly one wheel and one
+            source distribution.
+    """
+    for generated_path in (
+        _DIST_DIRECTORY,
+        _PROJECT_ROOT / "build",
+        _PROJECT_ROOT / "ppar.egg-info",
+    ):
+        shutil.rmtree(generated_path, ignore_errors=True)
+    _DIST_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+    runner.run(
+        [
+            _VENV_PYTHON,
+            "-m",
+            "build",
+            "--wheel",
+            "--sdist",
+            "--no-isolation",
+            "--outdir",
+            _DIST_DIRECTORY,
+        ]
+    )
+    wheel_paths = sorted(_DIST_DIRECTORY.glob("*.whl"))
+    source_distribution_paths = sorted(_DIST_DIRECTORY.glob("*.tar.gz"))
+    if len(wheel_paths) != 1 or len(source_distribution_paths) != 1:
+        raise RuntimeError(
+            "Release build expected exactly one wheel and one source distribution; "
+            f"found {len(wheel_paths)} wheel(s) and "
+            f"{len(source_distribution_paths)} source distribution(s)."
+        )
+
+    artifacts = (wheel_paths[0], source_distribution_paths[0])
+    runner.run(
+        [
+            _VENV_PYTHON,
+            "-m",
+            "twine",
+            "check",
+            *artifacts,
+        ]
+    )
+    return artifacts
+
+
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments.
 
@@ -380,8 +449,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         "--refresh-images",
         action="store_true",
         help=(
-            "Refresh tracked README images and the root PPAR.pdf. Release builds "
-            "refresh PPAR.pdf even when this option is omitted."
+            "Refresh tracked README images and the root PPAR.pdf without creating "
+            "distribution files. --build includes this refresh automatically."
         ),
     )
     parser.add_argument(
@@ -393,7 +462,9 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         "--build",
         action="store_true",
         help=(
-            "Refresh PPAR.pdf and include the final wheel/sdist build check."
+            "Create a fully validated release candidate: clean generated output, "
+            "refresh README images and PPAR.pdf, run full checks and installed-wheel "
+            "smoke tests, and write Twine-validated wheel/sdist files to dist/."
         ),
     )
     parser.add_argument(
@@ -406,7 +477,15 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="Stream full subcommand output instead of only command names.",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.build and args.quick:
+        parser.error("--build cannot be combined with --quick; release builds run full checks.")
+    if args.build and args.skip_project_check:
+        parser.error(
+            "--build cannot be combined with --skip-project-check; "
+            "release builds must pass project checks."
+        )
+    return args
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -422,7 +501,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     runner = ReleaseCandidateRunner(verbose=args.verbose)
 
-    if args.clean_output:
+    if args.clean_output or args.build:
         _clean_generated_output(runner)
     else:
         runner.skip("Generated-output cleanup; use --clean-output to remove caches first.")
@@ -488,6 +567,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         runner.complete("Project checks")
     else:
         runner.skip("Project checks; --skip-project-check was supplied.")
+
+    runner.phase(8, "Create retained distribution artifacts")
+    if args.build:
+        runner.release_artifacts.extend(_create_distribution_artifacts(runner))
+        runner.complete("Twine-validated wheel and source distribution under dist/")
+    else:
+        runner.skip(
+            "Retained distribution artifacts; use --build to create the release "
+            "candidate under dist/."
+        )
 
     runner.print_summary()
     return 0
