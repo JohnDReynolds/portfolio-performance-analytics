@@ -1,72 +1,45 @@
-# MyStuff: generated project outputs
+# Generated project outputs
 /_demo_output/
 /.cache/
 
-# Byte-compiled / optimized / DLL files
+# Python-generated files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
 # Distribution / packaging
-.Python
-env/
-venv/
-ENV/
-build/
-dist/
+/build/
+/dist/
 *.egg-info/
 .eggs/
 *.wheel
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
+# Installer remnants
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Tests, type checking, and profiling
+/.pytest_cache/
+/.mypy_cache/
+.dmypy.json
+dmypy.json
 htmlcov/
-.tox/
-.nox/
 .coverage
+.coverage.*
 *.cover
 *.py,cover
-nosetests.xml
 coverage.xml
 *.prof
 .profraw
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
 # pyenv
 .python-version
 
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath
-*.sage.py
-
-# Environments
+# Local environment
 .env
 .env.*
-.venv
-venv/
+!.env.example
+/.venv/
 
 # IDEs and text editors
 .vscode/
@@ -98,16 +71,3 @@ $RECYCLE.BIN/
 *.~*
 .~lock.*#
 *.temp
-
-# Logs and databases
-*.log
-*.sqlite3
-*.db
-
-# Local config files
-*.local
-*.config
-
-# Other
-*.pyo
-*.dump
