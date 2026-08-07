@@ -26,6 +26,7 @@ SITE_DIRECTORY: Path = Path(__file__).resolve().parent
 OUTPUT_DIRECTORY: Path = SITE_DIRECTORY / "output"
 CLASSIFICATION_NAME = "Economic Sector"
 SECURITY_CLASSIFICATION_PATH = SITE_DIRECTORY / "classifications" / "Security.csv"
+HOLIDAYS_PATH = SITE_DIRECTORY / "holidays.csv"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -46,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         portfolio_classification_name="Security",
         benchmark_classification_name="Security",
         frequency=Frequency.QUARTERLY,
+        holidays=HOLIDAYS_PATH,
     )
 
     # These files define how each security rolls up to an economic sector. The

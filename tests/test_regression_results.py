@@ -33,6 +33,7 @@ _CHART_DEPENDENCIES_AVAILABLE = all(
     importlib.util.find_spec(dependency) is not None
     for dependency in ("matplotlib", "seaborn")
 )
+_HOLIDAYS_PATH = Path("tests/data/holidays.csv")
 
 
 class TestRegressionResults(unittest.TestCase):
@@ -172,6 +173,7 @@ class TestRegressionResults(unittest.TestCase):
             benchmark_classification_name="Security",
             from_date=dt.date(2023, 11, 1),
             frequency=Frequency.MONTHLY,
+            holidays=_HOLIDAYS_PATH,
         )
         economic_sector = test_util.get_attribution(analytics, "Economic Sector")
         security = test_util.get_attribution(analytics, "Security")
@@ -179,13 +181,13 @@ class TestRegressionResults(unittest.TestCase):
         self.assertTrue(
             util.are_near(
                 economic_sector.to_polars(View.OVERALL_ATTRIBUTION)[cols.TOTAL_EFFECT_SMOOTHED][3],
-                0.0047794523621773125,
+                0.0035217681281472036,
             )
         )
         self.assertTrue(
             util.are_near(
                 security.to_polars(View.OVERALL_ATTRIBUTION)[cols.ALLOCATION_EFFECT_SMOOTHED][0],
-                -0.017280820318116667,
+                -0.02530492084517063,
             )
         )
         self.assertTrue(
@@ -213,10 +215,16 @@ class TestRegressionResults(unittest.TestCase):
             )
         )
         self.assertTrue(
-            util.are_near(economic_sector._df[cols.TOTAL_EFFECT_SMOOTHED][3], 0.1585372255258416)
+            util.are_near(
+                economic_sector._df[cols.TOTAL_EFFECT_SMOOTHED][3],
+                0.16511216121906178,
+            )
         )
         self.assertTrue(
-            util.are_near(economic_sector._df[cols.ACTIVE_CONTRIB_SMOOTHED][3], 0.1463257464885667)
+            util.are_near(
+                economic_sector._df[cols.ACTIVE_CONTRIB_SMOOTHED][3],
+                0.15015080069710046,
+            )
         )
 
     def test_riskstatistics_csv_results_and_serialization_paths(self) -> None:

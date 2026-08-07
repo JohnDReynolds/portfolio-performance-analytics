@@ -293,6 +293,28 @@ class TestScaleCheck(unittest.TestCase):
         )
         self.assertIn("Alpha_LOAD_09", set(expanded_reference["Security Name"]))
 
+    def test_risk_difference_invariant_checks_the_derived_column(self) -> None:
+        """Selected-workload risk checks retain exact subtraction validation."""
+        risk = pl.DataFrame(
+            {
+                "column": ["Value At Risk", "Tracking Error"],
+                "Portfolio": [9_391.0, 0.02],
+                "Benchmark": [9_385.0, float("nan")],
+                "Difference": [6.0, float("nan")],
+            }
+        )
+
+        check_scale._assert_risk_difference_invariant(risk)
+
+        changed = risk.with_columns(
+            pl.when(pl.col("column") == "Value At Risk")
+            .then(6.01)
+            .otherwise(pl.col("Difference"))
+            .alias("Difference")
+        )
+        with self.assertRaises(AssertionError):
+            check_scale._assert_risk_difference_invariant(changed)
+
     def test_generated_paths_must_stay_inside_workspace(self) -> None:
         """Scale generation rejects paths outside its temporary workspace."""
         with tempfile.TemporaryDirectory() as directory:

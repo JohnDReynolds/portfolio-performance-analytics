@@ -32,6 +32,7 @@ ERRORS = {
     # Analytics Class Error Messages
     252: "Error 252: Must specify classification_name",
     253: "Error 253: A fixed-frequency source series has missing date coverage: ",
+    254: "Error 254: Invalid holidays file: ",
     # Classification Class Error Messages
     302: "Error 302: The Classification DataFrame must contain exactly 2 columns.",
     # Mapping Class Error Messages

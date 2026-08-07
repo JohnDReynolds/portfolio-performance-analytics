@@ -6,7 +6,10 @@
 
 # Python Imports
 import datetime as dt
+from pathlib import Path
+import tempfile
 import unittest
+import warnings
 
 # Test Imports
 from tests import test_utilities as test_util
@@ -20,18 +23,22 @@ from ppar.analytics.frequency import (
     Frequency,
     frequency_bucket,
     frequency_bucket_end,
+    frequency_bucket_effective_end,
+    load_holidays,
 )
 from ppar.analytics.performance import Performance
 import ppar.errors as errs
 from ppar.errors import PpaError
 import ppar.utilities as util
 
+_HOLIDAYS_PATH = Path("tests/data/holidays.csv")
+
 
 class TestFrequencyIntegration(unittest.TestCase):
     """Verify fixture-based consolidation and date-window workflows."""
 
     def test_fixed_frequency_endpoint_candidates_are_conservative(self) -> None:
-        """Weekend month ends accept Friday without accepting incomplete weekdays."""
+        """Calendar and weekend endpoints do not accept incomplete weekdays."""
         cases = (
             (dt.date(2022, 12, 30), Frequency.MONTHLY, True),
             (dt.date(2023, 12, 29), Frequency.MONTHLY, True),
@@ -56,9 +63,24 @@ class TestFrequencyIntegration(unittest.TestCase):
                     date_matches_frequency(date, frequency),
                     expected,
                 )
+        good_friday = frozenset((dt.date(2024, 3, 29),))
+        self.assertFalse(
+            date_matches_frequency(
+                dt.date(2024, 3, 29),
+                Frequency.QUARTERLY,
+                good_friday,
+            )
+        )
+        self.assertTrue(
+            date_matches_frequency(
+                dt.date(2024, 3, 28),
+                Frequency.QUARTERLY,
+                good_friday,
+            )
+        )
 
-    def test_frequency_bucket_end_is_the_nominal_calendar_label(self) -> None:
-        """Weekend-adjusted source dates retain canonical report labels."""
+    def test_frequency_bucket_end_remains_the_nominal_calendar_boundary(self) -> None:
+        """Bucket metadata retains its calendar boundary."""
         for date, frequency, expected_end in (
             (
                 dt.date(2023, 12, 29),
@@ -85,6 +107,58 @@ class TestFrequencyIntegration(unittest.TestCase):
                     expected_end,
                 )
 
+    def test_effective_end_rolls_over_weekends_and_consecutive_holidays(
+        self,
+    ) -> None:
+        """Configured closures roll backward until a usable weekday is found."""
+        cases = (
+            (
+                dt.date(2023, 7, 31),
+                Frequency.MONTHLY,
+                frozenset((dt.date(2023, 7, 31),)),
+                dt.date(2023, 7, 28),
+            ),
+            (
+                dt.date(2024, 3, 31),
+                Frequency.QUARTERLY,
+                frozenset((dt.date(2024, 3, 29),)),
+                dt.date(2024, 3, 28),
+            ),
+            (
+                dt.date(2023, 12, 31),
+                Frequency.YEARLY,
+                frozenset(
+                    (
+                        dt.date(2023, 12, 28),
+                        dt.date(2023, 12, 29),
+                    )
+                ),
+                dt.date(2023, 12, 27),
+            ),
+        )
+
+        for nominal_end, frequency, holidays, expected_end in cases:
+            with self.subTest(
+                nominal_end=nominal_end,
+                frequency=frequency,
+            ):
+                bucket = frequency_bucket(nominal_end, frequency)
+                self.assertEqual(
+                    frequency_bucket_effective_end(
+                        bucket,
+                        frequency,
+                        holidays,
+                    ),
+                    expected_end,
+                )
+                self.assertTrue(
+                    date_matches_frequency(
+                        expected_end,
+                        frequency,
+                        holidays,
+                    )
+                )
+
     def test_crazy_frequency(self) -> None:
         """Irregular portfolio and benchmark frequency inputs align correctly."""
         analytics = Analytics(
@@ -104,6 +178,7 @@ class TestFrequencyIntegration(unittest.TestCase):
             test_util.performance_data_path("Big 2"),
             from_date=dt.date(2021, 1, 1),
             frequency=Frequency.MONTHLY,
+            holidays=_HOLIDAYS_PATH,
         )
         attribution = test_util.get_attribution(analytics)
         output = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
@@ -132,6 +207,7 @@ class TestFrequencyIntegration(unittest.TestCase):
             test_util.performance_data_path("Big 2"),
             from_date=dt.date(2021, 1, 1),
             frequency=Frequency.QUARTERLY,
+            holidays=_HOLIDAYS_PATH,
         )
         attribution = test_util.get_attribution(analytics)
         output = attribution.to_polars(View.SUBPERIOD_SUMMARY)
@@ -228,11 +304,11 @@ class TestFrequencyIntegration(unittest.TestCase):
         self.assertEqual(summary.height, 2)
         self.assertEqual(
             summary[cols.THRU_DATE].to_list(),
-            [dt.date(2021, 1, 31), dt.date(2021, 2, 28)],
+            [dt.date(2021, 1, 29), dt.date(2021, 2, 28)],
         )
 
-    def test_fixed_frequency_aligns_different_source_end_dates_by_bucket(self) -> None:
-        """Friday and literal weekend endpoints share one canonical month."""
+    def test_fixed_frequency_rejects_different_actual_source_end_dates(self) -> None:
+        """Portfolio and benchmark must use the same actual reporting endpoint."""
         portfolio = test_util.make_performance_df(
             ((dt.date(2023, 12, 1), dt.date(2023, 12, 29)),),
             {"A": ([0.01], [1.0])},
@@ -242,17 +318,12 @@ class TestFrequencyIntegration(unittest.TestCase):
             {"A": ([0.02], [1.0])},
         )
 
-        summary = Analytics(
-            portfolio,
-            benchmark,
-            frequency=Frequency.MONTHLY,
-        ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
-
-        self.assertEqual(summary.height, 1)
-        self.assertEqual(summary[cols.FROM_DATE].item(), dt.date(2023, 12, 1))
-        self.assertEqual(summary[cols.THRU_DATE].item(), dt.date(2023, 12, 31))
-        self.assertTrue(util.are_near(summary[cols.PORTFOLIO_RETURN].item(), 0.01))
-        self.assertTrue(util.are_near(summary[cols.BENCHMARK_RETURN].item(), 0.02))
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[253]):
+            Analytics(
+                portfolio,
+                benchmark,
+                frequency=Frequency.MONTHLY,
+            )
 
     def test_fixed_frequency_prefers_one_bucket_when_two_endpoints_qualify(
         self,
@@ -315,22 +386,83 @@ class TestFrequencyIntegration(unittest.TestCase):
                 frequency=Frequency.MONTHLY,
             )
 
-    def test_fixed_frequency_rejects_incomplete_interior_bucket(self) -> None:
-        """An incomplete month cannot be silently merged into the next month."""
+    def test_fixed_frequency_truncates_at_incomplete_interior_bucket(self) -> None:
+        """An incomplete month truncates later output with an explicit warning."""
         performance = test_util.make_performance_df(
             (
+                (dt.date(2023, 11, 1), dt.date(2023, 11, 30)),
                 (dt.date(2023, 12, 1), dt.date(2023, 12, 28)),
                 (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
             ),
-            {"A": ([0.01, 0.02], [1.0, 1.0])},
+            {"A": ([0.01, 0.02, 0.03], [1.0, 1.0, 1.0])},
         )
 
-        with self.assertRaisesRegex(PpaError, errs.ERRORS[253]):
-            Analytics(
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            summary = Analytics(
                 performance,
                 performance.clone(),
                 frequency=Frequency.MONTHLY,
+            ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+
+        self.assertEqual(summary[cols.THRU_DATE].to_list(), [dt.date(2023, 11, 30)])
+        self.assertEqual(len(caught), 1)
+        self.assertIn("source endpoint 2023-12-28", str(caught[0].message))
+        self.assertIn("expected endpoint 2023-12-29", str(caught[0].message))
+
+    def test_holiday_file_authorizes_the_prior_business_endpoint(self) -> None:
+        """A configured Friday holiday makes Thursday the accepted endpoint."""
+        performance = test_util.make_performance_df(
+            (
+                (dt.date(2023, 10, 1), dt.date(2023, 12, 29)),
+                (dt.date(2023, 12, 30), dt.date(2024, 3, 28)),
+                (dt.date(2024, 3, 29), dt.date(2024, 6, 28)),
+            ),
+            {"A": ([0.01, 0.02, 0.03], [1.0, 1.0, 1.0])},
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            holidays_path = Path(directory) / "holidays.csv"
+            holidays_path.write_text("2024-03-29\n", encoding="utf-8")
+            summary = Analytics(
+                performance,
+                performance.clone(),
+                frequency=Frequency.QUARTERLY,
+                holidays=holidays_path,
+            ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+
+        self.assertEqual(
+            summary[cols.THRU_DATE].to_list(),
+            [
+                dt.date(2023, 12, 29),
+                dt.date(2024, 3, 28),
+                dt.date(2024, 6, 28),
+            ],
+        )
+
+    def test_headerless_holidays_file_is_strict(self) -> None:
+        """Holiday files require unique ISO dates and exactly one column."""
+        with tempfile.TemporaryDirectory() as directory:
+            holidays_path = Path(directory) / "holidays.csv"
+            holidays_path.write_text(
+                "2024-03-29\n2024-12-25\n",
+                encoding="utf-8",
             )
+            self.assertEqual(
+                load_holidays(holidays_path),
+                frozenset((dt.date(2024, 3, 29), dt.date(2024, 12, 25))),
+            )
+
+            for invalid_text in (
+                "date\n2024-03-29\n",
+                "2024-03-29,Good Friday\n",
+                "2024-03-29\n2024-03-29\n",
+                "\n",
+            ):
+                with self.subTest(invalid_text=invalid_text):
+                    holidays_path.write_text(invalid_text, encoding="utf-8")
+                    with self.assertRaisesRegex(PpaError, errs.ERRORS[254]):
+                        load_holidays(holidays_path)
 
     def test_specify_dates(self) -> None:
         """Explicit dates filter the fixture performance rows inclusively."""

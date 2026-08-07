@@ -9,10 +9,12 @@ Attribution and RiskStatistics objects.
 # Python Imports
 import bisect
 from collections.abc import Hashable
+from dataclasses import dataclass
 import datetime as dt
 import hashlib
 from pathlib import Path
 from typing import cast, Protocol, Sequence
+import warnings
 
 # Third-Party Imports
 import pandas as pd
@@ -24,8 +26,9 @@ from ppar.analytics.frequency import (
     Frequency,
     date_matches_frequency,
     frequency_bucket,
-    frequency_bucket_end,
+    frequency_bucket_effective_end,
     frequency_bucket_label,
+    load_holidays,
     validate_frequency_coverage,
 )
 from ppar.analytics.mapping import Mapping
@@ -45,27 +48,32 @@ _AttributionCacheKey = tuple[
 _FREQUENCY_BUCKET_COLUMN = "_frequency_bucket"
 
 
+@dataclass(frozen=True)
+class _FrequencyTruncation:
+    """Describe the first nonterminal reporting bucket with an invalid endpoint."""
+
+    bucket: int
+    actual_end: dt.date | None
+    expected_end: dt.date
+
+
 def _completed_frequency_bucket_ends(
     source_periods: pl.DataFrame,
     frequency: Frequency,
-    error_context: str,
-) -> dict[int, dt.date]:
-    """Return source endpoints for complete fixed-frequency buckets.
+    holidays: frozenset[dt.date],
+) -> tuple[dict[int, dt.date], _FrequencyTruncation | None]:
+    """Return the contiguous prefix of complete fixed-frequency buckets.
 
     Args:
         source_periods: One row per source period, ordered by thru date.
         frequency: Fixed reporting frequency.
-        error_context: Performance context included in validation failures.
+        holidays: Dates treated as nonbusiness days.
 
     Returns:
-        Mapping from complete reporting bucket to its latest source thru date.
-        A source period spanning a nominal endpoint proves an interior bucket
-        rollover, including exchange-holiday cases. An incomplete final bucket
-        is omitted.
-
-    Raises:
-        PpaError: If an interior reporting bucket is absent or does not end on
-            an accepted calendar or weekend-adjusted boundary.
+        Mapping from consecutive reporting buckets to their actual source thru
+        dates, followed by information about the first invalid nonterminal
+        bucket. An incomplete final bucket is omitted without a truncation
+        notice.
     """
     source_dates = list(
         source_periods.select(cols.DATE_COLUMNS)
@@ -76,48 +84,35 @@ def _completed_frequency_bucket_ends(
     validate_frequency_coverage(source_dates, frequency)
 
     latest_thru_date_by_bucket: dict[int, dt.date] = {}
-    boundary_spanning_buckets: set[int] = set()
-    for _from_date, thru_date in source_dates:
+    for _, thru_date in source_dates:
         bucket = frequency_bucket(thru_date, frequency)
         latest_thru_date_by_bucket[bucket] = max(
             thru_date,
             latest_thru_date_by_bucket.get(bucket, dt.date.min),
         )
-        from_bucket = frequency_bucket(_from_date, frequency)
-        for crossed_bucket in range(from_bucket, bucket):
-            nominal_end = frequency_bucket_end(crossed_bucket, frequency)
-            if _from_date <= nominal_end <= thru_date:
-                boundary_spanning_buckets.add(crossed_bucket)
 
     first_bucket = min(latest_thru_date_by_bucket)
     last_bucket = max(latest_thru_date_by_bucket)
-    incomplete_interior_buckets: list[int] = []
     completed_bucket_ends: dict[int, dt.date] = {}
     for bucket in range(first_bucket, last_bucket + 1):
         thru_date = latest_thru_date_by_bucket.get(bucket)
-        if thru_date is not None and (
-            date_matches_frequency(thru_date, frequency)
-            or bucket in boundary_spanning_buckets
+        if (
+            thru_date is not None
+            and date_matches_frequency(thru_date, frequency, holidays)
         ):
             completed_bucket_ends[bucket] = thru_date
-        elif bucket != last_bucket:
-            incomplete_interior_buckets.append(bucket)
-
-    if incomplete_interior_buckets:
-        labels = [
-            frequency_bucket_label(bucket, frequency)
-            for bucket in incomplete_interior_buckets
-        ]
-        raise PpaError(
-            f"{error_context}: reporting buckets do not have complete endpoints "
-            f"for {labels}.",
-            253,
-            context={
-                "frequency": frequency.value,
-                "incomplete_periods": labels,
-            },
+            continue
+        if bucket == last_bucket:
+            return completed_bucket_ends, None
+        return (
+            completed_bucket_ends,
+            _FrequencyTruncation(
+                bucket,
+                thru_date,
+                frequency_bucket_effective_end(bucket, frequency, holidays),
+            ),
         )
-    return completed_bucket_ends
+    return completed_bucket_ends, None
 
 
 def _data_source_cache_token(source: util.AllDataSources | None) -> Hashable:
@@ -198,6 +193,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             util.DEFAULT_PORTFOLIO_VALUE,
             util.DEFAULT_CURRENCY_SYMBOL,
         ),
+        holidays: util.PathLike | None = None,
     ):
         """Initialize an Analytics instance.
 
@@ -234,6 +230,9 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             confidence_level: Confidence level used when calculating value at risk.
             portfolio_value: Tuple containing the portfolio value and its currency
                 symbol for value-at-risk calculations.
+            holidays: Optional path to a headerless, single-column file
+                containing one ``YYYY-MM-DD`` holiday per line. Configured
+                holidays extend the weekend-only effective-endpoint calendar.
 
         Data Parameters:
             ``portfolio_data_source`` and ``benchmark_data_source`` use the
@@ -281,6 +280,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         self._confidence_level = confidence_level
         self._default_attribution_sources = default_attribution_sources
         self._frequency = frequency
+        self._holidays = load_holidays(holidays)
         self._portfolio_value = portfolio_value
 
         # Initialize the internal data structures.
@@ -398,20 +398,36 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         df1 = self._performances[1].period_totals()
 
         if self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE:
-            complete_buckets = [
+            bucket_results = [
                 _completed_frequency_bucket_ends(
                     source_periods,
                     self._frequency,
-                    performance.error_message_context,
+                    self._holidays,
                 )
-                for source_periods, performance in zip(
-                    (df0, df1),
-                    self._performances,
-                )
+                for source_periods in (df0, df1)
             ]
+            complete_buckets = [result[0] for result in bucket_results]
             common_buckets = sorted(
                 set(complete_buckets[0]).intersection(complete_buckets[1])
             )
+            truncations = [
+                result[1] for result in bucket_results if result[1] is not None
+            ]
+            if truncations:
+                truncation = min(truncations, key=lambda item: item.bucket)
+                actual_end = (
+                    truncation.actual_end.isoformat()
+                    if truncation.actual_end is not None
+                    else "missing"
+                )
+                warnings.warn(
+                    f"{self._frequency.value} output was truncated before "
+                    f"{frequency_bucket_label(truncation.bucket, self._frequency)}: "
+                    f"source endpoint {actual_end} did not match expected endpoint "
+                    f"{truncation.expected_end.isoformat()}.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
             next_from_date = max(
                 cast(dt.date, df0[cols.FROM_DATE].min()),
                 cast(dt.date, df1[cols.FROM_DATE].min()),
@@ -419,7 +435,13 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             subperiod_dates = []
             subperiod_buckets = []
             for bucket in common_buckets:
-                thru_date = frequency_bucket_end(bucket, self._frequency)
+                thru_date = complete_buckets[0][bucket]
+                if complete_buckets[1][bucket] != thru_date:
+                    raise PpaError(
+                        "portfolio and benchmark effective endpoints differ for "
+                        f"{frequency_bucket_label(bucket, self._frequency)}.",
+                        253,
+                    )
                 if next_from_date <= thru_date:
                     subperiod_dates.append((next_from_date, thru_date))
                     subperiod_buckets.append(bucket)
@@ -546,12 +568,15 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
                     dtype=pl.Int64,
                 )
             )
-            assigned_periods = source_periods.join(
+            selected_source_periods = source_periods.filter(
+                pl.col(_FREQUENCY_BUCKET_COLUMN).is_in(self._subperiod_buckets)
+            )
+            assigned_periods = selected_source_periods.join(
                 subperiods,
                 on=_FREQUENCY_BUCKET_COLUMN,
                 how="inner",
             )
-            if assigned_periods.height != source_periods.height:
+            if assigned_periods.height != selected_source_periods.height:
                 raise PpaError(
                     f"{performance.error_message_context}: source periods did not "
                     "map one-to-one into aligned reporting buckets.",

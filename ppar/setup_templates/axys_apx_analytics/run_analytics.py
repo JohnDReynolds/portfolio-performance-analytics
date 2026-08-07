@@ -84,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     analytics = portfolio.to_analytics(
         benchmark,
         frequency=settings.frequency,
+        holidays=settings.holidays_path,
         annual_minimum_acceptable_return=settings.annual_minimum_acceptable_return,
         annual_risk_free_rate=settings.annual_risk_free_rate,
         confidence_level=settings.confidence_level,

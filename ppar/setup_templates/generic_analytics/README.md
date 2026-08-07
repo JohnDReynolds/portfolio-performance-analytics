@@ -29,9 +29,12 @@ files to open.
 
 1. Replace the portfolio and benchmark CSVs under `performance/`.
 2. Replace the classification and mapping CSVs if your hierarchy differs.
-3. Edit the clearly marked paths, classification name, and frequency in
+3. Replace `holidays.csv` with the relevant reporting holidays, or remove the
+   `holidays` argument from the script when weekends are the only nonbusiness
+   days. The file is headerless, with one `YYYY-MM-DD` date per line.
+4. Edit the clearly marked paths, classification name, and frequency in
    `run_generic_analytics.py`.
-4. Run the script again.
+5. Run the script again.
 
 The example keeps the complete Analytics workflow visible so it can serve as a
 starting point for a client-owned runner, scheduled process, or application
@@ -43,6 +46,7 @@ integration.
 my_ppar_generic_analytics/
   README.md
   run_generic_analytics.py
+  holidays.csv
   performance/
     Mega-Cap Alpha Portfolio.csv
     Mega-Cap Benchmark.csv

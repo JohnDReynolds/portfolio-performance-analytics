@@ -84,9 +84,11 @@ story remains true.
 - Current survivors and current GICS classifications are acceptable for this
   demo when the limitation remains documented.
 
-One requested holdings date, 2024-03-29, has no source rows. The generator uses
-2024-03-28, which remains in the same calendar month, while retaining March
-2024 as the performance period.
+One weekday-only request date, 2024-03-29, was Good Friday and has no source
+rows. The generator uses the available 2024-03-28 holdings snapshot and
+preserves 2024-03-28 as the effective performance endpoint. Monthly market
+prices likewise retain the date of the final observed close rather than a
+synthetic weekday month-end label.
 
 ## Current Accepted Dataset
 

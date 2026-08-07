@@ -2,8 +2,11 @@
 
 # Python imports
 import calendar
+from collections.abc import Collection
+import csv
 import datetime as dt
 from enum import Enum
+from pathlib import Path
 from typing import Sequence
 
 # Project imports
@@ -30,36 +33,101 @@ class Frequency(Enum):
     YEARLY = "Yearly"  # Calendar years.
 
 
-def date_matches_frequency(date: dt.date, frequency: Frequency) -> bool:
+def load_holidays(data_source: str | Path | None) -> frozenset[dt.date]:
+    """Load an optional headerless file containing one holiday date per line.
+
+    Args:
+        data_source: Path to a headerless, single-column file containing strict
+            ``YYYY-MM-DD`` dates, or ``None`` when no holidays are configured.
+
+    Returns:
+        Immutable set of configured holiday dates.
+
+    Raises:
+        PpaError: If a configured file is missing, empty, contains extra
+            columns, has an invalid date, or repeats a date.
+    """
+    if data_source is None:
+        return frozenset()
+    if isinstance(data_source, str) and not data_source.strip():
+        raise PpaError("path must not be blank.", 254)
+
+    path = Path(data_source)
+    if not path.is_file():
+        raise PpaError(f"file does not exist: {path}.", 254)
+
+    holidays: set[dt.date] = set()
+    with path.open("r", encoding="utf-8", newline="") as file:
+        for line_number, row in enumerate(csv.reader(file), start=1):
+            if not row or all(not value.strip() for value in row):
+                continue
+            if len(row) != 1:
+                raise PpaError(
+                    f"{path}, line {line_number} must contain exactly one date.",
+                    254,
+                )
+            value = row[0].strip()
+            try:
+                holiday = dt.date.fromisoformat(value)
+            except ValueError as error:
+                raise PpaError(
+                    f"{path}, line {line_number} is not a YYYY-MM-DD date: "
+                    f"{value!r}.",
+                    254,
+                ) from error
+            if holiday.isoformat() != value:
+                raise PpaError(
+                    f"{path}, line {line_number} is not a strict YYYY-MM-DD "
+                    f"date: {value!r}.",
+                    254,
+                )
+            if holiday in holidays:
+                raise PpaError(
+                    f"{path}, line {line_number} repeats {value}.",
+                    254,
+                )
+            holidays.add(holiday)
+
+    if not holidays:
+        raise PpaError(f"{path} contains no holiday dates.", 254)
+    return frozenset(holidays)
+
+
+def date_matches_frequency(
+    date: dt.date,
+    frequency: Frequency,
+    holidays: Collection[dt.date] = frozenset(),
+) -> bool:
     """Determine whether a date can close a reporting-frequency bucket.
 
     Args:
         date: The date to evaluate.
         frequency: The reporting frequency to test against.
+        holidays: Optional dates treated as nonbusiness days.
 
     Returns:
-        ``True`` when ``date`` is the literal calendar endpoint, or the
-        preceding Friday when that endpoint falls on Saturday or Sunday.
-        Returns ``False`` otherwise.
+        ``True`` when ``date`` is either the literal calendar endpoint or the
+        effective endpoint after rolling backward over weekends and configured
+        holidays. A configured holiday is never accepted as the literal
+        endpoint.
 
     Notes:
-        This is deliberately a last-weekday rule, not a market-calendar rule.
-        It does not infer that a weekday holiday closes a reporting period.
+        Without ``holidays``, this is deliberately a last-weekday rule rather
+        than a market-calendar rule.
     """
     if frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
         return True
 
-    calendar_endpoint = frequency_bucket_end(
-        frequency_bucket(date, frequency),
+    bucket = frequency_bucket(date, frequency)
+    calendar_endpoint = frequency_bucket_end(bucket, frequency)
+    return (
+        date == calendar_endpoint
+        and calendar_endpoint not in holidays
+    ) or date == frequency_bucket_effective_end(
+        bucket,
         frequency,
+        holidays,
     )
-    if date == calendar_endpoint:
-        return True
-    if calendar_endpoint.weekday() == 5:
-        return date == calendar_endpoint - dt.timedelta(days=1)
-    if calendar_endpoint.weekday() == 6:
-        return date == calendar_endpoint - dt.timedelta(days=2)
-    return False
 
 
 def frequency_bucket(date: dt.date, frequency: Frequency) -> int:
@@ -104,6 +172,29 @@ def frequency_bucket_end(bucket: int, frequency: Frequency) -> dt.date:
     if frequency == Frequency.YEARLY:
         return dt.date(bucket, 12, 31)
     return dt.date.fromordinal(bucket)
+
+
+def frequency_bucket_effective_end(
+    bucket: int,
+    frequency: Frequency,
+    holidays: Collection[dt.date] = frozenset(),
+) -> dt.date:
+    """Return the effective business endpoint for a reporting bucket.
+
+    Args:
+        bucket: Ordered bucket identifier returned by
+            :func:`frequency_bucket`.
+        frequency: Frequency defining the bucket.
+        holidays: Optional dates treated as nonbusiness days.
+
+    Returns:
+        Calendar endpoint rolled backward over Saturdays, Sundays, and
+        configured holidays.
+    """
+    endpoint = frequency_bucket_end(bucket, frequency)
+    while endpoint.weekday() >= 5 or endpoint in holidays:
+        endpoint -= dt.timedelta(days=1)
+    return endpoint
 
 
 def frequency_bucket_label(bucket: int, frequency: Frequency) -> str:

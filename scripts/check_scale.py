@@ -624,6 +624,7 @@ def _selected_analytics_tables(
     security_analytics = security_portfolio.to_analytics(
         security_benchmark,
         frequency=Frequency.QUARTERLY,
+        holidays=site / "holidays.csv",
     )
     security_overall = security_analytics.get_attribution().to_polars(
         View.OVERALL_ATTRIBUTION
@@ -638,6 +639,7 @@ def _selected_analytics_tables(
     sector_analytics = sector_portfolio.to_analytics(
         sector_benchmark,
         frequency=Frequency.QUARTERLY,
+        holidays=site / "holidays.csv",
     )
     sector_overall = sector_analytics.get_attribution().to_polars(
         View.OVERALL_ATTRIBUTION
@@ -923,9 +925,11 @@ def _check_selected_analytics(workspace: Path) -> tuple[int, float]:
         rel_tol=1e-12,
         abs_tol=1e-12,
     )
+    _assert_risk_difference_invariant(baseline_risk)
+    _assert_risk_difference_invariant(scaled_risk)
     assert_frame_equal(
-        baseline_risk,
-        scaled_risk,
+        baseline_risk.drop("Difference"),
+        scaled_risk.drop("Difference"),
         check_exact=False,
         rel_tol=1e-12,
         abs_tol=1e-12,
@@ -949,6 +953,14 @@ def _check_selected_analytics(workspace: Path) -> tuple[int, float]:
         error_cap=f">{error_ratio:.2f}x",
     )
     return row_count, elapsed
+
+
+def _assert_risk_difference_invariant(risk: pl.DataFrame) -> None:
+    """Require each derived risk difference to equal portfolio minus benchmark."""
+    expected = risk.with_columns(
+        (pl.col("Portfolio") - pl.col("Benchmark")).alias("Difference")
+    )
+    assert_frame_equal(risk, expected, check_exact=True)
 
 
 def _check_long_history_analytics(workspace: Path) -> tuple[int, float]:

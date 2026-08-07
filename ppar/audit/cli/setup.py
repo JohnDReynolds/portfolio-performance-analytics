@@ -29,6 +29,7 @@ _PACKAGED_AUDIT_YAML: Final[str] = "axys_apx_audit.yaml"
 _WorkspaceKind = Literal["audit", "analytics", "generic_analytics"]
 _CONFIG_WORKSPACE_KINDS: Final[tuple[_WorkspaceKind, ...]] = ("audit", "analytics")
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
+    "holidays.csv",
     "portperf.csv",
     "secperf.csv",
     "secmast.csv",
@@ -412,8 +413,10 @@ ppar analytics {workspace_path}
 1. Replace `portperf.csv` with your portfolio-performance export.
 2. Replace `secperf.csv` with your security-performance export.
 3. Replace `secmast.csv` with your security-master export.
-4. Edit `ppar.yaml` if your filenames, headers, or report choices differ.
-5. Run `ppar analytics {workspace_path}`.
+4. Replace `holidays.csv` with the relevant reporting holidays. It is
+   headerless, with one `YYYY-MM-DD` date per line.
+5. Edit `ppar.yaml` if your filenames, headers, or report choices differ.
+6. Run `ppar analytics {workspace_path}`.
 
 ## Optional Python Script
 
@@ -431,6 +434,7 @@ python run_analytics.py -h
 {workspace_path.name}/
   README.md
   ppar.yaml
+  holidays.csv
   portperf.csv
   secperf.csv
   secmast.csv

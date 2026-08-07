@@ -760,6 +760,9 @@ class TestPackageMetadata(unittest.TestCase):
             "Default: Use the performance periods as supplied",
             "Risk Statistics require a fixed frequency and are omitted",
             "frequency: quarterly",
+            "holidays: holidays.csv",
+            "Optional headerless file containing one YYYY-MM-DD holiday per line.",
+            "Command-line override: --holidays ./client_holidays.csv",
             "Command-line override: --annual-risk-free-rate 0.04",
             "Command-line override: --annual-minimum-acceptable-return 0.01",
             "Command-line override: --output-directory ./review_output",
@@ -787,8 +790,8 @@ class TestPackageMetadata(unittest.TestCase):
             "Command-line override: ppar analytics",
             yaml_text,
         )
-        self.assertEqual(yaml_text.count("  # Default:"), 11)
-        self.assertEqual(yaml_text.count("# Default:"), 15)
+        self.assertEqual(yaml_text.count("  # Default:"), 12)
+        self.assertEqual(yaml_text.count("# Default:"), 16)
         configuration = _load_yaml(
             Path("ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml")
         )
@@ -812,6 +815,7 @@ class TestPackageMetadata(unittest.TestCase):
                 "portfolio",
                 "benchmark",
                 "frequency",
+                "holidays",
                 "output_directory",
                 "from_date",
                 "thru_date",
@@ -2140,13 +2144,14 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertFalse((axys_demo_data / "column_mappings.yaml").is_file())
         for resource_path in (
             "axys_apx_analytics.yaml",
+            "holidays.csv",
             "portperf.csv",
             "secperf.csv",
             "secmast.csv",
         ):
             with self.subTest(resource_path=f"axys_apx_analytics/{resource_path}"):
                 self.assertTrue((axys_apx_analytics_data / resource_path).is_file())
-        for resource_path in ("README.md", "run_generic_analytics.py"):
+        for resource_path in ("README.md", "holidays.csv", "run_generic_analytics.py"):
             with self.subTest(resource_path=f"generic_analytics/{resource_path}"):
                 self.assertTrue((generic_analytics_data / resource_path).is_file())
 

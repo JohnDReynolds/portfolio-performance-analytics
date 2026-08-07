@@ -252,6 +252,7 @@ def _analytics_outputs() -> tuple[Analytics, Attribution]:
         portfolio_classification_name="Security",
         benchmark_classification_name="Security",
         frequency=Frequency.QUARTERLY,
+        holidays=_GENERIC_ANALYTICS_TEMPLATE_DIR / "holidays.csv",
     )
     classification_name = "Economic Sector"
     sector = analytics.get_attribution(

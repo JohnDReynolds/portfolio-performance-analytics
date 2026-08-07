@@ -38,6 +38,12 @@ analytics:
   # Command-line override: --frequency monthly (m, q, and y also work)
   frequency: quarterly
 
+  # Optional headerless file containing one YYYY-MM-DD holiday per line.
+  # Relative paths are anchored to this analytics directory.
+  # Default: None (weekends are the only nonbusiness days)
+  # Command-line override: --holidays ./client_holidays.csv
+  holidays: holidays.csv
+
   # Directory where the output files are written. A relative path is anchored
   # to this analytics directory; PPAR creates it when needed.
   # Default: output

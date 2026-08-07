@@ -5,6 +5,7 @@
 # pyright: reportPrivateUsage=false
 
 # Python Imports
+from pathlib import Path
 import unittest
 
 # Third-Party Imports
@@ -19,6 +20,8 @@ from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency
 from ppar.analytics.html_table import HtmlTable
+
+_HOLIDAYS_PATH = Path("tests/data/holidays.csv")
 
 
 def _aapl_daily_portfolio() -> pl.DataFrame:
@@ -59,6 +62,7 @@ class TestAuditIntegration(unittest.TestCase):
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
             frequency=Frequency.MONTHLY,
+            holidays=_HOLIDAYS_PATH,
         )
 
         economic_sector = test_util.get_attribution(analytics, "Economic Sector")
@@ -71,11 +75,12 @@ class TestAuditIntegration(unittest.TestCase):
     def test_quarterly_security_views_and_risk_statistics_audit(self) -> None:
         """Quarterly calculations audit security views and risk statistics."""
         analytics = Analytics(
-            test_util.performance_data_path("Big 2"),
+            test_util.performance_data_path("Mega-Cap Portfolio"),
             test_util.performance_data_path("Large-Cap Portfolio"),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
             frequency=Frequency.QUARTERLY,
+            holidays=_HOLIDAYS_PATH,
         )
 
         security = test_util.get_attribution(analytics, "Security")

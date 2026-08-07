@@ -120,7 +120,13 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _business_month_ends(years: int) -> pd.DatetimeIndex:
-    """Return completed business month-end dates for the requested lookback."""
+    """Return weekday month-end dates used to request source snapshots.
+
+    Notes:
+        Pandas ``BMonthEnd`` excludes weekends but does not know exchange
+        holidays. Missing request dates are repaired with nearby source
+        snapshots, whose actual dates must be preserved in generated output.
+    """
     last = pd.Timestamp.today().normalize().replace(day=1) - pd.Timedelta(days=1)
     last_business = last if last.weekday() < 5 else last - BMonthEnd()
     first = last_business - pd.DateOffset(years=years) + BMonthEnd()
@@ -193,8 +199,6 @@ def _find_nearby_replacement(
             time.sleep(sleep_seconds)
         frame = _holdings_frame_from_payload(payload)
         if not frame.empty:
-            frame = frame.copy()
-            frame["requested_as_of_date"] = missing_date.normalize()
             candidates.append((offset, frame))
     if not candidates:
         return None
@@ -368,7 +372,7 @@ def _load_prices(
     start: pd.Timestamp,
     end: pd.Timestamp,
 ) -> pd.DataFrame:
-    """Load monthly adjusted prices from the shared normalized market cache."""
+    """Load actual final observed prices for each calendar month."""
     identifier_to_symbol = {
         ticker: CASH_RETURN_PROXY
         if ticker == CASH_IDENTIFIER
@@ -388,8 +392,17 @@ def _load_prices(
         index="date",
         columns="identifier",
         values="adjusted_close",
+    ).sort_index()
+    return _actual_month_end_prices(adjusted)
+
+
+def _actual_month_end_prices(adjusted: pd.DataFrame) -> pd.DataFrame:
+    """Return the final observed price row in each calendar month."""
+    return (
+        adjusted.groupby(adjusted.index.to_period("M"), sort=True)
+        .tail(1)
+        .dropna(how="all")
     )
-    return adjusted.resample("BME").last().dropna(how="all")
 
 
 def _build_performance_rows(

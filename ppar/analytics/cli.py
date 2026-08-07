@@ -33,6 +33,7 @@ _ANALYTICS_SETTING_NAMES: Final[frozenset[str]] = frozenset(
         "portfolio",
         "benchmark",
         "frequency",
+        "holidays",
         "output_directory",
         "from_date",
         "thru_date",
@@ -54,6 +55,7 @@ class AnalyticsRunSettings:
         portfolio_code: Portfolio account code.
         benchmark_code: Benchmark account code.
         frequency: Reporting-period frequency.
+        holidays_path: Optional headerless holiday-date file.
         output_directory: Directory receiving generated artifacts.
         from_date: Inclusive first source date, or ``None`` for no lower bound.
         thru_date: Inclusive last source date, or ``None`` for no upper bound.
@@ -68,6 +70,7 @@ class AnalyticsRunSettings:
     portfolio_code: str
     benchmark_code: str
     frequency: Frequency
+    holidays_path: Path | None
     output_directory: Path
     from_date: dt.date | None
     thru_date: dt.date | None
@@ -95,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
             portfolio_code=args.portfolio,
             benchmark_code=args.benchmark,
             frequency_value=args.frequency,
+            holidays_path=args.holidays,
             output_directory=args.output_directory,
             from_date=args.from_date,
             thru_date=args.thru_date,
@@ -126,6 +130,7 @@ def run_analytics(
     portfolio_code: str | None = None,
     benchmark_code: str | None = None,
     frequency_value: str | None = None,
+    holidays_path: Path | None = None,
     output_directory: Path | None = None,
     from_date: str | None = None,
     thru_date: str | None = None,
@@ -144,6 +149,7 @@ def run_analytics(
         portfolio_code: Optional portfolio code override.
         benchmark_code: Optional benchmark portfolio code override.
         frequency_value: Optional reporting frequency override.
+        holidays_path: Optional headerless holiday-date file override.
         output_directory: Optional output directory override.
         from_date: Optional inclusive starting date override.
         thru_date: Optional inclusive ending date override.
@@ -172,6 +178,7 @@ def run_analytics(
         portfolio_code=portfolio_code,
         benchmark_code=benchmark_code,
         frequency_value=frequency_value,
+        holidays_path=holidays_path,
         output_directory=output_directory,
         from_date=from_date,
         thru_date=thru_date,
@@ -194,6 +201,7 @@ def run_analytics(
     analytics = portfolio.to_analytics(
         benchmark,
         frequency=settings.frequency,
+        holidays=settings.holidays_path,
         annual_minimum_acceptable_return=settings.annual_minimum_acceptable_return,
         annual_risk_free_rate=settings.annual_risk_free_rate,
         confidence_level=settings.confidence_level,
@@ -275,6 +283,14 @@ def _argument_parser(
             "Overrides YAML analytics.frequency for this run. When omitted "
             "from both places, source periods are preserved and Risk Statistics "
             "is not written."
+        ),
+    )
+    parser.add_argument(
+        "--holidays",
+        type=Path,
+        help=(
+            "Override YAML analytics.holidays with a headerless file containing "
+            "one YYYY-MM-DD holiday per line."
         ),
     )
     parser.add_argument(
@@ -371,6 +387,7 @@ def script_run_settings(
         portfolio_code=arguments.portfolio,
         benchmark_code=arguments.benchmark,
         frequency_value=arguments.frequency,
+        holidays_path=arguments.holidays,
         output_directory=arguments.output_directory,
         from_date=arguments.from_date,
         thru_date=arguments.thru_date,
@@ -437,6 +454,7 @@ def _resolve_settings(
     portfolio_code: str | None,
     benchmark_code: str | None,
     frequency_value: str | None,
+    holidays_path: Path | None,
     output_directory: Path | None,
     from_date: str | None,
     thru_date: str | None,
@@ -476,6 +494,12 @@ def _resolve_settings(
         frequency=_frequency_from_string(
             _setting_value(frequency_value, values, "frequency", None)
         ),
+        holidays_path=_optional_path_setting(
+            site_path,
+            holidays_path,
+            values,
+            "holidays",
+        ),
         output_directory=output_directory or site_path / _string_setting(
             None,
             values,
@@ -512,6 +536,22 @@ def _resolve_settings(
         portfolio_value=value,
         currency_symbol=selected_currency,
     )
+
+
+def _optional_path_setting(
+    site_path: Path,
+    override: Path | None,
+    values: dict[str, Any],
+    name: str,
+) -> Path | None:
+    """Return an optional path resolved relative to the Analytics workspace."""
+    value = _setting_value(override, values, name, None)
+    if value is None:
+        return None
+    if not isinstance(value, (str, Path)) or not str(value).strip():
+        raise ValueError(f"analytics.{name} must be a non-empty path")
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else site_path / path
 
 
 def _float_setting(

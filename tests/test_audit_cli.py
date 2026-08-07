@@ -271,6 +271,10 @@ class TestAuditCli(unittest.TestCase):
             )
 
         self.assertEqual(defaulted.confidence_level, 0.95)
+        self.assertEqual(
+            defaulted.holidays_path,
+            site_directory / "holidays.csv",
+        )
         self.assertEqual(settings.confidence_level, 0.90)
 
     def test_analytics_required_values_may_come_from_command_line(self) -> None:
@@ -325,6 +329,7 @@ class TestAuditCli(unittest.TestCase):
             settings.frequency,
             _analytics_cli.Frequency.AS_OFTEN_AS_POSSIBLE,
         )
+        self.assertIsNone(settings.holidays_path)
         self.assertEqual(settings.output_directory, site_directory / "output")
         self.assertIsNone(settings.from_date)
         self.assertIsNone(settings.thru_date)
@@ -650,6 +655,10 @@ class TestAuditCli(unittest.TestCase):
             self.assertTrue((workspace_directory / "portperf.csv").exists())
             self.assertTrue((workspace_directory / "secperf.csv").exists())
             self.assertTrue((workspace_directory / "secmast.csv").exists())
+            self.assertEqual(
+                (workspace_directory / "holidays.csv").read_text(encoding="utf-8"),
+                "2024-03-29\n",
+            )
             self.assertFalse((workspace_directory / "snapshot_a").exists())
             self.assertFalse((workspace_directory / "audit").exists())
             analytics_script = (
@@ -780,6 +789,10 @@ class TestAuditCli(unittest.TestCase):
             self.assertFalse((generic_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (generic_directory / "run_generic_analytics.py").exists()
+            )
+            self.assertEqual(
+                (generic_directory / "holidays.csv").read_text(encoding="utf-8"),
+                "2024-03-29\n",
             )
             generic_script = (
                 generic_directory / "run_generic_analytics.py"
@@ -1165,6 +1178,7 @@ class TestAuditCli(unittest.TestCase):
                 "--portfolio",
                 "--benchmark",
                 "--frequency",
+                "--holidays",
                 "--output-directory",
                 "--from-date",
                 "--thru-date",
@@ -1180,6 +1194,7 @@ class TestAuditCli(unittest.TestCase):
                 "YAML analytics.portfolio for this run",
                 "YAML analytics.benchmark for this run",
                 "YAML analytics.frequency for this run",
+                "YAML analytics.holidays",
                 "YAML analytics.output_directory for this run",
                 "YAML analytics.from_date",
                 "YAML analytics.thru_date",

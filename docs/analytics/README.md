@@ -152,6 +152,7 @@ my_ppar_analytics/
   README.md
   ppar.yaml
   run_analytics.py
+  holidays.csv
   portperf.csv
   secperf.csv
   secmast.csv
@@ -177,11 +178,19 @@ PPAR Analytics uses:
 - portfolio performance;
 - security performance;
 - security master and classification data; and
-- portfolio-to-benchmark mappings.
+- portfolio-to-benchmark mappings;
+- an optional headerless holiday file containing one `YYYY-MM-DD` date per
+  line.
 
 The setup-created `ppar.yaml` maps local filenames and columns, selects the
 portfolio and benchmark, defines the reporting frequency and classification,
 and records risk assumptions and output choices.
+
+Fixed-frequency reports preserve the actual accepted source endpoint in tables
+and charts. Weekends are recognized automatically. A configured holiday rolls
+the expected endpoint backward by another business day; without that explicit
+policy, output stops before an earlier source endpoint rather than silently
+skipping a period.
 
 ---
 

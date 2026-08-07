@@ -9,6 +9,7 @@ import sys
 import tempfile
 from typing import cast
 import unittest
+import warnings
 
 # Third-Party Imports
 import pandas as pd
@@ -21,6 +22,9 @@ from ppar.analytics.cli import run_analytics
 from ppar.analytics.frequency import Frequency
 import ppar.analytics.schema as cols
 from ppar.axys_apx import AxysData
+from scripts.generic_analytics_demo_data import (
+    generate_mega_cap_analytics_demo_data as demo_generator,
+)
 
 
 _PERFORMANCE_DIRECTORY = "ppar/setup_templates/generic_analytics/performance"
@@ -34,8 +38,10 @@ _BENCHMARK_PATH = f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Benchmark.csv"
 _SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
 _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
+_HOLIDAYS_PATH = Path("ppar/setup_templates/generic_analytics/holidays.csv")
 _AXYS_ANALYTICS_YAML = Path("ppar/setup_templates/axys_apx_analytics/axys_apx_analytics.yaml").resolve()
 _AXYS_ANALYTICS_DIRECTORY = Path("ppar/setup_templates/axys_apx_analytics")
+_AXYS_ANALYTICS_HOLIDAYS = _AXYS_ANALYTICS_DIRECTORY / "holidays.csv"
 _AXYS_ANALYTICS_SECREF = _AXYS_ANALYTICS_DIRECTORY / "secmast.csv"
 _AXYS_ANALYTICS_SECPERF = _AXYS_ANALYTICS_DIRECTORY / "secperf.csv"
 _EXPECTED_ANALYTICS_ARTIFACTS = {
@@ -72,6 +78,37 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertEqual(len(portfolio_months), 60)
         self.assertEqual(portfolio_months.tolist(), benchmark_months.tolist())
         self.assertEqual(portfolio_months.tolist(), expected_months.tolist())
+
+    def test_good_friday_source_dates_preserve_the_actual_observation(self) -> None:
+        """March 2024 uses Thursday data and starts the next period on Friday."""
+        for file_path in (_PORTFOLIO_PATH, _BENCHMARK_PATH):
+            with self.subTest(file_path=file_path):
+                periods = _read_performance(file_path)[
+                    ["from_date", "thru_date"]
+                ].drop_duplicates()
+                march = periods[
+                    periods["from_date"].eq(pd.Timestamp("2024-03-01"))
+                ].iloc[0]
+                april = periods[
+                    periods["thru_date"].eq(pd.Timestamp("2024-04-30"))
+                ].iloc[0]
+
+                self.assertEqual(march["thru_date"], pd.Timestamp("2024-03-28"))
+                self.assertEqual(april["from_date"], pd.Timestamp("2024-03-29"))
+
+    def test_demo_generator_preserves_actual_final_market_observation(self) -> None:
+        """Monthly price extraction does not synthesize a Good Friday label."""
+        adjusted = pd.DataFrame(
+            {"A": (100.0, 101.0)},
+            index=pd.to_datetime(("2024-03-28", "2024-04-01")),
+        )
+
+        monthly = demo_generator._actual_month_end_prices(adjusted)
+
+        self.assertEqual(
+            monthly.index.tolist(),
+            [pd.Timestamp("2024-03-28"), pd.Timestamp("2024-04-01")],
+        )
 
     def test_performance_files_do_not_duplicate_security_names(self) -> None:
         """Security.csv is the sole source of user-facing security names."""
@@ -126,6 +163,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
             frequency=Frequency.MONTHLY,
+            holidays=_HOLIDAYS_PATH,
         )
         security_attribution = analytics.get_attribution(
             "Security",
@@ -160,6 +198,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
             frequency=Frequency.QUARTERLY,
+            holidays=_HOLIDAYS_PATH,
         )
         risk = analytics.get_riskstatistics().to_pandas()
         portfolio_sharpe = _risk_value(risk, "Annualized Sharpe Ratio", "Portfolio")
@@ -179,7 +218,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
     def test_fixed_frequencies_preserve_every_completed_demo_bucket(self) -> None:
         """Weekend source endpoints do not disappear from fixed-frequency output."""
         expected = (
-            (Frequency.MONTHLY, 60, dt.date(2026, 5, 31)),
+            (Frequency.MONTHLY, 60, dt.date(2026, 5, 29)),
             (Frequency.QUARTERLY, 20, dt.date(2026, 3, 31)),
             (Frequency.YEARLY, 5, dt.date(2025, 12, 31)),
         )
@@ -193,6 +232,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
                     portfolio_classification_name="Security",
                     benchmark_classification_name="Security",
                     frequency=frequency,
+                    holidays=_HOLIDAYS_PATH,
                 )
                 summary = analytics.get_attribution(
                     "Security",
@@ -204,11 +244,11 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
                 if frequency == Frequency.QUARTERLY:
                     self.assertTrue(
                         {
-                            dt.date(2022, 12, 31),
-                            dt.date(2023, 9, 30),
-                            dt.date(2023, 12, 31),
-                            dt.date(2024, 3, 31),
-                            dt.date(2024, 6, 30),
+                            dt.date(2022, 12, 30),
+                            dt.date(2023, 9, 29),
+                            dt.date(2023, 12, 29),
+                            dt.date(2024, 3, 28),
+                            dt.date(2024, 6, 28),
                         }.issubset(summary[cols.THRU_DATE].to_list())
                     )
 
@@ -224,6 +264,28 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
                     _cumulative_return(included_source),
                     places=12,
                 )
+
+    def test_demo_truncates_conservatively_without_its_holiday_file(self) -> None:
+        """The corrected Good Friday endpoint requires explicit holiday policy."""
+        expected = (
+            (Frequency.MONTHLY, dt.date(2024, 2, 29)),
+            (Frequency.QUARTERLY, dt.date(2023, 12, 29)),
+        )
+
+        for frequency, expected_end in expected:
+            with self.subTest(frequency=frequency), warnings.catch_warnings(
+                record=True
+            ) as caught:
+                warnings.simplefilter("always")
+                summary = Analytics(
+                    _PORTFOLIO_PATH,
+                    _BENCHMARK_PATH,
+                    frequency=frequency,
+                ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+
+                self.assertEqual(summary[cols.THRU_DATE].item(-1), expected_end)
+                self.assertEqual(len(caught), 1)
+                self.assertIn("source endpoint 2024-03-28", str(caught[0].message))
 
     def test_axys_apx_analytics_fixture_matches_canonical_performance(self) -> None:
         """Axys analytics demo data is a lossless wrapper around Mega-Cap data."""
@@ -249,6 +311,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         analytics = axys_portfolio.to_analytics(
             axys_benchmark,
             frequency=Frequency.MONTHLY,
+            holidays=_AXYS_ANALYTICS_HOLIDAYS,
         )
         sector_attribution = analytics.get_attribution().to_pandas(
             View.OVERALL_ATTRIBUTION

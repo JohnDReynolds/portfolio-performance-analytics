@@ -13,6 +13,7 @@ from ppar.analytics.frequency import Frequency
 
 WORKSPACE = Path("_demo_output") / "generic_analytics_data_generation"
 GENERATED = WORKSPACE / "generated_oef_files"
+HOLIDAYS = Path("ppar/setup_templates/generic_analytics/holidays.csv")
 
 
 def main() -> None:
@@ -33,6 +34,7 @@ def main() -> None:
         portfolio_classification_name="Security",
         benchmark_classification_name="Security",
         frequency=Frequency.MONTHLY,
+        holidays=HOLIDAYS,
     )
     security_attribution = analytics.get_attribution("Security", security_path)
     security_overall = security_attribution.to_pandas(View.OVERALL_ATTRIBUTION)

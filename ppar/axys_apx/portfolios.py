@@ -71,6 +71,7 @@ class AxysPortfolio:
             util.DEFAULT_PORTFOLIO_VALUE,
             util.DEFAULT_CURRENCY_SYMBOL,
         ),
+        holidays: util.PathLike | None = None,
     ) -> Analytics:
         """Return an Analytics instance for this reconciled Axys portfolio.
 
@@ -93,6 +94,8 @@ class AxysPortfolio:
             confidence_level: Confidence level used when calculating value at risk.
             portfolio_value: Tuple containing the portfolio value and its currency
                 symbol for value-at-risk calculations.
+            holidays: Optional path to a headerless, single-column holiday
+                file used to determine effective reporting-period endpoints.
 
         Returns:
             Analytics instance initialized with this portfolio's reconciled
@@ -140,6 +143,7 @@ class AxysPortfolio:
             annual_risk_free_rate=annual_risk_free_rate,
             confidence_level=confidence_level,
             portfolio_value=portfolio_value,
+            holidays=holidays,
         )
 
     def _default_attribution_sources(
