@@ -138,8 +138,8 @@ diagnostics, source locators, and fingerprint inputs depend on stable technical
 identity. Replacing those values while also forbidding an additional output
 column would make evidence harder or impossible to reconcile to source-data.
 The durable boundary is therefore display labels in reviewer artifacts and
-canonical IDs in machine evidence, even when expanded support files are visible
-to a user.
+canonical IDs in machine evidence, including files extracted from
+`audit_support.zip`.
 
 YAML filters must continue to use canonical IDs such as `csusAAPL`, regardless
 of what a report displays. Documentation and validation must make that

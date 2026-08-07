@@ -761,10 +761,10 @@ release audit. The standard `ppar audit` command now always creates portfolio
 and security reports when their configured inputs are available, skips security
 only when `files.security_performance` is unavailable, and no longer exposes a
 `--report` selector. `source_detail.csv` now always resides at each report root
-and is never duplicated in `supporting_files/` or `audit_support.zip`, including
-expanded-support runs. Lower-level comparison-level APIs remain available, and
-this packaging change does not alter report columns, calculations, findings, or
-financial semantics.
+and is never duplicated in `audit_support.zip`. The remaining supporting
+artifacts use one compact archive layout. Lower-level comparison-level APIs
+remain available, and this packaging change does not alter report columns,
+calculations, findings, or financial semantics.
 
 The founder also approved a bounded starter-configuration cleanup before the
 release audit. The Audit file mappings now describe only headings present in

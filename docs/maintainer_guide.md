@@ -513,12 +513,13 @@ Audit report bundles include these visible files by default:
 
 The workspace YAML enables `audit.xlsx_output` and `audit.html_output`.
 `--html-only`, `--xlsx-only`, and `--csv-only` select a nonstandard output
-format for one run. CSV-only output promotes the three canonical review-table
+format for one run. CSV-only output promotes the four canonical review-table
 CSVs alongside `source_detail.csv`; the complete audit evidence remains in
 `audit_support.zip`.
 
-`--expand-supporting-files` replaces `audit_support.zip` with the equivalent
-`supporting_files/` directory for integration and detailed troubleshooting.
+Extract `audit_support.zip` when an integration or detailed investigation needs
+the individual supporting CSV and JSON files. Extraction does not regenerate or
+change the Audit results.
 
 The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.

@@ -1393,12 +1393,12 @@ evidence, transaction activity, transaction cross-checks, transaction matching
 diagnostics, residual status, and top evidence.
 
 `source_detail.csv` is always written at the report root. Other supporting
-artifacts are archived by default and are expanded under `supporting_files/`
-when requested. The bundle manifest records ordered columns, row counts,
-semantic fingerprints, source context, transaction-semantics summaries, and
-review entrypoints. Reconstruction diagnostics remain opt-in report artifacts,
-while the inexpensive financial and explanation invariants remain active in
-normal production runs.
+artifacts are stored in `audit_support.zip` and can be extracted without
+regenerating the report. The bundle manifest records ordered columns, row
+counts, semantic fingerprints, source context, transaction-semantics summaries,
+and review entrypoints. Reconstruction diagnostics remain opt-in report
+artifacts, while the inexpensive financial and explanation invariants remain
+active in normal production runs.
 
 ## Long-Term Dataset Watchlist
 

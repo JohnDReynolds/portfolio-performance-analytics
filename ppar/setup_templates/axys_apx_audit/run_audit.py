@@ -38,7 +38,6 @@ def main(argv: list[str] | None = None) -> int:
             # top_evidence_limit=15,
             # include_workbook=True,
             # include_html_output=True,
-            # expand_all_supporting_files=False,
         )
     except PpaError as error:
         print(f"Audit failed: {error}", file=sys.stderr)

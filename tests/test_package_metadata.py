@@ -639,7 +639,6 @@ class TestPackageMetadata(unittest.TestCase):
             runtime_appendix_settings,
             {
                 "exclude_suppressed",
-                "expand_all_supporting_files",
                 "html_output",
                 "reconstruction_diagnostics",
                 "require_causal_attribution",
@@ -656,7 +655,6 @@ class TestPackageMetadata(unittest.TestCase):
                 "html_output",
                 "exclude_suppressed",
                 "reconstruction_diagnostics",
-                "expand_all_supporting_files",
                 "require_causal_attribution",
             },
         )
@@ -712,7 +710,6 @@ class TestPackageMetadata(unittest.TestCase):
             "#   html_output: true",
             "#   exclude_suppressed: false",
             "#   reconstruction_diagnostics: false",
-            "#   expand_all_supporting_files: false",
             "#   require_causal_attribution: false",
         ):
             with self.subTest(documented_default=documented_default):
@@ -1126,7 +1123,6 @@ class TestPackageMetadata(unittest.TestCase):
             "`Performance Difference Causes`",
             "`source_detail.csv`",
             "`audit_support.zip`",
-            "`--expand-supporting-files`",
             "Keep new docs rare.",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -2012,7 +2008,6 @@ class TestPackageMetadata(unittest.TestCase):
             "`Performance Difference Causes`",
             "`source_detail.csv`",
             "`audit_support.zip`",
-            "`--expand-supporting-files`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
@@ -2091,7 +2086,6 @@ class TestPackageMetadata(unittest.TestCase):
             "`Performance Difference Causes` sheet",
             "`source_detail.csv`",
             "`audit_support.zip`",
-            "`--expand-supporting-files`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",

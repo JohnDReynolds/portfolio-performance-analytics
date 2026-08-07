@@ -3,7 +3,6 @@
 # Python imports
 from contextlib import redirect_stderr, redirect_stdout
 import io
-import json
 import os
 from pathlib import Path
 import shutil
@@ -111,7 +110,6 @@ class TestAuditCli(unittest.TestCase):
                 require_causal_attribution=None,
                 include_workbook=None,
                 include_html_output=None,
-                expand_all_supporting_files=None,
             )
             arguments = _site_report._argument_parser(
                 prog="python run_audit.py",
@@ -123,7 +121,6 @@ class TestAuditCli(unittest.TestCase):
                     "--title",
                     "One Run",
                     "--xlsx-only",
-                    "--expand-supporting-files",
                 ]
             )
             include_workbook, include_html_output = _site_report._output_overrides(
@@ -139,9 +136,6 @@ class TestAuditCli(unittest.TestCase):
                 require_causal_attribution=None,
                 include_workbook=include_workbook,
                 include_html_output=include_html_output,
-                expand_all_supporting_files=(
-                    True if arguments.expand_supporting_files else None
-                ),
             )
 
         self.assertEqual(
@@ -157,7 +151,6 @@ class TestAuditCli(unittest.TestCase):
         self.assertFalse(overridden.include_html_output)
         self.assertTrue(overridden.exclude_suppressed)
         self.assertFalse(overridden.include_reconstruction_diagnostics)
-        self.assertTrue(overridden.expand_all_supporting_files)
 
     def test_audit_run_settings_default_missing_and_reject_unknown_keys(self) -> None:
         """Omitted Audit settings default while unknown settings fail closed."""
@@ -181,7 +174,6 @@ class TestAuditCli(unittest.TestCase):
                 require_causal_attribution=None,
                 include_workbook=None,
                 include_html_output=None,
-                expand_all_supporting_files=None,
             )
             self.assertEqual(settings.output_directory, site_directory / "output")
             self.assertIsNone(settings.title)
@@ -189,7 +181,6 @@ class TestAuditCli(unittest.TestCase):
             self.assertTrue(settings.include_html_output)
             self.assertFalse(settings.exclude_suppressed)
             self.assertFalse(settings.include_reconstruction_diagnostics)
-            self.assertFalse(settings.expand_all_supporting_files)
             self.assertFalse(settings.require_causal_attribution)
 
             configuration["audit"]["html_ouput"] = True
@@ -217,6 +208,7 @@ class TestAuditCli(unittest.TestCase):
             "--no-exclude-suppressed",
             "--reconstruction-diagnostics",
             "--no-reconstruction-diagnostics",
+            "--expand-supporting-files",
             "--expand-all-supporting-files",
             "--no-expand-all-supporting-files",
             "--require-causal-attribution",
@@ -1966,11 +1958,7 @@ class TestAuditCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
             self._write_bundle(output_directory)
-            top_evidence_path = (
-                output_directory / "supporting_files" / "top_evidence.csv"
-            )
-            header = top_evidence_path.read_text(encoding="utf-8").splitlines()[0]
-            top_evidence_path.write_text(header + "\n", encoding="utf-8")
+            (output_directory / "audit_support.zip").write_bytes(b"invalid")
 
             result = subprocess.run(
                 _module_command(
@@ -1985,7 +1973,7 @@ class TestAuditCli(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertEqual(result.stdout, "")
             self.assertIn("Bundle validation failed:", result.stderr)
-        self.assertIn("table 'top_evidence' row count is 0, expected 9", result.stderr)
+        self.assertIn("audit_support.zip cannot be read", result.stderr)
 
     def test_validate_config_cli_module_accepts_valid_yaml(self) -> None:
         """The CLI config validator accepts a valid comparison YAML file."""
@@ -2176,7 +2164,6 @@ class TestAuditCli(unittest.TestCase):
             findings,
             output_directory,
             comparison_path=_RESTATEMENT_COMPARISON_PATH,
-            expand_all_supporting_files=True,
         )
 
 
@@ -2221,7 +2208,6 @@ def _write_audit_run_settings(path: Path) -> None:
                     "html_output": True,
                     "exclude_suppressed": False,
                     "reconstruction_diagnostics": False,
-                    "expand_all_supporting_files": False,
                     "require_causal_attribution": False,
                 }
             },

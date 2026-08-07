@@ -73,7 +73,7 @@
 - Simplified the pre-MVP Audit output contract: the standard command creates
   both available report levels and no longer exposes a report selector.
 - Made `source_detail.csv` a stable root-level reviewer artifact that is never
-  duplicated in `supporting_files/` or `audit_support.zip`.
+  duplicated in `audit_support.zip`.
 - Preserved lower-level one-view APIs and all finding, report-schema, and
   financial semantics.
 

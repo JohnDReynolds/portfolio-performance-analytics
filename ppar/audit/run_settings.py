@@ -18,7 +18,6 @@ _AUDIT_SETTING_DEFAULTS: Final[dict[str, str | bool | None]] = {
     "html_output": True,
     "exclude_suppressed": False,
     "reconstruction_diagnostics": False,
-    "expand_all_supporting_files": False,
     "require_causal_attribution": False,
 }
 _AUDIT_SETTING_NAMES: Final[frozenset[str]] = frozenset(_AUDIT_SETTING_DEFAULTS)
@@ -38,8 +37,6 @@ class AuditRunSettings:
             complete causal-method setup.
         include_workbook: Whether each report level writes XLSX.
         include_html_output: Whether each report level writes HTML.
-        expand_all_supporting_files: Whether supporting artifacts are expanded
-            instead of archived.
     """
 
     output_directory: Path
@@ -49,7 +46,6 @@ class AuditRunSettings:
     require_causal_attribution: bool
     include_workbook: bool
     include_html_output: bool
-    expand_all_supporting_files: bool
 
 
 def audit_settings(
@@ -100,7 +96,6 @@ def resolve_settings(
     require_causal_attribution: bool | None,
     include_workbook: bool | None,
     include_html_output: bool | None,
-    expand_all_supporting_files: bool | None,
 ) -> AuditRunSettings:
     """Resolve command-line overrides, YAML settings, and defaults.
 
@@ -114,7 +109,6 @@ def resolve_settings(
         require_causal_attribution: One-run causal-attribution guard override.
         include_workbook: One-run XLSX-output override.
         include_html_output: One-run HTML-output override.
-        expand_all_supporting_files: One-run supporting-file layout override.
 
     Returns:
         Fully resolved settings for the Audit run.
@@ -154,11 +148,6 @@ def resolve_settings(
             include_html_output,
             values,
             "html_output",
-        ),
-        expand_all_supporting_files=_boolean_setting(
-            expand_all_supporting_files,
-            values,
-            "expand_all_supporting_files",
         ),
     )
 

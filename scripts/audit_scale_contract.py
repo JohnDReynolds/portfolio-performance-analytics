@@ -36,7 +36,7 @@ def read_supporting_csv(
     *,
     infer_types: bool = True,
 ) -> pl.DataFrame:
-    """Read one supporting CSV from an expanded or compact audit bundle.
+    """Read one supporting CSV from an Audit bundle.
 
     Args:
         report_path: Root directory of an Audit report bundle.
@@ -49,14 +49,8 @@ def read_supporting_csv(
         Parsed supporting table with date inference enabled.
 
     Raises:
-        RuntimeError: If the expanded file or compact archive member is unreadable.
+        RuntimeError: If the compact archive member is unreadable.
     """
-    expanded_path = report_path / "supporting_files" / file_name
-    if expanded_path.is_file():
-        if infer_types:
-            return pl.read_csv(expanded_path, try_parse_dates=True)
-        return pl.read_csv(expanded_path, infer_schema=False)
-
     archive_path = report_path / "audit_support.zip"
     member_name = f"supporting_files/{file_name}"
     try:
@@ -72,16 +66,12 @@ def read_supporting_csv(
 
 
 def _read_supporting_json(report_path: Path, file_name: str) -> dict[str, object]:
-    """Read one supporting JSON object from an expanded or compact bundle."""
-    expanded_path = report_path / "supporting_files" / file_name
+    """Read one supporting JSON object from an Audit bundle."""
     try:
-        if expanded_path.is_file():
-            contents = expanded_path.read_text(encoding="utf-8")
-        else:
-            archive_path = report_path / "audit_support.zip"
-            member_name = f"supporting_files/{file_name}"
-            with zipfile.ZipFile(archive_path) as archive:
-                contents = archive.read(member_name).decode("utf-8")
+        archive_path = report_path / "audit_support.zip"
+        member_name = f"supporting_files/{file_name}"
+        with zipfile.ZipFile(archive_path) as archive:
+            contents = archive.read(member_name).decode("utf-8")
         parsed = json.loads(contents)
     except (
         FileNotFoundError,

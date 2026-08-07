@@ -695,13 +695,6 @@ evidence_only_impact_methods:
 # Default: false
 #   reconstruction_diagnostics: false
 
-# Parameter: audit.expand_all_supporting_files
-# Whether supporting CSV and JSON files are expanded instead of archived.
-# source_detail.csv is always written at the report root.
-# Default: false
-# One-run option: --expand-supporting-files
-#   expand_all_supporting_files: false
-
 # Parameter: audit.require_causal_attribution
 # Whether changed periods must have a supported causal-explanation setup.
 # This does not require every difference to be fully explained.

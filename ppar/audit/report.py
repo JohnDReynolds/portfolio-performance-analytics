@@ -470,7 +470,6 @@ def write_audit_report_bundle(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
-    expand_all_supporting_files: bool = False,
     _data_issues: pl.DataFrame | None = None,
     _reconstruction_cache: (
         _pc_workbook_reconstruction.WorkbookReconstructionCache | None
@@ -493,7 +492,6 @@ def write_audit_report_bundle(
         comparison_level: Portfolio or security review level.
         include_reconstruction_diagnostics: Whether to include detailed
             reconstruction artifacts.
-        expand_all_supporting_files: Whether supporting files remain expanded.
         _data_issues: Optional run-scoped Data Issues table.
         _reconstruction_cache: Optional run-scoped reconstruction cache.
 
@@ -521,7 +519,6 @@ def write_audit_report_bundle(
             comparison_path=comparison_path,
             comparison_level=comparison_level,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-            expand_all_supporting_files=expand_all_supporting_files,
             _data_issues=_data_issues,
             _reconstruction_cache=_reconstruction_cache,
         )
@@ -548,7 +545,6 @@ def _write_audit_report_bundle_in_place(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
-    expand_all_supporting_files: bool = False,
     _data_issues: pl.DataFrame | None = None,
     _reconstruction_cache: (
         _pc_workbook_reconstruction.WorkbookReconstructionCache | None
@@ -582,11 +578,6 @@ def _write_audit_report_bundle_in_place(
             ``Reconstruction Summary``, ``Return Reconstruction Checks``, and
             ``Security Return Checks`` workbook/report sections plus matching
             CSV artifacts.
-        expand_all_supporting_files: Whether to retain the remaining supporting
-            CSV and JSON files in ``supporting_files``. ``source_detail.csv`` is
-            always written at the report root and is never duplicated in the
-            supporting directory or archive. When false, the validated supporting
-            directory is stored in ``audit_support.zip``.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
@@ -703,11 +694,9 @@ def _write_audit_report_bundle_in_place(
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
         title=title,
-        tables=tables,
         include_workbook=include_workbook,
         include_html_output=include_html_output,
         comparison_level=comparison_level,
-        expand_all_supporting_files=expand_all_supporting_files,
     )
     manifest_path = supporting_files_directory / "manifest.json"
     paths["manifest"] = manifest_path
@@ -721,7 +710,6 @@ def _write_audit_report_bundle_in_place(
         include_workbook=include_workbook,
         include_html_output=include_html_output,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-        expand_all_supporting_files=expand_all_supporting_files,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         artifact_paths=paths,
@@ -736,6 +724,21 @@ def _write_audit_report_bundle_in_place(
         paths["review_summary"],
         manifest=manifest,
     )
+    promoted_file_names = (
+        tuple(f"{name}.csv" for name in _pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS)
+        if csv_only_output
+        else ()
+    )
+    compact_paths = _pc_bundle.compact_supporting_files(
+        bundle_directory,
+        promoted_file_names=promoted_file_names,
+    )
+    paths = {
+        name: path
+        for name, path in paths.items()
+        if path.parent == bundle_directory
+    }
+    paths.update(compact_paths)
     validation_issues = _pc_bundle.report_bundle_validation_issues(
         bundle_directory,
         include_output_parity=False,
@@ -745,22 +748,6 @@ def _write_audit_report_bundle_in_place(
             "Report bundle validation failed: " + "; ".join(validation_issues),
             None,
         )
-    if not expand_all_supporting_files:
-        promoted_file_names = (
-            tuple(f"{name}.csv" for name in _pc_bundle._CSV_PRIMARY_REVIEW_ARTIFACTS)
-            if csv_only_output
-            else ()
-        )
-        compact_paths = _pc_bundle.compact_supporting_files(
-            bundle_directory,
-            promoted_file_names=promoted_file_names,
-        )
-        paths = {
-            name: path
-            for name, path in paths.items()
-            if path.parent == bundle_directory
-        }
-        paths.update(compact_paths)
     return paths
 
 

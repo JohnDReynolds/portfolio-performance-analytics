@@ -4,10 +4,12 @@
 from collections.abc import Mapping, Sequence
 import copy
 import datetime as dt
+import json
 from pathlib import Path
 import tempfile
-from typing import Iterable
+from typing import Any, Iterable
 import unittest
+import zipfile
 
 # Third-party imports
 import polars as pl
@@ -132,6 +134,23 @@ _AUDIT_TEST_SOURCE_COLUMNS: dict[str, dict[str, tuple[str, ...]]] = {
         "currency": ("CURRENCY", "CURRENCY_CODE"),
     },
 }
+
+
+def extract_audit_support(
+    paths: dict[str, Path],
+    output_directory: Path,
+) -> dict[str, Path]:
+    """Extract compact Audit support and expose its artifact paths to tests."""
+    with zipfile.ZipFile(paths["audit_support"]) as archive:
+        archive.extractall(output_directory)
+        manifest: dict[str, Any] = json.loads(
+            archive.read("supporting_files/manifest.json").decode("utf-8")
+        )
+    for name, relative_path in manifest["artifacts"].items():
+        paths.setdefault(name, output_directory / relative_path)
+    return paths
+
+
 def make_performance_df(
     periods: Sequence[Period],
     assets: Mapping[str, AssetValues],

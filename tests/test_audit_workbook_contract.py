@@ -14,6 +14,9 @@ import unittest
 # Third-party imports
 import polars as pl
 
+# Test imports
+from tests import test_utilities as test_util
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import (
@@ -66,9 +69,10 @@ _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
 
 
 def write_audit_report_bundle(*args: Any, **kwargs: Any) -> dict[str, Path]:
-    """Write expanded supporting artifacts for workbook contract assertions."""
-    kwargs.setdefault("expand_all_supporting_files", True)
-    return _write_audit_report_bundle(*args, **kwargs)
+    """Write a bundle and extract support for workbook contract assertions."""
+    paths = _write_audit_report_bundle(*args, **kwargs)
+    output_directory = Path(args[1] if len(args) > 1 else kwargs["output_directory"])
+    return test_util.extract_audit_support(paths, output_directory)
 
 
 def _header_values(worksheet: Any) -> list[object]:
@@ -385,7 +389,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
             self.assertNotIn("Open `portfolio_audit.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
             html_report = paths["html_report"].read_text(encoding="utf-8")
-            self.assertIn("source-data differences", readme)
+            self.assertIn("explained causes, supporting evidence", readme)
             self.assertIn("Dataset.Field", html_report)
             self.assertNotIn(">Review Key</th>", html_report)
             self.assertNotIn("Source Dataset", html_report)
@@ -1027,12 +1031,13 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 comparison_level="security",
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("explain each security period", readme)
             self.assertIn(
-                "follow a security period across the `supporting_files/` CSV artifacts",
+                "the exact security periods that changed",
                 readme,
             )
-            self.assertNotIn("explain each performance period", readme)
+            self.assertNotIn("the exact performance periods that changed", readme)
+            self.assertIn("`security_audit.xlsx` or `security_audit.html`", readme)
+            self.assertIn("`audit_support.zip`", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],

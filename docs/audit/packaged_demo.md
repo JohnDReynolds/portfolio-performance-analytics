@@ -172,14 +172,10 @@ with `performance_differences.csv`,
 `performance_difference_causes.csv`, `data_issues.csv`, and
 `source_detail.csv` at each report root.
 
-`source_detail.csv` always stays at the report root. It is never duplicated in
-`supporting_files/` or `audit_support.zip`. Use
-`--expand-supporting-files` to retain the remaining supporting CSV and JSON
-files individually when needed:
-
-```bash
-ppar audit ./my_ppar_audit --expand-supporting-files
-```
+`source_detail.csv` always stays at the report root and is never duplicated in
+`audit_support.zip`. Extract `audit_support.zip` when the remaining supporting
+CSV and JSON files are needed individually. Extraction does not regenerate or
+change the Audit results.
 
 Open `portfolio_audit.xlsx` or `security_audit.xlsx` for review, use the matching
 HTML audit for browser review, and keep the CSV artifacts for

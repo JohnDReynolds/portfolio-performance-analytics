@@ -173,13 +173,13 @@ Audit outputs are reviewer artifacts. The normal review order is:
 2. `Performance Difference Causes`
 3. `Data Issues`
 
-`source_detail.csv`, stored under `supporting_files/` when expanded, retains the
-active row-level evidence used for audit and troubleshooting; it is supporting
+`source_detail.csv`, stored at the report root, retains the complete
+finding-level audit trail used for audit and troubleshooting; it is supporting
 detail rather than an ordinary review sheet.
 
-The complete supporting evidence is stored compactly in `audit_support.zip` by
-default. `--expand-supporting-files` writes the same validated artifacts as
-individual files under `supporting_files/`.
+The remaining supporting evidence is stored compactly in `audit_support.zip`.
+Extract the archive when individual CSV and JSON files are needed; extraction
+does not regenerate or change the report.
 
 Optional reconstruction diagnostics are secondary. They help debug reported
 returns, but they should not become the first review surface for ordinary users.

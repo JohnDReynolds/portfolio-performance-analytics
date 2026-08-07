@@ -19,6 +19,17 @@ from scripts import check_release_candidate
 from scripts import audit_scale_contract
 
 
+def _write_supporting_csv_archive(
+    report_path: Path,
+    file_name: str,
+    table: pl.DataFrame,
+) -> None:
+    """Write one supporting CSV into a compact test bundle."""
+    report_path.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(report_path / "audit_support.zip", "w") as archive:
+        archive.writestr(f"supporting_files/{file_name}", table.write_csv())
+
+
 class TestScaleCheck(unittest.TestCase):
     """Verify scale data stays coherent without running expensive workflows."""
 
@@ -94,8 +105,6 @@ class TestScaleCheck(unittest.TestCase):
             root = Path(directory)
             baseline_report = root / "baseline"
             scaled_report = root / "scaled"
-            for report in (baseline_report, scaled_report):
-                (report / "supporting_files").mkdir(parents=True)
             baseline = pl.DataFrame(
                 {
                     "portfolio_id": ["P1"],
@@ -116,8 +125,8 @@ class TestScaleCheck(unittest.TestCase):
                 ]
             )
             file_name = "performance_differences.csv"
-            baseline.write_csv(baseline_report / "supporting_files" / file_name)
-            scaled.write_csv(scaled_report / "supporting_files" / file_name)
+            _write_supporting_csv_archive(baseline_report, file_name, baseline)
+            _write_supporting_csv_archive(scaled_report, file_name, scaled)
 
             audit_scale_contract._assert_scaled_table_equivalent(
                 baseline_report,
@@ -133,7 +142,7 @@ class TestScaleCheck(unittest.TestCase):
                 .otherwise(pl.col("performance_change"))
                 .alias("performance_change")
             ).drop("index")
-            scaled.write_csv(scaled_report / "supporting_files" / file_name)
+            _write_supporting_csv_archive(scaled_report, file_name, scaled)
             with self.assertRaisesRegex(RuntimeError, "business-result copies"):
                 audit_scale_contract._assert_scaled_table_equivalent(
                     baseline_report,

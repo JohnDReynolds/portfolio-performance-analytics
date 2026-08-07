@@ -27,7 +27,7 @@ from ppar.audit import (
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     compare_snapshots,
     report_bundle_contract,
-    report_bundle_validation_issues,
+    report_bundle_validation_issues as _report_bundle_validation_issues,
     write_audit_report_bundle as _write_audit_report_bundle,
     write_audit_review_workbook,
 )
@@ -76,10 +76,34 @@ _EXPECTED_REPORT_TABLE_SCHEMA_FINGERPRINTS = {
 
 
 def write_audit_report_bundle(*args: Any, **kwargs: Any) -> dict[str, Path]:
-    """Write an expanded, HTML-only bundle unless a test overrides the layout."""
+    """Write an HTML-only bundle and extract support for internal assertions."""
     kwargs.setdefault("include_workbook", False)
-    kwargs.setdefault("expand_all_supporting_files", True)
-    return _write_audit_report_bundle(*args, **kwargs)
+    paths = _write_audit_report_bundle(*args, **kwargs)
+    output_directory = Path(args[1] if len(args) > 1 else kwargs["output_directory"])
+    return test_util.extract_audit_support(paths, output_directory)
+
+
+def report_bundle_validation_issues(
+    bundle_directory: str | Path,
+    *,
+    include_output_parity: bool = True,
+) -> list[str]:
+    """Repack extracted test support before running product validation."""
+    bundle_path = Path(bundle_directory)
+    supporting_directory = bundle_path / "supporting_files"
+    if supporting_directory.is_dir():
+        with zipfile.ZipFile(
+            bundle_path / "audit_support.zip",
+            mode="w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as archive:
+            for path in sorted(supporting_directory.rglob("*")):
+                if path.is_file():
+                    archive.write(path, path.relative_to(bundle_path).as_posix())
+    return _report_bundle_validation_issues(
+        bundle_path,
+        include_output_parity=include_output_parity,
+    )
 _original_import = __import__
 
 
@@ -602,11 +626,11 @@ class TestAuditReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
-            paths = write_audit_report_bundle(
+            paths = _write_audit_report_bundle(
                 findings,
                 output_directory,
+                include_workbook=False,
                 require_complete_yaml_setup=False,
-                expand_all_supporting_files=False,
             )
 
             self.assertEqual(
@@ -625,7 +649,10 @@ class TestAuditReport(unittest.TestCase):
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("`source_detail.csv`", readme)
             self.assertIn("`audit_support.zip`", readme)
-            self.assertIn("`--expand-supporting-files`", readme)
+            self.assertIn(
+                "extraction does not recalculate or change the report",
+                readme,
+            )
 
             paths["source_detail"].write_text("changed\n", encoding="utf-8")
             self.assertIn(
@@ -692,7 +719,8 @@ class TestAuditReport(unittest.TestCase):
                     },
                 },
                 "supporting_files_packaging": {
-                    "default_archive": "audit_support.zip",
+                    "archive": "audit_support.zip",
+                    "archive_root": "supporting_files",
                     "promoted_reviewer_files": {
                         "normal": ["source_detail.csv"],
                         "csv_only": [
@@ -703,10 +731,8 @@ class TestAuditReport(unittest.TestCase):
                             "source_detail.csv",
                         ],
                     },
-                    "expanded_directory": "supporting_files",
-                    "expand_option": "--expand-supporting-files",
                 },
-                "manifest_version": 9,
+                "manifest_version": 10,
                 "normalization_version": 1,
                 "volatile_metadata": [
                     "manifest.created_at",
@@ -829,7 +855,7 @@ class TestAuditReport(unittest.TestCase):
         required_manifest_keys = cast(list[str], contract["required_manifest_keys"])
         required_entrypoints = cast(list[str], contract["required_review_entrypoints"])
         required_summary_keys = cast(list[str], contract["required_review_summary_keys"])
-        expected_keys = {*required_artifacts, "html_report"}
+        expected_keys = {*required_artifacts, "html_report", "audit_support"}
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -877,56 +903,36 @@ class TestAuditReport(unittest.TestCase):
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
             self.assertIn("Start with Executive Summary", readme)
-            self.assertIn("then use Performance Difference Causes", readme)
-            self.assertIn("explain each performance period", readme)
             self.assertIn(
-                "`source_detail.csv` for audit and troubleshooting",
-                readme,
-            )
-            self.assertIn("source-data differences", readme)
-            self.assertNotIn("source" + " data", readme)
-            self.assertIn(
-                "follow a performance period across the `supporting_files/` "
-                "CSV artifacts",
-                readme,
-            )
-            self.assertIn("`supporting_files/transaction_activity.csv`", readme)
-            self.assertIn("`supporting_files/transaction_cross_checks.csv`", readme)
-            self.assertIn(
-                "supplementary transaction diagnostics",
+                "Performance Differences to review the exact performance "
+                "periods that changed",
                 readme,
             )
             self.assertIn(
-                "`supporting_files/transaction_matching_diagnostics.csv` only "
-                "when auditing transaction row-identity evidence",
-                readme,
-            )
-
-            self.assertIn("conservative matching status", readme)
-            self.assertIn("does not imply fuzzy transaction linkage", readme)
-            self.assertNotIn("cross-check rows may be", readme)
-            self.assertIn("`supporting_files/review_summary.json`", readme)
-            self.assertIn("Modified Dietz vocabulary", readme)
-            self.assertIn("`supporting_files/needs_review_summary.csv`", readme)
-            self.assertIn("## Audit/Export Files", readme)
-            self.assertIn(
-                "`supporting_files/manifest.json`: machine-readable artifact",
-                readme,
-            )
-            self.assertIn("source context", readme)
-            self.assertIn("transaction semantics summary", readme)
-            self.assertIn(
-                "`supporting_files/needs_review_summary.csv`: top triage table",
+                "Performance Difference Causes to review explained causes",
                 readme,
             )
             self.assertIn(
-                "`supporting_files/context_evidence_summary.csv`: context-only "
-                "evidence counts, reviewer priority",
+                "Yellow cells identify quantified causes included in the "
+                "explained difference",
                 readme,
             )
             self.assertIn(
-                "`supporting_files/context_evidence.csv`: row-level context evidence, "
-                "reviewer priority",
+                "Gold cells identify possible causes that are not counted as "
+                "explanations",
+                readme,
+            )
+            self.assertIn("## Supporting Audit Evidence", readme)
+            self.assertIn(
+                "`source_detail.csv` contains the complete finding-level audit trail",
+                readme,
+            )
+            self.assertIn(
+                "`audit_support.zip` contains validated supporting CSV and JSON files",
+                readme,
+            )
+            self.assertIn(
+                "extraction does not recalculate or change the report",
                 readme,
             )
 
@@ -1130,8 +1136,7 @@ class TestAuditReport(unittest.TestCase):
                 _entrypoint_files(review_summary["entrypoints"]) <= artifact_files
             )
             self.assertIn(review_summary["entrypoints"]["primary_review"], readme)
-            self.assertIn(review_summary["entrypoints"]["period_triage"], readme)
-            self.assertIn(review_summary["entrypoints"]["review_handoff"], readme)
+            self.assertIn("`audit_support.zip`", readme)
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
             self.assertEqual(needs_review.height, 1)
@@ -1202,10 +1207,6 @@ class TestAuditReport(unittest.TestCase):
             self.assertIn(
                 "stable transaction_id",
                 transaction_matching["transaction_match_review_note"][0],
-            )
-            self.assertIn(
-                "transaction matching status counts",
-                readme,
             )
 
             top_evidence = pl.read_csv(paths["top_evidence"])
@@ -1711,6 +1712,7 @@ class TestAuditReport(unittest.TestCase):
                 set(paths),
                 {
                     *REPORT_BUNDLE_REQUIRED_ARTIFACTS,
+                    "audit_support",
                     "html_report",
                     "review_workbook",
                 },
@@ -1724,33 +1726,21 @@ class TestAuditReport(unittest.TestCase):
             self.assertNotIn("Open `portfolio_audit.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
             self.assertIn(
-                "1. Open `portfolio_audit.xlsx`; use `portfolio_audit.html` for "
-                "browser review.",
+                "1. Open `portfolio_audit.xlsx` or `portfolio_audit.html`",
                 readme,
             )
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)
-            self.assertIn("## Audit/Export Files", readme)
-            self.assertIn("explain each performance period", readme)
-            self.assertIn("additively explain each performance period", readme)
+            self.assertIn("## Supporting Audit Evidence", readme)
             self.assertIn(
-                "`source_detail.csv` for audit and troubleshooting",
+                "the exact performance periods that changed",
                 readme,
             )
-
-            self.assertIn("reviewer-friendly finding-level audit trail", readme)
             self.assertIn(
-                "follow a performance period across the `supporting_files/` "
-                "CSV artifacts",
+                "the complete finding-level audit trail behind the report",
                 readme,
             )
-            self.assertIn("supplementary transaction diagnostics", readme)
-            self.assertIn(
-                "`supporting_files/transaction_matching_diagnostics.csv` only "
-                "when auditing transaction row-identity evidence",
-                readme,
-            )
-            self.assertNotIn("cross-check rows may be", readme)
+            self.assertNotIn("--expand-supporting-files", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
@@ -2141,13 +2131,12 @@ class TestAuditReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
-            paths = write_audit_report_bundle(
+            paths = _write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=False,
                 include_html_output=False,
                 require_complete_yaml_setup=False,
-                expand_all_supporting_files=False,
             )
 
             self.assertEqual(
@@ -2195,7 +2184,7 @@ class TestAuditReport(unittest.TestCase):
                 ],
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("Open `executive_summary.csv` first", readme)
+            self.assertIn("Open `executive_summary.csv`", readme)
             self.assertNotIn("Yellow cells", readme)
 
             paths["performance_differences"].write_text(
@@ -2208,13 +2197,12 @@ class TestAuditReport(unittest.TestCase):
                 report_bundle_validation_issues(output_directory),
             )
 
-            rebuilt_paths = write_audit_report_bundle(
+            rebuilt_paths = _write_audit_report_bundle(
                 findings,
                 output_directory,
                 include_workbook=True,
                 include_html_output=True,
                 require_complete_yaml_setup=False,
-                expand_all_supporting_files=False,
             )
             self.assertIn("review_workbook", rebuilt_paths)
             self.assertIn("html_report", rebuilt_paths)
@@ -2224,46 +2212,6 @@ class TestAuditReport(unittest.TestCase):
                 "data_issues.csv",
             ):
                 self.assertFalse((output_directory / stale_file_name).exists())
-            self.assertEqual(report_bundle_validation_issues(output_directory), [])
-
-    def test_write_report_bundle_supports_expanded_csv_only_output(self) -> None:
-        """Expanded CSV-only output keeps primary copies at the bundle root."""
-        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "bundle"
-
-            paths = write_audit_report_bundle(
-                findings,
-                output_directory,
-                include_workbook=False,
-                include_html_output=False,
-                require_complete_yaml_setup=False,
-                expand_all_supporting_files=True,
-            )
-
-            for artifact_name in (
-                "executive_summary",
-                "performance_differences",
-                "performance_difference_causes",
-                "data_issues",
-            ):
-                with self.subTest(artifact_name=artifact_name):
-                    self.assertEqual(paths[artifact_name].parent, output_directory)
-                    self.assertTrue(
-                        (
-                            output_directory
-                            / "supporting_files"
-                            / f"{artifact_name}.csv"
-                        ).is_file()
-                    )
-            self.assertEqual(paths["source_detail"].parent, output_directory)
-            self.assertFalse(
-                (
-                    output_directory
-                    / "supporting_files"
-                    / "source_detail.csv"
-                ).exists()
-            )
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
     def test_write_review_workbook_reports_missing_openpyxl(self) -> None:
@@ -2746,9 +2694,10 @@ class TestAuditReport(unittest.TestCase):
             raw_deterministic_artifacts = {
                 name
                 for name in first_paths
-                if name not in {"manifest", "review_workbook"}
+                if name not in {"audit_support", "manifest", "review_workbook"}
             }
             self.assertEqual(raw_deterministic_artifacts, set(second_paths) - {
+                "audit_support",
                 "manifest",
                 "review_workbook",
             })

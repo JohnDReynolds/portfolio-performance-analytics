@@ -64,9 +64,6 @@ def main(
             title=args.title,
             include_workbook=include_workbook,
             include_html_output=include_html_output,
-            expand_all_supporting_files=(
-                True if args.expand_supporting_files else None
-            ),
         )
     except PpaError as error:
         print(f"Report failed: {error}", file=sys.stderr)
@@ -88,7 +85,6 @@ def run_report(
     require_causal_attribution: bool | None = None,
     include_workbook: bool | None = None,
     include_html_output: bool | None = None,
-    expand_all_supporting_files: bool | None = None,
 ) -> dict[str, Any]:
     """Write one or more report bundles for a configured site folder.
 
@@ -106,8 +102,6 @@ def run_report(
         include_html_output: Optional one-run HTML-output override.
             When both primary presentation formats are disabled, Audit promotes
             its canonical CSV review tables instead.
-        expand_all_supporting_files: Optional one-run supporting-file-layout
-            override.
 
     Returns:
         Paths for the site folder, config file, and generated review artifacts.
@@ -137,7 +131,6 @@ def run_report(
         require_causal_attribution=require_causal_attribution,
         include_workbook=include_workbook,
         include_html_output=include_html_output,
-        expand_all_supporting_files=expand_all_supporting_files,
     )
 
     result: dict[str, Any] = {
@@ -188,7 +181,6 @@ def run_report(
             _data_issues=data_issues,
             include_workbook=settings.include_workbook,
             include_html_output=settings.include_html_output,
-            expand_all_supporting_files=settings.expand_all_supporting_files,
             _reconstruction_cache=reconstruction_cache,
         )
         staged_security_paths = (
@@ -206,7 +198,6 @@ def run_report(
                 _data_issues=data_issues,
                 include_workbook=settings.include_workbook,
                 include_html_output=settings.include_html_output,
-                expand_all_supporting_files=settings.expand_all_supporting_files,
                 _reconstruction_cache=reconstruction_cache,
             )
             if security_findings is not None
@@ -299,14 +290,6 @@ def _argument_parser(
             "this run."
         ),
     )
-    parser.add_argument(
-        "--expand-supporting-files",
-        action="store_true",
-        help=(
-            "Expand supporting CSV and JSON files instead of writing "
-            "audit_support.zip."
-        ),
-    )
     return parser
 
 
@@ -357,7 +340,6 @@ def _write_report_bundle(
     _data_issues: Any,
     include_workbook: bool,
     include_html_output: bool,
-    expand_all_supporting_files: bool,
     _reconstruction_cache: _pc_workbook_reconstruction.WorkbookReconstructionCache,
 ) -> list[Path]:
     """Write one report bundle and return its primary review paths."""
@@ -379,7 +361,6 @@ def _write_report_bundle(
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         _data_issues=_data_issues,
         _reconstruction_cache=_reconstruction_cache,
-        expand_all_supporting_files=expand_all_supporting_files,
     )
     review_paths: list[Path] = []
     workbook = paths.get(_pc_review_model.REVIEW_WORKBOOK_ARTIFACT)
