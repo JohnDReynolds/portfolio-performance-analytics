@@ -156,22 +156,6 @@ files:
       security_type: "Security Type"
       asset_class_code: "Asset Class Code"
 
-  fx_rates:
-    # FX-rate CSV; optional evidence for multi-currency data.
-    # Default: None. This starter uses fx_rates.csv for multi-currency evidence.
-    # Required columns: From Currency, To Currency, Rate Date, FX Rate.
-    # Optional columns: Local Exposure, Portfolio Code, Rate Source, Rate Type.
-    path: fx_rates.csv
-    columns:
-      from_currency: "From Currency"
-      to_currency: "To Currency"
-      rate_date: "Rate Date"
-      fx_rate: "FX Rate"
-      local_exposure: "Local Exposure"
-      portfolio_code: "Portfolio Code"
-      rate_source: "Rate Source"
-      rate_type: "Rate Type"
-
   splits:
     # Security-split CSV; optional evidence for split-adjusted prices.
     # Default: None. This starter uses splits.csv for split evidence.
@@ -310,7 +294,6 @@ tolerances:
   # Minimum tolerances used by Audit.
   # All values are required. Return uses a decimal; market value uses currency
   #   units. The remaining values use their corresponding source-data units.
-  fx_rate: 0.00000001
   market_value: 0.01
   price: 0.000001
   quantity: 0.000001
@@ -641,15 +624,6 @@ price_impact_methods:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
 
-
-# ==============================================================================
-# Supporting-Evidence Impact Methods
-# ==============================================================================
-fx_rate_impact_methods:
-  # Keeps changed FX rates as review evidence.
-  # Required when FX rates are configured.
-  fx_rate:
-    method: evidence_only
 
 evidence_only_impact_methods:
   # Source fields shown as evidence without adding estimated performance impact.

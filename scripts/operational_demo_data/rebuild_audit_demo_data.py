@@ -326,7 +326,7 @@ _CONTRIBUTION_DEMO_HOLDINGS: Final = (
 _RETIRED_DEMO_PORTFOLIOS: Final = {"BALANCED_AAPL"}
 _MULTICURRENCY_SCENARIO_CALENDAR_KEYS: Final = {
     "multicurrency:BALANCED:SAP.DE:2026-04-15:EUR dividend correction": 1,
-    "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP FX correction": 1,
+    "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP conversion correction": 1,
 }
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
@@ -925,7 +925,7 @@ def _scenario_source_inputs(
                 "BALANCED",
                 "2026-04-15",
             ),
-            "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP FX correction": (
+            "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP conversion correction": (
                 "BALANCED",
                 "2026-04-30",
             ),
@@ -1207,7 +1207,7 @@ def _audit_generated_causal_story_coverage(
         dataset = str(row.get("dataset") or "")
         estimated_impact = row.get("estimated_impact")
         is_cash = security.startswith("CASH")
-        if dataset in {"fx_rates", "transactions"} and not is_cash:
+        if dataset == "transactions" and not is_cash:
             story_securities.setdefault(period_key, set()).add(security)
         elif estimated_impact is not None and not is_cash:
             story_securities.setdefault(period_key, set()).add(security)
@@ -1489,15 +1489,15 @@ def _rebuild_holdings(
         for column, delta in scenario.deltas.items():
             if delta:
                 rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
-    fx_restatement = (
+    conversion_restatement = (
         rebuilt["PORT"].eq("BALANCED")
         & rebuilt["SEC"].eq("SHEL.L")
         & rebuilt["HOLDING_DATE"].astype(str).eq("2026-04-30")
     )
-    if int(fx_restatement.sum()) != 1:
-        raise ValueError("Multi-currency FX restatement must match one holding row.")
-    rebuilt.loc[fx_restatement, "BASE_MKT_VAL"] = (
-        rebuilt.loc[fx_restatement, "BASE_MKT_VAL"].astype(float) + 320.0
+    if int(conversion_restatement.sum()) != 1:
+        raise ValueError("Multi-currency restatement must match one holding row.")
+    rebuilt.loc[conversion_restatement, "BASE_MKT_VAL"] = (
+        rebuilt.loc[conversion_restatement, "BASE_MKT_VAL"].astype(float) + 320.0
     )
     return _rounded_holdings(rebuilt[current_holdings.columns])
 

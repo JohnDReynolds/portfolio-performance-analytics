@@ -180,12 +180,6 @@ class TestAuditLineage(unittest.TestCase):
                 pc_cols.BASE_MARKET_VALUE,
             )
         )
-        self.assertTrue(
-            field_roles.requires_explicit_impact_policy(
-                pc_cols.FX_RATES,
-                pc_cols.FX_RATE,
-            )
-        )
         self.assertFalse(
             field_roles.requires_explicit_impact_policy(
                 pc_cols.PORTFOLIO_PERFORMANCE,

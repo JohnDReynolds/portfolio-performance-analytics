@@ -23,16 +23,11 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
-  fx_rates: fx_rates.csv
   transactions: transactions.csv
   holdings: holdings.csv
 
 extract_contract:
   enforce_ambiguous_axys_flows: true
-
-fx_rate_impact_methods:
-  fx_rate:
-    method: evidence_only
 
 transaction_rules:
   BUY:
@@ -97,4 +92,3 @@ tolerances:
   quantity: 0.000001
   price: 0.000001
   split_factor: 0.00000001
-  fx_rate: 0.00000001

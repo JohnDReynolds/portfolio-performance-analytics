@@ -10,7 +10,6 @@ import unittest
 from ppar.audit import schema as audit_schema
 from ppar.audit import workbook_guidance
 from ppar.audit import workbook_rows
-from ppar.audit import workbook_source_allocation
 from ppar.audit.performance_comparison import findings
 
 
@@ -328,19 +327,17 @@ class TestWorkbookGuidance(unittest.TestCase):
 
                 self.assertEqual(guidance, expected)
 
-    def test_fx_support_guidance_names_rate_and_counted_field(self) -> None:
-        """FX support guidance connects the rate to the counted base value."""
+    def test_implied_conversion_context_accompanies_counted_base_value(self) -> None:
+        """A derived row ratio accompanies its counted base-value change."""
         row = {
-            findings.DATASET: audit_schema.FX_RATES,
-            findings.SOURCE_COLUMN: audit_schema.FX_RATE,
+            findings.DATASET: audit_schema.HOLDINGS,
+            findings.SOURCE_COLUMN: audit_schema.BASE_MARKET_VALUE,
             findings.SECURITY_ID: "SAP",
-            findings.FROM_CURRENCY: "EUR",
-            findings.TO_CURRENCY: "USD",
-            findings.SNAPSHOT_A_VALUE: 1.1,
-            findings.SNAPSHOT_B_VALUE: 1.2,
-            workbook_source_allocation.FX_RATE_TARGET_FIELD: "holdings.base_market_value",
-            workbook_source_allocation.FX_RATE_BASE_VALUE_CHANGE: 25.0,
-            workbook_source_allocation.FX_RATE_SUPPORTS_BASE_INPUT: True,
+            findings.DELTA_B_MINUS_A: 25.0,
+            findings.MESSAGE: (
+                "Local market value remained EUR 100.00. The implied conversion "
+                "ratio increased from 1.100000 to 1.200000 USD per EUR."
+            ),
         }
 
         guidance = workbook_guidance.review_guidance(
@@ -348,16 +345,17 @@ class TestWorkbookGuidance(unittest.TestCase):
             None,
             comparison_path=None,
             impact_status=workbook_guidance.IMPACT_STATUS_REVIEW_ONLY,
-            row_kind=workbook_rows.ROW_KIND_CONTEXT,
+            row_kind=workbook_rows.ROW_KIND_UNDERLYING_CAUSE,
         )
 
-        self.assertEqual(
+        self.assertIn(
+            "SAP holdings.base_market_value increased by 25.00.",
             guidance,
-            (
-                "EUR-to-USD fx_rates.fx_rate increased by 0.10, from 1.1 to 1.2 "
-                "USD per EUR. This affects the performance calculation through "
-                "holdings.base_market_value; the counted USD effect for SAP is 25.00."
-            ),
+        )
+        self.assertIn(
+            "Local market value remained EUR 100.00. The implied conversion "
+            "ratio increased from 1.100000 to 1.200000 USD per EUR.",
+            guidance,
         )
 
     def test_explanation_contract_rejects_wrong_source_and_currency(self) -> None:

@@ -93,7 +93,7 @@ def review_note(
         )
     )
     if source_explanation:
-        return source_explanation
+        return _with_implied_conversion_context(row, source_explanation)
     if rows.has_evidence_only_policy(row):
         return _REVIEW_ONLY_EVIDENCE_NOTE
     if row.get(rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION):
@@ -148,7 +148,10 @@ def review_guidance(
         impact_status=impact_status,
         row_kind=row_kind,
     )
-    return _with_source_change_lead(row, guidance)
+    return _with_implied_conversion_context(
+        row,
+        _with_source_change_lead(row, guidance),
+    )
 
 
 def _review_guidance(
@@ -229,8 +232,6 @@ def _review_guidance(
         return "Transaction activity changed. The holding value row shows the counted effect."
     if row.get(rows.SPLIT_FACTOR_SUPPORTS_HOLDING):
         return _split_factor_explanation(row)
-    if row.get(source_allocation.FX_RATE_SUPPORTS_BASE_INPUT):
-        return _fx_rate_support_explanation(row)
     if row.get(rows.UNSELECTED_RELATED_ESTIMATE):
         return _related_input_guidance(
             row,
@@ -298,10 +299,6 @@ def _review_guidance(
             "holding_impact_methods.market_value.denominator_source in "
             f"{yaml_path}."
         )
-    if dataset == audit_schema.FX_RATES:
-        if source_column != audit_schema.FX_RATE:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        return f"Specify the YAML fx_rate_impact_methods.fx_rate.method in {yaml_path}."
     return f"No supported YAML impact method exists yet for {dataset_column}."
 
 
@@ -393,6 +390,21 @@ def _with_source_change_lead(
     return f"{source_change} {guidance}"
 
 
+def _with_implied_conversion_context(
+    row: Mapping[str, object],
+    guidance: str,
+) -> str:
+    """Append a valid row-level implied-conversion observation once."""
+    message = row.get(findings.MESSAGE)
+    if not isinstance(message, str) or not message.startswith("Local "):
+        return guidance
+    if message in guidance:
+        return guidance
+    if not guidance:
+        return message
+    return f"{guidance} {message}"
+
+
 def _source_change_sentence(row: Mapping[str, object]) -> str:
     """Return the canonical first sentence for a changed source row."""
     dataset = format_value(row.get(findings.DATASET))
@@ -403,8 +415,6 @@ def _source_change_sentence(row: Mapping[str, object]) -> str:
         return _holding_source_explanation(row, source_column)
     if dataset == audit_schema.TRANSACTIONS:
         return _transaction_change_sentence(row, source_column)
-    if dataset == audit_schema.FX_RATES and source_column == audit_schema.FX_RATE:
-        return _fx_rate_change_sentence(row)
     if dataset == audit_schema.SPLITS and source_column == audit_schema.SPLIT_FACTOR:
         return _split_factor_change_sentence(row)
     return ""
@@ -438,33 +448,6 @@ def _transaction_change_sentence(
     )
 
 
-def _fx_rate_change_sentence(row: Mapping[str, object]) -> str:
-    """Return the canonical source-change sentence for an FX-rate row."""
-    snapshot_a = rows.number_or_none(row.get(findings.SNAPSHOT_A_VALUE))
-    snapshot_b = rows.number_or_none(row.get(findings.SNAPSHOT_B_VALUE))
-    from_currency = format_value(row.get(findings.FROM_CURRENCY))
-    to_currency = format_value(row.get(findings.TO_CURRENCY))
-    pair_prefix = (
-        f"{from_currency}-to-{to_currency} "
-        if from_currency and to_currency
-        else ""
-    )
-    change_value = _source_change_value(row)
-    value_detail = ""
-    if snapshot_a is not None and snapshot_b is not None:
-        quote_suffix = (
-            f" {to_currency} per {from_currency}"
-            if from_currency and to_currency
-            else ""
-        )
-        value_detail = f", from {snapshot_a:g} to {snapshot_b:g}{quote_suffix}"
-    return (
-        f"{pair_prefix}fx_rates.fx_rate "
-        f"{rows.increased_or_decreased(change_value)} by "
-        f"{rows.change_amount_text(change_value)}{value_detail}."
-    )
-
-
 def _split_factor_change_sentence(row: Mapping[str, object]) -> str:
     """Return the canonical source-change sentence for a split row."""
     security_id = format_value(row.get(findings.SECURITY_ID))
@@ -494,11 +477,6 @@ def _required_performance_references(
         ):
             return ("holdings.market_value",)
         return ()
-    if dataset == audit_schema.FX_RATES and source_column == audit_schema.FX_RATE:
-        if not row.get(source_allocation.FX_RATE_SUPPORTS_BASE_INPUT):
-            return ()
-        target_field = format_value(row.get(source_allocation.FX_RATE_TARGET_FIELD))
-        return (target_field,) if target_field else ()
     if dataset == audit_schema.SPLITS and source_column == audit_schema.SPLIT_FACTOR:
         if row.get(rows.SPLIT_FACTOR_SUPPORTS_HOLDING):
             return ("holdings.market_value",)
@@ -545,8 +523,6 @@ def _expected_currency_value_field(row: Mapping[str, object]) -> str:
         rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION
     ):
         return _transaction_cash_balance_field(row)
-    if dataset == audit_schema.FX_RATES:
-        return format_value(row.get(source_allocation.FX_RATE_TARGET_FIELD))
     return ""
 
 
@@ -792,21 +768,6 @@ def _holding_performance_input(
     if impact_policy == foreign_currency_policy:
         return "holdings.base_market_value"
     return "holdings.market_value"
-
-
-def _fx_rate_support_explanation(row: Mapping[str, object]) -> str:
-    """Return an FX-rate explanation linked to the counted base value."""
-    security_id = format_value(row.get(findings.SECURITY_ID))
-    target_field = format_value(row.get(source_allocation.FX_RATE_TARGET_FIELD))
-    base_value_change = row.get(source_allocation.FX_RATE_BASE_VALUE_CHANGE)
-    to_currency = format_value(row.get(findings.TO_CURRENCY))
-    security_suffix = f" for {security_id}" if security_id else ""
-    return (
-        f"{_fx_rate_change_sentence(row)} This affects the performance calculation "
-        f"through {target_field}; the counted {to_currency or 'base-currency'} "
-        f"effect{security_suffix} is "
-        f"{rows.change_amount_text(base_value_change)}."
-    )
 
 
 def _split_factor_explanation(row: Mapping[str, object]) -> str:

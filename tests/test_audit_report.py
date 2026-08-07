@@ -70,8 +70,8 @@ _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_audit_suppressed.yaml"
 )
 _EXPECTED_REPORT_TABLE_SCHEMA_FINGERPRINTS = {
-    "portfolio": "0c28a285026d867fe2b778ce1a47eec54c809da69eb87dace81b3ad0d08faa7e",
-    "security": "c1d556de1c6276a646265702d960fefcb692c02c59e2dd94d95289842ae22389",
+    "portfolio": "e39d865323f67d3d55fe95b4e01f5c6b00e0b389e67f3811a0868b2c4bf8e89b",
+    "security": "f86d759bc035385d36c70eea26975e32ac444abb05972afc495c45686c7f483e",
 }
 
 
@@ -120,7 +120,6 @@ def _required_yaml_settings() -> dict[str, object]:
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
     }
 
@@ -944,8 +943,8 @@ class TestAuditReport(unittest.TestCase):
                 set(manifest),
                 set(required_manifest_keys),
             )
-            self.assertEqual(manifest["counts"]["findings"], 11)
-            self.assertEqual(manifest["counts"]["active_findings"], 11)
+            self.assertEqual(manifest["counts"]["findings"], 10)
+            self.assertEqual(manifest["counts"]["active_findings"], 10)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertFalse(
                 manifest["options"]["include_reconstruction_diagnostics"]
@@ -1022,8 +1021,8 @@ class TestAuditReport(unittest.TestCase):
             )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
-            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
-            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 1)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 1)
             integrity = manifest["output_integrity"]
             self.assertEqual(integrity["normalization_version"], 1)
             self.assertEqual(
@@ -1175,7 +1174,7 @@ class TestAuditReport(unittest.TestCase):
             self.assertEqual(impact_coverage["impact_coverage_status"][0], "evidence_only")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
-            self.assertEqual(context_evidence.height, 2)
+            self.assertEqual(context_evidence.height, 1)
             self.assertIn("review_key", context_evidence.columns)
             self.assertIn("context_use", context_evidence.columns)
             self.assertIn("review_priority", context_evidence.columns)
@@ -1189,7 +1188,7 @@ class TestAuditReport(unittest.TestCase):
             )
 
             context_evidence_summary = pl.read_csv(paths["context_evidence_summary"])
-            self.assertEqual(context_evidence_summary.height, 2)
+            self.assertEqual(context_evidence_summary.height, 1)
             self.assertIn("review_priority", context_evidence_summary.columns)
             self.assertIn("review_priority_reason", context_evidence_summary.columns)
             self.assertIn("finding_count", context_evidence_summary.columns)

@@ -27,7 +27,7 @@ The core question is:
 > when I ran it on date 2?
 
 The feature will compare two snapshot directories. Each snapshot contains
-vendor exports such as portfolio performance, security performance, FX rates,
+vendor exports such as portfolio performance, security performance,
 transactions, and holdings.
 
 This should not be treated as an Axys/APX-only feature. The comparison engine
@@ -35,8 +35,8 @@ should operate on normalized internal datasets. Vendor-specific behavior should
 live in small normalization adapters, with Axys/APX as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
-portfolio performance, security performance, holdings, FX rates, and
-transactions rows, report material changes, and produce a
+portfolio performance, security performance, holdings, and transaction rows,
+report material changes, and produce a
 clear finding model. Deeper causal inference can be added after the finding
 model is stable.
 
@@ -151,7 +151,6 @@ ppar/audit/
   findings.py
   explain.py
   _transaction_diagnostics.py
-  fx_rates.py
   period_linking.py
   holdings.py
   runner.py
@@ -165,8 +164,8 @@ Current responsibilities:
 - `source_loader.py`: Load one snapshot directory, resolve optional files, and
   normalize configured columns.
 - `compare.py`: Compare normalized snapshot A/snapshot B data sets.
-- Dataset modules such as `fx_rates.py`, `transactions.py`, and
-  `holdings.py`: dataset-specific loading, comparison keys,
+- Dataset modules such as `transactions.py` and `holdings.py`: dataset-specific
+  loading, comparison keys,
   changed-column rules, and default aliases.
 - `period_linking.py`: Link dated evidence to containing portfolio periods
   where the linkage is conservative.
@@ -210,7 +209,6 @@ engine. Initial normalized datasets include:
 
 - `portfolio_performance`
 - `security_performance`
-- `fx_rates`
 - `transactions`
 - `holdings`
 
@@ -257,28 +255,6 @@ evidence.
 
 `security_performance` has no supported optional calculated-output columns.
 Holdings and transactions provide valuation, weight, flow, and income evidence.
-
-`fx_rates` required columns:
-
-- `from_currency`
-- `to_currency`
-- `rate_date`
-- `fx_rate`
-
-`fx_rates` useful optional columns:
-
-- `rate_source`
-- `rate_type`
-
-`fx_rates` represents exchange rates, not currency holdings or cash
-balances. Currency exposure belongs in holdings, transactions, or valuation
-datasets.
-
-Required FX values must be complete, and `fx_rate` must be finite and strictly
-positive. A normalized row is unique by currency pair, rate date, and any
-available rate-source/rate-type provenance. These are source-integrity rules;
-they do not establish an Axys-native quote direction, reciprocal convention, or
-rate-selection method.
 
 `transactions` required columns:
 
@@ -761,7 +737,7 @@ performance deltas. They are related output deltas: useful context, but not the
 underlying input change that caused portfolio performance to move.
 
 Root-cause evidence should come from input/source-like datasets such as
-holdings, FX rates, transactions, market values, accruals, income, and
+holdings, transactions, market values, accruals, income, and
 other source fields. Security master and classification changes can provide
 useful context, but are often not numeric causes by themselves.
 
@@ -794,7 +770,7 @@ Evidence roles:
 - `related_output`: Calculated output deltas that help locate the change, such
   as security return changes.
 - `direct_input`: Source/input changes that can plausibly drive time-weighted
-  return, such as holding price values, FX rates, flows, market values, holdings,
+  return, such as holding price values, flows, market values, holdings,
   accruals, transaction amounts, and cash balances.
 - `context`: Reference, classification, schema, or accounting context that aids
   investigation but is not a direct performance driver by itself.
@@ -820,9 +796,6 @@ The first-pass role model should remain intentionally small:
 - `security_performance`: `related_output` in the global portfolio-period
   model. In a local security-period view, the security return change is the
   local `target_output`.
-- `fx_rates`: `input_component` because a rate change explains a translated
-  base value; the changed base market value or base transaction amount is the
-  direct input counted in performance attribution.
 - `transactions`: `direct_input` because activity, cash flow, quantity, price,
   and amount changes can drive performance inputs.
 - `holdings`: `direct_input` because quantity, market value, price, and
@@ -846,7 +819,6 @@ PC-SEC-CONTR    Security contribution changed
 PC-SEC-ADD      Security appears only in snapshot B
 PC-SEC-DROP     Security appears only in snapshot A
 PC-PRICE        Price changed
-PC-FX-RATE      FX rate changed
 PC-TXN-ADD      Transaction appears only in snapshot B
 PC-TXN-DROP     Transaction appears only in snapshot A
 PC-TXN-AMT      Transaction amount changed
@@ -880,8 +852,8 @@ referenced snapshot schema is a complete override for that snapshot rather than
 a partial overlay on the common mappings in `ppar.yaml`.
 
 Audit retains its own exact normalization layer and is not Axys/APX-only.
-Mappings can describe any supported source layout, including FX rates,
-transactions, holdings, and splits.
+Mappings can describe any supported source layout, including transactions,
+holdings, and splits.
 
 Composite Axys/APX security identity uses normalized mapping keys, not literal
 CSV captions. A direct `files.*.columns.security_id` mapping takes precedence
@@ -909,9 +881,9 @@ available; the starter YAML therefore does not choose one primary level.
 Lower-level single-view calls must supply a comparison level directly or retain
 an explicit `comparison.level` in their specialized YAML. Extract-contract
 omission uses the packaged contract, ambiguous-flow enforcement, and exact-case
-matching. All six comparison tolerances remain mandatory. When
-`transactions`, `holdings`, or `fx_rates` is configured, the corresponding
-transaction, holding/price, or FX impact-policy block must be complete.
+matching. All five comparison tolerances remain mandatory. When `transactions`
+or `holdings` is configured, the corresponding transaction or holding/price
+impact-policy block must be complete.
 
 Snapshot mappings support `label`, `path`, and an optional external `schema`
 path. The former snapshot `vendor` setting was removed because it selected no
@@ -992,8 +964,6 @@ files:
       from_date: From Date
       thru_date: Thru Date
       security_return: Security Return
-  fx_rates:
-    path: fx_rates.csv
   transactions:
     path: transactions.csv
     required: true
@@ -1034,17 +1004,12 @@ price_impact_methods:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
 
-fx_rate_impact_methods:
-  fx_rate:
-    method: evidence_only
-
 tolerances:
   return: 0.000001
   market_value: 0.01
   quantity: 0.000001
   price: 0.000001
   split_factor: 0.00000001
-  fx_rate: 0.00000001
 
 materiality:
   minimum_return_delta: 0.000001
@@ -1232,7 +1197,7 @@ Current output layers:
   `portfolio_period_contribution_candidates()`. It adds stable impact columns
   to ranked evidence rows and may return `no_estimate` when a defensible impact
   estimate is not available. Supported estimates use explicit YAML methods and
-  holdings-, transaction-, FX-, or reconstruction-derived inputs.
+  holdings-, transaction-, or reconstruction-derived inputs.
 - Portfolio-period cause summary: A coarse explanation-bucket helper returned
   by `portfolio_period_cause_summary()`. It rolls contribution candidates up
   to portfolio period plus root-cause area, preserving finding counts, top
@@ -1268,7 +1233,9 @@ Normalized monetary names use one currency-basis rule:
   `currency`;
 - `base_` monetary fields in those detailed datasets use portfolio
   `base_currency`;
-- `fx_rates.fx_rate` is `to_currency` units per one `from_currency` unit.
+- when foreign-currency holdings or transactions provide both local and base
+  values, the implied conversion ratio is reported as base value divided by
+  local value for that individual row.
 
 PPAR does not add `local_` duplicates because row currency is already the
 detailed-data default. A detailed unqualified value may enter Modified Dietz
@@ -1296,14 +1263,10 @@ Implemented period-linking rules:
 - When more than one configured portfolio period contains the source date, the
   finding links to the narrowest containing period for that portfolio.
 - Unmatched dated evidence keeps null period fields.
-- Portfolio-specific `fx_rates` rows link by `portfolio_id` and `rate_date`.
-  They support an estimate only when both snapshots provide the same explicit
-  `local_exposure`; a rate row without that exposure remains review evidence.
-
-These rules are intentionally asymmetric. Holding price rows use reconstructed
-beginning holdings to derive a portfolio weight. FX rates need an explicit
-portfolio identifier and local exposure; PPAR does not infer either from a
-performance file.
+The implied conversion ratio is observation-level context, not a separate
+dated-evidence row or additive cause. It remains attached to the changed base
+holding or transaction value, so different portfolios and transactions may
+show different ratios for the same currency pair and date.
 
 ## Current Limits
 
@@ -1313,8 +1276,7 @@ The current evidence model is useful, but it should not be overstated.
   calculate an estimate, but unestimated evidence must remain visibly distinct.
 - Portfolio-period evidence rankings are review-priority heuristics. They help
   sort the audit trail but do not quantify causal contribution.
-- Price estimates require holdings-derived beginning weights. FX rates without
-  explicit portfolio and exposure context remain unlinked and unestimated.
+- Price estimates require holdings-derived beginning weights.
 - Transaction matching depends on stable keys. With `transaction_id`, changed
   amounts can be reported as changed transactions. Without it, conservative
   fallback matching may report one drop and one add rather than guessing two
@@ -1367,9 +1329,8 @@ Current estimate inputs are derived as follows:
    holding impact methods.
 5. Holding price estimates use the configured price method and the
    holdings-derived beginning weight.
-6. Performance-treated transaction amounts, eligible security transaction
-   flows, and configured FX-rate exposure estimates use their explicit YAML
-   methods and reconstructed denominators.
+6. Performance-treated transaction amounts and eligible security transaction
+   flows use their explicit YAML methods and reconstructed denominators.
 
 Missing reconstruction setup, missing boundary holdings, zero denominators, or
 missing transaction semantics fail closed: Audit does not fall back to optional
@@ -1403,7 +1364,7 @@ active in normal production runs.
 ## Long-Term Dataset Watchlist
 
 The current normalized surface—portfolio performance, security performance,
-holdings, transactions, and FX rates—remains the implementation boundary.
+holdings, transactions, and split evidence—remains the implementation boundary.
 Additional datasets require real source evidence and an approved product need;
 this document does not maintain a speculative dataset catalog.
 

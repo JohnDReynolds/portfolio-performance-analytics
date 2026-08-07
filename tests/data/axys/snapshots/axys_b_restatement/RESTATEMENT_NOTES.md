@@ -12,7 +12,6 @@ Controlled changes:
 - `holdings.csv`: Restated the `PORT_A`/`AAPL` quantity, market
   value, cost, and accrued amount, plus the `CASHUSD` quantity and market value,
   for `2025-05-30`.
-- `fx_rates.csv`: Restated the `EUR` to `USD` spot rate for `2025-05-30`.
 - `transactions.csv`: Restated the `TXN000001` AAPL transaction quantity,
   price, and amount.
 - `secmast.csv`: Restated the `AAPL` name and sector fields.

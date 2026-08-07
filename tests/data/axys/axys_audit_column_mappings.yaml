@@ -100,15 +100,6 @@ files:
       commission: COMMISSION
       broker: BROKER
 
-  fx_rates:
-    columns:
-      from_currency: FROM_CCY
-      to_currency: TO_CCY
-      rate_date: RATE_DATE
-      fx_rate: FX_RATE
-      rate_source: SOURCE
-      rate_type: RATE_TYPE
-
 # =========================
 # Classifications
 # =========================

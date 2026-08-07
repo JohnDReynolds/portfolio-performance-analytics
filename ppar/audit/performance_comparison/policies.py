@@ -13,7 +13,6 @@ from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
 from ppar.audit.performance_comparison.findings import (
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
-    IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
@@ -23,7 +22,6 @@ from ppar.audit.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
 )
 from ppar.audit.performance_comparison.methods import (
-    FxRateImpactMethod,
     ModifiedDietzDayCount,
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzFlowTiming,
@@ -49,7 +47,6 @@ from ppar.audit.transactions import (
 _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _HOLDING_IMPACT_METHODS_KEY: Final[str] = "holding_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
-_FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _SECURITY_RETURN_IMPACT_METHODS_KEY: Final[str] = "security_return_impact_methods"
 _SECURITY_RETURN_KEY: Final[str] = "security_return"
@@ -79,10 +76,6 @@ _HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = HoldingImpactMethod[
 ].value
 _PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD: Final[str] = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
-)
-_FX_RATE_EVIDENCE_ONLY_METHOD: Final[str] = FxRateImpactMethod.EVIDENCE_ONLY.value
-_FX_RATE_EXPOSURE_METHOD: Final[str] = (
-    FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value
 )
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
@@ -160,17 +153,6 @@ _PRICE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _WEIGHT_SOURCE_KEY,
     }
 )
-_FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        _METHOD_KEY,
-    }
-)
-_FX_RATE_EXPOSURE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        _METHOD_KEY,
-        _DENOMINATOR_SOURCE_KEY,
-    }
-)
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _FLOW_TIMING_KEY: _MODIFIED_DIETZ_FLOW_TIMINGS,
     _DAY_COUNT_KEY: _MODIFIED_DIETZ_DAY_COUNTS,
@@ -205,7 +187,6 @@ _EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     }
 )
 _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
-    pc_cols.FX_RATES: frozenset({pc_cols.FX_RATE}),
     pc_cols.HOLDINGS: frozenset(
         {
             pc_cols.QUANTITY,
@@ -767,105 +748,6 @@ def _price_impact_policies(
         )
         policies[pc_cols.PRICE] = IMPACT_POLICY_PRICE_WEIGHTED
     return policies
-
-
-def _fx_rate_impact_policies(
-    specification: AuditSpecification,
-) -> dict[str, str]:
-    """Return validated YAML-selected FX rate impact policies.
-
-    Args:
-        specification: Parsed comparison specification.
-
-    Returns:
-        Policy labels keyed by FX rate source column.
-
-    Raises:
-        PpaError: If FX rate impact method configuration is malformed or names
-            an unsupported method.
-    """
-    methods_value = specification.values.get(_FX_RATE_IMPACT_METHODS_KEY)
-    if methods_value is None:
-        if pc_cols.FX_RATES in specification.files:
-            raise PpaError(
-                (
-                    f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY} "
-                    "is required when files.fx_rates is configured."
-                ),
-                504,
-            )
-        return {}
-    if not isinstance(methods_value, dict):
-        raise PpaError(
-            (f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY} " "must be a mapping."),
-            504,
-        )
-
-    unsupported_keys = set(methods_value) - {pc_cols.FX_RATE}
-    if unsupported_keys:
-        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
-        raise PpaError(
-            (
-                f"{specification.path}: unsupported "
-                f"{_FX_RATE_IMPACT_METHODS_KEY} keys: {unsupported}."
-            ),
-            504,
-        )
-
-    fx_rate_value = methods_value.get(pc_cols.FX_RATE)
-    if fx_rate_value is None:
-        if pc_cols.FX_RATES in specification.files:
-            raise PpaError(
-                (
-                    f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY}."
-                    f"{pc_cols.FX_RATE} is required when files.fx_rates is configured."
-                ),
-                504,
-            )
-        return {}
-    policy = _require_policy_mapping(
-        specification,
-        _FX_RATE_IMPACT_METHODS_KEY,
-        pc_cols.FX_RATE,
-        fx_rate_value,
-    )
-    method = policy.get(_METHOD_KEY)
-    if method == _FX_RATE_EXPOSURE_METHOD:
-        _validate_policy_keys(
-            specification,
-            _FX_RATE_IMPACT_METHODS_KEY,
-            pc_cols.FX_RATE,
-            policy,
-            _FX_RATE_EXPOSURE_REQUIRED_KEYS,
-        )
-        _validate_allowed_policy_values(
-            specification,
-            _FX_RATE_IMPACT_METHODS_KEY,
-            pc_cols.FX_RATE,
-            policy,
-            {_DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"})},
-        )
-        return {pc_cols.FX_RATE: IMPACT_POLICY_FX_RATE_EXPOSURE}
-    _validate_policy_keys(
-        specification,
-        _FX_RATE_IMPACT_METHODS_KEY,
-        pc_cols.FX_RATE,
-        policy,
-        _FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS,
-    )
-    _validate_policy_method(
-        specification,
-        _FX_RATE_IMPACT_METHODS_KEY,
-        pc_cols.FX_RATE,
-        policy,
-        _FX_RATE_EVIDENCE_ONLY_METHOD,
-    )
-    return {
-        pc_cols.FX_RATE: _evidence_only_impact_policy_label(
-            pc_cols.FX_RATES,
-            pc_cols.FX_RATE,
-        )
-    }
 
 
 def _evidence_only_impact_policies(

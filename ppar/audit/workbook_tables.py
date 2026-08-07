@@ -71,7 +71,6 @@ _REDUNDANT_BASE_MARKET_VALUE_POLICY = (
     f"holdings.{pc_cols.BASE_MARKET_VALUE}_redundant"
 )
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
-    pc_cols.FX_RATES: {pc_cols.FX_RATE},
     pc_cols.HOLDINGS: {
         pc_cols.ACCRUED,
         pc_cols.BASE_ACCRUED,
@@ -88,7 +87,6 @@ _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     },
 }
 _WORKBOOK_EXPLANATION_SOURCE_DATASETS = {
-    pc_cols.FX_RATES,
     pc_cols.HOLDINGS,
     pc_cols.SPLITS,
     pc_cols.TRANSACTIONS,
@@ -1721,14 +1719,6 @@ def _workbook_underlying_causes_table(
         _source_allocation.source_row_key(row, comparison_level)
         for row in attributed_formula_source_rows
     }
-    fx_support_rows = _source_allocation.fx_support_rows(
-        ranked_rows,
-        attributed_formula_source_rows,
-        comparison_level=comparison_level,
-    )
-    linked_fx_sources = {
-        _source_allocation.fx_source_identity(row) for row in fx_support_rows
-    }
     possible_cause_source_keys = {
         _source_allocation.source_row_key(row, comparison_level)
         for row in _workbook_possible_cause_rows(
@@ -1746,10 +1736,6 @@ def _workbook_underlying_causes_table(
             row = _workbook_mark_possible_cause_row(row, comparison_level)
         rows.append(_workbook_changed_item_row(row, comparison_path=comparison_path))
     rows.extend(dict(row) for row in unallocated_formula_rows)
-    rows.extend(
-        _workbook_changed_item_row(row, comparison_path=comparison_path) for row in fx_support_rows
-    )
-
     for row in ranked_rows:
         row = _source_allocation.with_cash_balance_security(
             row,
@@ -1759,8 +1745,6 @@ def _workbook_underlying_causes_table(
         has_formula_role = _rows.primary_review_period_key(row, comparison_level) in formula_keys
         source_row_key = _source_allocation.source_row_key(row, comparison_level)
         if source_row_key in attributed_source_keys:
-            continue
-        if _source_allocation.fx_source_identity(row) in linked_fx_sources:
             continue
         if has_formula_role and _rows.is_underlying_cause_row(row):
             support_row = _rows.formula_support_row(
@@ -2570,7 +2554,6 @@ def _workbook_row_type(
         return _ROW_TYPE_EXPLAINED_CAUSE
     if (
         row.get(_rows.SPLIT_FACTOR_SUPPORTS_HOLDING)
-        or row.get(_source_allocation.FX_RATE_SUPPORTS_BASE_INPUT)
         or row.get(_rows.TRANSACTION_FLOW_SUPPORTS_HOLDING)
         or row.get(_rows.NON_ADDITIVE_PORTFOLIO_TRANSACTION)
         or row.get(_rows.TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW)

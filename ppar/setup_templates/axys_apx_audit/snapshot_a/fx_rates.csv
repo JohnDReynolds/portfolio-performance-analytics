@@ -1,3 +1,0 @@
-From Currency,To Currency,Rate Date,FX Rate,Local Exposure,Portfolio Code,Rate Source,Rate Type
-EUR,USD,2026-04-30,1.088,25000.0,BALANCED,demo_normalized,closing
-GBP,USD,2026-04-30,1.268,16000.0,BALANCED,demo_normalized,closing

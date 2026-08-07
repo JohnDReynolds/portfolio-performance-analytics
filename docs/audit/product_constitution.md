@@ -5,8 +5,8 @@
 | Document field | Value |
 |---|---|
 | Document status | Visionary product design complete — good enough for now; MVP completion is the active phase |
-| Version | 1.21 |
-| Date | 2026-07-25 |
+| Version | 1.22 |
+| Date | 2026-08-07 |
 | Primary audience | Founder, product leadership, engineering, implementation, and future commercial leadership |
 | Writing posture | Internal and candid first; externally reusable second |
 | Canonical scope | Product identity, current truth, principles, boundaries, capability status, validation doctrine, claims, and founder decisions |
@@ -16,6 +16,14 @@
 | Active MVP plan | [`mvp_plan.md`](mvp_plan.md) |
 
 ## Change Log
+
+### Version 1.22 — 2026-08-07
+
+- Removed the normalized standalone rate extract, its loader, YAML policy,
+  tolerance, report finding, demo files, and compatibility surface.
+- Kept foreign-currency explanation local to each holding or transaction row:
+  when valid local and base values are present, Audit reports their implied
+  conversion ratio as supporting evidence without counting it separately.
 
 ### Version 1.21 — 2026-07-25
 
@@ -30,8 +38,6 @@
 
 - Removed the unused `contribution` and `weight` comparison tolerances; the six
   remaining tolerances correspond directly to fields compared by Audit.
-- Removed a redundant generic FX evidence-only declaration from the packaged
-  workspace. The dedicated FX policy continues to govern the packaged setup.
 - Audited the remaining packaged settings against their runtime consumers; no
   other orphaned legacy settings were found.
 
@@ -437,7 +443,7 @@ occur inside the client-controlled environment.
 - Snapshot A and Snapshot B are neutral labels; neither is presumed correct.
 - Portfolio performance is the minimum top-level comparison surface.
 - Depending on scope and configuration, supporting data can include security
-  performance, holdings, transactions, FX rates, and split evidence.
+  performance, holdings, transactions, and split evidence.
 - Split factors are an optional evidence-only normalized surface, not a current
   Data Issues rule or counted split cause.
 - YAML maps files, fields, accounting roles, transaction semantics, impact

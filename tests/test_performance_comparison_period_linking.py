@@ -219,12 +219,9 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
         """Unsupported datasets and out-of-period dates return empty period context."""
         portfolio_periods = _portfolio_periods()
 
-        fx_context = period_context_for_dated_evidence(
-            {
-                pc_cols.PORTFOLIO_ID: "PORT_A",
-                pc_cols.RATE_DATE: dt.date(2025, 5, 15),
-            },
-            pc_cols.FX_RATES,
+        unsupported_context = period_context_for_dated_evidence(
+            {pc_cols.PORTFOLIO_ID: "PORT_A"},
+            "unsupported",
             portfolio_periods,
         )
         out_of_period_context = period_context_for_dated_evidence(
@@ -237,8 +234,8 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
         )
 
         self.assertEqual(
-            fx_context,
-            (dt.date(2025, 5, 1), dt.date(2025, 5, 31)),
+            unsupported_context,
+            (None, None),
         )
         self.assertEqual(out_of_period_context, (None, None))
 

@@ -61,8 +61,8 @@ class AuditComparisonViews:
 
     Notes:
         Portfolio and security performance are genuinely different targets and
-        remain separate calculations. Holdings, FX rates, splits, and
-        transactions describe the same economic changes and are calculated
+        remain separate calculations. Holdings, splits, and transactions
+        describe the same economic changes and are calculated
         once, then given the transaction-policy label appropriate to each view.
     """
 

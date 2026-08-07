@@ -23,7 +23,6 @@ _DEFAULT_OUTPUT_PATH: Final = (
 )
 _DATASET_LABELS: Final[dict[str, str]] = {
     "holdings.csv": "holdings",
-    "fx_rates.csv": "FX rates",
     "portperf.csv": "portfolio performance",
     "secmast.csv": "security master",
     "secperf.csv": "security performance",

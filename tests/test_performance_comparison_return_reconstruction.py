@@ -73,7 +73,6 @@ def _required_yaml_settings() -> dict[str, object]:
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
         "transaction_impact_methods": {
             "external_flow": {"method": "evidence_only"},

@@ -7,14 +7,12 @@ callers that need stable output column names.
 Detailed unqualified monetary fields use the row ``currency``. Detailed
 ``base_`` monetary fields use portfolio ``base_currency``. Monetary fields in
 portfolio/security performance datasets are inherently portfolio-base values.
-FX rates use explicit ``from_currency`` and ``to_currency`` units.
 """
 
 __all__ = [
     "PORTFOLIO_PERFORMANCE",
     "SECURITY_PERFORMANCE",
     "SPLITS",
-    "FX_RATES",
     "TRANSACTIONS",
     "HOLDINGS",
     "SECURITY_MASTER",
@@ -22,7 +20,6 @@ __all__ = [
     "SECURITY_ID",
     "FROM_DATE",
     "THRU_DATE",
-    "RATE_DATE",
     "SPLIT_DATE",
     "TRANSACTION_DATE",
     "ORIGINAL_COST_DATE",
@@ -31,9 +28,6 @@ __all__ = [
     "PORTFOLIO_RETURN",
     "SECURITY_RETURN",
     "PRICE",
-    "FX_RATE",
-    "FROM_CURRENCY",
-    "TO_CURRENCY",
     "WEIGHT",
     "CONTRIBUTION",
     "PORTFOLIO_NAME",
@@ -59,8 +53,6 @@ __all__ = [
     "GAIN_LOSS",
     "PERIOD_ID",
     "CURRENCY",
-    "RATE_SOURCE",
-    "RATE_TYPE",
     "SPLIT_FACTOR",
     "TRANSACTION_ID",
     "TRANSACTION_CODE",
@@ -78,7 +70,6 @@ __all__ = [
     "AMOUNT",
     "BASE_AMOUNT",
     "BASE_ACCRUED",
-    "LOCAL_EXPOSURE",
     "COMMISSION",
     "BROKER",
     "COST",
@@ -93,9 +84,6 @@ __all__ = [
     "SPLITS_REQUIRED_COLUMNS",
     "SPLITS_OPTIONAL_COLUMNS",
     "SPLITS_COLUMNS",
-    "FX_RATES_REQUIRED_COLUMNS",
-    "FX_RATES_OPTIONAL_COLUMNS",
-    "FX_RATES_COLUMNS",
     "TRANSACTIONS_REQUIRED_COLUMNS",
     "TRANSACTIONS_PERFORMANCE_CALCULATION_REQUIRED_COLUMNS",
     "TRANSACTIONS_OPTIONAL_COLUMNS",
@@ -112,7 +100,6 @@ __all__ = [
 PORTFOLIO_PERFORMANCE = "portfolio_performance"
 SECURITY_PERFORMANCE = "security_performance"
 SPLITS = "splits"
-FX_RATES = "fx_rates"
 TRANSACTIONS = "transactions"
 HOLDINGS = "holdings"
 SECURITY_MASTER = "security_master"
@@ -121,7 +108,6 @@ PORTFOLIO_ID = "portfolio_id"
 SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
-RATE_DATE = "rate_date"
 SPLIT_DATE = "split_date"
 TRANSACTION_DATE = "transaction_date"
 ORIGINAL_COST_DATE = "original_cost_date"
@@ -130,9 +116,6 @@ HOLDING_DATE = "holding_date"
 PORTFOLIO_RETURN = "portfolio_return"
 SECURITY_RETURN = "security_return"
 PRICE = "price"
-FX_RATE = "fx_rate"
-FROM_CURRENCY = "from_currency"
-TO_CURRENCY = "to_currency"
 WEIGHT = "weight"
 CONTRIBUTION = "contribution"
 PORTFOLIO_NAME = "portfolio_name"
@@ -158,8 +141,6 @@ INCOME = "income"
 GAIN_LOSS = "gain_loss"
 PERIOD_ID = "period_id"
 CURRENCY = "currency"
-RATE_SOURCE = "rate_source"
-RATE_TYPE = "rate_type"
 SPLIT_FACTOR = "split_factor"
 TRANSACTION_ID = "transaction_id"
 TRANSACTION_CODE = "transaction_code"
@@ -177,7 +158,6 @@ QUANTITY = "quantity"
 AMOUNT = "amount"
 BASE_AMOUNT = "base_amount"
 BASE_ACCRUED = "base_accrued"
-LOCAL_EXPOSURE = "local_exposure"
 COMMISSION = "commission"
 BROKER = "broker"
 COST = "cost"
@@ -229,25 +209,6 @@ SPLITS_OPTIONAL_COLUMNS = (
 SPLITS_COLUMNS = (
     *SPLITS_REQUIRED_COLUMNS,
     *SPLITS_OPTIONAL_COLUMNS,
-)
-
-FX_RATES_REQUIRED_COLUMNS = (
-    FROM_CURRENCY,
-    TO_CURRENCY,
-    RATE_DATE,
-    FX_RATE,
-)
-
-FX_RATES_OPTIONAL_COLUMNS = (
-    PORTFOLIO_ID,
-    LOCAL_EXPOSURE,
-    RATE_SOURCE,
-    RATE_TYPE,
-)
-
-FX_RATES_COLUMNS = (
-    *FX_RATES_REQUIRED_COLUMNS,
-    *FX_RATES_OPTIONAL_COLUMNS,
 )
 
 TRANSACTIONS_REQUIRED_COLUMNS = (

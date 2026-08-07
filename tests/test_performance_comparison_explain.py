@@ -11,8 +11,6 @@ import polars as pl
 # Project imports
 from ppar.audit import compare_snapshots
 from ppar.audit.performance_comparison import (
-    Finding,
-    findings_to_polars,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
@@ -43,9 +41,7 @@ from ppar.audit.performance_comparison.explain import (
     EVIDENCE_ONLY_AREAS,
     EVIDENCE_ONLY_CAUSE_AREA_COUNT,
     FINDING_COUNT,
-    FX_RATE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
-    IMPACT_POLICY,
     IMPACT_BASIS,
     IMPACT_BASIS_NO_ESTIMATE,
     IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
@@ -53,7 +49,6 @@ from ppar.audit.performance_comparison.explain import (
     IMPACT_COVERAGE_STATUS,
     IMPACT_CONFIDENCE,
     IMPACT_CONFIDENCE_LOW,
-    IMPACT_CONFIDENCE_MEDIUM,
     IMPACT_MESSAGE,
     IMPACT_METHOD,
     IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
@@ -94,29 +89,22 @@ from ppar.audit.performance_comparison.explain import (
     TRANSACTION_MATCH_INTERPRETATION,
     TRANSACTION_MATCH_REVIEW_NOTE,
     TRANSACTION_SEMANTICS_SOURCES,
-    TOP_CODES,
 )
 from ppar.audit import schema as pc_cols
 from ppar.audit.performance_comparison.findings import (
     CONTEXT,
     DATASET,
-    DELTA_B_MINUS_A,
     DIRECT_INPUT,
     EVIDENCE_ROLE,
     FINDING_CODE,
     FROM_DATE,
-    CONFIDENCE_HIGH,
     PC_PORT_RET,
     PC_SEC_RET,
     PC_TXN_AMT,
     PORTFOLIO_ID,
     RELATED_OUTPUT,
-    IMPACT_INPUT_VALUE,
     RETURN_DENOMINATOR,
-    RETURN_WEIGHT,
     SECURITY_ID,
-    SEVERITY_MATERIAL,
-    SNAPSHOT_A_VALUE,
     SOURCE_COLUMN,
     SUPPRESSED,
     TARGET_OUTPUT,
@@ -310,7 +298,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[CONTEXT_FINDING_COUNT], 1)
         self.assertEqual(row[HOLDING_FINDING_COUNT], 6)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
-        self.assertEqual(row[FX_RATE_FINDING_COUNT], 0)
         self.assertEqual(row[FINDING_COUNT], 10)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 

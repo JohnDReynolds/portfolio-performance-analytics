@@ -57,9 +57,9 @@ confidence, see
 The demo includes normalized USD-base multi-currency examples: `SAP.DE` and
 `CASHEUR` in EUR, `SHEL.L` and `CASHGBP` in GBP, and `CASHUSD` in USD. Local
 amounts/market values are paired with explicit base-currency values. A changed
-EUR dividend and a changed GBP/USD rate reach Explained Difference separately.
-The FX estimate is a ppar screening formula using an explicit unchanged local
-exposure; it is not a claim about proprietary Axys/APX calculation mechanics.
+EUR dividend and a changed GBP base market value reach Explained Difference
+separately. The report shows the GBP holding row's implied conversion ratio as
+supporting evidence for its counted base-value change.
 
 The packaged fixture uses dated public-market observations instead of constant
 equity marks. The demonstration data is generated from a maintained yFinance
@@ -92,10 +92,10 @@ single-view tools must select their level explicitly. Required datasets use
 their standard filenames when their `files.*` keys are omitted. Genuinely
 optional evidence remains explicitly configured so file presence alone cannot
 expand the findings or accounting-policy surface. Audit YAML still requires all
-six comparison tolerances. Omitted extract-contract settings use the packaged
+five comparison tolerances. Omitted extract-contract settings use the packaged
 contract, ambiguous-flow enforcement, and exact-case matching. Configuring
-`transactions`, `holdings`, or `fx_rates` requires the complete corresponding
-transaction, holding/price, or FX impact-policy block.
+`transactions` or `holdings` requires the complete corresponding transaction
+or holding/price impact-policy block.
 The opt-in `large_price_variation` check instead uses a strict nonempty list of
 uniquely identified rules. Each rule can use scalar-or-list exact-match filters,
 and requires an explicitly configured decimal minimum variation. Every
@@ -188,12 +188,12 @@ differences from identifiable input differences and other evidence:
 - `Performance Differences` sheet: one row per security-period return difference in
   the security demo. Review keys include `Portfolio`, `From Date`, `Thru Date`,
   and `Security`.
-- `Performance Difference Causes` sheet: input rows such as holdings, transactions,
-  and FX rates. `B - A Difference` shows the raw input-value difference, and
+- `Performance Difference Causes` sheet: input rows such as holdings and
+  transactions. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
-  defensible performance explanation. A changed FX rate is supporting evidence;
-  the linked `holdings.base_market_value` or `transactions.base_amount` row carries
-  the counted amount.
+  defensible performance explanation. Foreign-currency base-value rows also
+  show their row-level implied conversion ratio when the local and base values
+  establish one.
   Yellow cells are included in explained performance difference. Gold cells are
   possible causes for remaining unexplained differences.
 - `Data Issues` sheet: consistency checks across the union of Snapshot A
@@ -241,8 +241,11 @@ Data used:
 - Currency names follow one rule: unqualified monetary fields in holdings,
   transactions, and cash use the row `CURRENCY`; `BASE_` fields use portfolio
   `BASE_CURRENCY`; portfolio/security performance monetary fields are already
-  base-currency values and remain unprefixed. `FX_RATE` is `TO_CURRENCY` units
-  per one `FROM_CURRENCY` unit. PPAR does not create `LOCAL_` duplicates.
+  base-currency values and remain unprefixed. PPAR does not create `LOCAL_`
+  duplicates.
+- When both local and base values are present on a foreign-currency holding or
+  transaction row, PPAR shows the row's implied conversion ratio (reported
+  base value divided by reported local value) as supporting evidence.
 - Foreign values cannot silently enter Modified Dietz. A nonzero foreign
   `MKT_VAL`, `ACCRUED`, transaction `AMOUNT`, or cash value needs its explicit
   `BASE_` counterpart before it can be counted.
@@ -408,7 +411,7 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.base_market_value`, `holdings.accrued`, `holdings.base_accrued`, `transactions.amount`, `transactions.base_amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. An unqualified detailed value is counted only when its row currency equals base currency; otherwise its explicit `base_` counterpart is counted. |
-| `input_component` | `holdings.quantity`, `holdings.price`, `fx_rates.fx_rate`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `source_detail.csv` as support for the related performance input. |
+| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `source_detail.csv` as support for the related performance input. |
 | `reported_performance_component` | portfolio return and security return | Compared as the reported results being explained; not treated as root-cause input differences. |
 | `context` | explicitly classified fields such as holding cost | Kept in `source_detail.csv` as review context. |
 

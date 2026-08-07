@@ -1768,7 +1768,6 @@ def _write_site(
           quantity: 0.000001
           price: 0.000001
           split_factor: 0.00000001
-          fx_rate: 0.00000001
         """
     ).strip()
     base_yaml = files_yaml + "\n" + policy_yaml

@@ -315,7 +315,7 @@ def _assert_counted_representations(causes: pl.DataFrame) -> None:
                 [pc_cols.AMOUNT, pc_cols.BASE_AMOUNT]
             )
         )
-        | pl.col(pc_findings.DATASET).is_in([pc_cols.FX_RATES, pc_cols.SPLITS])
+        | (pl.col(pc_findings.DATASET) == pc_cols.SPLITS)
     )
     invalid = counted.filter(ineligible.fill_null(False)).head(1)
     if not invalid.is_empty():
@@ -334,7 +334,7 @@ def _assert_counted_period_boundaries(causes: pl.DataFrame) -> None:
     thru_date = pl.col(pc_findings.THRU_DATE).cast(pl.Date)
     dates_present = input_date.is_not_null() & from_date.is_not_null() & thru_date.is_not_null()
     permitted = input_date.is_between(from_date, thru_date, closed="both") | (
-        pl.col(pc_findings.DATASET).is_in([pc_cols.HOLDINGS, pc_cols.FX_RATES])
+        (pl.col(pc_findings.DATASET) == pc_cols.HOLDINGS)
         & (input_date == from_date.dt.offset_by("-1d"))
     )
     invalid = counted.filter(dates_present & ~permitted.fill_null(False)).head(1)

@@ -22,7 +22,6 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
-  fx_rates: fx_rates.csv
   transactions: transactions.csv
   holdings: holdings.csv
 
@@ -89,14 +88,9 @@ price_impact_methods:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
 
-fx_rate_impact_methods:
-  fx_rate:
-    method: evidence_only
-
 tolerances:
   return: 0.000001
   market_value: 0.01
   quantity: 0.000001
   price: 0.000001
   split_factor: 0.00000001
-  fx_rate: 0.00000001

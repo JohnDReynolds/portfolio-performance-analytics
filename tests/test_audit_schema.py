@@ -37,15 +37,6 @@ class TestAuditSchema(unittest.TestCase):
     def test_optional_dataset_required_columns_are_stable(self) -> None:
         """Optional explanatory datasets have explicit minimal column contracts."""
         self.assertEqual(
-            pc_cols.FX_RATES_REQUIRED_COLUMNS,
-            (
-                pc_cols.FROM_CURRENCY,
-                pc_cols.TO_CURRENCY,
-                pc_cols.RATE_DATE,
-                pc_cols.FX_RATE,
-            ),
-        )
-        self.assertEqual(
             pc_cols.TRANSACTIONS_REQUIRED_COLUMNS,
             (
                 pc_cols.PORTFOLIO_ID,

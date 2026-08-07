@@ -204,10 +204,9 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
         existing_controls=(
             "Portfolio performance supplies authoritative base currency.",
             "Foreign Modified Dietz inputs require explicit base-currency values.",
-            "FX rates retain explicit from-currency and to-currency direction.",
             "All supplied currency codes are normalized and shape-validated.",
             "Foreign countable values require explicit base-currency counterparts.",
-            "Same-currency local/base values and portfolio FX quote units must agree.",
+            "Same-currency local/base values must agree.",
         ),
         control_tests=(
             "tests/test_audit_financial_integrity.py::TestAuditFinancialIntegrity::"

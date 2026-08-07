@@ -100,7 +100,7 @@ The product already has:
   impact methods; and
 - coarse root-cause-area strings:
   `security_return_or_contribution`, `market_value_or_holding`,
-  `transaction_activity`, `fx_rate`, `portfolio_performance_input`,
+  `transaction_activity`, `portfolio_performance_input`,
   `classification_or_reference`, and `unexplained`.
 
 Root-cause areas remain derived primarily from dataset identity and cannot be
@@ -125,10 +125,10 @@ YAML also controls transaction semantics, impact methods, evidence-only fields,
 tolerances, and suppressions.
 
 Financially consequential configuration no longer falls back to internal values.
-Every Audit YAML explicitly names the comparison level, all six comparison
-tolerances, and both extract-contract safety choices. A configured transaction,
-holding, or FX dataset also requires its complete applicable transaction,
-holding/price, or FX impact-policy block. The maintained configurations spell out
+Every Audit YAML explicitly names the comparison level, all five comparison
+tolerances, and both extract-contract safety choices. A configured transaction
+or holding dataset also requires its complete applicable transaction or
+holding/price impact-policy block. The maintained configurations spell out
 their former effective values, preserving executable behavior while making those
 choices reviewable. Each `large_price_variation` rule likewise explicitly names
 `minimum_tolerance`.
@@ -404,7 +404,7 @@ The following remain deferred without stronger source evidence:
   types;
 - missing corporate actions or spin-offs;
 - position roll-forward reconstruction;
-- missing FX conclusions without a stronger currency/reference contract; or
+- missing-currency conclusions without a stronger currency/reference contract; or
 - broad security-master validation.
 
 These may become valuable later, but their false-positive and source-contract

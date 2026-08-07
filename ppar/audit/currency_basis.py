@@ -17,8 +17,6 @@ __all__ = [
     "CurrencyBasis",
     "PORTFOLIO_BASE_CURRENCY_BASIS",
     "ROW_CURRENCY_BASIS",
-    "FROM_CURRENCY_BASIS",
-    "CURRENCY_PAIR_BASIS",
     "base_currency_monetary_value",
     "monetary_field_currency_basis",
     "normalize_currency_columns",
@@ -31,16 +29,12 @@ class CurrencyBasis(StrEnum):
 
     ROW_CURRENCY = "row_currency"
     PORTFOLIO_BASE_CURRENCY = "portfolio_base_currency"
-    FROM_CURRENCY = "from_currency"
-    CURRENCY_PAIR = "currency_pair"
 
 
 ROW_CURRENCY_BASIS: Final[str] = CurrencyBasis.ROW_CURRENCY.value
 PORTFOLIO_BASE_CURRENCY_BASIS: Final[str] = (
     CurrencyBasis.PORTFOLIO_BASE_CURRENCY.value
 )
-FROM_CURRENCY_BASIS: Final[str] = CurrencyBasis.FROM_CURRENCY.value
-CURRENCY_PAIR_BASIS: Final[str] = CurrencyBasis.CURRENCY_PAIR.value
 
 _ROW_CURRENCY_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
     (pc_cols.HOLDINGS, pc_cols.PRICE),
@@ -59,8 +53,6 @@ _PORTFOLIO_BASE_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
 _CURRENCY_COLUMNS: Final[tuple[str, ...]] = (
     pc_cols.CURRENCY,
     pc_cols.BASE_CURRENCY,
-    pc_cols.FROM_CURRENCY,
-    pc_cols.TO_CURRENCY,
 )
 
 
@@ -87,8 +79,7 @@ def monetary_field_currency_basis(dataset: object, source_column: object) -> str
     """Return the normalized currency basis for a monetary field.
 
     Detailed unqualified monetary fields use the row's ``currency``. Detailed
-    ``base_`` fields use the portfolio's ``base_currency``. FX rates use their
-    explicit currency pair.
+    ``base_`` fields use the portfolio's ``base_currency``.
 
     Args:
         dataset: Normalized dataset name.
@@ -102,10 +93,6 @@ def monetary_field_currency_basis(dataset: object, source_column: object) -> str
         return ROW_CURRENCY_BASIS
     if key in _PORTFOLIO_BASE_MONETARY_FIELDS:
         return PORTFOLIO_BASE_CURRENCY_BASIS
-    if key == (pc_cols.FX_RATES, pc_cols.LOCAL_EXPOSURE):
-        return FROM_CURRENCY_BASIS
-    if key == (pc_cols.FX_RATES, pc_cols.FX_RATE):
-        return CURRENCY_PAIR_BASIS
     return None
 
 

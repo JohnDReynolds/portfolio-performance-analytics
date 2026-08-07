@@ -55,7 +55,6 @@ _REQUIRED_TOLERANCE_KEYS: Final[frozenset[str]] = frozenset(
         "quantity",
         "price",
         "split_factor",
-        "fx_rate",
     }
 )
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
@@ -77,7 +76,6 @@ _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
         "splits",
         "holdings",
         "transactions",
-        "fx_rates",
         _SECURITY_MASTER_KEY,
     }
 )
@@ -96,7 +94,6 @@ _SUPPORTED_ROOT_KEYS: Final[frozenset[str]] = frozenset(
         "evidence_only_impact_methods",
         _EXTRACT_CONTRACT_KEY,
         _FILES_KEY,
-        "fx_rate_impact_methods",
         "holding_impact_methods",
         _PORTFOLIO_RETURN_RECONSTRUCTION_KEY,
         "price_impact_methods",

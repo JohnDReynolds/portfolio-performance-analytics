@@ -11,7 +11,6 @@ from ppar.audit.bundle import (
     report_bundle_validation_issues,
 )
 from ppar.audit import schema
-from ppar.audit.fx_rates import FxRatesLoader
 from ppar.audit.portfolio_performance import PortfolioPerformanceLoader
 from ppar.audit.holdings import HoldingsLoader
 from ppar.audit.report import write_audit_report_bundle
@@ -34,7 +33,6 @@ __all__ = [
     # Source-data loaders and comparison specification objects.
     "ComparisonFile",
     "ComparisonSnapshot",
-    "FxRatesLoader",
     "HoldingsLoader",
     "AuditSpecification",
     "PortfolioPerformanceLoader",

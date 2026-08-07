@@ -65,7 +65,6 @@ from ppar.audit.performance_comparison.return_reconstruction import (
 from ppar.audit import (
     ComparisonFile,
     ComparisonSnapshot,
-    FxRatesLoader,
     AuditSpecification,
     PortfolioPerformanceLoader,
     HoldingsLoader,
@@ -588,7 +587,6 @@ class TestPackageMetadata(unittest.TestCase):
             "# Security Return Impact Methods",
             "# Holding Impact Methods",
             "# Price Impact Methods",
-            "# Supporting-Evidence Impact Methods",
             "# Comparison Tolerances",
             "Minimum tolerances used by Audit",
             "# Appendix — Additional Supported Parameters",
@@ -727,7 +725,6 @@ class TestPackageMetadata(unittest.TestCase):
             yaml_text.index("  holdings:"),
             yaml_text.index("  transactions:"),
             yaml_text.index("  security_master:"),
-            yaml_text.index("  fx_rates:"),
             yaml_text.index("  splits:"),
         ]
         self.assertEqual(file_positions, sorted(file_positions))
@@ -856,7 +853,6 @@ class TestPackageMetadata(unittest.TestCase):
                 "holdings",
                 "transactions",
                 "splits",
-                "fx_rates",
             },
         )
         for definition in file_definitions.values():
@@ -2804,7 +2800,6 @@ class TestPackageMetadata(unittest.TestCase):
         expected_exports = {
             "ComparisonFile": ComparisonFile,
             "ComparisonSnapshot": ComparisonSnapshot,
-            "FxRatesLoader": FxRatesLoader,
             "PortfolioPerformanceLoader": PortfolioPerformanceLoader,
             "AuditSpecification": AuditSpecification,
             "HoldingsLoader": HoldingsLoader,

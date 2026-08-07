@@ -36,7 +36,6 @@ from ppar.audit.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
-    PC_FX_RATE,
     PC_PORT_RET,
     PC_ROW_ADD,
     PC_ROW_DROP,
@@ -59,7 +58,6 @@ from ppar.audit.performance_comparison.findings import (
     SEVERITY_MATERIAL,
     Finding,
 )
-from ppar.audit.fx_rates import FxRatesLoader
 from ppar.audit.period_linking import (
     PortfolioPeriodLookup,
     period_context_for_dated_evidence,
@@ -74,8 +72,6 @@ from ppar.audit.performance_comparison.policies import (
     _TRANSACTION_PRICE_KEY,
     _TRANSACTION_QUANTITY_KEY,
     _evidence_only_impact_policies,
-    _fx_rate_impact_policies,
-    _is_evidence_only_policy_label,
     _modified_dietz_external_flow_eligibility,
     _holding_impact_policies,
     _price_impact_policies,
@@ -125,14 +121,6 @@ _HOLDINGS_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.SECURITY_ID,
     pc_cols.HOLDING_DATE,
 )
-_FX_RATE_KEY_COLUMNS: Final[tuple[str, ...]] = (
-    pc_cols.PORTFOLIO_ID,
-    pc_cols.FROM_CURRENCY,
-    pc_cols.TO_CURRENCY,
-    pc_cols.RATE_DATE,
-    pc_cols.RATE_SOURCE,
-    pc_cols.RATE_TYPE,
-)
 _SPLITS_KEY_COLUMNS: Final[tuple[str, str]] = (
     pc_cols.SECURITY_ID,
     pc_cols.SPLIT_DATE,
@@ -169,9 +157,6 @@ _HOLDINGS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.ACCRUED: PC_HOLD_ACCR,
     pc_cols.BASE_ACCRUED: PC_HOLD_ACCR,
 }
-_FX_RATE_COMPARE_COLUMNS: Final[dict[str, str]] = {
-    pc_cols.FX_RATE: PC_FX_RATE,
-}
 _SPLITS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.SPLIT_FACTOR: PC_ROW_ADD,
 }
@@ -186,13 +171,11 @@ _COMPARISON_FIELDS_BY_DATASET: Final[dict[str, tuple[str, ...]]] = {
     pc_cols.PORTFOLIO_PERFORMANCE: tuple(_PORTFOLIO_COMPARE_COLUMNS),
     pc_cols.SECURITY_PERFORMANCE: tuple(_SECURITY_COMPARE_COLUMNS),
     pc_cols.HOLDINGS: tuple(_HOLDINGS_COMPARE_COLUMNS),
-    pc_cols.FX_RATES: tuple(_FX_RATE_COMPARE_COLUMNS),
     pc_cols.SPLITS: tuple(_SPLITS_COMPARE_COLUMNS),
     pc_cols.TRANSACTIONS: tuple(_TRANSACTION_COMPARE_COLUMNS),
 }
 _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
     {
-        pc_cols.FX_RATES,
         pc_cols.TRANSACTIONS,
         pc_cols.HOLDINGS,
     }
@@ -212,11 +195,120 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.BASE_ACCRUED: "market_value",
     pc_cols.PRICE: "price",
     pc_cols.SPLIT_FACTOR: "split_factor",
-    pc_cols.FX_RATE: "fx_rate",
     pc_cols.AMOUNT: "market_value",
     pc_cols.BASE_AMOUNT: "market_value",
     pc_cols.COMMISSION: "market_value",
 }
+
+_IMPLIED_CONVERSION_FIELDS: Final[dict[tuple[str, str], tuple[str, str]]] = {
+    (pc_cols.HOLDINGS, pc_cols.BASE_MARKET_VALUE): (
+        pc_cols.MARKET_VALUE,
+        "market value",
+    ),
+    (pc_cols.HOLDINGS, pc_cols.BASE_ACCRUED): (
+        pc_cols.ACCRUED,
+        "accrued income",
+    ),
+    (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT): (
+        pc_cols.AMOUNT,
+        "amount",
+    ),
+}
+
+
+def _implied_conversion_message(
+    row: Mapping[str, object],
+    dataset: str,
+    source_column: str,
+) -> str | None:
+    """Describe row-level conversion evidence for a changed base value.
+
+    The ratio is derived independently for each source row. It is intentionally
+    not consolidated into a currency-pair rate because different portfolios or
+    transactions may use different conversion sources on the same date.
+
+    Args:
+        row: Joined snapshot A/B source row.
+        dataset: Normalized source dataset.
+        source_column: Changed normalized base-value field.
+
+    Returns:
+        Concise supporting-evidence text, or ``None`` when the values do not
+        establish a valid foreign-currency conversion ratio.
+    """
+    field_definition = _IMPLIED_CONVERSION_FIELDS.get((dataset, source_column))
+    if field_definition is None:
+        return None
+    local_field, local_label = field_definition
+
+    row_currency_a = _currency_code(row.get(pc_cols.CURRENCY))
+    base_currency_a = _currency_code(row.get(pc_cols.BASE_CURRENCY))
+    row_currency_b = _currency_code(row.get(f"{pc_cols.CURRENCY}_b"))
+    base_currency_b = _currency_code(row.get(f"{pc_cols.BASE_CURRENCY}_b"))
+    if (
+        not row_currency_a
+        or not base_currency_a
+        or row_currency_a == base_currency_a
+        or row_currency_a != row_currency_b
+        or base_currency_a != base_currency_b
+    ):
+        return None
+
+    local_a = _finite_number(row.get(local_field))
+    local_b = _finite_number(row.get(f"{local_field}_b"))
+    base_a = _finite_number(row.get(source_column))
+    base_b = _finite_number(row.get(f"{source_column}_b"))
+    if (
+        local_a in {None, 0.0}
+        or local_b in {None, 0.0}
+        or base_a in {None, 0.0}
+        or base_b in {None, 0.0}
+    ):
+        return None
+    ratio_a = cast(float, base_a) / cast(float, local_a)
+    ratio_b = cast(float, base_b) / cast(float, local_b)
+    if ratio_a <= 0.0 or ratio_b <= 0.0 or not math.isfinite(ratio_a + ratio_b):
+        return None
+
+    local_a_text = f"{row_currency_a} {cast(float, local_a):,.2f}"
+    local_b_text = f"{row_currency_a} {cast(float, local_b):,.2f}"
+    if local_a_text == local_b_text:
+        local_sentence = f"Local {local_label} remained {local_a_text}."
+    else:
+        local_sentence = (
+            f"Local {local_label} changed from {local_a_text} to {local_b_text}."
+        )
+
+    ratio_a_text = f"{ratio_a:.6f}"
+    ratio_b_text = f"{ratio_b:.6f}"
+    units = f"{base_currency_a} per {row_currency_a}"
+    if ratio_a_text == ratio_b_text:
+        ratio_sentence = (
+            f"The implied conversion ratio remained {ratio_a_text} {units}."
+        )
+    else:
+        direction = "increased" if ratio_b > ratio_a else "decreased"
+        ratio_sentence = (
+            f"The implied conversion ratio {direction} from {ratio_a_text} "
+            f"to {ratio_b_text} {units}."
+        )
+    return f"{local_sentence} {ratio_sentence}"
+
+
+def _currency_code(value: object) -> str | None:
+    """Return a normalized nonblank currency code."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().upper()
+    return normalized or None
+
+
+def _finite_number(value: object) -> float | None:
+    """Return a finite non-Boolean number as ``float``."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    return number if math.isfinite(number) else None
 
 
 def _material_changed_value_rows(
@@ -279,7 +371,6 @@ class PerformanceComparison:
         _portfolio_loader: Loader for normalized portfolio performance rows.
         _security_loader: Loader for normalized security performance rows.
         _holdings_loader: Loader for normalized holding rows.
-        _fx_rates_loader: Loader for normalized FX rate rows.
         _splits_loader: Loader for optional normalized split-factor rows.
         _transactions_loader: Loader for normalized transaction rows.
         _reconstruction_cache: Run-scoped portfolio and security
@@ -289,8 +380,6 @@ class PerformanceComparison:
         _holding_impact_policies: YAML-configured holding impact policy
             labels keyed by source column.
         _price_impact_policies: YAML-configured price impact policy labels
-            keyed by source column.
-        _fx_rate_impact_policies: YAML-configured FX rate impact policy labels
             keyed by source column.
         _evidence_only_impact_policies: YAML-configured evidence-only policy
             labels keyed by dataset and source column.
@@ -314,7 +403,6 @@ class PerformanceComparison:
         self._portfolio_loader = PortfolioPerformanceLoader(specification)
         self._security_loader = SecurityPerformanceLoader(specification)
         self._holdings_loader = HoldingsLoader(specification)
-        self._fx_rates_loader = FxRatesLoader(specification)
         self._splits_loader = SplitsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
         self._reconstruction_cache = (
@@ -325,7 +413,6 @@ class PerformanceComparison:
         self._security_return_impact_policies = _security_return_impact_policies(specification)
         self._holding_impact_policies = _holding_impact_policies(specification)
         self._price_impact_policies = _price_impact_policies(specification)
-        self._fx_rate_impact_policies = _fx_rate_impact_policies(specification)
         self._evidence_only_impact_policies = _evidence_only_impact_policies(specification)
         self._portfolio_denominator_cache: dict[tuple[object, ...], float] | None = None
         self._security_denominator_cache: dict[tuple[object, ...], float] | None = None
@@ -369,7 +456,6 @@ class PerformanceComparison:
     def compare_shared_sources(self) -> list[Finding]:
         """Compare source datasets shared by portfolio and security views."""
         findings = self.compare_holdings()
-        findings.extend(self.compare_fx_rates())
         findings.extend(self.compare_splits())
         findings.extend(self.compare_transactions())
         return findings
@@ -556,49 +642,6 @@ class PerformanceComparison:
                 portfolio_periods,
                 return_denominators=return_denominators,
                 return_weights=return_weights,
-            )
-        )
-        return findings
-
-    def compare_fx_rates(self) -> list[Finding]:
-        """Compare FX rate rows for snapshots A and B.
-
-        Returns:
-            Findings for added/dropped rows and material FX rate changes.
-            Returns an empty list when the optional FX rates dataset is
-            unavailable.
-        """
-        snapshot_a = self._fx_rates_loader.load("a")
-        snapshot_b = self._fx_rates_loader.load("b")
-        if snapshot_a is None or snapshot_b is None:
-            return []
-
-        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
-        return_denominators = self._return_denominators()
-        key_columns = self._optional_key_columns(
-            snapshot_a,
-            snapshot_b,
-            _FX_RATE_KEY_COLUMNS,
-        )
-        findings = self._row_presence_findings(
-            snapshot_a,
-            snapshot_b,
-            key_columns,
-            PC_ROW_ADD,
-            PC_ROW_DROP,
-            pc_cols.FX_RATES,
-            "FX rate row appears only in snapshot B.",
-            "FX rate row appears only in snapshot A.",
-        )
-        findings.extend(
-            self._changed_value_findings(
-                snapshot_a,
-                snapshot_b,
-                key_columns,
-                _FX_RATE_COMPARE_COLUMNS,
-                pc_cols.FX_RATES,
-                portfolio_periods,
-                return_denominators=return_denominators,
             )
         )
         return findings
@@ -1298,8 +1341,6 @@ class PerformanceComparison:
                             compare_columns[column],
                             dataset,
                             column,
-                            impact_policy,
-                            transaction_impact_policy,
                         ),
                         portfolio_id=row.get(pc_cols.PORTFOLIO_ID),
                         security_id=row.get(pc_cols.SECURITY_ID),
@@ -1444,8 +1485,6 @@ class PerformanceComparison:
                             compare_columns[column],
                             dataset,
                             column,
-                            impact_policy,
-                            transaction_impact_policy,
                         ),
                         portfolio_id=portfolio_id,
                         security_id=row.get(pc_cols.SECURITY_ID),
@@ -1470,16 +1509,6 @@ class PerformanceComparison:
                             key_columns,
                         ),
                         source_column=column,
-                        from_currency=(
-                            row.get(pc_cols.FROM_CURRENCY)
-                            if dataset == pc_cols.FX_RATES
-                            else None
-                        ),
-                        to_currency=(
-                            row.get(pc_cols.TO_CURRENCY)
-                            if dataset == pc_cols.FX_RATES
-                            else None
-                        ),
                         transaction_code=self._transaction_code(row, dataset),
                         transaction_category=self._transaction_category(
                             row,
@@ -1539,7 +1568,10 @@ class PerformanceComparison:
                             column,
                             impact_policy,
                         ),
-                        message=f"{dataset} {column!r} changed.",
+                        message=(
+                            _implied_conversion_message(row, dataset, column)
+                            or f"{dataset} {column!r} changed."
+                        ),
                     )
                 )
         return findings
@@ -1876,7 +1908,6 @@ class PerformanceComparison:
             not in {
                 pc_cols.HOLDINGS,
                 pc_cols.TRANSACTIONS,
-                pc_cols.FX_RATES,
             }
             or portfolio_id is None
             or from_date is None
@@ -1928,18 +1959,6 @@ class PerformanceComparison:
         impact_policy: object | None,
     ) -> float | None:
         """Return method-specific input value used for impact estimates."""
-        if dataset == pc_cols.FX_RATES and source_column == pc_cols.FX_RATE:
-            exposure_a = row.get(pc_cols.LOCAL_EXPOSURE)
-            exposure_b = row.get(f"{pc_cols.LOCAL_EXPOSURE}_b")
-            if (
-                isinstance(exposure_a, bool)
-                or isinstance(exposure_b, bool)
-                or not isinstance(exposure_a, (int, float))
-                or not isinstance(exposure_b, (int, float))
-                or not math.isclose(float(exposure_a), float(exposure_b))
-            ):
-                return None
-            return float(exposure_a)
         if (
             dataset != pc_cols.HOLDINGS
             or source_column != pc_cols.QUANTITY
@@ -2042,7 +2061,7 @@ class PerformanceComparison:
         """Return this view's denominator for one shared finding."""
         if (
             finding.dataset
-            not in {pc_cols.HOLDINGS, pc_cols.TRANSACTIONS, pc_cols.FX_RATES}
+            not in {pc_cols.HOLDINGS, pc_cols.TRANSACTIONS}
             or finding.source_column is None
             or finding.portfolio_id is None
             or finding.from_date is None
@@ -2257,7 +2276,6 @@ class PerformanceComparison:
         date_column_by_dataset = {
             pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
             pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,
-            pc_cols.FX_RATES: pc_cols.RATE_DATE,
             pc_cols.SPLITS: pc_cols.SPLIT_DATE,
         }
         date_column = date_column_by_dataset.get(dataset)
@@ -2294,14 +2312,9 @@ class PerformanceComparison:
         code: str,
         dataset: str,
         source_column: str,
-        impact_policy: object | None,
-        transaction_impact_policy: object | None,
     ) -> EvidenceRole:
         """Return the evidence role for one changed-value finding."""
-        del transaction_impact_policy
-        if _field_roles.is_context(dataset, source_column) or (
-            dataset == pc_cols.FX_RATES and _is_evidence_only_policy_label(impact_policy)
-        ):
+        if _field_roles.is_context(dataset, source_column):
             return CONTEXT
         return self._evidence_role(code, dataset, source_column)
 
@@ -2350,10 +2363,6 @@ class PerformanceComparison:
                 else source_column
             )
             policy = self._holding_impact_policies.get(holding_policy_column)
-            if policy is not None:
-                return policy
-        if dataset == pc_cols.FX_RATES:
-            policy = self._fx_rate_impact_policies.get(source_column)
             if policy is not None:
                 return policy
         if _field_roles.is_reported_performance_component(dataset, source_column):

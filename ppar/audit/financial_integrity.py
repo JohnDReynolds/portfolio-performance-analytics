@@ -13,7 +13,6 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.audit import schema as pc_cols
-from ppar.audit.fx_rates import FxRatesLoader
 from ppar.audit.holdings import HoldingsLoader
 from ppar.audit.period_linking import (
     validate_dated_evidence_assignments,
@@ -32,8 +31,6 @@ import ppar.common as util
 _CURRENCY_COLUMNS: Final[tuple[str, ...]] = (
     pc_cols.CURRENCY,
     pc_cols.BASE_CURRENCY,
-    pc_cols.FROM_CURRENCY,
-    pc_cols.TO_CURRENCY,
 )
 _CURRENCY_CODE_PATTERN: Final[re.Pattern[str]] = re.compile(r"[A-Z]{3}")
 _BASE_COUNTERPARTS: Final[dict[str, tuple[tuple[str, str], ...]]] = {
@@ -46,7 +43,6 @@ _BASE_COUNTERPARTS: Final[dict[str, tuple[tuple[str, str], ...]]] = {
 _MONETARY_ABSOLUTE_TOLERANCE: Final[float] = 0.01
 _SnapshotFrames: TypeAlias = tuple[
     pl.DataFrame,
-    pl.DataFrame | None,
     pl.DataFrame | None,
     pl.DataFrame | None,
     pl.DataFrame | None,
@@ -73,7 +69,6 @@ def validate_financial_input_integrity(
     security_loader = SecurityPerformanceLoader(specification)
     holdings_loader = HoldingsLoader(specification)
     transactions_loader = TransactionsLoader(specification)
-    fx_loader = FxRatesLoader(specification)
     splits_loader = SplitsLoader(specification)
     snapshots: dict[SnapshotKey, _SnapshotFrames] = {}
     for snapshot_key in ("a", "b"):
@@ -98,7 +93,6 @@ def validate_financial_input_integrity(
             security_performance,
             holdings_loader.load(snapshot_key),
             transactions_loader.load(snapshot_key),
-            fx_loader.load(snapshot_key),
             splits_loader.load(snapshot_key),
         )
         snapshots[snapshot_key] = snapshot
@@ -122,7 +116,6 @@ def _validate_snapshot(
     security_performance: pl.DataFrame | None,
     holdings: pl.DataFrame | None,
     transactions: pl.DataFrame | None,
-    fx_rates: pl.DataFrame | None,
     _splits: pl.DataFrame | None,
 ) -> None:
     """Validate one snapshot's detailed financial inputs."""
@@ -151,7 +144,6 @@ def _validate_snapshot(
     for dataset_name, frame in (
         (pc_cols.HOLDINGS, holdings),
         (pc_cols.TRANSACTIONS, transactions),
-        (pc_cols.FX_RATES, fx_rates),
     ):
         if frame is None:
             continue
@@ -169,14 +161,6 @@ def _validate_snapshot(
             specification_path=specification.path,
         )
 
-    if fx_rates is not None and pc_cols.PORTFOLIO_ID in fx_rates.columns:
-        _validate_fx_base_currency(
-            fx_rates,
-            periods,
-            path=_source_path(specification, pc_cols.FX_RATES, snapshot_key),
-            specification_path=specification.path,
-        )
-
 
 def _validate_changed_evidence_assignments(
     specification: AuditSpecification,
@@ -184,27 +168,25 @@ def _validate_changed_evidence_assignments(
     snapshot_b: _SnapshotFrames,
 ) -> None:
     """Validate period assignment for rows that differ between snapshots."""
-    periods_a, _, holdings_a, transactions_a, fx_a, splits_a = snapshot_a
-    periods_b, _, holdings_b, transactions_b, fx_b, splits_b = snapshot_b
-    for raw_snapshot_key, periods, holdings, transactions, fx_rates, splits in (
-        ("a", periods_a, holdings_a, transactions_a, fx_a, splits_a),
-        ("b", periods_b, holdings_b, transactions_b, fx_b, splits_b),
+    periods_a, _, holdings_a, transactions_a, splits_a = snapshot_a
+    periods_b, _, holdings_b, transactions_b, splits_b = snapshot_b
+    for raw_snapshot_key, periods, holdings, transactions, splits in (
+        ("a", periods_a, holdings_a, transactions_a, splits_a),
+        ("b", periods_b, holdings_b, transactions_b, splits_b),
     ):
         snapshot_key = cast(SnapshotKey, raw_snapshot_key)
         other_frames = (
             holdings_b if snapshot_key == "a" else holdings_a,
             transactions_b if snapshot_key == "a" else transactions_a,
-            fx_b if snapshot_key == "a" else fx_a,
             splits_b if snapshot_key == "a" else splits_a,
         )
         for dataset_name, frame, other_frame in zip(
             (
                 pc_cols.HOLDINGS,
                 pc_cols.TRANSACTIONS,
-                pc_cols.FX_RATES,
                 pc_cols.SPLITS,
             ),
-            (holdings, transactions, fx_rates, splits),
+            (holdings, transactions, splits),
             other_frames,
             strict=True,
         ):
@@ -221,8 +203,6 @@ def _validate_changed_evidence_assignments(
                         path=path,
                         specification_path=specification.path,
                     )
-                continue
-            if dataset_name == pc_cols.FX_RATES and pc_cols.PORTFOLIO_ID not in changed.columns:
                 continue
             date_columns = None
             if dataset_name == pc_cols.TRANSACTIONS:
@@ -384,9 +364,6 @@ def _validate_monetary_units(
     specification_path: util.PathLike,
 ) -> None:
     """Require safe base counterparts for foreign countable monetary values."""
-    if dataset_name == pc_cols.FX_RATES:
-        _validate_fx_pairs(frame, path=path, specification_path=specification_path)
-        return
     counterparts = _BASE_COUNTERPARTS.get(dataset_name, ())
     if not counterparts:
         return
@@ -429,68 +406,6 @@ def _validate_monetary_units(
                 ),
                 504,
             )
-
-
-def _validate_fx_pairs(
-    frame: pl.DataFrame,
-    *,
-    path: util.PathLike,
-    specification_path: util.PathLike,
-) -> None:
-    """Reject identity FX pairs because they do not describe translation."""
-    for row_number, row in enumerate(frame.iter_rows(named=True), start=2):
-        from_currency = _currency(row.get(pc_cols.FROM_CURRENCY))
-        to_currency = _currency(row.get(pc_cols.TO_CURRENCY))
-        if from_currency != to_currency:
-            continue
-        raise PpaError(
-            (
-                f"{specification_path}: SN-06 currency validation failed for "
-                f"fx_rates file {path}: row {row_number} has identity currency "
-                f"pair {from_currency}-to-{to_currency}."
-            ),
-            504,
-        )
-
-
-def _validate_fx_base_currency(
-    fx_rates: pl.DataFrame,
-    periods: pl.DataFrame,
-    *,
-    path: util.PathLike,
-    specification_path: util.PathLike,
-) -> None:
-    """Require portfolio-specific FX quotes to target portfolio base currency."""
-    base_by_portfolio = _base_currency_by_portfolio(periods)
-    for row_number, row in enumerate(fx_rates.iter_rows(named=True), start=2):
-        portfolio_id = row.get(pc_cols.PORTFOLIO_ID)
-        base_currency = base_by_portfolio.get(portfolio_id)
-        if base_currency is None:
-            continue
-        to_currency = _currency(row.get(pc_cols.TO_CURRENCY))
-        if to_currency == base_currency:
-            continue
-        raise PpaError(
-            (
-                f"{specification_path}: SN-06 currency validation failed for "
-                f"fx_rates file {path}: row {row_number} portfolio_id={portfolio_id} "
-                f"quotes to_currency={to_currency}, but portfolio base_currency="
-                f"{base_currency}."
-            ),
-            504,
-        )
-
-
-def _base_currency_by_portfolio(periods: pl.DataFrame) -> dict[object, str]:
-    """Return nonblank authoritative portfolio base currencies."""
-    if pc_cols.BASE_CURRENCY not in periods.columns:
-        return {}
-    values: dict[object, str] = {}
-    for row in periods.iter_rows(named=True):
-        currency = _currency(row.get(pc_cols.BASE_CURRENCY))
-        if currency:
-            values[row.get(pc_cols.PORTFOLIO_ID)] = currency
-    return values
 
 
 def _raise_missing_base_value(

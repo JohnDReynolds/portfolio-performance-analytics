@@ -52,7 +52,6 @@ _SCHEMA_FILE_KEYS = {
     pc_cols.HOLDINGS: "holdings",
     pc_cols.TRANSACTIONS: "transactions",
     pc_cols.SPLITS: "splits",
-    pc_cols.FX_RATES: "fx_rates",
 }
 _IDENTITY_SECURITY_SYMBOL_COLUMN = "__ppar_identity_security_symbol"
 _IDENTITY_SECURITY_TYPE_COLUMN = "__ppar_identity_security_type"
@@ -151,17 +150,6 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "ticker": pc_cols.TICKER,
         "split_date": pc_cols.SPLIT_DATE,
         "split_factor": pc_cols.SPLIT_FACTOR,
-    },
-    pc_cols.FX_RATES: {
-        "portfolio_code": pc_cols.PORTFOLIO_ID,
-        "portfolio_id": pc_cols.PORTFOLIO_ID,
-        "from_currency": pc_cols.FROM_CURRENCY,
-        "to_currency": pc_cols.TO_CURRENCY,
-        "rate_date": pc_cols.RATE_DATE,
-        "fx_rate": pc_cols.FX_RATE,
-        "local_exposure": pc_cols.LOCAL_EXPOSURE,
-        "rate_source": pc_cols.RATE_SOURCE,
-        "rate_type": pc_cols.RATE_TYPE,
     },
 }
 

@@ -21,7 +21,6 @@ from ppar.audit import (
 from ppar.audit.performance_comparison import portfolio_period_cause_summary
 from ppar.audit.performance_comparison.explain import (
     IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
-    ROOT_CAUSE_FX_RATE,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
 )
 from ppar.audit import schema as pc_cols
@@ -143,7 +142,6 @@ _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.PRICE),
     (pc_cols.HOLDINGS, pc_cols.QUANTITY),
-    (pc_cols.FX_RATES, pc_cols.FX_RATE),
     (pc_cols.SPLITS, pc_cols.SPLIT_FACTOR),
     (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
     (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT),
@@ -1502,12 +1500,7 @@ class TestAuditDemoData(unittest.TestCase):
                 (pl.col("from_date").cast(pl.String) == from_date)
                 & (pl.col("thru_date").cast(pl.String) == thru_date)
             )
-            support_securities = set(
-                period_rows.filter(
-                    pl.col("dataset").is_in([pc_cols.FX_RATES, pc_cols.TRANSACTIONS])
-                )["security_id"]
-            )
-            self.assertEqual(support_securities, {expected_security})
+            self.assertIn(expected_security, set(period_rows["security_id"]))
             self.assertGreaterEqual(
                 period_rows.filter(pl.col("estimated_impact").is_not_null()).height,
                 1,
@@ -2289,17 +2282,11 @@ reconstruction_roles:
         self.assertIn("Base Amount", transactions.columns)
         self.assertIn("Base Market Value", holdings.columns)
 
-    def test_packaged_demo_counts_base_values_and_links_fx_support(self) -> None:
-        """Foreign base values are counted while the changed FX rate is support."""
+    def test_packaged_demo_reports_row_level_implied_conversion_evidence(self) -> None:
+        """Foreign base values carry their own local/base conversion evidence."""
         findings = _packaged_portfolio_findings(
             require_causal_attribution=True,
         )
-        summary = portfolio_period_cause_summary(findings).filter(
-            (pl.col("portfolio_id") == "BALANCED") & (pl.col("from_date") == pl.date(2026, 4, 25))
-        )
-        impact_by_cause = {row["root_cause_area"]: row for row in summary.iter_rows(named=True)}
-        self.assertEqual(impact_by_cause[ROOT_CAUSE_FX_RATE]["impact_basis"], "no_estimate")
-        self.assertIsNone(impact_by_cause[ROOT_CAUSE_FX_RATE]["estimated_return_impact"])
         transaction_summary = portfolio_period_cause_summary(findings).filter(
             (pl.col("portfolio_id") == "BALANCED") & (pl.col("from_date") == pl.date(2026, 4, 11))
         )
@@ -2318,27 +2305,23 @@ reconstruction_roles:
             workbook_causes.filter(pl.col("estimated_impact").is_not_null())["dataset_field"]
         )
         self.assertIn("holdings.base_market_value", explained_fields)
-        self.assertNotIn("fx_rates.fx_rate", explained_fields)
-        fx_support = workbook_causes.filter(
-            (pl.col("dataset") == pc_cols.FX_RATES) & (pl.col("source_column") == pc_cols.FX_RATE)
+        converted_base_rows = workbook_causes.filter(
+            (pl.col("dataset") == pc_cols.HOLDINGS)
+            & (pl.col("source_column") == pc_cols.BASE_MARKET_VALUE)
+            & (pl.col("security_id") == "csgbSHEL.L")
         )
         self.assertEqual(
-            fx_support["from_date"].cast(pl.String).to_list(),
+            converted_base_rows["from_date"].cast(pl.String).to_list(),
             ["2026-04-25", "2026-05-01"],
         )
-        self.assertEqual(
-            fx_support["security_id"].to_list(),
-            ["csgbSHEL.L", "csgbSHEL.L"],
-        )
-        for guidance in fx_support["review_guidance"]:
+        for guidance in converted_base_rows["review_guidance"]:
             self.assertIn(
-                "GBP-to-USD fx_rates.fx_rate increased by 0.02, from 1.268 to "
-                "1.288 USD per GBP",
+                "Local market value remained GBP 13,236.02.",
                 guidance,
             )
             self.assertIn(
-                "through holdings.base_market_value; the counted USD effect for "
-                "csgbSHEL.L is 320.00",
+                "The implied conversion ratio increased from 1.268001 to "
+                "1.292177 USD per GBP.",
                 guidance,
             )
 

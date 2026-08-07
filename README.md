@@ -81,7 +81,6 @@ my_ppar_audit/
     transactions.csv
     secmast.csv
     secperf.csv
-    fx_rates.csv
     splits.csv
   snapshot_b/
     portperf.csv
@@ -89,7 +88,6 @@ my_ppar_audit/
     transactions.csv
     secmast.csv
     secperf.csv
-    fx_rates.csv
     splits.csv
 ```
 
@@ -106,7 +104,6 @@ controlled exports:
 - holdings;
 - transactions;
 - security master data;
-- FX rates; and
 - split factors.
 
 Audit uses two source-data snapshots. Snapshot A is normally the older or original

@@ -25,11 +25,9 @@ from ppar.audit.performance_comparison.findings import (
     DIRECT_INPUT,
     EVIDENCE_ROLE,
     FINDING_CODE,
-    FROM_CURRENCY,
     FROM_DATE,
     IMPACT_POLICY,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
-    IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
@@ -53,7 +51,6 @@ from ppar.audit.performance_comparison.findings import (
     SUPPRESSED,
     TARGET_OUTPUT,
     THRU_DATE,
-    TO_CURRENCY,
     TRANSACTION_CODE,
     TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
@@ -66,7 +63,6 @@ from ppar.audit.performance_comparison.findings import (
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.audit.performance_comparison.methods import (
-    FxRateImpactMethod,
     ModifiedDietzDoubleCountPolicy,
     HoldingImpactMethod,
     PriceImpactMethod,
@@ -99,7 +95,6 @@ DIRECT_INPUT_FINDING_COUNT = "direct_input_finding_count"
 RELATED_OUTPUT_FINDING_COUNT = "related_output_finding_count"
 CONTEXT_FINDING_COUNT = "context_finding_count"
 EVIDENCE_GROUP = "evidence_group"
-FX_RATE_FINDING_COUNT = "fx_rate_finding_count"
 TRANSACTION_FINDING_COUNT = "transaction_finding_count"
 HOLDING_FINDING_COUNT = "holding_finding_count"
 HAS_SUPPRESSED_FINDINGS = "has_suppressed_findings"
@@ -113,7 +108,6 @@ PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     DIRECT_INPUT_FINDING_COUNT,
     RELATED_OUTPUT_FINDING_COUNT,
     CONTEXT_FINDING_COUNT,
-    FX_RATE_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
     HOLDING_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
@@ -170,15 +164,11 @@ IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
     "security_holding_quantity_unit_market_value"
 )
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
-IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE = "fx_rate_local_exposure"
 IMPACT_BASIS_SECURITY_TRANSACTION_FLOW = "security_transaction_flow"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
-)
-IMPACT_METHOD_FX_RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_DENOMINATOR = (
-    FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value
 )
 IMPACT_METHOD_SECURITY_TRANSACTION_FLOW_MODIFIED_DIETZ = (
     TransactionImpactMethod.MODIFIED_DIETZ.value
@@ -201,7 +191,6 @@ ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = (
 )
 ROOT_CAUSE_MARKET_VALUE_OR_HOLDING = CauseArea.MARKET_VALUE_OR_HOLDING.value
 ROOT_CAUSE_TRANSACTION_ACTIVITY = CauseArea.TRANSACTION_ACTIVITY.value
-ROOT_CAUSE_FX_RATE = CauseArea.FX_RATE.value
 ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT = CauseArea.PORTFOLIO_PERFORMANCE_INPUT.value
 ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE = CauseArea.CLASSIFICATION_OR_REFERENCE.value
 ROOT_CAUSE_UNEXPLAINED = CauseArea.UNEXPLAINED.value
@@ -244,8 +233,6 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     SOURCE_RECORD_LOCATOR,
     INPUT_DATE,
     SOURCE_COLUMN,
-    FROM_CURRENCY,
-    TO_CURRENCY,
     TRANSACTION_CODE,
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
@@ -425,7 +412,6 @@ def portfolio_period_summary(
                     0,
                 ),
                 **role_counts,
-                FX_RATE_FINDING_COUNT: related_counts.datasets.get(pc_cols.FX_RATES, 0),
                 TRANSACTION_FINDING_COUNT: related_counts.datasets.get(
                     pc_cols.TRANSACTIONS,
                     0,
@@ -807,7 +793,6 @@ def _rank_evidence_relation(
             pc_cols.PORTFOLIO_PERFORMANCE: 40,
             pc_cols.TRANSACTIONS: 35,
             pc_cols.HOLDINGS: 35,
-            pc_cols.FX_RATES: 25,
             pc_cols.SECURITY_PERFORMANCE: 10,
         },
         default=0,
@@ -1740,11 +1725,6 @@ def _evidence_breakdown_rows(
         ),
         (
             DIRECT_INPUT,
-            pc_cols.FX_RATES,
-            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.FX_RATES),
-        ),
-        (
-            DIRECT_INPUT,
             pc_cols.TRANSACTIONS,
             _role_dataset_count(
                 related_findings,
@@ -1915,8 +1895,6 @@ def _ranked_evidence_row(
         SOURCE_RECORD_LOCATOR: finding[SOURCE_RECORD_LOCATOR],
         INPUT_DATE: finding[INPUT_DATE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
-        FROM_CURRENCY: finding[FROM_CURRENCY],
-        TO_CURRENCY: finding[TO_CURRENCY],
         TRANSACTION_CODE: finding[TRANSACTION_CODE],
         TRANSACTION_CATEGORY: finding[TRANSACTION_CATEGORY],
         CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
@@ -2134,23 +2112,6 @@ def _no_security_return_estimate() -> dict[str, object]:
 def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
     """Return the first-pass contribution-impact fields for one evidence row."""
     delta = row[DELTA_B_MINUS_A]
-    if _is_fx_rate_local_exposure_impact_candidate(row):
-        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
-        exposure = _required_impact_number(row[IMPACT_INPUT_VALUE], IMPACT_INPUT_VALUE)
-        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
-        return {
-            ESTIMATED_RETURN_IMPACT: delta_float * exposure / denominator,
-            IMPACT_BASIS: IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: (IMPACT_METHOD_FX_RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_DENOMINATOR),
-            IMPACT_MESSAGE: (
-                "Approximate impact uses the FX-rate delta multiplied by the "
-                "unchanged snapshot A local-currency exposure, divided by the "
-                "portfolio return denominator. This is a normalized ppar "
-                "screening estimate, not an assertion about Axys calculation "
-                "mechanics."
-            ),
-        }
     if _is_transaction_performance_amount_impact_candidate(row):
         delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
         denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
@@ -2276,22 +2237,6 @@ def _is_transaction_performance_amount_impact_candidate(
     )
 
 
-def _is_fx_rate_local_exposure_impact_candidate(row: dict[str, object]) -> bool:
-    """Return whether an FX-rate row supports an exposure-linked estimate."""
-    delta = _number_value(row.get(DELTA_B_MINUS_A))
-    exposure = _number_value(row.get(IMPACT_INPUT_VALUE))
-    denominator = _number_value(row.get(RETURN_DENOMINATOR))
-    return (
-        row.get(DATASET) == pc_cols.FX_RATES
-        and row.get(SOURCE_COLUMN) == pc_cols.FX_RATE
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_FX_RATE_EXPOSURE
-        and delta is not None
-        and exposure is not None
-        and denominator is not None
-        and denominator != 0.0
-    )
-
-
 def _is_holding_market_value_impact_candidate(row: dict[str, object]) -> bool:
     """Return whether a holding market value row supports a rough estimate."""
     delta = row[DELTA_B_MINUS_A]
@@ -2395,7 +2340,6 @@ def _root_cause_area(row: dict[str, object]) -> str:
         pc_cols.SECURITY_PERFORMANCE: CauseArea.SECURITY_RETURN_OR_CONTRIBUTION,
         pc_cols.HOLDINGS: CauseArea.MARKET_VALUE_OR_HOLDING,
         pc_cols.TRANSACTIONS: CauseArea.TRANSACTION_ACTIVITY,
-        pc_cols.FX_RATES: CauseArea.FX_RATE,
         pc_cols.PORTFOLIO_PERFORMANCE: CauseArea.PORTFOLIO_PERFORMANCE_INPUT,
     }
     dataset = row[DATASET]
@@ -2606,8 +2550,6 @@ def _coverage_missing_impact_inputs(
             ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
         }:
             _extend_unique(missing_inputs, ["return-impact method"])
-        elif cause_area == ROOT_CAUSE_FX_RATE:
-            _extend_unique(missing_inputs, ["currency exposure linkage"])
         else:
             _extend_unique(missing_inputs, ["defensible impact method"])
     return ", ".join(missing_inputs)
@@ -2710,8 +2652,6 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
     bases = {
         str(row[IMPACT_BASIS]) for row in rows if row[IMPACT_BASIS] != IMPACT_BASIS_NO_ESTIMATE
     }
-    if IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE in bases:
-        return IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
         return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
     if IMPACT_BASIS_HOLDING_MARKET_VALUE in bases:
@@ -3160,7 +3100,6 @@ def _dataset_priority_score(dataset: str) -> int:
         pc_cols.PORTFOLIO_PERFORMANCE: 40,
         pc_cols.TRANSACTIONS: 35,
         pc_cols.HOLDINGS: 35,
-        pc_cols.FX_RATES: 25,
         pc_cols.SECURITY_PERFORMANCE: 10,
     }.get(dataset, 0)
 
@@ -3202,7 +3141,6 @@ def _empty_portfolio_period_summary() -> pl.DataFrame:
             DIRECT_INPUT_FINDING_COUNT: pl.UInt32,
             RELATED_OUTPUT_FINDING_COUNT: pl.UInt32,
             CONTEXT_FINDING_COUNT: pl.UInt32,
-            FX_RATE_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
             HOLDING_FINDING_COUNT: pl.UInt32,
             HAS_SUPPRESSED_FINDINGS: pl.Boolean,
@@ -3278,8 +3216,6 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             SOURCE_RECORD_LOCATOR: pl.String,
             INPUT_DATE: pl.Date,
             SOURCE_COLUMN: pl.String,
-            FROM_CURRENCY: pl.String,
-            TO_CURRENCY: pl.String,
             TRANSACTION_CODE: pl.String,
             TRANSACTION_CATEGORY: pl.String,
             CASH_FLOW_SIGN: pl.String,

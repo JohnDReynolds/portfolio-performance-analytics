@@ -7,8 +7,6 @@ import unittest
 
 # Third-party imports
 import polars as pl
-import yaml
-
 # Test imports
 from tests import test_utilities as test_util
 
@@ -54,7 +52,6 @@ def _write_suppression_specification(
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
         "suppressions": suppressions,
     }

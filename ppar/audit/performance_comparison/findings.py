@@ -17,7 +17,6 @@ import polars as pl
 
 # Project imports
 from ppar.audit.performance_comparison.methods import (
-    FxRateImpactMethod,
     HoldingImpactMethod,
     PriceImpactMethod,
     TransactionImpactMethod,
@@ -47,8 +46,6 @@ __all__ = [
     "SOURCE_FILE",
     "SOURCE_RECORD_LOCATOR",
     "SOURCE_COLUMN",
-    "FROM_CURRENCY",
-    "TO_CURRENCY",
     "TRANSACTION_CODE",
     "TRANSACTION_CATEGORY",
     "CASH_FLOW_SIGN",
@@ -68,7 +65,6 @@ __all__ = [
     "IMPACT_POLICY_HOLDING_MARKET_VALUE",
     "IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE",
     "IMPACT_POLICY_PRICE_WEIGHTED",
-    "IMPACT_POLICY_FX_RATE_EXPOSURE",
     "TRANSACTION_IMPACT_POLICY",
     "TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY",
     "TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA",
@@ -90,7 +86,6 @@ __all__ = [
     "PC_HOLD_COST",
     "PC_HOLD_ACCR",
     "PC_PRICE",
-    "PC_FX_RATE",
     "PC_TXN_ADD",
     "PC_TXN_DROP",
     "PC_TXN_AMBIG",
@@ -129,8 +124,6 @@ INPUT_DATE = "input_date"
 SOURCE_FILE = "source_file"
 SOURCE_RECORD_LOCATOR = "source_record_locator"
 SOURCE_COLUMN = "source_column"
-FROM_CURRENCY = "from_currency"
-TO_CURRENCY = "to_currency"
 TRANSACTION_CODE = "transaction_code"
 TRANSACTION_CATEGORY = "transaction_category"
 CASH_FLOW_SIGN = "cash_flow_sign"
@@ -156,10 +149,6 @@ IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
 IMPACT_POLICY_PRICE_WEIGHTED = (
     "price_weighted:"
     f"{PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value}"
-)
-IMPACT_POLICY_FX_RATE_EXPOSURE = (
-    "fx_rate:"
-    f"{FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value}"
 )
 TRANSACTION_IMPACT_POLICY = "transaction_impact_policy"
 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = (
@@ -190,7 +179,6 @@ PC_HOLD_MV: Final[str] = "PC-HOLD-MV"
 PC_HOLD_COST: Final[str] = "PC-HOLD-COST"
 PC_HOLD_ACCR: Final[str] = "PC-HOLD-ACCR"
 PC_PRICE: Final[str] = "PC-PRICE"
-PC_FX_RATE: Final[str] = "PC-FX-RATE"
 PC_TXN_ADD: Final[str] = "PC-TXN-ADD"
 PC_TXN_DROP: Final[str] = "PC-TXN-DROP"
 PC_TXN_AMBIG: Final[str] = "PC-TXN-AMBIG"
@@ -278,8 +266,6 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     SOURCE_FILE,
     SOURCE_RECORD_LOCATOR,
     SOURCE_COLUMN,
-    FROM_CURRENCY,
-    TO_CURRENCY,
     TRANSACTION_CODE,
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
@@ -323,8 +309,6 @@ class Finding:
             keys rather than a physical row number, so file reordering does
             not break lineage.
         source_column: Optional normalized column associated with the finding.
-        from_currency: Optional local/source currency for FX-rate findings.
-        to_currency: Optional quote/base currency for FX-rate findings.
         transaction_code: Optional source transaction code for transaction
             findings.
         transaction_category: Optional normalized transaction category for
@@ -369,8 +353,6 @@ class Finding:
     source_file: str | None = None
     source_record_locator: str | None = None
     source_column: str | None = None
-    from_currency: object | None = None
-    to_currency: object | None = None
     transaction_code: object | None = None
     transaction_category: object | None = None
     cash_flow_sign: object | None = None
@@ -408,8 +390,6 @@ class Finding:
             SOURCE_FILE: self.source_file,
             SOURCE_RECORD_LOCATOR: self.source_record_locator,
             SOURCE_COLUMN: self.source_column,
-            FROM_CURRENCY: self.from_currency,
-            TO_CURRENCY: self.to_currency,
             TRANSACTION_CODE: _string_value_or_none(self.transaction_code),
             TRANSACTION_CATEGORY: _string_value_or_none(self.transaction_category),
             CASH_FLOW_SIGN: _string_value_or_none(self.cash_flow_sign),

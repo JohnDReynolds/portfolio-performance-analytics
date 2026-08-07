@@ -71,8 +71,9 @@ is:
 - Security master: needed only when Data Issues filters use
   `security_master.*` qualifiers. Use a reviewed security-information IMEX
   export, security-master report, or equivalent extract and preserve exact case.
-- FX rates: needed only when a changed FX rate itself must be explained. Use a
-  locally validated REP, FX/price, or other controlled rate source.
+- Foreign-currency holdings and transactions: include both reported local and
+  base values. PPAR reports the row's implied conversion ratio as reported base
+  value divided by reported local value.
 - Split factors: optional review information, usually from `split.inf` or an
   equivalent local export.
 
@@ -108,7 +109,6 @@ python run_audit.py -h
     transactions.csv
     secmast.csv
     secperf.csv
-    fx_rates.csv
     splits.csv
   snapshot_b/
     portperf.csv
@@ -116,6 +116,5 @@ python run_audit.py -h
     transactions.csv
     secmast.csv
     secperf.csv
-    fx_rates.csv
     splits.csv
 ```

@@ -24,7 +24,6 @@ Files:
 - unreachable_target_secperf.csv: intentionally unreconcilable validation rows
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
 - holdings.csv: month-end holding snapshots, including all cash balances as CASHUSD
-- fx_rates.csv: daily FX rates
 
 Shared fixture configuration lives one directory above this snapshot:
 

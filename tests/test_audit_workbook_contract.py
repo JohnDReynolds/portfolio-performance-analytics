@@ -654,7 +654,6 @@ class TestAuditWorkbookContract(unittest.TestCase):
                         or "ending holdings." in str(row[10])
                         or "beginning holdings." in str(row[10])
                         or "Review-only evidence" in str(row[10])
-                        or "FX rate changed" in str(row[10])
                         for row in underlying_rows
                     )
                 )
@@ -745,7 +744,9 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     (
                         "dv: cseuSAP.DE transactions.base_amount increased by 32.40. "
                         "This affects the performance calculation through "
-                        "cash-balance ending holdings.base_market_value."
+                        "cash-balance ending holdings.base_market_value. Local amount "
+                        "changed from EUR 120.00 to EUR 150.00. The implied conversion "
+                        "ratio remained 1.080000 USD per EUR."
                     ),
                 )
                 eur_cash_quantity_row = next(

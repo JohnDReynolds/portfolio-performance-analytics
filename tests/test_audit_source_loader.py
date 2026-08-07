@@ -543,17 +543,17 @@ class TestSourceLoader(unittest.TestCase):
 
             snapshot_a_path = source_loader.optional_file_path(
                 specification,
-                pc_cols.FX_RATES,
+                pc_cols.SPLITS,
                 "a",
             )
             snapshot_b_path = source_loader.optional_file_path(
                 specification,
-                pc_cols.FX_RATES,
+                pc_cols.SPLITS,
                 "b",
             )
 
-            self.assertEqual(snapshot_a_path, directory / "snapshot_a" / "fx_rates.csv")
-            self.assertEqual(snapshot_b_path, directory / "snapshot_b" / "fx_rates.csv")
+            self.assertEqual(snapshot_a_path, directory / "snapshot_a" / "splits.csv")
+            self.assertEqual(snapshot_b_path, directory / "snapshot_b" / "splits.csv")
 
     def test_optional_file_path_returns_none_for_omitted_dataset(self) -> None:
         """Omitted optional datasets return ``None``."""
@@ -580,7 +580,7 @@ class TestSourceLoader(unittest.TestCase):
             with self.assertRaises(PpaError) as context:
                 source_loader.optional_file_path(
                     specification,
-                    pc_cols.FX_RATES,
+                    pc_cols.SPLITS,
                     "c",
                 )
 
@@ -607,13 +607,10 @@ def _write_source_loader_specification(directory: Path) -> Path:
         },
         "files": {
             "portfolio_performance": "portperf.csv",
-            "fx_rates": "fx_rates.csv",
+            "splits": "splits.csv",
         },
         "extract_contract": {
             "enforce_ambiguous_axys_flows": True,
-        },
-        "fx_rate_impact_methods": {
-            "fx_rate": {"method": "evidence_only"},
         },
         "tolerances": {
             "return": 0.000001,
@@ -621,7 +618,6 @@ def _write_source_loader_specification(directory: Path) -> Path:
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
     }
     specification_path = directory / "ppar_audit.yaml"

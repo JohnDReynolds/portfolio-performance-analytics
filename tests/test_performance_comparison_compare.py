@@ -24,7 +24,6 @@ from ppar.audit.performance_comparison import (
 )
 from ppar.audit import schema as pc_cols
 from ppar.audit.performance_comparison.policies import (
-    _fx_rate_impact_policies,
     _modified_dietz_external_flow_eligibility,
     _holding_impact_policies,
     _price_impact_policies,
@@ -51,7 +50,6 @@ from ppar.audit.performance_comparison.findings import (
     IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_INPUT_VALUE,
     PORTFOLIO_ID,
-    PC_FX_RATE,
     PC_HOLD_ACCR,
     PC_HOLD_COST,
     PC_PORT_RET,
@@ -134,7 +132,6 @@ def _required_yaml_settings() -> dict[str, object]:
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
         "transaction_impact_methods": _default_transaction_impact_methods(),
         "holding_impact_methods": {
@@ -160,9 +157,6 @@ def _required_yaml_settings() -> dict[str, object]:
                 "method": "price_delta_over_snapshot_a_price_times_weight",
                 "weight_source": "snapshot_a_weight",
             }
-        },
-        "fx_rate_impact_methods": {
-            "fx_rate": {"method": "evidence_only"},
         },
     }
 
@@ -810,8 +804,6 @@ class TestPerformanceComparison(unittest.TestCase):
     _restatement_security_findings: list[Finding]
     _baseline_holding_findings: list[Finding]
     _restatement_holding_findings: list[Finding]
-    _baseline_fx_rate_findings: list[Finding]
-    _restatement_fx_rate_findings: list[Finding]
     _baseline_transaction_findings: list[Finding]
     _restatement_transaction_findings: list[Finding]
 
@@ -835,8 +827,6 @@ class TestPerformanceComparison(unittest.TestCase):
         cls._restatement_security_findings = restatement.compare_security_performance()
         cls._baseline_holding_findings = baseline.compare_holdings()
         cls._restatement_holding_findings = restatement.compare_holdings()
-        cls._baseline_fx_rate_findings = baseline.compare_fx_rates()
-        cls._restatement_fx_rate_findings = restatement.compare_fx_rates()
         cls._baseline_transaction_findings = baseline.compare_transactions()
         cls._restatement_transaction_findings = restatement.compare_transactions()
 
@@ -1065,7 +1055,6 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertIn(PC_HOLD_COST, finding_codes)
         self.assertIn(PC_HOLD_ACCR, finding_codes)
         self.assertIn(PC_HOLD_MV, finding_codes)
-        self.assertIn(PC_FX_RATE, finding_codes)
         self.assertIn(PC_TXN_AMT, finding_codes)
         self.assertIn(PC_TXN_QTY, finding_codes)
         self.assertIn(PC_TXN_PRICE, finding_codes)
@@ -1097,7 +1086,6 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(role_by_code[PC_HOLD_QTY], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_HOLD_COST], CONTEXT)
         self.assertEqual(role_by_code[PC_HOLD_MV], DIRECT_INPUT)
-        self.assertEqual(role_by_code[PC_FX_RATE], CONTEXT)
         self.assertEqual(role_by_code[PC_TXN_AMT], DIRECT_INPUT)
 
     def test_baseline_combined_compare_has_empty_polars_output(self) -> None:
@@ -1527,53 +1515,6 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(impact_by_portfolio, {"PORT_A": None, "PORT_B": None})
             policies = _price_impact_policies(specification)
             self.assertEqual(policies[pc_cols.PRICE], IMPACT_POLICY_PRICE_WEIGHTED)
-
-    def test_identical_baseline_snapshots_have_no_fx_rate_findings(self) -> None:
-        """The baseline fixture compares identical FX rate rows."""
-        findings = list(self._baseline_fx_rate_findings)
-
-        self.assertEqual(findings, [])
-
-    def test_restatement_fixture_reports_fx_rate_changes(self) -> None:
-        """The restatement fixture reports controlled FX rate changes."""
-        findings = list(self._restatement_fx_rate_findings)
-        finding_dicts = [finding.to_dict() for finding in findings]
-        fx_rate_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_FX_RATE
-            and finding[SOURCE_COLUMN] == pc_cols.FX_RATE
-        ]
-
-        self.assertEqual(len(fx_rate_findings), 1)
-        self.assertAlmostEqual(
-            cast(float, fx_rate_findings[0][DELTA_B_MINUS_A]),
-            0.005,
-        )
-
-    def test_fx_rate_evidence_only_policy_is_loaded_from_yaml(self) -> None:
-        """Explicit FX rate review-only policy is carried into findings."""
-        specification = AuditSpecification(
-            _RESTATEMENT_TRANSACTION_RULES_PATH
-        )
-
-        policies = _fx_rate_impact_policies(specification)
-        findings = PerformanceComparison(specification).compare_fx_rates()
-        fx_rate_finding = next(
-            finding.to_dict()
-            for finding in findings
-            if finding.to_dict()[FINDING_CODE] == PC_FX_RATE
-            and finding.to_dict()[SOURCE_COLUMN] == pc_cols.FX_RATE
-        )
-
-        self.assertEqual(
-            policies[pc_cols.FX_RATE],
-            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}fx_rates.fx_rate",
-        )
-        self.assertEqual(
-            fx_rate_finding[IMPACT_POLICY],
-            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}fx_rates.fx_rate",
-        )
 
     def test_identical_baseline_snapshots_have_no_transaction_findings(self) -> None:
         """The baseline fixture compares identical transaction rows."""
@@ -2759,80 +2700,6 @@ class TestPerformanceComparison(unittest.TestCase):
                         )
 
                     self.assertIn(expected_message, str(context.exception))
-
-    def test_fx_rate_impact_methods_reject_malformed_yaml(self) -> None:
-        """FX rate impact method YAML must use the supported contract."""
-        scenarios = [
-            ("not-a-mapping", "fx_rate_impact_methods must be a mapping"),
-            ({"unsupported": {"method": "x"}}, "unsupported"),
-            ({"fx_rate": "review-only"}, "fx_rate must be a mapping"),
-            ({"fx_rate": {}}, "fx_rate is missing required keys"),
-            (
-                {"fx_rate": {"method": "fx_delta_over_exposure"}},
-                "fx_rate.method must be",
-            ),
-            (
-                {"fx_rate": {"method": "evidence_only", "denominator_source": "x"}},
-                "fx_rate has unsupported keys",
-            ),
-        ]
-
-        for fx_rate_impact_methods, expected_message in scenarios:
-            with self.subTest(fx_rate_impact_methods=fx_rate_impact_methods):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    specification_path = _write_multi_portfolio_holding_price_specification(
-                        Path(temp_dir)
-                    )
-                    configuration = yaml.safe_load(
-                        specification_path.read_text(encoding="utf-8")
-                    )
-                    configuration["files"]["fx_rates"] = "fx_rates.csv"
-                    for snapshot_name, rate in (
-                        ("snapshot_a", "1.00000000"),
-                        ("snapshot_b", "1.00500000"),
-                    ):
-                        snapshot_path = Path(temp_dir) / snapshot_name
-                        (snapshot_path / "fx_rates.csv").write_text(
-                            "FROM_CURRENCY,TO_CURRENCY,RATE_DATE,FX_RATE\n"
-                            f"EUR,USD,2025-05-31,{rate}\n",
-                            encoding="utf-8",
-                        )
-                    configuration["fx_rate_impact_methods"] = fx_rate_impact_methods
-                    specification_path.write_text(
-                        yaml.safe_dump(configuration),
-                        encoding="utf-8",
-                    )
-
-                    with self.assertRaises(PpaError) as context:
-                        PerformanceComparison(
-                            AuditSpecification(specification_path)
-                        )
-
-                    self.assertIn(expected_message, str(context.exception))
-
-    def test_configured_fx_dataset_requires_explicit_impact_policy(self) -> None:
-        """A configured FX dataset cannot acquire evidence-only treatment implicitly."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            path = _write_multi_portfolio_holding_price_specification(root)
-            configuration = yaml.safe_load(path.read_text(encoding="utf-8"))
-            files = configuration["files"]
-            assert isinstance(files, dict)
-            files["fx_rates"] = "fx_rates.csv"
-            del configuration["fx_rate_impact_methods"]
-            for snapshot_name in ("snapshot_a", "snapshot_b"):
-                (root / snapshot_name / "fx_rates.csv").write_text(
-                    "FROM_CURRENCY,TO_CURRENCY,RATE_DATE,FX_RATE\n"
-                    "EUR,USD,2025-05-31,1.10000000\n",
-                    encoding="utf-8",
-                )
-            test_util.write_audit_test_yaml(path, configuration)
-
-            with self.assertRaisesRegex(
-                PpaError,
-                "fx_rate_impact_methods is required",
-            ):
-                PerformanceComparison(AuditSpecification(path))
 
     def test_evidence_only_impact_methods_reject_malformed_yaml(self) -> None:
         """Evidence-only impact method YAML must use the supported contract."""

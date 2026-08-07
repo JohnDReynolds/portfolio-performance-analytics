@@ -44,15 +44,6 @@ class PriceImpactMethod(StrEnum):
     )
 
 
-class FxRateImpactMethod(StrEnum):
-    """Supported `fx_rate_impact_methods` YAML method names."""
-
-    EVIDENCE_ONLY = "evidence_only"
-    RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR = (
-        "rate_delta_times_local_exposure_over_return_denominator"
-    )
-
-
 class ModifiedDietzFlowTiming(StrEnum):
     """Supported Modified Dietz flow date source options."""
 

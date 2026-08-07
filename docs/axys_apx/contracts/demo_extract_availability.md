@@ -25,7 +25,6 @@ The two packaged snapshots currently use the same file layouts:
 - `secperf.csv`
 - `transactions.csv`
 - `secmast.csv`
-- `fx_rates.csv`
 - `splits.csv`
 
 ## Confidence Labels
@@ -77,7 +76,6 @@ These labels describe extraction needs. They are separate from PPAR's internal v
 | `secperf.csv` | Required only when applicable | Required only when the user wants security-level differences to reach Fully Explained; portfolio-only audit does not need this file. Likely source: REP security-performance or attribution report preferred; a native performance IMEX object is not verified by the current evidence. | `Portfolio Code`, `Security Symbol`, `Security Type`, `From Date`, `Thru Date`, `Security Return` | None | None |
 | `transactions.csv` | Required | Dated, classified amounts are needed to explain changed external flows, income, fees, and security activity. Likely source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context. | `Portfolio Code`, `Transaction Date`, `Security Symbol`, `Security Type`, `Transaction Code`, `Amount` | `Transaction Security Type` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Source/Destination Type` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Source/Destination Symbol` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Special Security Type` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Special Security Symbol` — Required by the packaged guard when ambiguous DP, LI, LO, TI, or WD codes can appear.<br>`Currency Code` — Required for transaction amounts stated in a currency other than portfolio base currency.<br>`Base Currency` — Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.<br>`Base Amount` — Required when AMOUNT is local-currency rather than the portfolio-base amount used by the performance calculation. | `Settlement Date`, `Quantity`, `Price`, `Commission` |
 | `secmast.csv` | Required only when applicable | Security master values qualify Data Issues populations without changing performance calculations. Likely source: IMEX security-information export or another reviewed security-master source extract. | `Security Symbol`, `Security Type` | `Asset Class Code` — Required when a Data Issues filter references security_master.asset_class_code. | None |
-| `fx_rates.csv` | Optional | Optional supporting evidence that can link a rate change to a counted base-currency value. Likely source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled rate source. | `Portfolio Code`, `From Currency`, `To Currency`, `Rate Date`, `FX Rate`, `Local Exposure` | `Rate Source` — Required when pair and date do not uniquely identify one controlled rate series.<br>`Rate Type` — Required when pair and date do not uniquely identify one controlled rate convention. | None |
 | `splits.csv` | Optional | Split factors add review context but do not directly enter the current Modified Dietz explanation formula. Likely source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent factors. | `Security Symbol`, `Security Type` | None | `Split Date`, `Split Factor` |
 
 
@@ -154,20 +152,6 @@ These labels describe extraction needs. They are separate from PPAR's internal v
 | security master | `Security Symbol` | Exact-case security identifier used to enrich holdings or transaction rows. | High | High | Chapter_04_Security_Master.md and Research_04_Security_Master.md support security-information exports and security-level report labels, while the formal native key remains unknown. | Confirm the local identifier field, exact-case behavior, uniqueness, and relationship to security type. | Security symbol or identifier is central to reviewed security-information and report workflows. |
 | security master | `Security Type` | Product security-type code used to qualify Data Issues populations. | High | Medium | Chapter_04_Security_Master.md and Research_04_Security_Master.md verify security-type exports and mixed-case examples in integration workflows. | Confirm the local security-type field, value dictionary, case rules, and version applicability. | Security type is operationally paired with symbol in reviewed integration workflows, but the complete native dictionary is unknown. |
 | security master | `Asset Class Code` | Site security-master asset-class code used to qualify Data Issues populations. | Medium | High | Chapter_04_Security_Master.md, Chapter_11_Classifications.md, and their evidence ledgers support asset-class export labels and classification behavior. | Confirm the local asset-class code field, code dictionary, effective-date behavior, and reclassification policy. | Asset-class labels are supported in export/report workflows, but exact native field names and histories remain site dependent. |
-
-
-### `fx_rates.csv`
-
-| Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
-|---|---|---|---|---|---|---|---|
-| FX rates | `From Currency` | Local currency converted by the rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `To Currency` | Portfolio base currency produced by the rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `Rate Date` | Effective date of the FX rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `FX Rate` | Units of base currency per unit of local currency. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `Local Exposure` | Local-currency exposure explicitly linked to the portfolio and rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `Portfolio Code` | Portfolio/account identifier for exposure linkage. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `Rate Source` | Provenance label for the normalized FX rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| FX rates | `Rate Type` | Rate convention such as closing or average. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 
 
 ### `splits.csv`
@@ -263,20 +247,6 @@ These names are candidate aliases for local discovery. They are not assertions t
 | security master | `Asset Class Code` | ASSET_CLASS_CODE, ASSET_CLASS, Asset Class Code, Asset Class | Asset Class Code, Asset Class | Inferred Alias | The normalized demo name is plausible but must be mapped to the local export or report label. |
 
 
-### `fx_rates.csv` Name Candidates
-
-| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
-|---|---|---|---|---|---|
-| FX rates | `From Currency` | From Currency, Local Currency | From Currency, Local Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `To Currency` | To Currency, Base Currency | To Currency, Base Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `Rate Date` | Rate Date, Price Date | Rate Date, As Of Date | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `FX Rate` | FX Rate, Exchange Rate | FX Rate, Exchange Rate | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `Local Exposure` | Local Exposure, Local Market Value | Local Exposure, Local Market Value | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `Portfolio Code` | Portfolio, Account | Portfolio, Account | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `Rate Source` | Rate Source, Price Source | Rate Source, Price Source | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| FX rates | `Rate Type` | Rate Type, Price Type | Rate Type, Price Type | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-
-
 ### `splits.csv` Name Candidates
 
 | Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
@@ -370,20 +340,6 @@ This matrix translates availability confidence into implementation guidance abou
 | security master | `Security Symbol` | IMEX then REP cross-check | REP preferred | Preserve exact source case and reconcile the identifier to the holdings and transaction extracts before using reference qualifiers. |
 | security master | `Security Type` | IMEX then REP cross-check | REP preferred | Preserve the exact source value and validate the site-specific code dictionary before filtering. |
 | security master | `Asset Class Code` | IMEX then REP cross-check | REP preferred | Tie the code to the same snapshot as the source rows so later reclassification does not silently change an audit population. |
-
-
-### `fx_rates.csv` Source Strategy
-
-| Dataset | Demo column | Preferred source | Fallback source | Notes |
-|---|---|---|---|---|
-| FX rates | `From Currency` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `To Currency` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `Rate Date` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `FX Rate` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `Local Exposure` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `Portfolio Code` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `Rate Source` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `Rate Type` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
 
 
 ### `splits.csv` Source Strategy

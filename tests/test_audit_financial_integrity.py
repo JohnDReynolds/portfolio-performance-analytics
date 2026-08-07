@@ -10,8 +10,6 @@ import unittest
 
 # Third-party imports
 import polars as pl
-import yaml
-
 # Test imports
 from tests import test_utilities as test_util
 
@@ -160,21 +158,6 @@ class TestAuditFinancialIntegrity(unittest.TestCase):
             with self.assertRaisesRegex(PpaError, "SN-06.*three-letter currency"):
                 compare_snapshots(comparison_path)
 
-    def test_portfolio_fx_quote_must_target_base_currency(self) -> None:
-        """SN-06 rejects a portfolio FX pair quoted into the wrong unit."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            comparison_path = _write_site(
-                root,
-                portfolio_rows=(
-                    "P1,2026-01-01,2026-01-31,1000,1100,0.10,USD",
-                ),
-                fx_rows=("P1,EUR,GBP,2026-01-31,0.85",),
-            )
-
-            with self.assertRaisesRegex(PpaError, "SN-06.*to_currency=GBP"):
-                compare_snapshots(comparison_path)
-
     def test_out_of_period_transaction_cannot_own_explained_performance(self) -> None:
         """SN-07 allows visible history but prohibits counting it in a later period."""
         original = pl.DataFrame(
@@ -210,7 +193,6 @@ def _write_site(
     *,
     portfolio_rows: tuple[str, ...],
     holdings_rows: tuple[str, ...] = (),
-    fx_rows: tuple[str, ...] = (),
     extra_config: dict[str, object] | None = None,
 ) -> Path:
     """Write a two-snapshot Phase 3 test site and return its YAML path."""
@@ -234,18 +216,10 @@ def _write_site(
                 ),
                 holdings_rows,
             )
-        if fx_rows:
-            _write_csv(
-                snapshot_path / "fx_rates.csv",
-                "PORT,FROM_CURRENCY,TO_CURRENCY,RATE_DATE,FX_RATE",
-                fx_rows,
-            )
 
     files = {"portfolio_performance": "portperf.csv"}
     if holdings_rows:
         files["holdings"] = "holdings.csv"
-    if fx_rows:
-        files["fx_rates"] = "fx_rates.csv"
     configuration: dict[str, object] = {
         "comparison": {"level": "portfolio"},
         "snapshots": {
@@ -262,7 +236,6 @@ def _write_site(
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
     }
     if holdings_rows:
@@ -289,10 +262,6 @@ def _write_site(
                 "method": "price_delta_over_snapshot_a_price_times_weight",
                 "weight_source": "snapshot_a_weight",
             }
-        }
-    if fx_rows:
-        configuration["fx_rate_impact_methods"] = {
-            "fx_rate": {"method": "evidence_only"},
         }
     if extra_config:
         configuration.update(extra_config)

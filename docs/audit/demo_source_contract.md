@@ -122,7 +122,6 @@ the target performance dataset:
 | `security_performance` | The active execution level is `security`, or `security_return_reconstruction` is configured. | `portfolio_id`, `security_id`, `from_date`, `thru_date`, `security_return` |
 | `holdings` | Portfolio or security performance calculation is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date`; performance calculation also requires `market_value` |
 | `transactions` | Portfolio or security performance calculation is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date`; performance calculation also requires `transaction_code` and `amount` |
-| `fx_rates` | Optional evidence links a rate change to a counted base-currency value. | `from_currency`, `to_currency`, `rate_date`, `fx_rate`; add `portfolio_id` and `local_exposure` for report linkage |
 | `security_master` | A Data Issues `only` or `exclude` filter references `security_master.*`. | `security_id`; each referenced qualifier column must also be present and nonblank for relevant source rows |
 | `splits` | Optional; when present, `large_price_variation` uses it to normalize earlier prices to the performance-period ending share basis. | `security_id`, `split_date`, `split_factor`; factor must be finite and strictly positive for the enabled rule |
 
@@ -130,19 +129,18 @@ Currency basis follows the normalized field name and dataset scope. In
 holdings and transactions, unqualified monetary fields use the row
 `currency`; `base_` fields use portfolio `base_currency`. Portfolio/security
 performance monetary fields are inherently base-currency values and remain
-unprefixed. `fx_rates.fx_rate` is `to_currency` units per one `from_currency`
-unit. PPAR does not create parallel `local_` names because row currency is the
-detailed-data default.
+unprefixed. PPAR does not create parallel `local_` names because row currency
+is the detailed-data default.
 
 Modified Dietz never treats an explicitly foreign unqualified value as base
 currency. Foreign holdings, accrued income, and transactions must supply the
 applicable `base_market_value`, `base_accrued`, or `base_amount` before that
 amount can be counted. Cash balances are holdings, not a separate dataset.
 
-Normalized FX rows must provide nonblank pair currencies and dates and a finite,
-strictly positive rate. Pair/date rows must also be unique within the available
-`rate_source` and `rate_type` provenance. These are ppar input-integrity rules,
-not claims about Axys quote conventions or native FX storage.
+When a foreign-currency row supplies both local and base values, Audit reports
+the row's implied conversion ratio as supporting evidence: reported base value
+divided by reported local value. The ratio remains attached to that holding or
+transaction row and is never consolidated into a currency-pair rate.
 
 Security-master rows are snapshot-specific enrichment only. Their normalized
 `security_id` values must be nonblank and unique with exact source case. For the
@@ -159,8 +157,7 @@ All supplied currency values are normalized to uppercase three-letter codes.
 For a foreign row, a nonzero `holdings.market_value`, `holdings.accrued`, or
 `transactions.amount` requires its explicit base-currency counterpart before
 comparison. When row and base currency are the same, supplied local/base values
-must agree. A portfolio-specific FX quote must use portfolio `base_currency` as
-its `to_currency`.
+must agree.
 
 Configured required datasets must exist in both snapshots. If a required source
 file is missing, if a required normalized column cannot be resolved from the
@@ -263,8 +260,8 @@ Performance periods may not be reversed or overlap. Changed dated evidence is
 checked against the periods for its portfolio. Multiple matches are a source-
 contract error. Historical evidence outside an assigned formula boundary may
 remain visible for carry-forward review but cannot own an explained amount. A
-prior-day holding or FX value assigned as the beginning boundary is a Modified
-Dietz input and may own `Performance Difference Explained`.
+prior-day holding value assigned as the beginning boundary is a Modified Dietz
+input and may own `Performance Difference Explained`.
 
 For transaction rows, `TRANSACTION_DATE` is the economic as-of date used by the
 demo return-reconstruction rules. It represents the trade date or ex-date for

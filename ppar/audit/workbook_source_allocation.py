@@ -26,19 +26,11 @@ from ppar.audit.transactions import (
 )
 
 CASH_BALANCE_SECURITY_ID = "_workbook_cash_balance_security_id"
-FX_RATE_BASE_VALUE_CHANGE = "_workbook_fx_rate_base_value_change"
-FX_RATE_SUPPORTS_BASE_INPUT = "_workbook_fx_rate_supports_base_input"
-FX_RATE_TARGET_FIELD = "_workbook_fx_rate_target_field"
 
 __all__ = [
     "CASH_BALANCE_SECURITY_ID",
-    "FX_RATE_BASE_VALUE_CHANGE",
-    "FX_RATE_SUPPORTS_BASE_INPUT",
-    "FX_RATE_TARGET_FIELD",
     "allocate_formula_sources",
     "cash_security_matches",
-    "fx_source_identity",
-    "fx_support_rows",
     "source_flow_weight",
     "source_row_key",
     "with_cash_balance_security",
@@ -227,77 +219,6 @@ def source_row_key(
         row.get(findings.SNAPSHOT_A_VALUE),
         row.get(findings.SNAPSHOT_B_VALUE),
         row.get(findings.DELTA_B_MINUS_A),
-    )
-
-
-def fx_support_rows(
-    source_rows: Sequence[Mapping[str, object]],
-    attributed_rows: Sequence[Mapping[str, object]],
-    *,
-    comparison_level: str,
-) -> list[dict[str, object]]:
-    """Return changed FX rates linked to counted base-currency inputs.
-
-    Args:
-        source_rows: Ranked source-data evidence rows.
-        attributed_rows: Formula effects allocated to source rows.
-        comparison_level: Portfolio or security review grain.
-
-    Returns:
-        Non-additive FX support rows linked to unique base-currency inputs.
-    """
-    support_rows: list[dict[str, object]] = []
-    for source_row in source_rows:
-        if not (
-            source_row.get(findings.DATASET) == audit_schema.FX_RATES
-            and source_row.get(findings.SOURCE_COLUMN) == audit_schema.FX_RATE
-        ):
-            continue
-        rate_delta = rows.number_or_none(source_row.get(findings.DELTA_B_MINUS_A))
-        local_exposure = rows.number_or_none(source_row.get(findings.IMPACT_INPUT_VALUE))
-        if rate_delta is None or local_exposure is None:
-            continue
-        base_value_delta = rate_delta * local_exposure
-        matching_rows = [
-            candidate
-            for candidate in attributed_rows
-            if candidate.get(findings.PORTFOLIO_ID)
-            == source_row.get(findings.PORTFOLIO_ID)
-            and rows.evidence_as_of_date(candidate) == rows.evidence_as_of_date(source_row)
-            and candidate.get(findings.DATASET)
-            in {audit_schema.HOLDINGS, audit_schema.TRANSACTIONS}
-            and candidate.get(findings.SOURCE_COLUMN)
-            in {audit_schema.BASE_MARKET_VALUE, audit_schema.BASE_AMOUNT}
-            and abs(
-                (rows.number_or_none(candidate.get(findings.DELTA_B_MINUS_A)) or 0.0)
-                - base_value_delta
-            )
-            <= 0.005
-        ]
-        targets_by_period: dict[tuple[object, ...], list[Mapping[str, object]]] = {}
-        for target in matching_rows:
-            targets_by_period.setdefault(
-                rows.primary_review_period_key(target, comparison_level),
-                [],
-            ).append(target)
-        for targets in targets_by_period.values():
-            if len(targets) == 1:
-                support_rows.append(_fx_support_row(source_row, targets[0]))
-    return support_rows
-
-
-def fx_source_identity(row: Mapping[str, object]) -> tuple[object, ...]:
-    """Return a period-independent identity for one changed FX-rate row."""
-    if not (
-        row.get(findings.DATASET) == audit_schema.FX_RATES
-        and row.get(findings.SOURCE_COLUMN) == audit_schema.FX_RATE
-    ):
-        return ()
-    return (
-        row.get(findings.PORTFOLIO_ID),
-        rows.evidence_as_of_date(row),
-        row.get(findings.SNAPSHOT_A_VALUE),
-        row.get(findings.SNAPSHOT_B_VALUE),
     )
 
 
@@ -551,21 +472,3 @@ def _formula_source_basis(
     if formula_field == formula_rows.WEIGHTED_FLOW_FIELD:
         return delta * source_flow_weight(source_row)
     return delta
-
-
-def _fx_support_row(
-    row: Mapping[str, object],
-    target: Mapping[str, object],
-) -> dict[str, object]:
-    """Return a non-additive FX row linked to its counted base-currency input."""
-    row_dict = rows.non_additive_row(row)
-    row_dict[findings.FROM_DATE] = target.get(findings.FROM_DATE)
-    row_dict[findings.THRU_DATE] = target.get(findings.THRU_DATE)
-    row_dict[layout.REVIEW_KEY] = target.get(layout.REVIEW_KEY)
-    row_dict[FX_RATE_SUPPORTS_BASE_INPUT] = True
-    row_dict[FX_RATE_TARGET_FIELD] = (
-        f"{target.get(findings.DATASET)}.{target.get(findings.SOURCE_COLUMN)}"
-    )
-    row_dict[findings.SECURITY_ID] = target.get(findings.SECURITY_ID)
-    row_dict[FX_RATE_BASE_VALUE_CHANGE] = target.get(findings.DELTA_B_MINUS_A)
-    return row_dict

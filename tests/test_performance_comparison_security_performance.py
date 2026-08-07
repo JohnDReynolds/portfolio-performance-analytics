@@ -62,7 +62,6 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
             "quantity": 0.000001,
             "price": 0.000001,
             "split_factor": 0.00000001,
-            "fx_rate": 0.00000001,
         },
     }
 

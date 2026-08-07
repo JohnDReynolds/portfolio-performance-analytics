@@ -73,7 +73,6 @@ class TestDataIssuesVocabulary(unittest.TestCase):
                 "security_return_or_contribution",
                 "market_value_or_holding",
                 "transaction_activity",
-                "fx_rate",
                 "portfolio_performance_input",
                 "classification_or_reference",
                 "unexplained",

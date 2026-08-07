@@ -76,7 +76,7 @@ former ambiguous `vendor` switch or build a generic include/inheritance system.
 
 The profile may encapsulate validated, broadly stable behavior such as exact-case
 transaction matching, fail-closed ambiguous-flow handling, common security-
-identity conventions, fixed evidence-only split and FX-rate treatment, field
+identity conventions, fixed evidence-only split treatment, field
 roles and impact methods, standard tolerances, and common file or normalized-
 column conventions. The starter should continue to expose snapshot directories,
 source paths and mappings, locally supported transaction meanings, client-

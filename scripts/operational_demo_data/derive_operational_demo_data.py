@@ -62,7 +62,6 @@ _AXYS_SCHEMA_KEYS: Final = (
     "holdings",
     "transactions",
     "splits",
-    "fx_rates",
 )
 _PORTFOLIOS: Final = (
     ("ALPHA", "Mega-Cap Alpha", 0.04),
@@ -1656,7 +1655,6 @@ tolerances:
   quantity: 0.000001
   price: 0.000001
   split_factor: 0.00000001
-  fx_rate: 0.00000001
 """
 
 

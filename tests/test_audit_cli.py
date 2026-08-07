@@ -557,7 +557,6 @@ class TestAuditCli(unittest.TestCase):
             self.assertIn("try IMEX first", readme)
             self.assertIn("source/destination and special-security context", readme)
             self.assertIn("PPAR-normalized examples", readme)
-            self.assertEqual(readme.count("fx_rates.csv"), 2)
             self.assertEqual(readme.count("splits.csv"), 2)
             section_sequence = [
                 "## What This Folder Is For",
@@ -603,7 +602,6 @@ class TestAuditCli(unittest.TestCase):
                 "holdings",
                 "transactions",
                 "splits",
-                "fx_rates",
             ):
                 self.assertIn("columns", config["files"][file_name])
             self.assertNotIn("security_id", config)
@@ -2019,7 +2017,6 @@ class TestAuditCli(unittest.TestCase):
             result.stdout,
         )
         self.assertIn("Missing optional files: none", result.stdout)
-        self.assertIn("FX rate impact methods: fx_rate", result.stdout)
         self.assertIn("Evidence-only impact methods: splits", result.stdout)
         self.assertIn("Data Issues checks enabled:", result.stdout)
         self.assertIn("duplicate_transactions", result.stdout)

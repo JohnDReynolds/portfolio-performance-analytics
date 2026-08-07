@@ -32,7 +32,6 @@ _SUPPORTED_FILE_KEYS = frozenset(
         "security_master",
         "holdings",
         "transactions",
-        "fx_rates",
         "splits",
     }
 )

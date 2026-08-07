@@ -104,16 +104,6 @@ _AUDIT_TEST_SOURCE_COLUMNS: dict[str, dict[str, tuple[str, ...]]] = {
         "broker": ("BROKER",),
         "original_cost": ("ORIGINAL_COST", "ORIG_COST"),
     },
-    "fx_rates": {
-        "portfolio_id": ("PORTFOLIO_ID", "PORT"),
-        "from_currency": ("FROM_CURRENCY", "FROM_CCY"),
-        "to_currency": ("TO_CURRENCY", "TO_CCY"),
-        "rate_date": ("RATE_DATE",),
-        "fx_rate": ("FX_RATE",),
-        "local_exposure": ("LOCAL_EXPOSURE",),
-        "rate_source": ("RATE_SOURCE", "SOURCE"),
-        "rate_type": ("RATE_TYPE",),
-    },
     "splits": {
         "security_id": ("SECURITY_ID", "SEC"),
         "security_name": ("SECURITY_NAME",),

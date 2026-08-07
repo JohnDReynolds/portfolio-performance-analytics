@@ -26,7 +26,6 @@ the exact object/profile names, fields, parameters, and date/currency basis.
 | `secperf.csv` | REP security-performance or attribution report preferred. | Does it provide security return and portfolio/security keys? Do weights and contributions foot to the portfolio report? |
 | `holdings.csv` | IMEX positions/holdings export or REP appraisal report. | Are values local or portfolio-base? Is accrued income included in market value or stated separately? Can both beginning and ending dates be produced? |
 | `transactions.csv` | IMEX transaction export first; REP/custom report fallback. | Are transaction code, amount, security, and economic date present? For ambiguous codes, are source/destination and special-security fields available? |
-| `fx_rates.csv` | Validated REP, FX/price, or other controlled local source. | What is the quote convention, effective date, source, rate type, portfolio base currency, and linked local exposure? |
 | `splits.csv` | `split.inf` or an equivalent local split-factor export. | Is the factor a multiplier or inverse? Which date is represented? |
 | `secmast.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
 
