@@ -47,8 +47,8 @@ The maintained demonstration compares Mega-Cap Alpha with the Mega-Cap Benchmark
 - **Which area drove the result?** Information Technology was the largest
   positive contributor, with roughly 351 bps of total attribution effect.
 - **Did the portfolio take more risk?** Slightly, but risk-adjusted results still
-  improved: Sharpe was about 0.70 versus 0.67, and Sortino was about 1.96 versus
-  1.85.
+  improved: Sharpe was about 0.71 versus 0.67, and Sortino was about 1.58 versus
+  1.49.
 
 <img
   src="../images/readme/OverallAttributionByEconomicSector.png"

@@ -25,46 +25,107 @@ class Frequency(Enum):
     """
 
     AS_OFTEN_AS_POSSIBLE = "Periodic"  # As often as possible based on the frequency of the data.
-    MONTHLY = "Monthly"  # Currently only supports calendar month-end, not business month-end.
+    MONTHLY = "Monthly"  # Calendar months with conservative weekend-end support.
     QUARTERLY = "Quarterly"  # Calendar quarters.
     YEARLY = "Yearly"  # Calendar years.
 
 
 def date_matches_frequency(date: dt.date, frequency: Frequency) -> bool:
-    """Determine whether a date aligns with a reporting frequency.
+    """Determine whether a date can close a reporting-frequency bucket.
 
     Args:
         date: The date to evaluate.
         frequency: The reporting frequency to test against.
 
     Returns:
-        ``True`` if the date aligns with the specified reporting frequency;
-        otherwise, ``False``.
+        ``True`` when ``date`` is the literal calendar endpoint, or the
+        preceding Friday when that endpoint falls on Saturday or Sunday.
+        Returns ``False`` otherwise.
+
+    Notes:
+        This is deliberately a last-weekday rule, not a market-calendar rule.
+        It does not infer that a weekday holiday closes a reporting period.
     """
-    match frequency:
-        case Frequency.AS_OFTEN_AS_POSSIBLE:
-            return True
-        case Frequency.MONTHLY:
-            return _is_calendar_month_end(date)
-        case Frequency.QUARTERLY:
-            return date.month in (3, 6, 9, 12) and _is_calendar_month_end(date)
-        case Frequency.YEARLY:
-            return date.month == 12 and _is_calendar_month_end(date)
+    if frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
+        return True
+
+    calendar_endpoint = frequency_bucket_end(
+        frequency_bucket(date, frequency),
+        frequency,
+    )
+    if date == calendar_endpoint:
+        return True
+    if calendar_endpoint.weekday() == 5:
+        return date == calendar_endpoint - dt.timedelta(days=1)
+    if calendar_endpoint.weekday() == 6:
+        return date == calendar_endpoint - dt.timedelta(days=2)
+    return False
 
 
-def _is_calendar_month_end(date: dt.date) -> bool:
-    """Determine whether a date is a calendar month-end date.
+def frequency_bucket(date: dt.date, frequency: Frequency) -> int:
+    """Return the ordered reporting bucket containing a date.
 
     Args:
-        date: The date to evaluate.
+        date: Date assigned to a reporting bucket.
+        frequency: Frequency defining the bucket.
 
     Returns:
-        ``True`` if the date is the final calendar day of the month;
-        otherwise, ``False``.
+        Integer bucket identifier that increases by one for each consecutive
+        reporting period.
     """
-    if date.day < 28:
-        return False
-    return date.day == calendar.monthrange(date.year, date.month)[1]
+    if frequency == Frequency.MONTHLY:
+        return date.year * 12 + date.month - 1
+    if frequency == Frequency.QUARTERLY:
+        return date.year * 4 + (date.month - 1) // 3
+    if frequency == Frequency.YEARLY:
+        return date.year
+    return date.toordinal()
+
+
+def frequency_bucket_end(bucket: int, frequency: Frequency) -> dt.date:
+    """Return the nominal calendar endpoint for a reporting bucket.
+
+    Args:
+        bucket: Ordered bucket identifier returned by
+            :func:`frequency_bucket`.
+        frequency: Frequency defining the bucket.
+
+    Returns:
+        Calendar endpoint for the reporting bucket.
+    """
+    if frequency == Frequency.MONTHLY:
+        year, zero_based_month = divmod(bucket, 12)
+        month = zero_based_month + 1
+        return dt.date(year, month, calendar.monthrange(year, month)[1])
+    if frequency == Frequency.QUARTERLY:
+        year, zero_based_quarter = divmod(bucket, 4)
+        month = (zero_based_quarter + 1) * 3
+        return dt.date(year, month, calendar.monthrange(year, month)[1])
+    if frequency == Frequency.YEARLY:
+        return dt.date(bucket, 12, 31)
+    return dt.date.fromordinal(bucket)
+
+
+def frequency_bucket_label(bucket: int, frequency: Frequency) -> str:
+    """Return a human-readable label for a reporting bucket.
+
+    Args:
+        bucket: Ordered bucket identifier returned by
+            :func:`frequency_bucket`.
+        frequency: Frequency defining the bucket.
+
+    Returns:
+        Calendar month, quarter, year, or date label.
+    """
+    if frequency == Frequency.MONTHLY:
+        year, zero_based_month = divmod(bucket, 12)
+        return f"{year:04d}-{zero_based_month + 1:02d}"
+    if frequency == Frequency.QUARTERLY:
+        year, zero_based_quarter = divmod(bucket, 4)
+        return f"{year:04d}-Q{zero_based_quarter + 1}"
+    if frequency == Frequency.YEARLY:
+        return str(bucket)
+    return frequency_bucket_end(bucket, frequency).isoformat()
 
 
 def periods_per_year(frequency: Frequency) -> int:
@@ -116,34 +177,30 @@ def validate_frequency_coverage(
     if frequency == Frequency.AS_OFTEN_AS_POSSIBLE or not periods:
         return
 
-    def _bucket(date: dt.date) -> int:
-        if frequency == Frequency.MONTHLY:
-            return date.year * 12 + date.month - 1
-        if frequency == Frequency.QUARTERLY:
-            return date.year * 4 + (date.month - 1) // 3
-        return date.year
-
-    def _bucket_label(bucket: int) -> str:
-        if frequency == Frequency.MONTHLY:
-            year, zero_based_month = divmod(bucket, 12)
-            return f"{year:04d}-{zero_based_month + 1:02d}"
-        if frequency == Frequency.QUARTERLY:
-            year, zero_based_quarter = divmod(bucket, 4)
-            return f"{year:04d}-Q{zero_based_quarter + 1}"
-        return str(bucket)
-
     covered_buckets: set[int] = set()
     for from_date, thru_date in periods:
-        covered_buckets.update(range(_bucket(from_date), _bucket(thru_date) + 1))
-    first_bucket = min(_bucket(from_date) for from_date, _ in periods)
-    last_bucket = max(_bucket(thru_date) for _, thru_date in periods)
+        covered_buckets.update(
+            range(
+                frequency_bucket(from_date, frequency),
+                frequency_bucket(thru_date, frequency) + 1,
+            )
+        )
+    first_bucket = min(
+        frequency_bucket(from_date, frequency) for from_date, _ in periods
+    )
+    last_bucket = max(
+        frequency_bucket(thru_date, frequency) for _, thru_date in periods
+    )
     missing_buckets = [
         bucket
         for bucket in range(first_bucket, last_bucket + 1)
         if bucket not in covered_buckets
     ]
     if missing_buckets:
-        missing_labels = [_bucket_label(bucket) for bucket in missing_buckets]
+        missing_labels = [
+            frequency_bucket_label(bucket, frequency)
+            for bucket in missing_buckets
+        ]
         raise PpaError(
             f"missing {frequency.value.lower()} coverage for {missing_labels}.",
             253,

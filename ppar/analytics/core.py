@@ -23,6 +23,9 @@ from ppar.analytics.attribution import Attribution
 from ppar.analytics.frequency import (
     Frequency,
     date_matches_frequency,
+    frequency_bucket,
+    frequency_bucket_end,
+    frequency_bucket_label,
     validate_frequency_coverage,
 )
 from ppar.analytics.mapping import Mapping
@@ -39,6 +42,82 @@ _AttributionCacheKey = tuple[
     tuple[Hashable, Hashable],
     str | None,
 ]
+_FREQUENCY_BUCKET_COLUMN = "_frequency_bucket"
+
+
+def _completed_frequency_bucket_ends(
+    source_periods: pl.DataFrame,
+    frequency: Frequency,
+    error_context: str,
+) -> dict[int, dt.date]:
+    """Return source endpoints for complete fixed-frequency buckets.
+
+    Args:
+        source_periods: One row per source period, ordered by thru date.
+        frequency: Fixed reporting frequency.
+        error_context: Performance context included in validation failures.
+
+    Returns:
+        Mapping from complete reporting bucket to its latest source thru date.
+        A source period spanning a nominal endpoint proves an interior bucket
+        rollover, including exchange-holiday cases. An incomplete final bucket
+        is omitted.
+
+    Raises:
+        PpaError: If an interior reporting bucket is absent or does not end on
+            an accepted calendar or weekend-adjusted boundary.
+    """
+    source_dates = list(
+        source_periods.select(cols.DATE_COLUMNS)
+        .unique()
+        .sort(cols.THRU_DATE)
+        .iter_rows()
+    )
+    validate_frequency_coverage(source_dates, frequency)
+
+    latest_thru_date_by_bucket: dict[int, dt.date] = {}
+    boundary_spanning_buckets: set[int] = set()
+    for _from_date, thru_date in source_dates:
+        bucket = frequency_bucket(thru_date, frequency)
+        latest_thru_date_by_bucket[bucket] = max(
+            thru_date,
+            latest_thru_date_by_bucket.get(bucket, dt.date.min),
+        )
+        from_bucket = frequency_bucket(_from_date, frequency)
+        for crossed_bucket in range(from_bucket, bucket):
+            nominal_end = frequency_bucket_end(crossed_bucket, frequency)
+            if _from_date <= nominal_end <= thru_date:
+                boundary_spanning_buckets.add(crossed_bucket)
+
+    first_bucket = min(latest_thru_date_by_bucket)
+    last_bucket = max(latest_thru_date_by_bucket)
+    incomplete_interior_buckets: list[int] = []
+    completed_bucket_ends: dict[int, dt.date] = {}
+    for bucket in range(first_bucket, last_bucket + 1):
+        thru_date = latest_thru_date_by_bucket.get(bucket)
+        if thru_date is not None and (
+            date_matches_frequency(thru_date, frequency)
+            or bucket in boundary_spanning_buckets
+        ):
+            completed_bucket_ends[bucket] = thru_date
+        elif bucket != last_bucket:
+            incomplete_interior_buckets.append(bucket)
+
+    if incomplete_interior_buckets:
+        labels = [
+            frequency_bucket_label(bucket, frequency)
+            for bucket in incomplete_interior_buckets
+        ]
+        raise PpaError(
+            f"{error_context}: reporting buckets do not have complete endpoints "
+            f"for {labels}.",
+            253,
+            context={
+                "frequency": frequency.value,
+                "incomplete_periods": labels,
+            },
+        )
+    return completed_bucket_ends
 
 
 def _data_source_cache_token(source: util.AllDataSources | None) -> Hashable:
@@ -230,7 +309,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
 
         # Get the from dates and thru dates for all subperiods that are common between the
         # two Performance objects.
-        self._subperiod_dates = self._calculate_subperiod_dates(
+        self._subperiod_dates, self._subperiod_buckets = self._calculate_subperiod_dates(
             f"from {util.date_str(from_date)} to {util.date_str(thru_date)}"
         )
 
@@ -279,20 +358,24 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         """
         return self._subperiod_dates[0][0]
 
-    def _calculate_subperiod_dates(self, message_suffix: str) -> list[tuple[dt.date, dt.date]]:
+    def _calculate_subperiod_dates(
+        self,
+        message_suffix: str,
+    ) -> tuple[list[tuple[dt.date, dt.date]], list[int]]:
         """Calculate common subperiod dates for portfolio and benchmark data.
 
         Finds from and thru dates that exist in both Performance objects,
-        optionally filters those dates to match ``self._frequency``, and pairs each
-        from date with the next valid thru date.
+        aligns fixed frequencies by calendar bucket, and pairs each from date
+        with the next valid thru date.
 
         Args:
             message_suffix: Suffix to include in the ``PpaError`` message when no
                 valid subperiods are found.
 
         Returns:
-            A list of ``(from_date, thru_date)`` tuples for the aligned
-            subperiods.
+            Aligned ``(from_date, thru_date)`` tuples and their fixed-frequency
+            bucket identifiers. The bucket list is empty for native-frequency
+            data.
 
         Raises:
             PpaError: If no common subperiods can be calculated.
@@ -310,42 +393,46 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             """
             return dates1.filter(dates1.is_in(dates2.to_list())).sort()
 
-        def _filter_dates_on_frequency(dates: pl.Series | list[dt.date]) -> list[dt.date]:
-            """Return dates that match the Analytics reporting frequency.
-
-            Args:
-                dates: Dates to filter.
-
-            Returns:
-                List of dates that satisfy ``date_matches_frequency`` for
-                ``self._frequency``.
-            """
-            return [date for date in dates if date_matches_frequency(date, self._frequency)]
-
         # Cache one row per reporting period from each performance stream.
         df0 = self._performances[0].period_totals()
         df1 = self._performances[1].period_totals()
 
-        common_from_dates: pl.Series | list[dt.date] = _common_dates(
-            df0[cols.FROM_DATE], df1[cols.FROM_DATE]
-        )
-        common_thru_dates: pl.Series | list[dt.date] = _common_dates(
-            df0[cols.THRU_DATE], df1[cols.THRU_DATE]
-        )
-
         if self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE:
-            common_thru_dates = _filter_dates_on_frequency(common_thru_dates)
-            subperiod_dates: list[tuple[dt.date, dt.date]] = []
+            complete_buckets = [
+                _completed_frequency_bucket_ends(
+                    source_periods,
+                    self._frequency,
+                    performance.error_message_context,
+                )
+                for source_periods, performance in zip(
+                    (df0, df1),
+                    self._performances,
+                )
+            ]
+            common_buckets = sorted(
+                set(complete_buckets[0]).intersection(complete_buckets[1])
+            )
             next_from_date = max(
                 cast(dt.date, df0[cols.FROM_DATE].min()),
                 cast(dt.date, df1[cols.FROM_DATE].min()),
             )
-            for thru_date in common_thru_dates:
+            subperiod_dates = []
+            subperiod_buckets = []
+            for bucket in common_buckets:
+                thru_date = frequency_bucket_end(bucket, self._frequency)
                 if next_from_date <= thru_date:
                     subperiod_dates.append((next_from_date, thru_date))
+                    subperiod_buckets.append(bucket)
                     next_from_date = thru_date + dt.timedelta(days=1)
         else:
+            common_from_dates = _common_dates(
+                df0[cols.FROM_DATE], df1[cols.FROM_DATE]
+            )
+            common_thru_dates = _common_dates(
+                df0[cols.THRU_DATE], df1[cols.THRU_DATE]
+            )
             subperiod_dates = []
+            subperiod_buckets = []
             idx = 0
             len_common_thru_dates = len(common_thru_dates)
             for start_date in common_from_dates:
@@ -359,19 +446,8 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         if len(subperiod_dates) == 0:
             raise PpaError(message_suffix, 202)
 
-        for source_periods in (df0, df1):
-            validate_frequency_coverage(
-                list(
-                    source_periods.select(cols.DATE_COLUMNS)
-                    .unique()
-                    .sort(cols.THRU_DATE)
-                    .iter_rows()
-                ),
-                self._frequency,
-            )
-
         # Return the common from and thru dates that define the subperiods.
-        return subperiod_dates
+        return subperiod_dates, subperiod_buckets
 
     def classification_names(self) -> tuple[str | None, str | None]:
         """Return the portfolio and benchmark classification names.
@@ -388,9 +464,9 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
     def _consolidate_all_subperiods(self) -> None:
         """Consolidate portfolio and benchmark data to the aligned subperiods.
 
-        For each Performance object, verifies that enough rows exist for the aligned
-        subperiods. If the Performance contains more rows than the aligned subperiod
-        list, consolidates the extra rows to the requested frequency.
+        For each Performance object, verifies that enough rows exist for the
+        aligned subperiods. Fixed-frequency data is always consolidated so
+        portfolio and benchmark source dates can align by reporting bucket.
 
         Raises:
             PpaError: If a Performance has fewer rows than the calculated subperiod
@@ -407,7 +483,10 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
                     999,
                 )
 
-            if len(self._subperiod_dates) < quantity_of_periods:
+            if (
+                self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE
+                or len(self._subperiod_dates) < quantity_of_periods
+            ):
                 performance._replace_calculated_rows(  # pylint: disable=protected-access
                     self._consolidate_subperiods(performance),
                     sort_rows=False,
@@ -428,14 +507,16 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             DataFrame containing one narrow calculated row per identifier in
             each aligned subperiod.
         """
+        subperiod_data: dict[str, list[dt.date] | list[int]] = {
+            "_subperiod_from_date": [bd for bd, _ in self._subperiod_dates],
+            "_subperiod_thru_date": [ed for _, ed in self._subperiod_dates],
+        }
+        if self._subperiod_buckets:
+            subperiod_data[_FREQUENCY_BUCKET_COLUMN] = self._subperiod_buckets
+
         # Create a DataFrame, one row per subperiod.
         subperiods = (
-            pl.DataFrame(
-                {
-                    "_subperiod_from_date": [bd for bd, _ in self._subperiod_dates],
-                    "_subperiod_thru_date": [ed for _, ed in self._subperiod_dates],
-                }
-            )
+            pl.DataFrame(subperiod_data)
             .with_row_index(name="subperiod_id")
             .with_columns(
                 (
@@ -454,12 +535,35 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             cols.QUANTITY_OF_DAYS,
             cols.TOTAL_RETURN,
         ).unique().sort(cols.THRU_DATE)
-        assigned_periods = source_periods.join_asof(
-            subperiods,
-            left_on=cols.THRU_DATE,
-            right_on="_subperiod_from_date",
-            strategy="backward",
-        )
+        if self._subperiod_buckets:
+            source_periods = source_periods.with_columns(
+                pl.Series(
+                    _FREQUENCY_BUCKET_COLUMN,
+                    [
+                        frequency_bucket(thru_date, self._frequency)
+                        for thru_date in source_periods[cols.THRU_DATE]
+                    ],
+                    dtype=pl.Int64,
+                )
+            )
+            assigned_periods = source_periods.join(
+                subperiods,
+                on=_FREQUENCY_BUCKET_COLUMN,
+                how="inner",
+            )
+            if assigned_periods.height != source_periods.height:
+                raise PpaError(
+                    f"{performance.error_message_context}: source periods did not "
+                    "map one-to-one into aligned reporting buckets.",
+                    999,
+                )
+        else:
+            assigned_periods = source_periods.join_asof(
+                subperiods,
+                left_on=cols.THRU_DATE,
+                right_on="_subperiod_from_date",
+                strategy="backward",
+            )
 
         # A reporting-period total return must compound the lower-frequency rows.
         # A +10% day followed by a -10% day is -1%, not 0%.

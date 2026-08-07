@@ -15,7 +15,12 @@ from tests import test_utilities as test_util
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
-from ppar.analytics.frequency import Frequency
+from ppar.analytics.frequency import (
+    date_matches_frequency,
+    Frequency,
+    frequency_bucket,
+    frequency_bucket_end,
+)
 from ppar.analytics.performance import Performance
 import ppar.errors as errs
 from ppar.errors import PpaError
@@ -24,6 +29,61 @@ import ppar.utilities as util
 
 class TestFrequencyIntegration(unittest.TestCase):
     """Verify fixture-based consolidation and date-window workflows."""
+
+    def test_fixed_frequency_endpoint_candidates_are_conservative(self) -> None:
+        """Weekend month ends accept Friday without accepting incomplete weekdays."""
+        cases = (
+            (dt.date(2022, 12, 30), Frequency.MONTHLY, True),
+            (dt.date(2023, 12, 29), Frequency.MONTHLY, True),
+            (dt.date(2023, 12, 28), Frequency.MONTHLY, False),
+            (dt.date(2023, 7, 28), Frequency.MONTHLY, False),
+            (dt.date(2023, 7, 29), Frequency.MONTHLY, False),
+            (dt.date(2024, 1, 31), Frequency.MONTHLY, True),
+            (dt.date(2024, 2, 29), Frequency.MONTHLY, True),
+            (dt.date(2021, 2, 26), Frequency.MONTHLY, True),
+            (dt.date(2022, 2, 25), Frequency.MONTHLY, False),
+            (dt.date(2024, 3, 28), Frequency.QUARTERLY, False),
+            (dt.date(2024, 3, 29), Frequency.QUARTERLY, True),
+            (dt.date(2023, 8, 31), Frequency.QUARTERLY, False),
+            (dt.date(2023, 9, 29), Frequency.QUARTERLY, True),
+            (dt.date(2022, 12, 30), Frequency.YEARLY, True),
+            (dt.date(2023, 12, 28), Frequency.YEARLY, False),
+        )
+
+        for date, frequency, expected in cases:
+            with self.subTest(date=date, frequency=frequency):
+                self.assertEqual(
+                    date_matches_frequency(date, frequency),
+                    expected,
+                )
+
+    def test_frequency_bucket_end_is_the_nominal_calendar_label(self) -> None:
+        """Weekend-adjusted source dates retain canonical report labels."""
+        for date, frequency, expected_end in (
+            (
+                dt.date(2023, 12, 29),
+                Frequency.MONTHLY,
+                dt.date(2023, 12, 31),
+            ),
+            (
+                dt.date(2023, 9, 29),
+                Frequency.QUARTERLY,
+                dt.date(2023, 9, 30),
+            ),
+            (
+                dt.date(2022, 12, 30),
+                Frequency.YEARLY,
+                dt.date(2022, 12, 31),
+            ),
+        ):
+            with self.subTest(date=date, frequency=frequency):
+                self.assertEqual(
+                    frequency_bucket_end(
+                        frequency_bucket(date, frequency),
+                        frequency,
+                    ),
+                    expected_end,
+                )
 
     def test_crazy_frequency(self) -> None:
         """Irregular portfolio and benchmark frequency inputs align correctly."""
@@ -84,7 +144,8 @@ class TestFrequencyIntegration(unittest.TestCase):
         self.assertTrue(util.are_near(output[cols.PORTFOLIO_RETURN].item(8), 0.2401702546346276))
         self.assertTrue(
             util.are_near(
-                attribution._df[cols.TOTAL_EFFECT_SMOOTHED].item(3), -0.002740959239265768
+                attribution._df[cols.TOTAL_EFFECT_SMOOTHED].item(3),
+                -0.0027455892808818704,
             )
         )
 
@@ -147,8 +208,8 @@ class TestFrequencyIntegration(unittest.TestCase):
                 frequency=Frequency.MONTHLY,
             )
 
-    def test_fixed_frequency_allows_nonreporting_weekend_gap(self) -> None:
-        """Business-day source periods need not account for weekend dates."""
+    def test_fixed_frequency_recognizes_weekend_adjusted_month_end(self) -> None:
+        """Friday before a weekend month-end closes its own reporting bucket."""
         performance = test_util.make_performance_df(
             (
                 (dt.date(2021, 1, 1), dt.date(2021, 1, 29)),
@@ -164,8 +225,112 @@ class TestFrequencyIntegration(unittest.TestCase):
         )
 
         summary = analytics.get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+        self.assertEqual(summary.height, 2)
+        self.assertEqual(
+            summary[cols.THRU_DATE].to_list(),
+            [dt.date(2021, 1, 31), dt.date(2021, 2, 28)],
+        )
+
+    def test_fixed_frequency_aligns_different_source_end_dates_by_bucket(self) -> None:
+        """Friday and literal weekend endpoints share one canonical month."""
+        portfolio = test_util.make_performance_df(
+            ((dt.date(2023, 12, 1), dt.date(2023, 12, 29)),),
+            {"A": ([0.01], [1.0])},
+        )
+        benchmark = test_util.make_performance_df(
+            ((dt.date(2023, 12, 1), dt.date(2023, 12, 31)),),
+            {"A": ([0.02], [1.0])},
+        )
+
+        summary = Analytics(
+            portfolio,
+            benchmark,
+            frequency=Frequency.MONTHLY,
+        ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+
         self.assertEqual(summary.height, 1)
-        self.assertEqual(summary[cols.THRU_DATE].item(), dt.date(2021, 2, 28))
+        self.assertEqual(summary[cols.FROM_DATE].item(), dt.date(2023, 12, 1))
+        self.assertEqual(summary[cols.THRU_DATE].item(), dt.date(2023, 12, 31))
+        self.assertTrue(util.are_near(summary[cols.PORTFOLIO_RETURN].item(), 0.01))
+        self.assertTrue(util.are_near(summary[cols.BENCHMARK_RETURN].item(), 0.02))
+
+    def test_fixed_frequency_prefers_one_bucket_when_two_endpoints_qualify(
+        self,
+    ) -> None:
+        """Friday and literal weekend rows consolidate into one observation."""
+        performance = test_util.make_performance_df(
+            (
+                (dt.date(2023, 12, 1), dt.date(2023, 12, 29)),
+                (dt.date(2023, 12, 30), dt.date(2023, 12, 31)),
+            ),
+            {"A": ([0.01, 0.02], [1.0, 1.0])},
+        )
+
+        summary = Analytics(
+            performance,
+            performance.clone(),
+            frequency=Frequency.MONTHLY,
+        ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+
+        self.assertEqual(summary.height, 1)
+        self.assertEqual(summary[cols.THRU_DATE].item(), dt.date(2023, 12, 31))
+        self.assertTrue(
+            util.are_near(summary[cols.PORTFOLIO_RETURN].item(), 0.0302)
+        )
+
+    def test_fixed_frequency_omits_incomplete_terminal_bucket(self) -> None:
+        """A terminal Thursday does not masquerade as a completed month."""
+        performance = test_util.make_performance_df(
+            (
+                (dt.date(2023, 11, 1), dt.date(2023, 11, 30)),
+                (dt.date(2023, 12, 1), dt.date(2023, 12, 28)),
+            ),
+            {"A": ([0.01, 0.02], [1.0, 1.0])},
+        )
+
+        summary = Analytics(
+            performance,
+            performance.clone(),
+            frequency=Frequency.MONTHLY,
+        ).get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+
+        self.assertEqual(summary.height, 1)
+        self.assertEqual(summary[cols.THRU_DATE].item(), dt.date(2023, 11, 30))
+
+    def test_fixed_frequency_rejects_only_incomplete_terminal_bucket(self) -> None:
+        """A Thursday-only terminal month cannot align to a complete benchmark."""
+        portfolio = test_util.make_performance_df(
+            ((dt.date(2023, 12, 1), dt.date(2023, 12, 28)),),
+            {"A": ([0.01], [1.0])},
+        )
+        benchmark = test_util.make_performance_df(
+            ((dt.date(2023, 12, 1), dt.date(2023, 12, 31)),),
+            {"A": ([0.02], [1.0])},
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[202]):
+            Analytics(
+                portfolio,
+                benchmark,
+                frequency=Frequency.MONTHLY,
+            )
+
+    def test_fixed_frequency_rejects_incomplete_interior_bucket(self) -> None:
+        """An incomplete month cannot be silently merged into the next month."""
+        performance = test_util.make_performance_df(
+            (
+                (dt.date(2023, 12, 1), dt.date(2023, 12, 28)),
+                (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+            ),
+            {"A": ([0.01, 0.02], [1.0, 1.0])},
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[253]):
+            Analytics(
+                performance,
+                performance.clone(),
+                frequency=Frequency.MONTHLY,
+            )
 
     def test_specify_dates(self) -> None:
         """Explicit dates filter the fixture performance rows inclusively."""

@@ -1,6 +1,7 @@
 """Contract tests for the packaged Mega-Cap analytics demo data."""
 
 # Python Imports
+import datetime as dt
 from pathlib import Path
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ from ppar.analytics.attribution import View
 from ppar.analytics.cli import _frequency_from_string
 from ppar.analytics.cli import run_analytics
 from ppar.analytics.frequency import Frequency
+import ppar.analytics.schema as cols
 from ppar.axys_apx import AxysData
 
 
@@ -173,6 +175,55 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         )
 
         self.assertIn(expected_story, readme)
+
+    def test_fixed_frequencies_preserve_every_completed_demo_bucket(self) -> None:
+        """Weekend source endpoints do not disappear from fixed-frequency output."""
+        expected = (
+            (Frequency.MONTHLY, 60, dt.date(2026, 5, 31)),
+            (Frequency.QUARTERLY, 20, dt.date(2026, 3, 31)),
+            (Frequency.YEARLY, 5, dt.date(2025, 12, 31)),
+        )
+        portfolio_source = _read_performance(_PORTFOLIO_PATH)
+
+        for frequency, expected_count, expected_end in expected:
+            with self.subTest(frequency=frequency):
+                analytics = Analytics(
+                    _PORTFOLIO_PATH,
+                    _BENCHMARK_PATH,
+                    portfolio_classification_name="Security",
+                    benchmark_classification_name="Security",
+                    frequency=frequency,
+                )
+                summary = analytics.get_attribution(
+                    "Security",
+                    _SECURITY_PATH,
+                ).to_polars(View.SUBPERIOD_SUMMARY)
+
+                self.assertEqual(summary.height, expected_count)
+                self.assertEqual(summary[cols.THRU_DATE].item(-1), expected_end)
+                if frequency == Frequency.QUARTERLY:
+                    self.assertTrue(
+                        {
+                            dt.date(2022, 12, 31),
+                            dt.date(2023, 9, 30),
+                            dt.date(2023, 12, 31),
+                            dt.date(2024, 3, 31),
+                            dt.date(2024, 6, 30),
+                        }.issubset(summary[cols.THRU_DATE].to_list())
+                    )
+
+                included_source = portfolio_source[
+                    portfolio_source["thru_date"] <= pd.Timestamp(expected_end)
+                ]
+                consolidated_return = cast(
+                    float,
+                    (summary[cols.PORTFOLIO_RETURN] + 1).product() - 1,
+                )
+                self.assertAlmostEqual(
+                    consolidated_return,
+                    _cumulative_return(included_source),
+                    places=12,
+                )
 
     def test_axys_apx_analytics_fixture_matches_canonical_performance(self) -> None:
         """Axys analytics demo data is a lossless wrapper around Mega-Cap data."""
