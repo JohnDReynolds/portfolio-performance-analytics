@@ -13,6 +13,7 @@ from ppar.audit.data_issues import checks as data_issue_checks
 from ppar.audit.performance_comparison import explain
 from ppar.audit.performance_comparison import findings
 from ppar.audit.performance_comparison import return_reconstruction
+from ppar.audit import review_glossary
 from ppar.audit.review_keys import REVIEW_KEY
 
 __all__ = [
@@ -362,10 +363,13 @@ def workbook_column_tooltip(column: str) -> str:
             "Snapshot B reported performance minus snapshot A reported performance."
         ),
         ESTIMATED_CAUSE_TOTAL: (
-            'Total performance difference explained by "Performance Difference '
-            'Causes" sheet rows.'
+            "Total supported, quantified causes included from the Performance "
+            "Difference Causes sheet."
         ),
-        UNEXPLAINED_CHANGE: "Performance difference less explained difference.",
+        UNEXPLAINED_CHANGE: (
+            "Performance Difference minus Explained Difference. This is blank when "
+            "the status is Fully Explained."
+        ),
         USE: "Workbook row category used for sorting and compatibility.",
         CHANGE_LABEL: "Plain-English changed data item.",
         DATASET_FIELD: (
@@ -380,7 +384,8 @@ def workbook_column_tooltip(column: str) -> str:
             "Date represented by the input row. Holding rows use the period Thru Date."
         ),
         ESTIMATED_IMPACT: (
-            "Decimal performance difference explained by this underlying input row."
+            "A supported, quantified cause included in Explained Difference. A blank "
+            "value is not counted."
         ),
         IMPACT_STATUS: (
             "Whether this row has an additive estimate, is missing an impact method, "
@@ -389,12 +394,13 @@ def workbook_column_tooltip(column: str) -> str:
         REVIEW_NOTE: "Plain-language explanation for this changed item.",
         REVIEW_GUIDANCE: (
             "Plain-language explanation of what changed and how this row relates "
-            "to the performance difference."
+            "to the performance difference. Yellow identifies a quantified explained "
+            "cause; gold identifies a possible cause that is not counted."
         ),
         explain.PORTFOLIO_RETURN_DELTA: (
             "Snapshot B reported performance minus snapshot A reported performance."
         ),
-        REVIEW_STATUS: "Reviewer triage status for this performance difference.",
+        REVIEW_STATUS: review_glossary.explanation_status_tooltip(),
         explain.ROOT_CAUSE_AREA: (
             "Coarse explanation bucket for a group of findings."
         ),

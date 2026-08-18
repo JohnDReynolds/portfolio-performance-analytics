@@ -1735,8 +1735,9 @@ class TestAuditReport(unittest.TestCase):
                 "the exact performance periods that changed",
                 readme,
             )
-            self.assertIn(
-                "the complete finding-level audit trail behind the report",
+            self.assertNotIn(
+                "Use `source_detail.csv` when you need the complete "
+                "finding-level audit trail behind the report",
                 readme,
             )
             self.assertNotIn("--expand-supporting-files", readme)

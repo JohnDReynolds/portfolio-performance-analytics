@@ -389,8 +389,6 @@ def write_report_bundle_readme(
         ),
         f"5. Use {data_issues_review_artifact} to review cross-reference "
         "consistency checks across Snapshot A and Snapshot B.",
-        f"6. Use `{PROMOTED_SOURCE_DETAIL}` when you need the complete "
-        "finding-level audit trail behind the report.",
         "",
         "## Supporting Audit Evidence",
         "",

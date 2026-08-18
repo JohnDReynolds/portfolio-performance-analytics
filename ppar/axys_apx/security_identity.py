@@ -223,7 +223,7 @@ def with_constructed_security_id(
     Notes:
         Symbols may contain the configured separator. PPAR therefore checks
         the observed component tuples for ambiguous concatenation instead of
-        rejecting legitimate Axys/APX symbols such as ``MARGIN_USD``.
+        rejecting legitimate Axys/APX symbols such as ``FUND_A``.
     """
     missing_columns = set(construction.source_columns) - set(frame.columns)
     if missing_columns:

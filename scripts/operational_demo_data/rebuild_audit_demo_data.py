@@ -1775,7 +1775,7 @@ def _with_demo_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
             "PORT": "INCOME",
             "TRANSACTION_DATE": "2026-01-22",
             "SETTLE_DATE": "2026-01-22",
-            "SEC": "MARGIN_USD",
+            "SEC": "MARGIN",
             "TRAN": "ai",
             "SEC_TYPE": "caus",
             "SRC_DEST_TYPE": "$pth",
@@ -2028,7 +2028,7 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
         ("BALANCED", "2026-04-15", "SAP.DE", "dv"): "MC_BAL_EUR_DIV",
         ("BALANCED", "2026-04-06", "JPM", "dp"): "BALANCED_JPM_WHT",
         ("BALANCED", "2026-03-20", "JPM", "ti"): "BALANCED_TI_20260320",
-        ("INCOME", "2026-01-22", "MARGIN_USD", "ai"): "INCOME_AI_20260122",
+        ("INCOME", "2026-01-22", "MARGIN", "ai"): "INCOME_AI_20260122",
     }
     transaction_keys = list(
         zip(

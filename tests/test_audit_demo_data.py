@@ -844,7 +844,7 @@ class TestAuditDemoData(unittest.TestCase):
             frame,
             portfolio="INCOME",
             transaction_date="2026-01-22",
-            security="MARGIN_USD",
+            security="MARGIN",
             transaction_code="ai",
         )
 

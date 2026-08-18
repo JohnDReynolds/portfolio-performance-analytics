@@ -21,6 +21,7 @@ from ppar.audit import executive_summary as _executive_summary
 from ppar.audit.performance_comparison import explain as _pc_explain
 from ppar.audit.performance_comparison import findings as _pc_findings
 from ppar.audit import rendering as _pc_rendering
+from ppar.audit import review_glossary as _review_glossary
 from ppar.audit import review_model as _pc_review_model
 
 REVIEW_WORKBOOK_ARTIFACT = _pc_review_model.REVIEW_WORKBOOK_ARTIFACT
@@ -657,6 +658,9 @@ def _write_executive_section(
         cell.font = styles["header_font"]
         cell.fill = styles["header_fill"]
         cell.alignment = styles["summary_header_alignment"]
+        tooltip = _review_glossary.audit_term_tooltip(headers[column_number - 1])
+        if tooltip:
+            cell.comment = styles["comment_class"](tooltip, "ppar")
     for row_number, values in enumerate(rows, start=header_row + 1):
         for column_number, value in enumerate(values, start=1):
             cell_value: object = value

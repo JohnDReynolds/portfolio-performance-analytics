@@ -24,6 +24,7 @@ from ppar.audit.performance_comparison import findings as _pc_findings
 from ppar.audit import lineage as _pc_lineage
 from ppar.audit import output_policy as _pc_output_policy
 from ppar.audit import rendering as _pc_rendering
+from ppar.audit import review_glossary as _review_glossary
 from ppar.audit import review_keys as _pc_review_keys
 from ppar.audit import review_model as _pc_review_model
 from ppar.audit import runner as _pc_runner
@@ -244,7 +245,8 @@ def _html_executive_summary_tables(
     ):
         payload = payloads[caption]
         headers = "".join(
-            f'<th scope="col">{_escape_html(header)}</th>'
+            f'<th scope="col"{_html_title_attribute(_review_glossary.audit_term_tooltip(header))}>'
+            f"{_escape_html(header)}</th>"
             for header in payload["columns"]
         )
         body_rows = [
@@ -329,7 +331,7 @@ def _workbook_sheet_available_columns(
 
 def _html_workbook_header_cell(*, column: str, label: str, tooltip: str) -> str:
     """Return one workbook-style HTML header cell."""
-    title_attribute = f' title="{_escape_html(tooltip)}"' if tooltip else ""
+    title_attribute = _html_title_attribute(tooltip)
     class_attribute = f' class="{_pc_rendering.html_column_class(column)}"'
     return (
         f'<th scope="col"{class_attribute}{title_attribute}>'
@@ -379,7 +381,15 @@ def _html_workbook_body_cell(
     if column == "review_destination" and rendered_value:
         section_id = _pc_rendering.html_section_id(str(value))
         rendered_value = f'<a href="#{section_id}">{rendered_value}</a>'
-    return f'<td class="{classes}">{rendered_value}</td>'
+    title_attribute = _html_title_attribute(
+        _review_glossary.audit_value_tooltip(column, value)
+    )
+    return f'<td class="{classes}"{title_attribute}>{rendered_value}</td>'
+
+
+def _html_title_attribute(tooltip: str) -> str:
+    """Return an escaped optional HTML title attribute."""
+    return f' title="{_escape_html(tooltip)}"' if tooltip else ""
 
 
 def _html_workbook_row_value_classes(

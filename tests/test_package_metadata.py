@@ -2336,7 +2336,7 @@ class TestPackageMetadata(unittest.TestCase):
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("INCOME", "2026-01-20", "CASHUSD", "dp")
-        margin_interest_key = ("INCOME", "2026-01-22", "MARGIN_USD", "ai")
+        margin_interest_key = ("INCOME", "2026-01-22", "MARGIN", "ai")
         cash_holding_key = ("INCOME", "CASHUSD", "2026-01-30")
         transactions_a = _demo_transactions_by_natural_key(snapshot_a)
         transactions_b = _demo_transactions_by_natural_key(snapshot_b)

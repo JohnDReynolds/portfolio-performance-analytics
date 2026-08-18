@@ -50,7 +50,7 @@ _NON_MARKET_IDENTIFIERS: Final = {
     "CASHUSD",
     "CASHEUR",
     "CASHGBP",
-    "MARGIN_USD",
+    "MARGIN",
 }
 _QUANTITY_SIGNS: Final = {"by": 1.0, "cs": 1.0, "sl": -1.0, "ss": -1.0}
 _CONTRIBUTION_HOLDINGS: Final = {

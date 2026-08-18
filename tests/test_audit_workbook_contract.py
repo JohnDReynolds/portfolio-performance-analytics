@@ -398,6 +398,17 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 "Changed input field, shown as dataset.field.",
                 html_report,
             )
+            self.assertIn(
+                'title="Count of reported performance differences accounted for '
+                "by supported, quantified causes within the configured tolerance.\"",
+                html_report,
+            )
+            self.assertIn(
+                'title="The reported performance difference is accounted for by '
+                "supported, quantified causes within the configured tolerance.\">"
+                "Fully Explained</td>",
+                html_report,
+            )
             self.assertNotIn("Normalized source dataset", html_report)
             self.assertNotIn(
                 "Browser view for reviewing this performance-comparison bundle.",
@@ -698,7 +709,7 @@ class TestAuditWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "causMARGIN_USD"
+                    and row[5] == "causMARGIN"
                     and str(row[3])[:10] == "2026-01-22"
                 )
                 self.assertTrue(str(ai_row[10]).startswith("ai:"))
@@ -1325,24 +1336,34 @@ class TestAuditWorkbookContract(unittest.TestCase):
                 data_only=True,
             )
             try:
+                executive_sheet = workbook_with_comments["Executive Summary"]
                 differences_sheet = workbook_with_comments["Performance Differences"]
                 causes_sheet = workbook_with_comments["Performance Difference Causes"]
 
+                self.assertIsNotNone(executive_sheet["D2"].comment)
+                assert executive_sheet["D2"].comment is not None
+                self.assertIn(
+                    "accounted for by supported, quantified causes",
+                    executive_sheet["D2"].comment.text,
+                )
                 self.assertEqual(
                     _header_comment(differences_sheet, "Performance Difference"),
                     ("Snapshot B reported performance minus snapshot A " "reported performance."),
                 )
                 self.assertNotIn("Review Key", _header_values(differences_sheet))
-                self.assertEqual(
+                self.assertIn(
+                    "Fully Explained:",
                     _header_comment(differences_sheet, "Status"),
-                    "Reviewer triage status for this performance difference.",
                 )
                 self.assertEqual(
                     _header_comment(
                         causes_sheet,
                         "Performance Difference Explained",
                     ),
-                    ("Decimal performance difference explained by this " "underlying input row."),
+                    (
+                        "A supported, quantified cause included in Explained "
+                        "Difference. A blank value is not counted."
+                    ),
                 )
             finally:
                 workbook_with_comments.close()
