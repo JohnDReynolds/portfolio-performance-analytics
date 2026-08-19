@@ -328,7 +328,7 @@ class TestPackageMetadata(unittest.TestCase):
             for dependency in optional_dependencies["analytics"]
         }
 
-        self.assertEqual(pyproject["project"]["version"], "0.1.6")
+        self.assertEqual(pyproject["project"]["version"], "0.1.7")
         self.assertEqual(ppar.__version__, pyproject["project"]["version"])
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)

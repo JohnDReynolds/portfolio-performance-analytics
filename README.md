@@ -45,6 +45,8 @@ PPAR Audit is built around one operational question:
 
 ## Setup
 
+PPAR requires Python 3.11.9 or newer.
+
 Install the PPAR package:
 
 ```bash

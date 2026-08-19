@@ -18,7 +18,7 @@ build-backend = "setuptools.build_meta"
 #   lower bound that reflects CI/test matrix.
 # - `dependencies`: runtime requirements expressed as minimum compatible versions.
 name = "ppar"
-version = "0.1.6"
+version = "0.1.7"
 description = "Local-first software for explaining changes in reported portfolio performance."
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
 # README file included in the distribution and displayed on PyPI.
@@ -39,7 +39,7 @@ keywords = [
     "APX",
 ]
 # Minimal Python runtime required to run the package.
-requires-python = ">=3.12.1"
+requires-python = ">=3.11.9"
 # Runtime dependencies. These are lower-bound constraints, not exact pins.
 dependencies = [
     "polars>=1.24.0",
@@ -77,7 +77,7 @@ dev = [
 ppar = "ppar.cli:main"
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 files = [
     "ppar",
     "scripts/demo_support",
@@ -90,14 +90,14 @@ warn_unused_configs = true
 [tool.pyright]
 include = ["ppar", "tests"]
 extraPaths = ["tests"]
-pythonVersion = "3.12"
+pythonVersion = "3.11"
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"
 
 [tool.pylint.main]
 persistent = false
-py-version = "3.12"
+py-version = "3.11"
 
 [tool.pylint.format]
 max-line-length = 99

@@ -387,9 +387,10 @@ Install the tested maintainer environment with the repository constraint set:
   --editable ".[analytics,dev]"
 ```
 
-`constraints/ci.txt` pins the Python 3.12 CI and release-candidate environment.
-Update it deliberately alongside dependency upgrades; normal package installs
-continue to use the compatible lower bounds in `pyproject.toml`.
+`constraints/ci.txt` pins the Python 3.11.9 and 3.12.1 CI and
+release-candidate environments. Update it deliberately alongside dependency
+upgrades; normal package installs continue to use the compatible lower bounds
+in `pyproject.toml`.
 
 Use the full check before a larger handoff:
 
