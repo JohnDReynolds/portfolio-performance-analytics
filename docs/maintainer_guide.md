@@ -392,6 +392,13 @@ release-candidate environments. Update it deliberately alongside dependency
 upgrades; normal package installs continue to use the compatible lower bounds
 in `pyproject.toml`.
 
+GitHub Actions runs `scripts/check_project.py --build` on Ubuntu with both
+supported Python versions. Those jobs verify tests, static analysis, package
+building, and installed-wheel smoke behavior across the compatibility matrix.
+They do not run the machine-sensitive 500x timing gate. The unchanged 500x
+hard gate remains part of the local `scripts/check_release_candidate.py --build`
+command and must pass before tagging or publishing a release.
+
 Use the full check before a larger handoff:
 
 ```bash

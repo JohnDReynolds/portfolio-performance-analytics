@@ -1,4 +1,4 @@
-name: Release candidate
+name: Python compatibility
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-candidate-${{ github.ref }}
+  group: python-compatibility-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -47,13 +47,5 @@ jobs:
             --constraint constraints/ci.txt \
             --editable ".[analytics,dev]"
 
-      - name: Run deterministic release-candidate checks
-        run: ./.venv/bin/python scripts/check_release_candidate.py
-
-      - name: Build and smoke-test distributions
-        run: |
-          ./.venv/bin/python scripts/check_project.py \
-            --build \
-            --skip-tests \
-            --skip-types \
-            --skip-pylint
+      - name: Run complete compatibility checks
+        run: ./.venv/bin/python scripts/check_project.py --build

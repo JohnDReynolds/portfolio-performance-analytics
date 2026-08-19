@@ -393,18 +393,27 @@ class TestPackageMetadata(unittest.TestCase):
             )
         )
 
-    def test_ci_runs_the_maintained_release_candidate_gate(self) -> None:
-        """CI delegates to the deterministic runner that owns the 500x gate."""
+    def test_ci_checks_compatibility_while_local_release_owns_scale_gate(self) -> None:
+        """CI checks both runtimes while the local release retains the 500x gate."""
         workflow = Path(".github/workflows/release-candidate.yml").read_text(
             encoding=util.ENCODING
         )
+        release_runner = Path("scripts/check_release_candidate.py").read_text(
+            encoding=util.ENCODING
+        )
 
+        self.assertIn("name: Python compatibility", workflow)
         self.assertIn("constraints/ci.txt", workflow)
         self.assertIn("--editable \".[analytics,dev]\"", workflow)
-        self.assertIn("scripts/check_release_candidate.py", workflow)
+        self.assertIn('"3.11.9"', workflow)
+        self.assertIn('"3.12.1"', workflow)
         self.assertIn("scripts/check_project.py", workflow)
         self.assertIn("--build", workflow)
-        self.assertNotIn("--skip-project-check", workflow)
+        self.assertNotIn("scripts/check_release_candidate.py", workflow)
+        self.assertNotIn("--skip-tests", workflow)
+        self.assertNotIn("--skip-types", workflow)
+        self.assertNotIn("--skip-pylint", workflow)
+        self.assertIn('"scripts/check_scale.py", "--scale", "500"', release_runner)
 
     def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
         """Build metadata uses current setuptools license fields."""
