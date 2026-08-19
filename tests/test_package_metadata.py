@@ -328,7 +328,7 @@ class TestPackageMetadata(unittest.TestCase):
             for dependency in optional_dependencies["analytics"]
         }
 
-        self.assertEqual(pyproject["project"]["version"], "0.1.5")
+        self.assertEqual(pyproject["project"]["version"], "0.1.6")
         self.assertEqual(ppar.__version__, pyproject["project"]["version"])
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
@@ -1014,13 +1014,24 @@ class TestPackageMetadata(unittest.TestCase):
         analytics_readme = Path("docs/analytics/README.md").read_text(
             encoding=util.ENCODING
         )
+        repository_url = (
+            "https://github.com/JohnDReynolds/portfolio-performance-analytics/"
+        )
+        raw_repository_url = (
+            "https://raw.githubusercontent.com/JohnDReynolds/"
+            "portfolio-performance-analytics/"
+        )
 
         self.assertIn("# PPAR Audit", readme)
         self.assertIn("Explain why reported portfolio performance changed.", readme)
         self.assertIn("## What PPAR Audit Answers", readme)
         self.assertIn("**Performance Comparison:**", readme)
         self.assertIn("**Data Issues:**", readme)
-        self.assertIn("docs/images/readme/PerformanceAuditPortfolio.jpg", readme)
+        self.assertIn(
+            f'src="{raw_repository_url}main/docs/images/readme/'
+            'PerformanceAuditPortfolio.jpg"',
+            readme,
+        )
         self.assertIn("alt=\"PPAR Audit portfolio report\"", readme)
         self.assertNotIn("PerformanceComparisonPortfolio.jpg", readme)
         self.assertNotIn("PerformanceComparisonSecurity.jpg", readme)
@@ -1035,7 +1046,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Customizing", readme)
         self.assertNotIn("## For Maintainers", readme)
         self.assertIn("## Additional Repository Capability", readme)
-        self.assertIn("docs/analytics/README.md", readme)
+        self.assertIn(f"]({raw_repository_url}main/PPAR.pdf)", readme)
+        self.assertIn(f"]({repository_url}blob/main/LICENSE)", readme)
+        self.assertIn(
+            f"]({repository_url}blob/main/docs/analytics/README.md)",
+            readme,
+        )
         self.assertIn("# PPAR Analytics", analytics_readme)
         self.assertIn("**Performance Attribution:**", analytics_readme)
         self.assertIn("**Ex-Post Risk:**", analytics_readme)
@@ -1205,17 +1221,27 @@ class TestPackageMetadata(unittest.TestCase):
             Path("README.md"),
             Path("docs/analytics/README.md"),
         )
+        raw_repository_prefix = (
+            "https://raw.githubusercontent.com/JohnDReynolds/"
+            "portfolio-performance-analytics/main/"
+        )
 
         for readme_path in readme_paths:
             readme = readme_path.read_text(encoding=util.ENCODING)
             image_paths = re.findall(r'src="([^"]*images/readme/[^"]+)"', readme)
             self.assertGreater(len(image_paths), 0)
             for image_path in image_paths:
+                if image_path.startswith(raw_repository_prefix):
+                    checked_in_path = Path(
+                        image_path.removeprefix(raw_repository_prefix)
+                    )
+                else:
+                    checked_in_path = readme_path.parent / image_path
                 with self.subTest(
                     readme=readme_path.as_posix(),
                     image_path=image_path,
                 ):
-                    self.assertTrue((readme_path.parent / image_path).exists())
+                    self.assertTrue(checked_in_path.exists())
 
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""

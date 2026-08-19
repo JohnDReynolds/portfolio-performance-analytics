@@ -13,7 +13,7 @@ stays visible for human review.
 - The Python implementation supports automated batch runs and local customization.
 - Standard output includes XLSX, HTML, CSV, JSON, and compact evidence bundles.
 
-[Download the product overview (PDF)](PPAR.pdf) | [License](LICENSE)
+[Download the product overview (PDF)](https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/PPAR.pdf) | [License](https://github.com/JohnDReynolds/portfolio-performance-analytics/blob/main/LICENSE)
 
 Downloading, installing, accessing, copying, or using PPAR constitutes
 acceptance of the license. The public package grants a time-limited internal
@@ -36,7 +36,7 @@ PPAR Audit is built around one operational question:
   indicate data-quality issues independently of the performance explanation.
 
 <img
-  src="docs/images/readme/PerformanceAuditPortfolio.jpg"
+  src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/docs/images/readme/PerformanceAuditPortfolio.jpg"
   alt="PPAR Audit portfolio report"
   width="100%"
 />
@@ -167,7 +167,7 @@ assurance opinion.
 ## Additional Repository Capability
 
 This repository also contains
-[`ppar.analytics`](docs/analytics/README.md), a maintained module for
+[`ppar.analytics`](https://github.com/JohnDReynolds/portfolio-performance-analytics/blob/main/docs/analytics/README.md), a maintained module for
 benchmark-relative performance attribution, contribution, and ex-post risk
 reporting. It is retained for future PPAR packaging but is not part of the current
 PPAR Audit validation program or default onboarding workflow.
